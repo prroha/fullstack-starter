@@ -1,0 +1,73 @@
+// Prisma Schema - Starter Template
+// Customize this schema for your application
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+// ============================================================================
+// MODELS
+// ============================================================================
+
+/// User model - core authentication
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  passwordHash  String    @map("password_hash")
+  name          String?
+  role          UserRole  @default(USER)
+  isActive      Boolean   @default(true) @map("is_active")
+  emailVerified Boolean   @default(false) @map("email_verified")
+
+  // OAuth support (optional)
+  googleId      String?   @unique @map("google_id")
+  authProvider  String    @default("email") @map("auth_provider")
+
+  // Session management
+  activeDeviceId String?  @map("active_device_id")
+
+  // Timestamps
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  // Relations - add your own
+  // posts        Post[]
+  // comments     Comment[]
+
+  @@index([email])
+  @@index([googleId])
+  @@map("users")
+}
+
+// ============================================================================
+// EXAMPLE: Add your own models below
+// ============================================================================
+
+/// Example Post model - remove or customize
+// model Post {
+//   id          String   @id @default(uuid())
+//   title       String
+//   content     String?
+//   published   Boolean  @default(false)
+//   authorId    String   @map("author_id")
+//   author      User     @relation(fields: [authorId], references: [id])
+//   createdAt   DateTime @default(now()) @map("created_at")
+//   updatedAt   DateTime @updatedAt @map("updated_at")
+//
+//   @@index([authorId])
+//   @@map("posts")
+// }
