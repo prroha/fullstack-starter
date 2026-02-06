@@ -2,14 +2,16 @@
 
 import { useAuth } from "@/lib/auth-context";
 import Link from "next/link";
+import { Spinner } from "@/components/ui/spinner";
 
 export default function Home() {
   const { user, isLoading, isAuthenticated, logout } = useAuth();
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p>Loading...</p>
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-background">
+        <Spinner size="lg" />
+        <p className="text-muted-foreground">Loading...</p>
       </div>
     );
   }

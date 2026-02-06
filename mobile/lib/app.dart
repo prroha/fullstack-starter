@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
-import 'core/theme/app_colors.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class MyApp extends StatelessWidget {
+import 'core/theme/app_colors.dart';
+import 'presentation/router/app_router.dart';
+
+class MyApp extends ConsumerWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
+  Widget build(BuildContext context, WidgetRef ref) {
+    final router = ref.watch(routerProvider);
+
+    return MaterialApp.router(
       title: 'Starter App',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
@@ -17,23 +22,7 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
         scaffoldBackgroundColor: AppColors.background,
       ),
-      home: const HomeScreen(),
-    );
-  }
-}
-
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Starter Template'),
-      ),
-      body: const Center(
-        child: Text('Welcome to the Starter Template!'),
-      ),
+      routerConfig: router,
     );
   }
 }

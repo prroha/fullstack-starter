@@ -1,0 +1,464 @@
+# CLAUDE.md - Fullstack Starter Backend
+
+> **Last Updated**: 2026-02-06
+> **Codebase Version**: 1.0.0
+> **Maintainer**: AI-assisted documentation (auto-update on changes)
+
+AI-optimized documentation for quick codebase navigation and understanding.
+
+---
+
+## Quick Search Keywords
+
+Use these to quickly find what you need:
+- **Authentication**: `auth.middleware.ts`, `jwt.ts`, `auth.routes.ts`, `authMiddleware`
+- **Database**: `prisma/schema.prisma`, `db.ts`, `migrations`
+- **Errors**: `error.middleware.ts`, `ApiError`, `response.ts`
+- **Config**: `config/index.ts`, `.env`, environment variables
+- **Validation**: `zod`, controller validation schemas
+- **Routes**: `routes/index.ts`, `auth.routes.ts`
+
+---
+
+## Recent Changes
+
+<!-- Add new entries at the top -->
+| Date | Change | Files |
+|------|--------|-------|
+| 2026-02-06 | Initial documentation | CLAUDE.md |
+
+---
+
+## 1. Architecture Overview
+
+### Tech Stack
+- **Runtime**: Node.js 20+
+- **Framework**: Express.js 4.x
+- **Language**: TypeScript 5.x
+- **Database**: PostgreSQL with Prisma ORM
+- **Authentication**: JWT (httpOnly cookies + Authorization header)
+- **Validation**: Zod
+- **Security**: Helmet, CORS, Rate Limiting
+
+### Design Patterns
+- **Singleton Services**: Services exported as singleton instances
+- **Controller-Service-Route**: Separation of concerns
+- **Middleware Chain**: Express middleware for auth, rate limiting, validation
+- **Error Handling**: Custom `ApiError` class with global error middleware
+
+### Folder Structure
+```
+src/
+├── config/               # Configuration (index.ts)
+├── controllers/          # Route handlers
+├── lib/                  # Core utilities (db, logger)
+├── middleware/           # Express middleware
+├── routes/               # Route definitions
+├── services/             # Business logic
+├── types/                # TypeScript type definitions
+├── utils/                # Helper utilities
+└── app.ts                # Express app entry point
+```
+
+---
+
+## 2. Key Files Index
+
+### Entry Points
+| File | Purpose |
+|------|---------|
+| `src/app.ts` | Express app setup, middleware chain, server start |
+
+### Configuration
+| File | Purpose |
+|------|---------|
+| `src/config/index.ts` | All env vars, config object, helper methods |
+| `prisma/schema.prisma` | Database schema definition |
+| `.env.example` | Environment variable template |
+
+### Important Middleware
+| File | Purpose |
+|------|---------|
+| `src/middleware/auth.middleware.ts` | JWT auth, admin role checks |
+| `src/middleware/error.middleware.ts` | Global error handler, ApiError class |
+
+### Core Utilities
+| File | Purpose |
+|------|---------|
+| `src/lib/db.ts` | Prisma client singleton |
+| `src/lib/logger.ts` | Logging utility (debug/info/warn/error/audit/security) |
+| `src/utils/jwt.ts` | Token generation/verification |
+| `src/utils/response.ts` | Error response formatting, error codes |
+
+---
+
+## 3. API Structure
+
+### Route Files
+| Route File | Base Path | Description |
+|------------|-----------|-------------|
+| `auth.routes.ts` | `/api/v1/auth` | Login, register, logout, me |
+
+### Route Registration
+```typescript
+// src/routes/index.ts
+const v1Router = Router();
+v1Router.use("/auth", authRoutes);
+// Add more routes here
+router.use("/v1", v1Router);
+```
+
+### Authentication Flow
+```
+1. Register: POST /api/v1/auth/register
+   - Creates user with hashed password
+   - Returns user object (no auto-login)
+
+2. Login: POST /api/v1/auth/login
+   - Validates credentials
+   - Sets httpOnly cookies (for web)
+   - Returns: { user, accessToken, refreshToken }
+
+3. Auth Middleware Chain:
+   - authMiddleware: Verifies JWT, attaches req.user + req.dbUser
+   - adminMiddleware: Requires ADMIN role
+   - optionalAuthMiddleware: Attaches user if token present, doesn't fail
+```
+
+### Request/Response Patterns
+
+**Success Response:**
+```json
+{
+  "success": true,
+  "data": { ... },
+  "message": "Optional message"
+}
+```
+
+**Error Response:**
+```json
+{
+  "success": false,
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "Human readable message",
+    "details": { ... }
+  }
+}
+```
+
+**Paginated Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "items": [...],
+    "pagination": {
+      "page": 1,
+      "limit": 20,
+      "total": 100,
+      "totalPages": 5,
+      "hasNext": true,
+      "hasPrev": false
+    }
+  }
+}
+```
+
+---
+
+## 4. Database Schema
+
+### Key Models
+
+**User**
+```prisma
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  passwordHash  String    @map("password_hash")
+  name          String?
+  role          UserRole  @default(USER)
+  isActive      Boolean   @default(true) @map("is_active")
+  emailVerified Boolean   @default(false) @map("email_verified")
+  googleId      String?   @unique @map("google_id")
+  authProvider  String    @default("email") @map("auth_provider")
+  activeDeviceId String?  @map("active_device_id")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+```
+
+### Database Commands
+```bash
+npm run db:migrate:dev   # Create/apply migrations
+npm run db:push          # Push schema (no migration)
+npm run db:studio        # Open Prisma Studio
+npm run db:generate      # Regenerate Prisma client
+```
+
+---
+
+## 5. Common Patterns
+
+### Error Handling
+```typescript
+// Use ApiError class for operational errors
+import { ApiError } from '../middleware/error.middleware';
+
+throw ApiError.notFound("Resource not found");
+throw ApiError.badRequest("Invalid input");
+throw ApiError.unauthorized("Token expired");
+throw ApiError.forbidden("Admin access required");
+throw ApiError.conflict("Email already registered");
+
+// Error middleware catches all errors automatically
+```
+
+### Validation with Zod
+```typescript
+// In controller
+const registerSchema = z.object({
+  email: z.string().email("Invalid email format"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  name: z.string().min(1).optional(),
+});
+
+const validated = registerSchema.parse(req.body);  // Throws ZodError if invalid
+```
+
+### Response Formatting
+```typescript
+import { successResponse, errorResponse, paginatedResponse } from '../utils/response';
+
+// Success
+res.json(successResponse({ user }, "User created"));
+
+// Error
+res.status(400).json(errorResponse("VALIDATION_ERROR", "Invalid input"));
+
+// Paginated
+res.json(paginatedResponse(items, page, limit, total));
+```
+
+### Authentication Helpers
+```typescript
+import {
+  authMiddleware,
+  adminMiddleware,
+  optionalAuthMiddleware,
+  getAuthenticatedUser,
+  isAuthenticated
+} from '../middleware/auth.middleware';
+
+// Get user in controller (after authMiddleware)
+const { payload, user } = getAuthenticatedUser(req);
+
+// Check if authenticated (after optionalAuthMiddleware)
+if (isAuthenticated(req)) {
+  const { user } = getAuthenticatedUser(req);
+}
+```
+
+---
+
+## 6. Environment Variables
+
+### Required
+| Variable | Purpose |
+|----------|---------|
+| `DATABASE_URL` | PostgreSQL connection string |
+| `JWT_SECRET` | JWT signing secret (required in production) |
+
+### Server
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `NODE_ENV` | development | Environment mode |
+| `PORT` | 8000 | Server port |
+| `CORS_ORIGIN` | http://localhost:3000 | Allowed origins (comma-separated) |
+| `TRUST_PROXY` | false | Trust proxy headers (set true behind load balancer) |
+
+### JWT
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `JWT_EXPIRES_IN` | 7d | Access token expiry |
+| `JWT_REFRESH_EXPIRES_IN` | 30d | Refresh token expiry |
+
+### Rate Limiting
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `RATE_LIMIT_WINDOW_MS` | 60000 | Rate limit window (ms) |
+| `RATE_LIMIT_MAX_REQUESTS` | 100 | Max requests per window |
+
+---
+
+## 7. Quick Reference
+
+### Adding a New API Endpoint
+
+1. **Create/update route file** (`src/routes/example.routes.ts`):
+```typescript
+import { Router } from "express";
+import { exampleController } from "../controllers/example.controller";
+import { authMiddleware } from "../middleware/auth.middleware";
+
+const router = Router();
+
+router.get("/", (req, res, next) => exampleController.list(req, res, next));
+router.post("/", authMiddleware, (req, res, next) => exampleController.create(req, res, next));
+
+export default router;
+```
+
+2. **Register route** in `src/routes/index.ts`:
+```typescript
+import exampleRoutes from "./example.routes";
+v1Router.use("/examples", exampleRoutes);
+```
+
+3. **Create controller** (`src/controllers/example.controller.ts`):
+```typescript
+import { Request, Response, NextFunction } from "express";
+import { exampleService } from "../services/example.service";
+import { successResponse } from "../utils/response";
+import { z } from "zod";
+
+const createSchema = z.object({
+  name: z.string().min(1),
+});
+
+class ExampleController {
+  async list(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await exampleService.getAll();
+      res.json(successResponse({ items: result }));
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async create(req: Request, res: Response, next: NextFunction) {
+    try {
+      const validated = createSchema.parse(req.body);
+      const result = await exampleService.create(validated);
+      res.status(201).json(successResponse({ item: result }));
+    } catch (error) {
+      next(error);
+    }
+  }
+}
+
+export const exampleController = new ExampleController();
+```
+
+4. **Create service** (`src/services/example.service.ts`):
+```typescript
+import { db } from "../lib/db";
+
+class ExampleService {
+  async getAll() {
+    return db.example.findMany();
+  }
+
+  async create(data: { name: string }) {
+    return db.example.create({ data });
+  }
+}
+
+export const exampleService = new ExampleService();
+```
+
+### Adding a New Database Model
+
+1. **Update schema** (`prisma/schema.prisma`):
+```prisma
+model Example {
+  id        String   @id @default(uuid())
+  name      String
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([isActive])
+  @@map("examples")
+}
+```
+
+2. **Create migration**:
+```bash
+npm run db:migrate:dev -- --name add_example_table
+```
+
+3. **Regenerate Prisma client**:
+```bash
+npm run db:generate
+```
+
+---
+
+## 8. Useful Commands
+
+```bash
+# Development
+npm run dev              # Start with nodemon
+npm run db:studio        # Open Prisma Studio
+
+# Database
+npm run db:migrate:dev   # Create/apply migrations
+npm run db:push          # Push schema (no migration)
+npm run db:generate      # Regenerate Prisma client
+
+# Code Quality
+npm run lint             # Run ESLint
+npm run lint:fix         # Fix ESLint issues
+
+# Production
+npm run build            # Compile TypeScript
+npm start                # Run production server
+```
+
+---
+
+## 9. Common Issues & Solutions
+
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| `JWT_SECRET required` | Missing env var in prod | Set `JWT_SECRET` in environment |
+| CORS errors | Origin not in whitelist | Add origin to `CORS_ORIGIN` |
+| Database connection | Invalid `DATABASE_URL` | Verify PostgreSQL connection string |
+| Prisma errors | Schema out of sync | Run `npm run db:push` or migrate |
+| 401 on protected routes | Invalid/expired token | Check token, refresh, or re-login |
+
+---
+
+## 10. Critical Code Locations
+
+| Functionality | File | Key Lines |
+|--------------|------|-----------|
+| JWT token generation | `src/utils/jwt.ts` | `generateTokenPair()` |
+| Auth middleware | `src/middleware/auth.middleware.ts` | `authMiddleware`, `adminMiddleware` |
+| Error handling | `src/middleware/error.middleware.ts` | `ApiError` class |
+| Database singleton | `src/lib/db.ts` | Prisma client export |
+| Config | `src/config/index.ts` | All environment variables |
+
+---
+
+## Notes
+
+- All services are singletons - import and use directly
+- Use `logger.audit()` for sensitive operations
+- Use `logger.security()` for security events
+- httpOnly cookies are used for web clients; Authorization header for mobile
+- Single device policy available via `activeDeviceId` field
+
+---
+
+*This documentation is designed to be self-growing. Update the "Recent Changes" section when making significant changes to the codebase.*

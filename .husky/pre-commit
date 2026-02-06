@@ -1,0 +1,14 @@
+#!/bin/sh
+
+# Pre-commit hook - runs lint-staged on staged files
+# This hook is managed by husky
+
+# Exit on error
+set -e
+
+echo "Running pre-commit checks..."
+
+# Run lint-staged
+npx lint-staged
+
+echo "Pre-commit checks passed!"

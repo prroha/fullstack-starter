@@ -1,0 +1,122 @@
+# Development Docker Compose with Hot Reload
+# Usage: docker compose -f docker-compose.dev.yml up
+
+services:
+  # ==========================================================================
+  # PostgreSQL Database (Development)
+  # ==========================================================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: fullstack-postgres-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: fullstack_dev
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - dev-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d fullstack_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ==========================================================================
+  # Backend API (Development with Hot Reload)
+  # ==========================================================================
+  backend:
+    image: node:20-alpine
+    container_name: fullstack-backend-dev
+    working_dir: /app
+    command: sh -c "npm install && npx prisma generate && npx prisma migrate dev --name init --skip-seed 2>/dev/null || true && npm run dev"
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/fullstack_dev?schema=public
+      JWT_SECRET: dev-secret-change-in-production
+      JWT_EXPIRES_IN: 7d
+      CORS_ORIGIN: http://localhost:3000
+    volumes:
+      - ./backend:/app
+      - backend_node_modules:/app/node_modules
+    ports:
+      - "3001:3001"
+    networks:
+      - dev-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # Faster restart on file changes
+    stdin_open: true
+    tty: true
+
+  # ==========================================================================
+  # Frontend Web (Development with Hot Reload)
+  # ==========================================================================
+  web:
+    image: node:20-alpine
+    container_name: fullstack-web-dev
+    working_dir: /app
+    command: sh -c "npm install && npm run dev"
+    environment:
+      NODE_ENV: development
+      NEXT_PUBLIC_API_URL: http://localhost:3001
+      WATCHPACK_POLLING: "true"
+    volumes:
+      - ./web:/app
+      - web_node_modules:/app/node_modules
+      - /app/.next
+    ports:
+      - "3000:3000"
+    networks:
+      - dev-network
+    depends_on:
+      - backend
+    stdin_open: true
+    tty: true
+
+  # ==========================================================================
+  # pgAdmin (Optional - Database GUI)
+  # ==========================================================================
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: fullstack-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    ports:
+      - "5050:80"
+    networks:
+      - dev-network
+    depends_on:
+      - postgres
+    profiles:
+      - tools
+
+# ==========================================================================
+# Networks
+# ==========================================================================
+networks:
+  dev-network:
+    driver: bridge
+
+# ==========================================================================
+# Volumes
+# ==========================================================================
+volumes:
+  postgres_data_dev:
+    driver: local
+  backend_node_modules:
+    driver: local
+  web_node_modules:
+    driver: local
+  pgadmin_data:
+    driver: local

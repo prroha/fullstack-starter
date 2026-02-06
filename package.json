@@ -1,0 +1,36 @@
+{
+  "name": "fullstack-starter",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Fullstack Starter - Backend, Web, and Mobile",
+  "scripts": {
+    "prepare": "husky",
+    "lint": "npm run lint --workspaces --if-present",
+    "lint:fix": "npm run lint:fix --workspaces --if-present",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "build": "npm run build --workspaces --if-present",
+    "dev:backend": "npm run dev --workspace=backend",
+    "dev:web": "npm run dev --workspace=web",
+    "docker:dev": "docker compose -f docker-compose.dev.yml up",
+    "docker:dev:build": "docker compose -f docker-compose.dev.yml up --build",
+    "docker:prod": "docker compose up -d",
+    "docker:prod:build": "docker compose up -d --build",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f"
+  },
+  "workspaces": [
+    "backend",
+    "web"
+  ],
+  "devDependencies": {
+    "husky": "^9.1.0",
+    "lint-staged": "^15.2.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "packageManager": "npm@10.0.0"
+}
