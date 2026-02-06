@@ -1,24 +1,73 @@
 "use client";
 
+import { logger } from "./logger";
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
-/**
- * API Error class
- */
+// =====================================================
+// Configuration
+// =====================================================
+
+interface ApiConfig {
+  baseUrl: string;
+  timeout: number;
+  retries: number;
+  retryDelay: number;
+  retryBackoffMultiplier: number;
+}
+
+const defaultConfig: ApiConfig = {
+  baseUrl: API_BASE_URL,
+  timeout: 30000, // 30 seconds
+  retries: 3,
+  retryDelay: 1000, // 1 second
+  retryBackoffMultiplier: 2,
+};
+
+// =====================================================
+// API Error class
+// =====================================================
+
 export class ApiError extends Error {
   constructor(
     public status: number,
     message: string,
-    public code?: string
+    public code?: string,
+    public details?: unknown,
+    public isRetryable: boolean = false
   ) {
     super(message);
     this.name = "ApiError";
   }
+
+  static fromResponse(status: number, data: Record<string, unknown>): ApiError {
+    const error = data.error as Record<string, unknown> | undefined;
+    return new ApiError(
+      status,
+      (error?.message as string) || "Request failed",
+      error?.code as string | undefined,
+      error?.details,
+      status >= 500 || status === 429
+    );
+  }
+
+  static networkError(message: string, originalError?: Error): ApiError {
+    const error = new ApiError(0, message, "NETWORK_ERROR", undefined, true);
+    if (originalError) {
+      error.cause = originalError;
+    }
+    return error;
+  }
+
+  static timeoutError(): ApiError {
+    return new ApiError(0, "Request timed out", "TIMEOUT_ERROR", undefined, true);
+  }
 }
 
-/**
- * User types
- */
+// =====================================================
+// User types
+// =====================================================
+
 export type UserRole = "USER" | "ADMIN";
 
 export interface User {
@@ -28,9 +77,10 @@ export interface User {
   role: UserRole;
 }
 
-/**
- * API Response types
- */
+// =====================================================
+// API Response types
+// =====================================================
+
 export interface ApiResponse<T> {
   success: boolean;
   data?: T;
@@ -53,51 +103,331 @@ export interface PaginatedResponse<T> {
   };
 }
 
-/**
- * API Client
- */
-class ApiClient {
-  private baseUrl: string;
+// =====================================================
+// Interceptor Types
+// =====================================================
 
-  constructor() {
-    this.baseUrl = API_BASE_URL;
+type RequestInterceptor = (
+  url: string,
+  options: RequestInit
+) => Promise<{ url: string; options: RequestInit }> | { url: string; options: RequestInit };
+
+type ResponseInterceptor = (
+  response: Response,
+  data: unknown
+) => Promise<unknown> | unknown;
+
+type ErrorInterceptor = (error: ApiError) => Promise<ApiError> | ApiError;
+
+// =====================================================
+// Retry Logic Helper
+// =====================================================
+
+async function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function calculateBackoff(attempt: number, baseDelay: number, multiplier: number): number {
+  return baseDelay * Math.pow(multiplier, attempt);
+}
+
+// =====================================================
+// Timeout Helper
+// =====================================================
+
+function fetchWithTimeout(
+  url: string,
+  options: RequestInit,
+  timeout: number
+): Promise<Response> {
+  return new Promise((resolve, reject) => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+      reject(ApiError.timeoutError());
+    }, timeout);
+
+    fetch(url, {
+      ...options,
+      signal: controller.signal,
+    })
+      .then((response) => {
+        clearTimeout(timeoutId);
+        resolve(response);
+      })
+      .catch((error) => {
+        clearTimeout(timeoutId);
+        if (error.name === "AbortError") {
+          reject(ApiError.timeoutError());
+        } else {
+          reject(error);
+        }
+      });
+  });
+}
+
+// =====================================================
+// API Client
+// =====================================================
+
+class ApiClient {
+  private config: ApiConfig;
+  private requestInterceptors: RequestInterceptor[] = [];
+  private responseInterceptors: ResponseInterceptor[] = [];
+  private errorInterceptors: ErrorInterceptor[] = [];
+
+  constructor(config: Partial<ApiConfig> = {}) {
+    this.config = { ...defaultConfig, ...config };
+  }
+
+  // =====================================================
+  // Interceptor Management
+  // =====================================================
+
+  addRequestInterceptor(interceptor: RequestInterceptor): () => void {
+    this.requestInterceptors.push(interceptor);
+    return () => {
+      const index = this.requestInterceptors.indexOf(interceptor);
+      if (index > -1) {
+        this.requestInterceptors.splice(index, 1);
+      }
+    };
+  }
+
+  addResponseInterceptor(interceptor: ResponseInterceptor): () => void {
+    this.responseInterceptors.push(interceptor);
+    return () => {
+      const index = this.responseInterceptors.indexOf(interceptor);
+      if (index > -1) {
+        this.responseInterceptors.splice(index, 1);
+      }
+    };
+  }
+
+  addErrorInterceptor(interceptor: ErrorInterceptor): () => void {
+    this.errorInterceptors.push(interceptor);
+    return () => {
+      const index = this.errorInterceptors.indexOf(interceptor);
+      if (index > -1) {
+        this.errorInterceptors.splice(index, 1);
+      }
+    };
+  }
+
+  // =====================================================
+  // Request Execution
+  // =====================================================
+
+  private async executeRequest<T>(
+    endpoint: string,
+    options: RequestInit = {},
+    attempt: number = 0
+  ): Promise<ApiResponse<T>> {
+    let url = `${this.config.baseUrl}${endpoint}`;
+    let requestOptions: RequestInit = {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        ...options.headers,
+      },
+      credentials: "include",
+    };
+
+    // Run request interceptors
+    for (const interceptor of this.requestInterceptors) {
+      const result = await interceptor(url, requestOptions);
+      url = result.url;
+      requestOptions = result.options;
+    }
+
+    const startTime = Date.now();
+
+    try {
+      const response = await fetchWithTimeout(url, requestOptions, this.config.timeout);
+      const duration = Date.now() - startTime;
+
+      let data: unknown;
+      const contentType = response.headers.get("content-type");
+      if (contentType?.includes("application/json")) {
+        data = await response.json();
+      } else {
+        data = await response.text();
+      }
+
+      // Log successful request
+      logger.debug("API", `${options.method || "GET"} ${endpoint}`, {
+        status: response.status,
+        duration: `${duration}ms`,
+      });
+
+      if (!response.ok) {
+        const apiError = ApiError.fromResponse(
+          response.status,
+          typeof data === "object" && data !== null ? (data as Record<string, unknown>) : {}
+        );
+
+        // Retry on retryable errors
+        if (apiError.isRetryable && attempt < this.config.retries) {
+          const delay = calculateBackoff(
+            attempt,
+            this.config.retryDelay,
+            this.config.retryBackoffMultiplier
+          );
+          logger.warn("API", `Retrying request (attempt ${attempt + 1}/${this.config.retries})`, {
+            endpoint,
+            delay: `${delay}ms`,
+          });
+          await sleep(delay);
+          return this.executeRequest<T>(endpoint, options, attempt + 1);
+        }
+
+        throw apiError;
+      }
+
+      // Run response interceptors
+      let processedData = data;
+      for (const interceptor of this.responseInterceptors) {
+        processedData = await interceptor(response, processedData);
+      }
+
+      return processedData as ApiResponse<T>;
+    } catch (error) {
+      const duration = Date.now() - startTime;
+
+      // Handle network errors
+      if (!(error instanceof ApiError)) {
+        const networkError = ApiError.networkError(
+          this.getNetworkErrorMessage(error),
+          error instanceof Error ? error : undefined
+        );
+
+        // Retry on network errors
+        if (attempt < this.config.retries) {
+          const delay = calculateBackoff(
+            attempt,
+            this.config.retryDelay,
+            this.config.retryBackoffMultiplier
+          );
+          logger.warn("API", `Network error, retrying (attempt ${attempt + 1}/${this.config.retries})`, {
+            endpoint,
+            error: networkError.message,
+            delay: `${delay}ms`,
+          });
+          await sleep(delay);
+          return this.executeRequest<T>(endpoint, options, attempt + 1);
+        }
+
+        logger.error("API", `Request failed: ${endpoint}`, networkError, {
+          duration: `${duration}ms`,
+          attempts: attempt + 1,
+        });
+
+        // Run error interceptors
+        let processedError = networkError;
+        for (const interceptor of this.errorInterceptors) {
+          processedError = await interceptor(processedError);
+        }
+
+        throw processedError;
+      }
+
+      // Log API error
+      logger.error("API", `Request failed: ${endpoint}`, error, {
+        status: error.status,
+        code: error.code,
+        duration: `${duration}ms`,
+        attempts: attempt + 1,
+      });
+
+      // Run error interceptors
+      let processedError = error;
+      for (const interceptor of this.errorInterceptors) {
+        processedError = await interceptor(processedError);
+      }
+
+      throw processedError;
+    }
+  }
+
+  private getNetworkErrorMessage(error: unknown): string {
+    if (error instanceof TypeError) {
+      if (error.message.includes("Failed to fetch")) {
+        return "Unable to connect to the server. Please check your internet connection.";
+      }
+      if (error.message.includes("NetworkError")) {
+        return "Network error occurred. Please check your connection and try again.";
+      }
+      if (error.message.includes("CORS")) {
+        return "Cross-origin request blocked. Please contact support.";
+      }
+    }
+
+    if (error instanceof DOMException) {
+      if (error.name === "AbortError") {
+        return "Request was cancelled.";
+      }
+    }
+
+    if (error instanceof Error) {
+      return `Network error: ${error.message}`;
+    }
+
+    return "An unexpected network error occurred.";
   }
 
   private async request<T>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
-    const url = `${this.baseUrl}${endpoint}`;
+    return this.executeRequest<T>(endpoint, options);
+  }
 
-    const headers: HeadersInit = {
-      "Content-Type": "application/json",
-      ...options.headers,
-    };
+  // =====================================================
+  // HTTP Method Helpers
+  // =====================================================
 
-    try {
-      const response = await fetch(url, {
-        ...options,
-        headers,
-        credentials: "include", // Send cookies
-      });
+  async get<T>(endpoint: string, options?: RequestInit): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, { ...options, method: "GET" });
+  }
 
-      const data = await response.json();
+  async post<T>(
+    endpoint: string,
+    body?: unknown,
+    options?: RequestInit
+  ): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, {
+      ...options,
+      method: "POST",
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  }
 
-      if (!response.ok) {
-        throw new ApiError(
-          response.status,
-          data.error?.message || "Request failed",
-          data.error?.code
-        );
-      }
+  async put<T>(
+    endpoint: string,
+    body?: unknown,
+    options?: RequestInit
+  ): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, {
+      ...options,
+      method: "PUT",
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  }
 
-      return data;
-    } catch (error) {
-      if (error instanceof ApiError) {
-        throw error;
-      }
-      throw new ApiError(0, "Network error");
-    }
+  async patch<T>(
+    endpoint: string,
+    body?: unknown,
+    options?: RequestInit
+  ): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, {
+      ...options,
+      method: "PATCH",
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  }
+
+  async delete<T>(endpoint: string, options?: RequestInit): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, { ...options, method: "DELETE" });
   }
 
   // =====================================================
@@ -105,40 +435,30 @@ class ApiClient {
   // =====================================================
 
   async login(email: string, password: string) {
-    return this.request<{
+    return this.post<{
       user: User;
       accessToken: string;
       refreshToken: string;
-    }>("/v1/auth/login", {
-      method: "POST",
-      body: JSON.stringify({ email, password }),
-    });
+    }>("/v1/auth/login", { email, password });
   }
 
   async register(email: string, password: string, name?: string) {
-    return this.request<{ user: User }>("/v1/auth/register", {
-      method: "POST",
-      body: JSON.stringify({ email, password, name }),
-    });
+    return this.post<{ user: User }>("/v1/auth/register", { email, password, name });
   }
 
   async logout() {
-    return this.request("/v1/auth/logout", {
-      method: "POST",
-    });
+    return this.post("/v1/auth/logout");
   }
 
   async getMe() {
-    return this.request<{ user: User }>("/v1/auth/me");
+    return this.get<{ user: User }>("/v1/auth/me");
   }
 
   async refresh() {
-    return this.request<{
+    return this.post<{
       accessToken: string;
       refreshToken: string;
-    }>("/v1/auth/refresh", {
-      method: "POST",
-    });
+    }>("/v1/auth/refresh");
   }
 
   // =====================================================
@@ -147,8 +467,15 @@ class ApiClient {
 
   // Example:
   // async getPosts(page = 1, limit = 10) {
-  //   return this.request<PaginatedResponse<Post>>(`/v1/posts?page=${page}&limit=${limit}`);
+  //   return this.get<PaginatedResponse<Post>>(`/v1/posts?page=${page}&limit=${limit}`);
   // }
 }
 
+// =====================================================
+// Singleton Export
+// =====================================================
+
 export const api = new ApiClient();
+
+// Export class for custom instances
+export { ApiClient };

@@ -1,11 +1,47 @@
 "use client";
 
+import { useEffect } from "react";
+
 interface GlobalErrorProps {
   error: Error & { digest?: string };
   reset: () => void;
 }
 
 export default function GlobalError({ error, reset }: GlobalErrorProps) {
+  useEffect(() => {
+    // Log critical errors - using console since logger may not be available
+    console.error("[CRITICAL] Global error:", {
+      message: error.message,
+      digest: error.digest,
+      stack: error.stack,
+    });
+
+    // Attempt to send error to remote endpoint directly
+    if (process.env.NEXT_PUBLIC_LOG_ENDPOINT) {
+      fetch(process.env.NEXT_PUBLIC_LOG_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          logs: [{
+            timestamp: new Date().toISOString(),
+            level: "error",
+            message: "Critical global error",
+            error: {
+              name: error.name,
+              message: error.message,
+              digest: error.digest,
+            },
+            metadata: {
+              boundary: "global",
+              url: typeof window !== "undefined" ? window.location.href : undefined,
+            },
+          }],
+        }),
+        keepalive: true,
+      }).catch(() => {});
+    }
+  }, [error]);
+
   return (
     <html lang="en">
       <body>

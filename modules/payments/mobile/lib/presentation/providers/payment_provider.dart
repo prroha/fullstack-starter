@@ -14,6 +14,7 @@ class PaymentState {
   final SubscriptionInfo? subscription;
   final bool isLoading;
   final bool isProcessing;
+  final bool isInitialized;
   final String? error;
   final PaymentStatus status;
 
@@ -22,6 +23,7 @@ class PaymentState {
     this.subscription,
     this.isLoading = false,
     this.isProcessing = false,
+    this.isInitialized = false,
     this.error,
     this.status = PaymentStatus.idle,
   });
@@ -31,6 +33,7 @@ class PaymentState {
     SubscriptionInfo? subscription,
     bool? isLoading,
     bool? isProcessing,
+    bool? isInitialized,
     String? error,
     PaymentStatus? status,
     bool clearSubscription = false,
@@ -41,6 +44,7 @@ class PaymentState {
       subscription: clearSubscription ? null : (subscription ?? this.subscription),
       isLoading: isLoading ?? this.isLoading,
       isProcessing: isProcessing ?? this.isProcessing,
+      isInitialized: isInitialized ?? this.isInitialized,
       error: clearError ? null : (error ?? this.error),
       status: status ?? this.status,
     );
@@ -81,20 +85,33 @@ class PaymentProvider extends ChangeNotifier {
   /// Initialize payment service and load data
   Future<void> initialize({
     required String publishableKey,
+    required String apiBaseUrl,
     String? merchantId,
+    String? authToken,
   }) async {
+    _setState(_state.copyWith(isLoading: true));
+
     try {
       await _paymentService.init(
         publishableKey: publishableKey,
+        apiBaseUrl: apiBaseUrl,
         merchantId: merchantId,
+        authToken: authToken,
       );
+      _setState(_state.copyWith(isInitialized: true));
       await loadData();
     } catch (e) {
       _setState(_state.copyWith(
         error: 'Failed to initialize payments: $e',
         isLoading: false,
+        isInitialized: false,
       ));
     }
+  }
+
+  /// Update auth token (call after login/logout)
+  void setAuthToken(String? token) {
+    _paymentService.setAuthToken(token);
   }
 
   // ===========================================================================
@@ -138,7 +155,45 @@ class PaymentProvider extends ChangeNotifier {
   // Purchase
   // ===========================================================================
 
-  /// Start checkout for a price
+  /// Start checkout using Stripe hosted page (opens browser)
+  Future<PaymentResult> startCheckout(
+    String priceId, {
+    String? email,
+    String? successUrl,
+    String? cancelUrl,
+  }) async {
+    _setState(_state.copyWith(
+      isProcessing: true,
+      status: PaymentStatus.processing,
+      clearError: true,
+    ));
+
+    try {
+      final result = await _paymentService.startCheckout(
+        priceId: priceId,
+        customerEmail: email,
+        successUrl: successUrl,
+        cancelUrl: cancelUrl,
+      );
+
+      _setState(_state.copyWith(
+        isProcessing: false,
+        status: result.status,
+        error: result.error,
+      ));
+
+      return result;
+    } catch (e) {
+      _setState(_state.copyWith(
+        isProcessing: false,
+        status: PaymentStatus.failed,
+        error: e.toString(),
+      ));
+      return PaymentResult.failure(e.toString());
+    }
+  }
+
+  /// Present payment sheet for in-app payment
   Future<PaymentResult> checkout(String priceId, {String? email}) async {
     _setState(_state.copyWith(
       isProcessing: true,
@@ -250,6 +305,42 @@ class PaymentProvider extends ChangeNotifier {
   /// Get customer portal URL
   Future<String?> getPortalUrl() async {
     return _paymentService.getCustomerPortalUrl();
+  }
+
+  /// Open customer portal in browser
+  Future<bool> openPortal() async {
+    return _paymentService.openCustomerPortal();
+  }
+
+  /// Change subscription plan
+  Future<bool> changePlan(String newPriceId) async {
+    if (_state.subscription == null) return false;
+
+    _setState(_state.copyWith(isProcessing: true, clearError: true));
+
+    try {
+      final success = await _paymentService.changePlan(
+        _state.subscription!.id,
+        newPriceId,
+      );
+
+      if (success) {
+        await refreshSubscription();
+      } else {
+        _setState(_state.copyWith(
+          error: 'Failed to change plan',
+        ));
+      }
+
+      _setState(_state.copyWith(isProcessing: false));
+      return success;
+    } catch (e) {
+      _setState(_state.copyWith(
+        isProcessing: false,
+        error: e.toString(),
+      ));
+      return false;
+    }
   }
 
   // ===========================================================================

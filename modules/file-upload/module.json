@@ -1,7 +1,7 @@
 {
   "name": "File Upload",
-  "version": "1.0.0",
-  "description": "File upload with S3/local storage and image processing",
+  "version": "1.1.0",
+  "description": "File upload with S3/local storage, auth middleware, input validation, and multiplatform support",
   "tier": "standard",
   "price": "19",
   "category": "storage",
@@ -10,10 +10,17 @@
     "backend": {
       "multer": "^1.4.5-lts.1",
       "@aws-sdk/client-s3": "^3.400.0",
+      "@aws-sdk/s3-request-presigner": "^3.400.0",
       "sharp": "^0.33.0"
     },
     "web": {
       "react-dropzone": "^14.2.0"
+    },
+    "mobile": {
+      "dio": "^5.4.0",
+      "file_picker": "^6.1.1",
+      "image_picker": "^1.0.7",
+      "flutter_riverpod": "^2.4.9"
     }
   },
   "devDependencies": {
@@ -33,7 +40,9 @@
     "Choose storage provider: 'local' or 's3' in UPLOAD_PROVIDER",
     "Configure AWS credentials if using S3",
     "Mount upload routes in backend/src/routes/index.ts",
-    "Add FileUpload component to your forms"
+    "Add FileUpload component to your forms",
+    "For mobile: Add file_picker and image_picker to pubspec.yaml",
+    "For mobile: Configure Android/iOS permissions for camera and storage access"
   ],
   "documentation": "https://docs.fullstack-starter.dev/modules/file-upload"
 }

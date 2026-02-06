@@ -2,10 +2,12 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
-import rateLimit from "express-rate-limit";
 
 import { config } from "./config";
 import { errorMiddleware } from "./middleware/error.middleware";
+import { csrfProtection } from "./middleware/csrf.middleware";
+import { sanitizeInput } from "./middleware/sanitize.middleware";
+import { generalRateLimiter } from "./middleware/rate-limit.middleware";
 import { logger } from "./lib/logger";
 import routes from "./routes";
 
@@ -17,12 +19,37 @@ if (config.trustProxy) {
 }
 
 // Security middleware
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'"],
+      fontSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      mediaSrc: ["'self'"],
+      frameSrc: ["'none'"],
+    },
+  },
+  crossOriginEmbedderPolicy: false, // May need to be disabled for some use cases
+}));
 
 // CORS
 app.use(cors({
   origin: config.corsOrigin,
   credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+    "X-Device-Id",
+    "X-CSRF-Token",
+    "X-XSRF-Token",
+    "X-API-Key",
+  ],
+  exposedHeaders: ["X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Reset"],
 }));
 
 // Body parsing
@@ -32,26 +59,19 @@ app.use(express.urlencoded({ extended: true }));
 // Cookie parsing
 app.use(cookieParser());
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: config.rateLimit.windowMs,
-  max: config.rateLimit.maxRequests,
-  message: {
-    success: false,
-    error: {
-      code: "RATE_LIMIT_EXCEEDED",
-      message: "Too many requests, please try again later",
-    },
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-app.use(limiter);
+// Input sanitization (XSS prevention) - after body parsing
+app.use(sanitizeInput);
 
-// Health check
+// General rate limiting
+app.use(generalRateLimiter);
+
+// Health check (before CSRF to allow monitoring)
 app.get("/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
+
+// CSRF protection for state-changing requests
+app.use(csrfProtection);
 
 // API routes
 app.use("/api", routes);

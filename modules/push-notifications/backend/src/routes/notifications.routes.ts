@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { getPushService } from '../services/push.service';
+import { getDeviceTokenService } from '../services/device.service';
 
 // =============================================================================
 // Types
@@ -49,6 +50,7 @@ interface AuthenticatedRequest extends Request {
 
 const router = Router();
 const push = getPushService();
+const deviceTokenService = getDeviceTokenService();
 
 // =============================================================================
 // Device Token Management
@@ -73,24 +75,31 @@ router.post('/register', async (req: AuthenticatedRequest, res: Response): Promi
       return;
     }
 
-    // In production, save to database:
-    // await prisma.deviceToken.upsert({
-    //   where: { token },
-    //   create: { token, platform, userId, deviceName },
-    //   update: { platform, userId, deviceName, isActive: true, updatedAt: new Date() },
-    // });
+    if (!userId) {
+      res.status(401).json({ error: 'Authentication required' });
+      return;
+    }
 
-    console.log('[NotificationsRoutes] Token registered:', {
-      token: token.substring(0, 20) + '...',
-      platform,
+    // Register token using device token service
+    const result = await deviceTokenService.registerToken({
       userId,
+      token,
+      platform,
       deviceName,
     });
 
-    res.json({
-      success: true,
-      message: 'Device token registered',
-    });
+    if (result.success) {
+      res.json({
+        success: true,
+        message: 'Device token registered',
+        deviceToken: result.deviceToken,
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        error: result.error,
+      });
+    }
   } catch (error) {
     console.error('[NotificationsRoutes] Register token error:', error);
     res.status(500).json({
@@ -112,22 +121,58 @@ router.delete('/unregister', async (req: AuthenticatedRequest, res: Response): P
       return;
     }
 
-    // In production, mark as inactive or delete:
-    // await prisma.deviceToken.update({
-    //   where: { token },
-    //   data: { isActive: false },
-    // });
+    // Deactivate token using device token service
+    const result = await deviceTokenService.deactivateToken(token);
 
-    console.log('[NotificationsRoutes] Token unregistered:', token.substring(0, 20) + '...');
-
-    res.json({
-      success: true,
-      message: 'Device token removed',
-    });
+    if (result.success) {
+      res.json({
+        success: true,
+        message: 'Device token removed',
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        error: result.error,
+      });
+    }
   } catch (error) {
     console.error('[NotificationsRoutes] Unregister token error:', error);
     res.status(500).json({
       error: error instanceof Error ? error.message : 'Failed to unregister token',
+    });
+  }
+});
+
+/**
+ * GET /notifications/devices
+ * Get all devices for the current user
+ */
+router.get('/devices', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      res.status(401).json({ error: 'Authentication required' });
+      return;
+    }
+
+    const result = await deviceTokenService.getTokensByUserId(userId, true);
+
+    res.json({
+      success: true,
+      devices: result.tokens.map((t) => ({
+        id: t.id,
+        platform: t.platform,
+        deviceName: t.deviceName,
+        isActive: t.isActive,
+        createdAt: t.createdAt,
+        updatedAt: t.updatedAt,
+      })),
+    });
+  } catch (error) {
+    console.error('[NotificationsRoutes] Get devices error:', error);
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'Failed to get devices',
     });
   }
 });
@@ -169,6 +214,12 @@ router.post('/send', async (req: AuthenticatedRequest, res: Response): Promise<v
     // Send to specific token
     if (token) {
       const result = await push.sendToDevice(token, payload);
+
+      // Handle failed tokens
+      if (result.failedTokens && result.failedTokens.length > 0) {
+        await deviceTokenService.handleFailedTokens(result.failedTokens);
+      }
+
       res.json({
         success: result.success,
         messageId: result.messageId,
@@ -180,6 +231,12 @@ router.post('/send', async (req: AuthenticatedRequest, res: Response): Promise<v
     // Send to multiple tokens
     if (tokens && tokens.length > 0) {
       const result = await push.sendToDevices(tokens, payload);
+
+      // Handle failed tokens
+      if (result.failedTokens && result.failedTokens.length > 0) {
+        await deviceTokenService.handleFailedTokens(result.failedTokens);
+      }
+
       res.json({
         success: result.success,
         messageId: result.messageId,
@@ -191,16 +248,30 @@ router.post('/send', async (req: AuthenticatedRequest, res: Response): Promise<v
 
     // Send to user's devices
     if (userId) {
-      // In production, fetch user's tokens:
-      // const deviceTokens = await prisma.deviceToken.findMany({
-      //   where: { userId, isActive: true },
-      //   select: { token: true },
-      // });
-      // const userTokens = deviceTokens.map(d => d.token);
+      // Fetch user's tokens using device token service
+      const userTokens = await deviceTokenService.getTokenStringsForUser(userId);
 
-      // For now, return error indicating tokens need to be fetched
-      res.status(400).json({
-        error: 'User token lookup not implemented. Provide tokens directly.',
+      if (userTokens.length === 0) {
+        res.status(400).json({
+          success: false,
+          error: 'No active devices found for user',
+        });
+        return;
+      }
+
+      const result = await push.sendToDevices(userTokens, payload);
+
+      // Handle failed tokens
+      if (result.failedTokens && result.failedTokens.length > 0) {
+        await deviceTokenService.handleFailedTokens(result.failedTokens);
+      }
+
+      res.json({
+        success: result.success,
+        messageId: result.messageId,
+        devicesNotified: userTokens.length,
+        failedTokens: result.failedTokens,
+        error: result.error,
       });
       return;
     }
@@ -250,6 +321,61 @@ router.post('/send-topic', async (req: AuthenticatedRequest, res: Response): Pro
     console.error('[NotificationsRoutes] Send to topic error:', error);
     res.status(500).json({
       error: error instanceof Error ? error.message : 'Failed to send topic notification',
+    });
+  }
+});
+
+/**
+ * POST /notifications/broadcast
+ * Send notification to all active devices
+ * Requires admin authentication
+ */
+router.post('/broadcast', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    // Check admin permission
+    if (req.user?.role !== 'ADMIN') {
+      res.status(403).json({ error: 'Admin access required' });
+      return;
+    }
+
+    const { title, body, imageUrl, data, platform } =
+      req.body as SendNotificationRequest & { platform?: 'web' | 'android' | 'ios' };
+
+    if (!title || !body) {
+      res.status(400).json({ error: 'Title and body are required' });
+      return;
+    }
+
+    // Get all active tokens
+    const result = await deviceTokenService.getActiveTokens(platform);
+
+    if (result.tokens.length === 0) {
+      res.status(400).json({
+        success: false,
+        error: 'No active devices found',
+      });
+      return;
+    }
+
+    const tokens = result.tokens.map((t) => t.token);
+    const sendResult = await push.sendToDevices(tokens, { title, body, imageUrl, data });
+
+    // Handle failed tokens
+    if (sendResult.failedTokens && sendResult.failedTokens.length > 0) {
+      await deviceTokenService.handleFailedTokens(sendResult.failedTokens);
+    }
+
+    res.json({
+      success: sendResult.success,
+      messageId: sendResult.messageId,
+      devicesNotified: tokens.length,
+      failedCount: sendResult.failedTokens?.length || 0,
+      error: sendResult.error,
+    });
+  } catch (error) {
+    console.error('[NotificationsRoutes] Broadcast error:', error);
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'Failed to broadcast notification',
     });
   }
 });
@@ -378,6 +504,62 @@ router.get('/history', async (req: AuthenticatedRequest, res: Response): Promise
   }
 });
 
+// =============================================================================
+// Admin Endpoints
+// =============================================================================
+
+/**
+ * GET /notifications/stats
+ * Get device token statistics (admin only)
+ */
+router.get('/stats', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    if (req.user?.role !== 'ADMIN') {
+      res.status(403).json({ error: 'Admin access required' });
+      return;
+    }
+
+    const stats = await deviceTokenService.getStats();
+
+    res.json({
+      success: true,
+      stats,
+    });
+  } catch (error) {
+    console.error('[NotificationsRoutes] Get stats error:', error);
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'Failed to get stats',
+    });
+  }
+});
+
+/**
+ * POST /notifications/cleanup
+ * Clean up inactive device tokens (admin only)
+ */
+router.post('/cleanup', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    if (req.user?.role !== 'ADMIN') {
+      res.status(403).json({ error: 'Admin access required' });
+      return;
+    }
+
+    const daysOld = parseInt(req.body.daysOld as string) || 30;
+    const deletedCount = await deviceTokenService.cleanupInactiveTokens(daysOld);
+
+    res.json({
+      success: true,
+      message: `Cleaned up ${deletedCount} inactive tokens`,
+      deletedCount,
+    });
+  } catch (error) {
+    console.error('[NotificationsRoutes] Cleanup error:', error);
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'Failed to cleanup tokens',
+    });
+  }
+});
+
 /**
  * GET /notifications/status
  * Check push service status
@@ -385,6 +567,7 @@ router.get('/history', async (req: AuthenticatedRequest, res: Response): Promise
 router.get('/status', async (_req: Request, res: Response): Promise<void> => {
   try {
     const isReady = push.isReady();
+    const stats = await deviceTokenService.getStats();
 
     res.json({
       success: true,
@@ -392,6 +575,7 @@ router.get('/status', async (_req: Request, res: Response): Promise<void> => {
       message: isReady
         ? 'Push notification service is ready'
         : 'Push notifications disabled (check Firebase credentials)',
+      deviceStats: stats,
     });
   } catch (error) {
     console.error('[NotificationsRoutes] Status check error:', error);

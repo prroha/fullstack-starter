@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { PrismaClient, Prisma } from '@prisma/client';
+import { PrismaClient, Prisma, UserRole } from '@prisma/client';
 
 // =============================================================================
 // Types
@@ -24,6 +24,148 @@ export interface DashboardStats {
   newUsersToday: number;
   newUsersThisWeek: number;
   newUsersThisMonth: number;
+  usersByRole: Record<string, number>;
+}
+
+export interface SystemSettings {
+  appName: string;
+  supportEmail: string;
+  maintenanceMode: boolean;
+  allowRegistration: boolean;
+  requireEmailVerification: boolean;
+  maxLoginAttempts: number;
+  sessionTimeout: number;
+  [key: string]: string | boolean | number;
+}
+
+export interface ActivityEntry {
+  id: string;
+  type: ActivityType;
+  action: string;
+  entityType: string;
+  entityId: string;
+  userId: string;
+  userEmail: string;
+  userName: string | null;
+  metadata: Record<string, unknown>;
+  ipAddress?: string;
+  userAgent?: string;
+  timestamp: Date;
+}
+
+export type ActivityType =
+  | 'user_created'
+  | 'user_updated'
+  | 'user_deleted'
+  | 'user_role_changed'
+  | 'user_deactivated'
+  | 'user_reactivated'
+  | 'settings_updated'
+  | 'login_success'
+  | 'login_failed'
+  | 'logout'
+  | 'password_changed'
+  | 'admin_action';
+
+// Permission types for RBAC
+export type Permission =
+  | 'users:read'
+  | 'users:create'
+  | 'users:update'
+  | 'users:delete'
+  | 'users:manage_roles'
+  | 'settings:read'
+  | 'settings:update'
+  | 'activity:read'
+  | 'stats:read';
+
+// Role permissions mapping
+export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
+  ADMIN: [
+    'users:read',
+    'users:create',
+    'users:update',
+    'users:delete',
+    'users:manage_roles',
+    'settings:read',
+    'settings:update',
+    'activity:read',
+    'stats:read',
+  ],
+  MANAGER: [
+    'users:read',
+    'users:update',
+    'settings:read',
+    'activity:read',
+    'stats:read',
+  ],
+  USER: [],
+};
+
+// Default settings
+const DEFAULT_SETTINGS: SystemSettings = {
+  appName: 'My App',
+  supportEmail: 'support@example.com',
+  maintenanceMode: false,
+  allowRegistration: true,
+  requireEmailVerification: false,
+  maxLoginAttempts: 5,
+  sessionTimeout: 3600,
+};
+
+// In-memory settings store (for persistence without schema changes)
+// In production, this should be backed by a database table
+let settingsStore: SystemSettings = { ...DEFAULT_SETTINGS };
+
+// In-memory activity log store
+// In production, this should be backed by a database table
+const activityLog: ActivityEntry[] = [];
+const MAX_ACTIVITY_LOG_SIZE = 1000;
+
+// =============================================================================
+// Helper Functions
+// =============================================================================
+
+/**
+ * Check if a role has a specific permission
+ */
+export function hasPermission(role: string, permission: Permission): boolean {
+  const permissions = ROLE_PERMISSIONS[role] || [];
+  return permissions.includes(permission);
+}
+
+/**
+ * Get all permissions for a role
+ */
+export function getRolePermissions(role: string): Permission[] {
+  return ROLE_PERMISSIONS[role] || [];
+}
+
+/**
+ * Log an activity entry
+ */
+function logActivity(entry: Omit<ActivityEntry, 'id' | 'timestamp'>): void {
+  const activityEntry: ActivityEntry = {
+    ...entry,
+    id: generateId(),
+    timestamp: new Date(),
+  };
+
+  activityLog.unshift(activityEntry);
+
+  // Keep the log size bounded
+  if (activityLog.length > MAX_ACTIVITY_LOG_SIZE) {
+    activityLog.pop();
+  }
+
+  console.log('[AdminController] Activity logged:', activityEntry.type, activityEntry.action);
+}
+
+/**
+ * Generate a unique ID
+ */
+function generateId(): string {
+  return `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 }
 
 // =============================================================================
@@ -49,7 +191,7 @@ export class AdminController {
       startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-      const [totalUsers, activeUsers, newToday, newThisWeek, newThisMonth] =
+      const [totalUsers, activeUsers, newToday, newThisWeek, newThisMonth, usersByRole] =
         await Promise.all([
           this.prisma.user.count(),
           this.prisma.user.count({
@@ -66,7 +208,16 @@ export class AdminController {
           this.prisma.user.count({
             where: { createdAt: { gte: startOfMonth } },
           }),
+          this.prisma.user.groupBy({
+            by: ['role'],
+            _count: { id: true },
+          }),
         ]);
+
+      const roleStats: Record<string, number> = {};
+      for (const entry of usersByRole) {
+        roleStats[entry.role] = entry._count.id;
+      }
 
       const stats: DashboardStats = {
         totalUsers,
@@ -74,6 +225,7 @@ export class AdminController {
         newUsersToday: newToday,
         newUsersThisWeek: newThisWeek,
         newUsersThisMonth: newThisMonth,
+        usersByRole: roleStats,
       };
 
       res.json({ success: true, stats });
@@ -89,33 +241,71 @@ export class AdminController {
    */
   async getRecentActivity(req: Request, res: Response): Promise<void> {
     try {
-      const limit = parseInt(req.query.limit as string) || 20;
+      const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 20));
+      const offset = Math.max(0, parseInt(req.query.offset as string) || 0);
+      const type = req.query.type as ActivityType | undefined;
 
-      // Get recently updated users as activity
-      const recentUsers = await this.prisma.user.findMany({
-        take: limit,
-        orderBy: { updatedAt: 'desc' },
-        select: {
-          id: true,
-          email: true,
-          name: true,
-          createdAt: true,
-          updatedAt: true,
+      let filteredActivity = activityLog;
+
+      if (type) {
+        filteredActivity = activityLog.filter((a) => a.type === type);
+      }
+
+      const paginatedActivity = filteredActivity.slice(offset, offset + limit);
+
+      // If activity log is empty, fall back to user-based activity
+      if (activityLog.length === 0) {
+        const recentUsers = await this.prisma.user.findMany({
+          take: limit,
+          orderBy: { updatedAt: 'desc' },
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        });
+
+        const fallbackActivity = recentUsers.map((user) => ({
+          id: user.id,
+          type: (user.createdAt.getTime() === user.updatedAt.getTime()
+            ? 'user_created'
+            : 'user_updated') as ActivityType,
+          action:
+            user.createdAt.getTime() === user.updatedAt.getTime()
+              ? 'User registered'
+              : 'User profile updated',
+          entityType: 'user',
+          entityId: user.id,
+          userId: user.id,
+          userEmail: user.email,
+          userName: user.name,
+          metadata: {},
+          timestamp: user.updatedAt,
+        }));
+
+        res.json({
+          success: true,
+          activity: fallbackActivity,
+          pagination: {
+            total: recentUsers.length,
+            limit,
+            offset: 0,
+          },
+        });
+        return;
+      }
+
+      res.json({
+        success: true,
+        activity: paginatedActivity,
+        pagination: {
+          total: filteredActivity.length,
+          limit,
+          offset,
         },
       });
-
-      const activity = recentUsers.map((user) => ({
-        id: user.id,
-        type: user.createdAt.getTime() === user.updatedAt.getTime() ? 'user_created' : 'user_updated',
-        user: {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-        },
-        timestamp: user.updatedAt,
-      }));
-
-      res.json({ success: true, activity });
     } catch (error) {
       console.error('[AdminController] Get activity error:', error);
       res.status(500).json({ error: 'Failed to get activity' });
@@ -156,7 +346,7 @@ export class AdminController {
       }
 
       if (role) {
-        where.role = role;
+        where.role = role as UserRole;
       }
 
       // Get users and total count
@@ -171,6 +361,8 @@ export class AdminController {
             email: true,
             name: true,
             role: true,
+            isActive: true,
+            emailVerified: true,
             createdAt: true,
             updatedAt: true,
           },
@@ -186,6 +378,8 @@ export class AdminController {
           limit: limitNum,
           total,
           totalPages: Math.ceil(total / limitNum),
+          hasNext: pageNum < Math.ceil(total / limitNum),
+          hasPrev: pageNum > 1,
         },
       });
     } catch (error) {
@@ -209,6 +403,9 @@ export class AdminController {
           email: true,
           name: true,
           role: true,
+          isActive: true,
+          emailVerified: true,
+          authProvider: true,
           createdAt: true,
           updatedAt: true,
         },
@@ -233,7 +430,8 @@ export class AdminController {
   async updateUser(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
-      const { name, role } = req.body;
+      const { name, role, isActive } = req.body;
+      const currentUser = (req as Request & { user?: { userId: string; email: string } }).user;
 
       // Check if user exists
       const existingUser = await this.prisma.user.findUnique({
@@ -247,8 +445,22 @@ export class AdminController {
 
       // Build update data
       const updateData: Prisma.UserUpdateInput = {};
-      if (name !== undefined) updateData.name = name;
-      if (role !== undefined) updateData.role = role;
+      const changes: string[] = [];
+
+      if (name !== undefined && name !== existingUser.name) {
+        updateData.name = name;
+        changes.push(`name changed from "${existingUser.name}" to "${name}"`);
+      }
+
+      if (role !== undefined && role !== existingUser.role) {
+        updateData.role = role as UserRole;
+        changes.push(`role changed from "${existingUser.role}" to "${role}"`);
+      }
+
+      if (isActive !== undefined && isActive !== existingUser.isActive) {
+        updateData.isActive = isActive;
+        changes.push(isActive ? 'account reactivated' : 'account deactivated');
+      }
 
       const user = await this.prisma.user.update({
         where: { id },
@@ -258,10 +470,50 @@ export class AdminController {
           email: true,
           name: true,
           role: true,
+          isActive: true,
           createdAt: true,
           updatedAt: true,
         },
       });
+
+      // Log activity
+      if (changes.length > 0) {
+        const activityType: ActivityType =
+          role !== undefined && role !== existingUser.role
+            ? 'user_role_changed'
+            : isActive === false
+              ? 'user_deactivated'
+              : isActive === true && !existingUser.isActive
+                ? 'user_reactivated'
+                : 'user_updated';
+
+        logActivity({
+          type: activityType,
+          action: `User ${existingUser.email} updated: ${changes.join(', ')}`,
+          entityType: 'user',
+          entityId: id,
+          userId: currentUser?.userId || 'system',
+          userEmail: currentUser?.email || 'system',
+          userName: null,
+          metadata: {
+            targetUserId: id,
+            targetUserEmail: existingUser.email,
+            changes,
+            oldValues: {
+              name: existingUser.name,
+              role: existingUser.role,
+              isActive: existingUser.isActive,
+            },
+            newValues: {
+              name: name ?? existingUser.name,
+              role: role ?? existingUser.role,
+              isActive: isActive ?? existingUser.isActive,
+            },
+          },
+          ipAddress: req.ip,
+          userAgent: req.get('user-agent'),
+        });
+      }
 
       res.json({ success: true, user });
     } catch (error) {
@@ -277,9 +529,10 @@ export class AdminController {
   async deleteUser(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
+      const currentUser = (req as Request & { user?: { userId: string; email: string } }).user;
 
       // Prevent self-deletion
-      const currentUserId = (req as Request & { user?: { id: string } }).user?.id;
+      const currentUserId = currentUser?.userId;
       if (id === currentUserId) {
         res.status(400).json({ error: 'Cannot delete your own account' });
         return;
@@ -296,6 +549,27 @@ export class AdminController {
       }
 
       await this.prisma.user.delete({ where: { id } });
+
+      // Log activity
+      logActivity({
+        type: 'user_deleted',
+        action: `User ${user.email} deleted`,
+        entityType: 'user',
+        entityId: id,
+        userId: currentUser?.userId || 'system',
+        userEmail: currentUser?.email || 'system',
+        userName: null,
+        metadata: {
+          deletedUser: {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: user.role,
+          },
+        },
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent'),
+      });
 
       res.json({ success: true, message: 'User deleted' });
     } catch (error) {
@@ -314,13 +588,13 @@ export class AdminController {
    */
   async getSettings(_req: Request, res: Response): Promise<void> {
     try {
-      // In a real app, you'd fetch these from a settings table
-      const settings = {
-        appName: process.env.APP_NAME || 'My App',
-        supportEmail: process.env.SUPPORT_EMAIL || 'support@example.com',
-        maintenanceMode: process.env.MAINTENANCE_MODE === 'true',
-        allowRegistration: process.env.ALLOW_REGISTRATION !== 'false',
-        requireEmailVerification: process.env.REQUIRE_EMAIL_VERIFICATION === 'true',
+      // Merge environment variables with stored settings
+      const settings: SystemSettings = {
+        ...DEFAULT_SETTINGS,
+        ...settingsStore,
+        // Environment overrides (read-only)
+        appName: process.env.APP_NAME || settingsStore.appName,
+        supportEmail: process.env.SUPPORT_EMAIL || settingsStore.supportEmail,
       };
 
       res.json({ success: true, settings });
@@ -336,21 +610,266 @@ export class AdminController {
    */
   async updateSettings(req: Request, res: Response): Promise<void> {
     try {
-      const { settings } = req.body;
+      const { settings: newSettings } = req.body;
+      const currentUser = (req as Request & { user?: { userId: string; email: string } }).user;
 
-      // In a real app, you'd save these to a settings table
-      // For now, we just acknowledge the update
-      console.log('[AdminController] Settings update requested:', settings);
+      if (!newSettings || typeof newSettings !== 'object') {
+        res.status(400).json({ error: 'Invalid settings data' });
+        return;
+      }
+
+      // Track changes
+      const changes: Array<{ key: string; oldValue: unknown; newValue: unknown }> = [];
+
+      // Validate and update settings
+      const allowedKeys: Array<keyof SystemSettings> = [
+        'appName',
+        'supportEmail',
+        'maintenanceMode',
+        'allowRegistration',
+        'requireEmailVerification',
+        'maxLoginAttempts',
+        'sessionTimeout',
+      ];
+
+      for (const key of allowedKeys) {
+        if (newSettings[key] !== undefined && newSettings[key] !== settingsStore[key]) {
+          changes.push({
+            key,
+            oldValue: settingsStore[key],
+            newValue: newSettings[key],
+          });
+          settingsStore[key] = newSettings[key];
+        }
+      }
+
+      // Log activity
+      if (changes.length > 0) {
+        logActivity({
+          type: 'settings_updated',
+          action: `System settings updated: ${changes.map((c) => c.key).join(', ')}`,
+          entityType: 'settings',
+          entityId: 'system',
+          userId: currentUser?.userId || 'system',
+          userEmail: currentUser?.email || 'system',
+          userName: null,
+          metadata: { changes },
+          ipAddress: req.ip,
+          userAgent: req.get('user-agent'),
+        });
+      }
 
       res.json({
         success: true,
         message: 'Settings updated',
-        note: 'Implement settings persistence in your database',
+        settings: settingsStore,
+        changesApplied: changes.length,
       });
     } catch (error) {
       console.error('[AdminController] Update settings error:', error);
       res.status(500).json({ error: 'Failed to update settings' });
     }
+  }
+
+  /**
+   * GET /admin/settings/:key
+   * Get a specific setting
+   */
+  async getSetting(req: Request, res: Response): Promise<void> {
+    try {
+      const { key } = req.params;
+
+      if (!(key in settingsStore)) {
+        res.status(404).json({ error: 'Setting not found' });
+        return;
+      }
+
+      res.json({
+        success: true,
+        key,
+        value: settingsStore[key as keyof SystemSettings],
+      });
+    } catch (error) {
+      console.error('[AdminController] Get setting error:', error);
+      res.status(500).json({ error: 'Failed to get setting' });
+    }
+  }
+
+  /**
+   * PUT /admin/settings/:key
+   * Update a specific setting
+   */
+  async updateSetting(req: Request, res: Response): Promise<void> {
+    try {
+      const { key } = req.params;
+      const { value } = req.body;
+      const currentUser = (req as Request & { user?: { userId: string; email: string } }).user;
+
+      const allowedKeys: Array<keyof SystemSettings> = [
+        'appName',
+        'supportEmail',
+        'maintenanceMode',
+        'allowRegistration',
+        'requireEmailVerification',
+        'maxLoginAttempts',
+        'sessionTimeout',
+      ];
+
+      if (!allowedKeys.includes(key as keyof SystemSettings)) {
+        res.status(400).json({ error: 'Invalid setting key' });
+        return;
+      }
+
+      const oldValue = settingsStore[key as keyof SystemSettings];
+      settingsStore[key as keyof SystemSettings] = value;
+
+      // Log activity
+      logActivity({
+        type: 'settings_updated',
+        action: `Setting "${key}" updated`,
+        entityType: 'settings',
+        entityId: key,
+        userId: currentUser?.userId || 'system',
+        userEmail: currentUser?.email || 'system',
+        userName: null,
+        metadata: { key, oldValue, newValue: value },
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent'),
+      });
+
+      res.json({
+        success: true,
+        key,
+        value: settingsStore[key as keyof SystemSettings],
+      });
+    } catch (error) {
+      console.error('[AdminController] Update setting error:', error);
+      res.status(500).json({ error: 'Failed to update setting' });
+    }
+  }
+
+  /**
+   * DELETE /admin/settings/:key
+   * Reset a setting to default
+   */
+  async resetSetting(req: Request, res: Response): Promise<void> {
+    try {
+      const { key } = req.params;
+      const currentUser = (req as Request & { user?: { userId: string; email: string } }).user;
+
+      if (!(key in DEFAULT_SETTINGS)) {
+        res.status(404).json({ error: 'Setting not found' });
+        return;
+      }
+
+      const oldValue = settingsStore[key as keyof SystemSettings];
+      settingsStore[key as keyof SystemSettings] = DEFAULT_SETTINGS[key as keyof SystemSettings];
+
+      // Log activity
+      logActivity({
+        type: 'settings_updated',
+        action: `Setting "${key}" reset to default`,
+        entityType: 'settings',
+        entityId: key,
+        userId: currentUser?.userId || 'system',
+        userEmail: currentUser?.email || 'system',
+        userName: null,
+        metadata: {
+          key,
+          oldValue,
+          newValue: DEFAULT_SETTINGS[key as keyof SystemSettings],
+        },
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent'),
+      });
+
+      res.json({
+        success: true,
+        key,
+        value: settingsStore[key as keyof SystemSettings],
+        message: 'Setting reset to default',
+      });
+    } catch (error) {
+      console.error('[AdminController] Reset setting error:', error);
+      res.status(500).json({ error: 'Failed to reset setting' });
+    }
+  }
+
+  // ===========================================================================
+  // Audit Log Integration Point
+  // ===========================================================================
+
+  /**
+   * Log an admin action - integration point for audit-log module
+   */
+  static logAdminAction(
+    userId: string,
+    userEmail: string,
+    action: string,
+    entityType: string,
+    entityId: string,
+    metadata: Record<string, unknown> = {},
+    ipAddress?: string,
+    userAgent?: string
+  ): void {
+    logActivity({
+      type: 'admin_action',
+      action,
+      entityType,
+      entityId,
+      userId,
+      userEmail,
+      userName: null,
+      metadata,
+      ipAddress,
+      userAgent,
+    });
+  }
+
+  /**
+   * Get activity entries for audit-log module integration
+   */
+  static getActivityLog(
+    options: {
+      limit?: number;
+      offset?: number;
+      type?: ActivityType;
+      userId?: string;
+      entityType?: string;
+      startDate?: Date;
+      endDate?: Date;
+    } = {}
+  ): { entries: ActivityEntry[]; total: number } {
+    let filtered = [...activityLog];
+
+    if (options.type) {
+      filtered = filtered.filter((a) => a.type === options.type);
+    }
+
+    if (options.userId) {
+      filtered = filtered.filter((a) => a.userId === options.userId);
+    }
+
+    if (options.entityType) {
+      filtered = filtered.filter((a) => a.entityType === options.entityType);
+    }
+
+    if (options.startDate) {
+      filtered = filtered.filter((a) => a.timestamp >= options.startDate!);
+    }
+
+    if (options.endDate) {
+      filtered = filtered.filter((a) => a.timestamp <= options.endDate!);
+    }
+
+    const total = filtered.length;
+    const offset = options.offset || 0;
+    const limit = options.limit || 20;
+
+    return {
+      entries: filtered.slice(offset, offset + limit),
+      total,
+    };
   }
 }
 

@@ -1,16 +1,12 @@
-import { Request, Response, NextFunction } from "express";
+import { Response, NextFunction } from "express";
 import { verifyToken, JwtPayload } from "../utils/jwt";
 import { db } from "../lib/db";
-import { User, UserRole } from "@prisma/client";
+import { UserRole } from "@prisma/client";
 import { logger } from "../lib/logger";
+import { AppRequest, AuthenticatedRequest } from "../types";
 
-/**
- * Extended request type with authenticated user
- */
-export interface AuthenticatedRequest extends Request {
-  user: JwtPayload;
-  dbUser: User;
-}
+// Re-export AuthenticatedRequest for backwards compatibility
+export type { AuthenticatedRequest } from "../types";
 
 /**
  * Error codes for authentication failures
@@ -59,7 +55,7 @@ function extractBearerToken(authHeader: string | undefined): string | null {
 /**
  * Extract access token from request (cookie or header)
  */
-function extractAccessToken(req: Request): string | null {
+function extractAccessToken(req: AppRequest): string | null {
   // First, try httpOnly cookie
   const cookieToken = req.cookies?.accessToken;
   if (cookieToken) return cookieToken;
@@ -72,7 +68,7 @@ function extractAccessToken(req: Request): string | null {
  * Authentication middleware - requires valid JWT token
  */
 export async function authMiddleware(
-  req: Request,
+  req: AppRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> {
@@ -135,7 +131,7 @@ export async function authMiddleware(
  * Must be used AFTER authMiddleware
  */
 export async function adminMiddleware(
-  req: Request,
+  req: AppRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> {
@@ -159,7 +155,7 @@ export async function adminMiddleware(
  * Attempts to authenticate but doesn't fail if no token
  */
 export async function optionalAuthMiddleware(
-  req: Request,
+  req: AppRequest,
   _res: Response,
   next: NextFunction
 ): Promise<void> {
@@ -200,26 +196,23 @@ export async function optionalAuthMiddleware(
 /**
  * Helper to check if request is authenticated
  */
-export function isAuthenticated(req: Request): req is AuthenticatedRequest {
-  const authReq = req as AuthenticatedRequest;
-  return !!authReq.user && !!authReq.dbUser;
+export function isAuthenticated(req: AppRequest): req is AuthenticatedRequest {
+  return !!req.user && !!req.dbUser;
 }
 
 /**
  * Helper to get authenticated user from request
  */
-export function getAuthenticatedUser(req: Request): {
+export function getAuthenticatedUser(req: AppRequest): {
   payload: JwtPayload;
-  user: User;
+  user: AuthenticatedRequest["dbUser"];
 } {
-  const authReq = req as AuthenticatedRequest;
-
-  if (!authReq.user || !authReq.dbUser) {
+  if (!req.user || !req.dbUser) {
     throw new Error("User not authenticated");
   }
 
   return {
-    payload: authReq.user,
-    user: authReq.dbUser,
+    payload: req.user,
+    user: req.dbUser,
   };
 }

@@ -2,11 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-
-// Note: Uncomment these imports when firebase packages are installed:
-// import 'package:firebase_core/firebase_core.dart';
-// import 'package:firebase_messaging/firebase_messaging.dart';
-// import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 // =============================================================================
 // Types
@@ -34,6 +32,16 @@ class PushNotification {
       body: json['body'] as String?,
       imageUrl: json['imageUrl'] as String?,
       data: json['data'] as Map<String, dynamic>?,
+    );
+  }
+
+  factory PushNotification.fromRemoteMessage(RemoteMessage message) {
+    return PushNotification(
+      title: message.notification?.title,
+      body: message.notification?.body,
+      imageUrl: message.notification?.android?.imageUrl ??
+          message.notification?.apple?.imageUrl,
+      data: message.data,
     );
   }
 
@@ -118,10 +126,10 @@ class PushNotificationService {
   PushNotificationService._internal();
 
   // Firebase Messaging instance
-  // FirebaseMessaging? _messaging;
+  FirebaseMessaging? _messaging;
 
   // Local notifications plugin
-  // FlutterLocalNotificationsPlugin? _localNotifications;
+  FlutterLocalNotificationsPlugin? _localNotifications;
 
   bool _initialized = false;
   String? _token;
@@ -170,16 +178,18 @@ class PushNotificationService {
     try {
       _settings = settings ?? const PushNotificationSettings();
 
-      // Initialize Firebase (uncomment when firebase packages are installed):
-      // await Firebase.initializeApp();
-      // _messaging = FirebaseMessaging.instance;
+      // Initialize Firebase
+      await Firebase.initializeApp();
+      _messaging = FirebaseMessaging.instance;
 
       // Request permission
       await requestPermission();
 
       // Get initial token
       _token = await getToken();
-      _log('Initial token: ${_token?.substring(0, 20)}...');
+      if (_token != null) {
+        _log('Initial token: ${_token!.substring(0, 20)}...');
+      }
 
       // Setup local notifications for foreground display
       await _setupLocalNotifications();
@@ -194,9 +204,7 @@ class PushNotificationService {
       _setupNotificationTapHandler();
 
       // Set background message handler
-      // if (onBackgroundMessage != null) {
-      //   FirebaseMessaging.onBackgroundMessage(_handleBackgroundMessage);
-      // }
+      FirebaseMessaging.onBackgroundMessage(_handleBackgroundMessage);
 
       _initialized = true;
       _log('Push notification service initialized');
@@ -208,70 +216,115 @@ class PushNotificationService {
 
   /// Setup local notifications for displaying in foreground
   Future<void> _setupLocalNotifications() async {
-    // Uncomment when flutter_local_notifications is installed:
-    // _localNotifications = FlutterLocalNotificationsPlugin();
-    //
-    // const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
-    // const iosSettings = DarwinInitializationSettings(
-    //   requestAlertPermission: false,
-    //   requestBadgePermission: false,
-    //   requestSoundPermission: false,
-    // );
-    //
-    // const settings = InitializationSettings(
-    //   android: androidSettings,
-    //   iOS: iosSettings,
-    // );
-    //
-    // await _localNotifications!.initialize(
-    //   settings,
-    //   onDidReceiveNotificationResponse: _onNotificationTapped,
-    // );
+    _localNotifications = FlutterLocalNotificationsPlugin();
+
+    const androidSettings =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+    const iosSettings = DarwinInitializationSettings(
+      requestAlertPermission: false,
+      requestBadgePermission: false,
+      requestSoundPermission: false,
+    );
+
+    const initSettings = InitializationSettings(
+      android: androidSettings,
+      iOS: iosSettings,
+    );
+
+    await _localNotifications!.initialize(
+      initSettings,
+      onDidReceiveNotificationResponse: _onNotificationTapped,
+    );
+
+    // Create notification channel for Android
+    if (Platform.isAndroid) {
+      const channel = AndroidNotificationChannel(
+        'default_channel',
+        'Default Notifications',
+        description: 'Default notification channel for push notifications',
+        importance: Importance.high,
+      );
+
+      await _localNotifications!
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>()
+          ?.createNotificationChannel(channel);
+    }
 
     _log('Local notifications setup complete');
   }
 
+  void _onNotificationTapped(NotificationResponse response) {
+    _log('Notification tapped: ${response.payload}');
+
+    Map<String, dynamic>? data;
+    if (response.payload != null) {
+      try {
+        data = jsonDecode(response.payload!) as Map<String, dynamic>;
+      } catch (e) {
+        _log('Failed to parse notification payload: $e');
+      }
+    }
+
+    final notification = PushNotification(
+      title: 'Notification',
+      body: '',
+      data: data,
+    );
+
+    _onActionController.add(NotificationAction(
+      type: response.notificationResponseType ==
+              NotificationResponseType.selectedNotificationAction
+          ? NotificationActionType.action
+          : NotificationActionType.opened,
+      actionId: response.actionId,
+      notification: notification,
+    ));
+  }
+
   void _setupTokenRefresh() {
-    // Uncomment when firebase_messaging is installed:
-    // _messaging?.onTokenRefresh.listen((newToken) {
-    //   _token = newToken;
-    //   _onTokenRefreshController.add(newToken);
-    //   _log('Token refreshed: ${newToken.substring(0, 20)}...');
-    // });
+    _messaging?.onTokenRefresh.listen((newToken) {
+      _token = newToken;
+      _onTokenRefreshController.add(newToken);
+      _log('Token refreshed: ${newToken.substring(0, 20)}...');
+    });
   }
 
   void _setupForegroundMessageHandler() {
-    // Uncomment when firebase_messaging is installed:
-    // FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-    //   final notification = _convertRemoteMessage(message);
-    //   _onMessageController.add(notification);
-    //
-    //   if (_settings.showInForeground) {
-    //     _showLocalNotification(notification);
-    //   }
-    // });
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      _log('Foreground message received: ${message.messageId}');
+
+      final notification = PushNotification.fromRemoteMessage(message);
+      _onMessageController.add(notification);
+
+      if (_settings.showInForeground) {
+        _showLocalNotification(notification);
+      }
+    });
   }
 
   void _setupNotificationTapHandler() {
     // Handle when app is opened from terminated state
-    // FirebaseMessaging.instance.getInitialMessage().then((message) {
-    //   if (message != null) {
-    //     final notification = _convertRemoteMessage(message);
-    //     _onActionController.add(NotificationAction(
-    //       type: NotificationActionType.opened,
-    //       notification: notification,
-    //     ));
-    //   }
-    // });
+    FirebaseMessaging.instance.getInitialMessage().then((message) {
+      if (message != null) {
+        _log('App opened from terminated state via notification');
+        final notification = PushNotification.fromRemoteMessage(message);
+        _onActionController.add(NotificationAction(
+          type: NotificationActionType.opened,
+          notification: notification,
+        ));
+      }
+    });
 
     // Handle when app is in background and notification is tapped
-    // FirebaseMessaging.onMessageOpenedApp.listen((message) {
-    //   final notification = _convertRemoteMessage(message);
-    //   _onActionController.add(NotificationAction(
-    //     type: NotificationActionType.opened,
-    //     notification: notification,
-    //   ));
-    // });
+    FirebaseMessaging.onMessageOpenedApp.listen((message) {
+      _log('App opened from background via notification');
+      final notification = PushNotification.fromRemoteMessage(message);
+      _onActionController.add(NotificationAction(
+        type: NotificationActionType.opened,
+        notification: notification,
+      ));
+    });
   }
 
   // ===========================================================================
@@ -281,24 +334,20 @@ class PushNotificationService {
   /// Request notification permission
   Future<bool> requestPermission() async {
     try {
-      // Uncomment when firebase_messaging is installed:
-      // final settings = await _messaging?.requestPermission(
-      //   alert: true,
-      //   announcement: false,
-      //   badge: _settings.showBadge,
-      //   carPlay: false,
-      //   criticalAlert: false,
-      //   provisional: false,
-      //   sound: _settings.playSound,
-      // );
-      //
-      // final authorized = settings?.authorizationStatus ==
-      //     AuthorizationStatus.authorized;
-      // _log('Permission status: ${settings?.authorizationStatus}');
-      // return authorized;
+      final settings = await _messaging?.requestPermission(
+        alert: true,
+        announcement: false,
+        badge: _settings.showBadge,
+        carPlay: false,
+        criticalAlert: false,
+        provisional: false,
+        sound: _settings.playSound,
+      );
 
-      _log('Permission requested (stub - firebase not installed)');
-      return true;
+      final authorized =
+          settings?.authorizationStatus == AuthorizationStatus.authorized;
+      _log('Permission status: ${settings?.authorizationStatus}');
+      return authorized;
     } catch (e) {
       _log('Permission request error: $e');
       return false;
@@ -308,12 +357,8 @@ class PushNotificationService {
   /// Check if notifications are enabled
   Future<bool> areNotificationsEnabled() async {
     try {
-      // Uncomment when firebase_messaging is installed:
-      // final settings = await _messaging?.getNotificationSettings();
-      // return settings?.authorizationStatus ==
-      //     AuthorizationStatus.authorized;
-
-      return true;
+      final settings = await _messaging?.getNotificationSettings();
+      return settings?.authorizationStatus == AuthorizationStatus.authorized;
     } catch (e) {
       _log('Check notifications enabled error: $e');
       return false;
@@ -327,12 +372,7 @@ class PushNotificationService {
   /// Get the current FCM token
   Future<String?> getToken() async {
     try {
-      // Uncomment when firebase_messaging is installed:
-      // _token = await _messaging?.getToken();
-      // return _token;
-
-      // Return a stub token for development
-      _token = 'stub-fcm-token-${DateTime.now().millisecondsSinceEpoch}';
+      _token = await _messaging?.getToken();
       return _token;
     } catch (e) {
       _log('Get token error: $e');
@@ -343,8 +383,7 @@ class PushNotificationService {
   /// Delete the current token (useful for logout)
   Future<void> deleteToken() async {
     try {
-      // Uncomment when firebase_messaging is installed:
-      // await _messaging?.deleteToken();
+      await _messaging?.deleteToken();
       _token = null;
       _log('Token deleted');
     } catch (e) {
@@ -359,8 +398,7 @@ class PushNotificationService {
   /// Subscribe to a topic
   Future<void> subscribeToTopic(String topic) async {
     try {
-      // Uncomment when firebase_messaging is installed:
-      // await _messaging?.subscribeToTopic(topic);
+      await _messaging?.subscribeToTopic(topic);
 
       _settings = _settings.copyWith(
         subscribedTopics: [..._settings.subscribedTopics, topic],
@@ -375,8 +413,7 @@ class PushNotificationService {
   /// Unsubscribe from a topic
   Future<void> unsubscribeFromTopic(String topic) async {
     try {
-      // Uncomment when firebase_messaging is installed:
-      // await _messaging?.unsubscribeFromTopic(topic);
+      await _messaging?.unsubscribeFromTopic(topic);
 
       _settings = _settings.copyWith(
         subscribedTopics:
@@ -401,33 +438,33 @@ class PushNotificationService {
     String? imageUrl,
   }) async {
     try {
-      // Uncomment when flutter_local_notifications is installed:
-      // const androidDetails = AndroidNotificationDetails(
-      //   'default_channel',
-      //   'Default',
-      //   channelDescription: 'Default notification channel',
-      //   importance: Importance.high,
-      //   priority: Priority.high,
-      // );
-      //
-      // const iosDetails = DarwinNotificationDetails(
-      //   presentAlert: true,
-      //   presentBadge: true,
-      //   presentSound: true,
-      // );
-      //
-      // const details = NotificationDetails(
-      //   android: androidDetails,
-      //   iOS: iosDetails,
-      // );
-      //
-      // await _localNotifications?.show(
-      //   DateTime.now().millisecondsSinceEpoch ~/ 1000,
-      //   title,
-      //   body,
-      //   details,
-      //   payload: payload,
-      // );
+      const androidDetails = AndroidNotificationDetails(
+        'default_channel',
+        'Default Notifications',
+        channelDescription: 'Default notification channel',
+        importance: Importance.high,
+        priority: Priority.high,
+        showWhen: true,
+      );
+
+      const iosDetails = DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+      );
+
+      const details = NotificationDetails(
+        android: androidDetails,
+        iOS: iosDetails,
+      );
+
+      await _localNotifications?.show(
+        DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        title,
+        body,
+        details,
+        payload: payload,
+      );
 
       _log('Local notification shown: $title');
     } catch (e) {
@@ -448,8 +485,7 @@ class PushNotificationService {
   /// Cancel all notifications
   Future<void> cancelAllNotifications() async {
     try {
-      // Uncomment when flutter_local_notifications is installed:
-      // await _localNotifications?.cancelAll();
+      await _localNotifications?.cancelAll();
       _log('All notifications cancelled');
     } catch (e) {
       _log('Cancel notifications error: $e');
@@ -459,8 +495,7 @@ class PushNotificationService {
   /// Cancel a specific notification
   Future<void> cancelNotification(int id) async {
     try {
-      // Uncomment when flutter_local_notifications is installed:
-      // await _localNotifications?.cancel(id);
+      await _localNotifications?.cancel(id);
       _log('Notification cancelled: $id');
     } catch (e) {
       _log('Cancel notification error: $e');
@@ -486,16 +521,6 @@ class PushNotificationService {
   // Helpers
   // ===========================================================================
 
-  // PushNotification _convertRemoteMessage(RemoteMessage message) {
-  //   return PushNotification(
-  //     title: message.notification?.title,
-  //     body: message.notification?.body,
-  //     imageUrl: message.notification?.android?.imageUrl ??
-  //         message.notification?.apple?.imageUrl,
-  //     data: message.data,
-  //   );
-  // }
-
   void _log(String message) {
     if (kDebugMode) {
       debugPrint('[PushNotificationService] $message');
@@ -519,11 +544,24 @@ class PushNotificationService {
 // =============================================================================
 
 /// Background message handler (must be top-level function)
-// @pragma('vm:entry-point')
-// Future<void> _handleBackgroundMessage(RemoteMessage message) async {
-//   // Handle background message
-//   debugPrint('[PushNotificationService] Background message: ${message.messageId}');
-// }
+@pragma('vm:entry-point')
+Future<void> _handleBackgroundMessage(RemoteMessage message) async {
+  // Ensure Firebase is initialized for background handling
+  await Firebase.initializeApp();
+
+  // Log the background message
+  debugPrint(
+      '[PushNotificationService] Background message: ${message.messageId}');
+  debugPrint(
+      '[PushNotificationService] Title: ${message.notification?.title}');
+  debugPrint('[PushNotificationService] Body: ${message.notification?.body}');
+  debugPrint('[PushNotificationService] Data: ${message.data}');
+
+  // You can add custom handling here, such as:
+  // - Updating local database
+  // - Scheduling local notifications
+  // - Syncing data
+}
 
 // =============================================================================
 // Global Instance

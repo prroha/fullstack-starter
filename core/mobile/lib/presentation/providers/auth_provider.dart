@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/services/token_manager.dart';
+import '../../data/repositories/auth_repository.dart';
 
 /// Auth state class
 class AuthState {
@@ -38,8 +39,9 @@ class AuthState {
 /// Auth state notifier for managing authentication state
 class AuthNotifier extends StateNotifier<AuthState> {
   final TokenManager _tokenManager;
+  final AuthRepository _authRepository;
 
-  AuthNotifier(this._tokenManager) : super(const AuthState()) {
+  AuthNotifier(this._tokenManager, this._authRepository) : super(const AuthState()) {
     _checkAuthStatus();
   }
 
@@ -64,109 +66,122 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<bool> login(String email, String password) async {
     state = state.copyWith(isLoading: true, error: null);
 
-    try {
-      // TODO: Replace with actual API call
-      // Simulating API call for demonstration
-      await Future.delayed(const Duration(seconds: 1));
-
-      // For demo purposes, accept any non-empty credentials
-      if (email.isEmpty || password.isEmpty) {
-        state = state.copyWith(
-          isLoading: false,
-          error: 'Email and password are required',
-        );
-        return false;
-      }
-
-      // Save mock tokens
-      await _tokenManager.saveTokens(
-        accessToken: 'mock_access_token',
-        refreshToken: 'mock_refresh_token',
-        userId: 'mock_user_id',
-      );
-
-      state = state.copyWith(
-        isAuthenticated: true,
-        isLoading: false,
-        email: email,
-      );
-      return true;
-    } catch (e) {
+    // Basic validation before API call
+    if (email.isEmpty || password.isEmpty) {
       state = state.copyWith(
         isLoading: false,
-        error: e.toString(),
+        error: 'Email and password are required',
       );
       return false;
     }
+
+    final result = await _authRepository.login(
+      email: email,
+      password: password,
+    );
+
+    return result.fold(
+      (failure) {
+        state = state.copyWith(
+          isLoading: false,
+          error: failure.message,
+        );
+        return false;
+      },
+      (authResponse) {
+        state = state.copyWith(
+          isAuthenticated: true,
+          isLoading: false,
+          userId: authResponse.userId,
+          email: authResponse.email,
+        );
+        return true;
+      },
+    );
   }
 
   /// Register a new user
   Future<bool> register(String email, String password, String confirmPassword) async {
     state = state.copyWith(isLoading: true, error: null);
 
-    try {
-      // TODO: Replace with actual API call
-      // Simulating API call for demonstration
-      await Future.delayed(const Duration(seconds: 1));
-
-      // Basic validation
-      if (email.isEmpty || password.isEmpty) {
-        state = state.copyWith(
-          isLoading: false,
-          error: 'Email and password are required',
-        );
-        return false;
-      }
-
-      if (password != confirmPassword) {
-        state = state.copyWith(
-          isLoading: false,
-          error: 'Passwords do not match',
-        );
-        return false;
-      }
-
-      if (password.length < 6) {
-        state = state.copyWith(
-          isLoading: false,
-          error: 'Password must be at least 6 characters',
-        );
-        return false;
-      }
-
-      // Save mock tokens
-      await _tokenManager.saveTokens(
-        accessToken: 'mock_access_token',
-        refreshToken: 'mock_refresh_token',
-        userId: 'mock_user_id',
-      );
-
-      state = state.copyWith(
-        isAuthenticated: true,
-        isLoading: false,
-        email: email,
-      );
-      return true;
-    } catch (e) {
+    // Basic validation
+    if (email.isEmpty || password.isEmpty) {
       state = state.copyWith(
         isLoading: false,
-        error: e.toString(),
+        error: 'Email and password are required',
       );
       return false;
     }
+
+    if (password != confirmPassword) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Passwords do not match',
+      );
+      return false;
+    }
+
+    if (password.length < 8) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Password must be at least 8 characters',
+      );
+      return false;
+    }
+
+    // Register first
+    final registerResult = await _authRepository.register(
+      email: email,
+      password: password,
+    );
+
+    return await registerResult.fold(
+      (failure) {
+        state = state.copyWith(
+          isLoading: false,
+          error: failure.message,
+        );
+        return false;
+      },
+      (registerResponse) async {
+        // After successful registration, login to get tokens
+        final loginResult = await _authRepository.login(
+          email: email,
+          password: password,
+        );
+
+        return loginResult.fold(
+          (failure) {
+            state = state.copyWith(
+              isLoading: false,
+              error: 'Registration successful, but login failed: ${failure.message}',
+            );
+            return false;
+          },
+          (authResponse) {
+            state = state.copyWith(
+              isAuthenticated: true,
+              isLoading: false,
+              userId: authResponse.userId,
+              email: authResponse.email,
+            );
+            return true;
+          },
+        );
+      },
+    );
   }
 
   /// Logout the current user
   Future<void> logout() async {
     state = state.copyWith(isLoading: true);
     try {
-      await _tokenManager.clearTokens();
+      await _authRepository.logout();
       state = const AuthState(isAuthenticated: false, isLoading: false);
     } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: e.toString(),
-      );
+      // Even if logout fails, clear local state
+      await _tokenManager.clearTokens();
+      state = const AuthState(isAuthenticated: false, isLoading: false);
     }
   }
 
@@ -174,10 +189,21 @@ class AuthNotifier extends StateNotifier<AuthState> {
   void clearError() {
     state = state.copyWith(error: null);
   }
+
+  /// Force logout (called when token refresh fails)
+  Future<void> forceLogout() async {
+    await _tokenManager.clearTokens();
+    state = const AuthState(
+      isAuthenticated: false,
+      isLoading: false,
+      error: 'Session expired. Please login again.',
+    );
+  }
 }
 
 /// Auth provider
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   final tokenManager = ref.watch(tokenManagerProvider);
-  return AuthNotifier(tokenManager);
+  final authRepository = ref.watch(authRepositoryProvider);
+  return AuthNotifier(tokenManager, authRepository);
 });

@@ -1,7 +1,9 @@
-import { Request, Response, NextFunction } from "express";
+import { Response, NextFunction } from "express";
 import { authService } from "../services/auth.service";
 import { successResponse } from "../utils/response";
 import { z } from "zod";
+import { AppRequest, AuthenticatedRequest } from "../types";
+import { generateCsrfToken } from "../middleware/csrf.middleware";
 
 // Validation schemas
 const registerSchema = z.object({
@@ -15,12 +17,16 @@ const loginSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
+const refreshSchema = z.object({
+  refreshToken: z.string().min(1, "Refresh token is required").optional(),
+});
+
 class AuthController {
   /**
    * Register a new user
    * POST /api/v1/auth/register
    */
-  async register(req: Request, res: Response, next: NextFunction) {
+  async register(req: AppRequest, res: Response, next: NextFunction) {
     try {
       const validated = registerSchema.parse(req.body);
       const user = await authService.register(validated);
@@ -38,7 +44,7 @@ class AuthController {
    * Login user
    * POST /api/v1/auth/login
    */
-  async login(req: Request, res: Response, next: NextFunction) {
+  async login(req: AppRequest, res: Response, next: NextFunction) {
     try {
       const validated = loginSchema.parse(req.body);
       const deviceId = req.headers["x-device-id"] as string | undefined;
@@ -47,6 +53,9 @@ class AuthController {
         ...validated,
         deviceId,
       });
+
+      // Generate CSRF token for the session
+      const csrfToken = generateCsrfToken();
 
       // Set httpOnly cookies for web clients
       res.cookie("accessToken", result.accessToken, {
@@ -63,10 +72,79 @@ class AuthController {
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
       });
 
+      // Set CSRF token cookie (readable by JavaScript for header inclusion)
+      res.cookie("csrfToken", csrfToken, {
+        httpOnly: false, // Must be readable by JS to send in header
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      });
+
       res.json(successResponse({
         user: result.user,
         accessToken: result.accessToken,
         refreshToken: result.refreshToken,
+        csrfToken, // Also return in body for non-browser clients
+      }));
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Refresh access token
+   * POST /api/v1/auth/refresh
+   */
+  async refresh(req: AppRequest, res: Response, next: NextFunction) {
+    try {
+      const validated = refreshSchema.parse(req.body);
+
+      // Try to get refresh token from cookie first, then body
+      const refreshToken = req.cookies?.refreshToken || validated.refreshToken;
+
+      if (!refreshToken) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: "INVALID_INPUT",
+            message: "Refresh token is required",
+          },
+        });
+      }
+
+      const result = await authService.refreshToken(refreshToken);
+
+      // Generate new CSRF token
+      const csrfToken = generateCsrfToken();
+
+      // Update cookies with new tokens
+      res.cookie("accessToken", result.accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      });
+
+      res.cookie("refreshToken", result.refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      });
+
+      // Update CSRF token cookie
+      res.cookie("csrfToken", csrfToken, {
+        httpOnly: false,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      });
+
+      res.json(successResponse({
+        user: result.user,
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
+        csrfToken,
       }));
     } catch (error) {
       next(error);
@@ -77,11 +155,12 @@ class AuthController {
    * Logout user
    * POST /api/v1/auth/logout
    */
-  async logout(_req: Request, res: Response, next: NextFunction) {
+  async logout(_req: AppRequest, res: Response, next: NextFunction) {
     try {
       // Clear cookies
       res.clearCookie("accessToken");
       res.clearCookie("refreshToken");
+      res.clearCookie("csrfToken");
 
       res.json(successResponse(null, "Logged out successfully"));
     } catch (error) {
@@ -93,10 +172,22 @@ class AuthController {
    * Get current user
    * GET /api/v1/auth/me
    */
-  async me(req: Request, res: Response, next: NextFunction) {
+  async me(req: AppRequest, res: Response, next: NextFunction) {
     try {
-      const authReq = req as Request & { dbUser: unknown };
-      res.json(successResponse({ user: authReq.dbUser }));
+      const authReq = req as AuthenticatedRequest;
+      const { id, email, name, role, isActive, createdAt, updatedAt } = authReq.dbUser;
+
+      res.json(successResponse({
+        user: {
+          id,
+          email,
+          name,
+          role,
+          isActive,
+          createdAt,
+          updatedAt,
+        },
+      }));
     } catch (error) {
       next(error);
     }

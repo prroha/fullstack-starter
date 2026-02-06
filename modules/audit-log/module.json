@@ -5,20 +5,48 @@
   "tier": "enterprise",
   "price": "29",
   "category": "security",
-  "platforms": "backend,web",
+  "platforms": "backend,web,mobile",
   "dependencies": {
-    "backend": {}
+    "backend": {
+      "@prisma/client": "^5.0.0"
+    },
+    "mobile": {
+      "dio": "^5.4.0",
+      "flutter_riverpod": "^2.4.0",
+      "dartz": "^0.10.1",
+      "intl": "^0.19.0"
+    }
   },
   "env": {
     "AUDIT_LOG_ENABLED": "true",
-    "AUDIT_LOG_RETENTION_DAYS": "365"
+    "AUDIT_LOG_RETENTION_DAYS": "365",
+    "AUDIT_LOG_LEVELS": "info,warning,error,security",
+    "AUDIT_LOG_EXCLUDE_PATHS": "/health,/metrics",
+    "AUDIT_LOG_INCLUDE_BODY": "false",
+    "AUDIT_LOG_MASK_FIELDS": "password,token,secret,apiKey,creditCard"
   },
   "postInstall": [
-    "Add AuditLog model to Prisma schema",
-    "Run database migrations",
-    "Add audit middleware to backend/src/middleware/",
-    "Configure which actions to audit in config",
-    "Add audit log viewer to admin dashboard"
+    "Add AuditLog model to Prisma schema (see README.md for schema with indexes)",
+    "Run database migrations: npm run db:migrate:dev -- --name add_audit_log",
+    "Initialize audit service in app.ts: initAuditService(prisma)",
+    "Add audit middleware to backend/src/app.ts after auth middleware",
+    "Register routes: v1Router.use('/admin/audit-logs', auditRoutes)",
+    "Add audit log viewer to admin dashboard (web)",
+    "Import AuditLogsScreen in mobile app for admin users"
   ],
+  "files": {
+    "backend": [
+      "src/services/audit.service.ts",
+      "src/middleware/audit.middleware.ts",
+      "src/routes/audit.routes.ts"
+    ],
+    "web": [
+      "src/app/admin/audit-logs/page.tsx"
+    ],
+    "mobile": [
+      "lib/core/services/audit_service.dart",
+      "lib/presentation/screens/audit_logs_screen.dart"
+    ]
+  },
   "documentation": "https://docs.fullstack-starter.dev/modules/audit-log"
 }

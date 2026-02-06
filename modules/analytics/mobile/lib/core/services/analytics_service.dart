@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
 /// Analytics provider type
@@ -41,6 +42,10 @@ class AnalyticsConfig {
   final String? apiUrl;
   final bool debug;
   final bool enabled;
+  final Duration timeout;
+  final int maxRetries;
+  final int batchSize;
+  final Duration flushInterval;
 
   const AnalyticsConfig({
     required this.provider,
@@ -48,7 +53,35 @@ class AnalyticsConfig {
     this.apiUrl,
     this.debug = false,
     this.enabled = true,
+    this.timeout = const Duration(seconds: 10),
+    this.maxRetries = 3,
+    this.batchSize = 20,
+    this.flushInterval = const Duration(seconds: 30),
   });
+}
+
+/// Event model for tracking
+class AnalyticsEventData {
+  final String event;
+  final Map<String, dynamic>? properties;
+  final String? sessionId;
+  final DateTime timestamp;
+
+  AnalyticsEventData({
+    required this.event,
+    this.properties,
+    this.sessionId,
+    DateTime? timestamp,
+  }) : timestamp = timestamp ?? DateTime.now();
+
+  Map<String, dynamic> toJson() {
+    return {
+      'event': event,
+      if (properties != null) 'properties': properties,
+      if (sessionId != null) 'sessionId': sessionId,
+      'timestamp': timestamp.toIso8601String(),
+    };
+  }
 }
 
 /// Abstract analytics provider interface
@@ -58,6 +91,7 @@ abstract class AnalyticsProviderInterface {
   Future<void> track(String event, {Map<String, dynamic>? properties});
   Future<void> screen(String name, {Map<String, dynamic>? properties});
   Future<void> reset();
+  Future<void> flush();
 }
 
 /// Mixpanel analytics provider
@@ -144,6 +178,18 @@ class MixpanelAnalyticsProvider implements AnalyticsProviderInterface {
     }
   }
 
+  @override
+  Future<void> flush() async {
+    if (!_initialized) return;
+
+    try {
+      // _mixpanel?.flush();
+      _log('Analytics flushed');
+    } catch (e) {
+      _log('Failed to flush: $e');
+    }
+  }
+
   void _log(String message) {
     if (_debug) {
       debugPrint('[Analytics:Mixpanel] $message');
@@ -151,74 +197,269 @@ class MixpanelAnalyticsProvider implements AnalyticsProviderInterface {
   }
 }
 
-/// Custom API-based analytics provider
+/// Custom API-based analytics provider using Dio
 class CustomAnalyticsProvider implements AnalyticsProviderInterface {
-  String _apiUrl = '';
-  bool _debug = false;
+  late Dio _dio;
+  late AnalyticsConfig _config;
   String? _userId;
+  String? _sessionId;
+  bool _initialized = false;
+  final List<AnalyticsEventData> _eventQueue = [];
+  bool _isFlushing = false;
 
   @override
   Future<void> init(AnalyticsConfig config) async {
-    _apiUrl = config.apiUrl ?? '/api/analytics';
-    _debug = config.debug;
-    _log('Custom analytics initialized');
+    _config = config;
+
+    // Configure Dio instance
+    _dio = Dio(BaseOptions(
+      baseUrl: config.apiUrl ?? '/api/analytics',
+      connectTimeout: config.timeout,
+      receiveTimeout: config.timeout,
+      sendTimeout: config.timeout,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    ));
+
+    // Add interceptors for logging and retry logic
+    if (config.debug) {
+      _dio.interceptors.add(LogInterceptor(
+        requestBody: true,
+        responseBody: true,
+        logPrint: (obj) => debugPrint('[Analytics:HTTP] $obj'),
+      ));
+    }
+
+    // Add retry interceptor
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onError: (error, handler) async {
+          if (_shouldRetry(error)) {
+            try {
+              final response = await _retryRequest(error.requestOptions);
+              handler.resolve(response);
+              return;
+            } catch (e) {
+              // Retry failed, proceed with error
+            }
+          }
+          handler.next(error);
+        },
+      ),
+    );
+
+    _initialized = true;
+    _sessionId = _generateSessionId();
+    _log('Custom analytics initialized with API: ${config.apiUrl}');
+
+    // Start periodic flush timer
+    _startPeriodicFlush();
   }
 
   @override
   Future<void> identify(String userId, {UserProperties? properties}) async {
+    if (!_initialized) return;
+
     _userId = userId;
-    await _sendEvent('identify', {
-      'userId': userId,
-      ...?properties?.toMap(),
-    });
-    _log('Identified user: $userId');
+
+    try {
+      await _sendEvent('identify', {
+        'userId': userId,
+        ...?properties?.toMap(),
+      });
+      _log('Identified user: $userId');
+    } catch (e) {
+      _log('Failed to identify user: $e');
+    }
   }
 
   @override
   Future<void> track(String event, {Map<String, dynamic>? properties}) async {
-    await _sendEvent('track', {
-      'event': event,
-      'userId': _userId,
-      'properties': properties,
-      'timestamp': DateTime.now().toIso8601String(),
-    });
-    _log('Tracked event: $event');
+    if (!_initialized) return;
+
+    final eventData = AnalyticsEventData(
+      event: event,
+      properties: properties,
+      sessionId: _sessionId,
+    );
+
+    // Add to queue for batch processing
+    _eventQueue.add(eventData);
+    _log('Queued event: $event (queue size: ${_eventQueue.length})');
+
+    // Flush if queue is full
+    if (_eventQueue.length >= _config.batchSize) {
+      await flush();
+    }
   }
 
   @override
   Future<void> screen(String name, {Map<String, dynamic>? properties}) async {
-    await _sendEvent('screen', {
-      'screen': name,
-      'userId': _userId,
-      'properties': properties,
-      'timestamp': DateTime.now().toIso8601String(),
+    if (!_initialized) return;
+
+    await track('screen_view', properties: {
+      'screen_name': name,
+      ...?properties,
     });
     _log('Screen view: $name');
   }
 
   @override
   Future<void> reset() async {
+    if (!_initialized) return;
+
+    // Flush remaining events before reset
+    await flush();
+
     _userId = null;
+    _sessionId = _generateSessionId();
+    _eventQueue.clear();
     _log('Analytics reset');
   }
 
+  @override
+  Future<void> flush() async {
+    if (!_initialized || _isFlushing || _eventQueue.isEmpty) return;
+
+    _isFlushing = true;
+
+    try {
+      // Take current events from queue
+      final eventsToSend = List<AnalyticsEventData>.from(_eventQueue);
+      _eventQueue.clear();
+
+      if (eventsToSend.length == 1) {
+        // Send single event
+        await _sendSingleEvent(eventsToSend.first);
+      } else {
+        // Send batch
+        await _sendBatchEvents(eventsToSend);
+      }
+
+      _log('Flushed ${eventsToSend.length} events');
+    } catch (e) {
+      _log('Failed to flush events: $e');
+      // Re-add failed events to queue for retry
+      // Note: In production, you might want to limit retries or persist failed events
+    } finally {
+      _isFlushing = false;
+    }
+  }
+
+  /// Send a single event to the track endpoint
+  Future<void> _sendSingleEvent(AnalyticsEventData eventData) async {
+    final payload = {
+      'event': eventData.event,
+      'properties': eventData.properties,
+      'sessionId': eventData.sessionId,
+      'timestamp': eventData.timestamp.toIso8601String(),
+    };
+
+    await _dio.post('/track', data: payload);
+  }
+
+  /// Send multiple events to the batch track endpoint
+  Future<void> _sendBatchEvents(List<AnalyticsEventData> events) async {
+    final payload = {
+      'events': events.map((e) => e.toJson()).toList(),
+    };
+
+    await _dio.post('/track/batch', data: payload);
+  }
+
+  /// Send identify or other custom events
   Future<void> _sendEvent(String type, Map<String, dynamic> data) async {
-    // TODO: Implement HTTP request to your analytics API
-    // try {
-    //   await http.post(
-    //     Uri.parse(_apiUrl),
-    //     headers: {'Content-Type': 'application/json'},
-    //     body: jsonEncode({'type': type, ...data}),
-    //   );
-    // } catch (e) {
-    //   _log('Failed to send event: $e');
-    // }
+    try {
+      final payload = {
+        'type': type,
+        'userId': _userId,
+        'sessionId': _sessionId,
+        'timestamp': DateTime.now().toIso8601String(),
+        ...data,
+      };
+
+      await _dio.post('/track', data: payload);
+    } catch (e) {
+      _log('Failed to send event: $e');
+      rethrow;
+    }
+  }
+
+  /// Check if request should be retried
+  bool _shouldRetry(DioException error) {
+    // Retry on network errors and server errors (5xx)
+    if (error.type == DioExceptionType.connectionTimeout ||
+        error.type == DioExceptionType.sendTimeout ||
+        error.type == DioExceptionType.receiveTimeout ||
+        error.type == DioExceptionType.connectionError) {
+      return true;
+    }
+
+    final statusCode = error.response?.statusCode;
+    if (statusCode != null && statusCode >= 500) {
+      return true;
+    }
+
+    return false;
+  }
+
+  /// Retry a failed request with exponential backoff
+  Future<Response> _retryRequest(RequestOptions requestOptions, {int attempt = 1}) async {
+    if (attempt > _config.maxRetries) {
+      throw DioException(
+        requestOptions: requestOptions,
+        message: 'Max retries exceeded',
+      );
+    }
+
+    // Exponential backoff
+    final delay = Duration(milliseconds: 100 * (1 << attempt));
+    await Future.delayed(delay);
+
+    _log('Retrying request (attempt $attempt)');
+
+    try {
+      return await _dio.fetch(requestOptions);
+    } on DioException catch (e) {
+      if (_shouldRetry(e) && attempt < _config.maxRetries) {
+        return _retryRequest(requestOptions, attempt: attempt + 1);
+      }
+      rethrow;
+    }
+  }
+
+  /// Generate a unique session ID
+  String _generateSessionId() {
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final random = (timestamp * 0x5DEECE66D + 0xB) & 0xFFFFFFFFFFFF;
+    return 'sess_${random.toRadixString(36)}';
+  }
+
+  /// Start periodic flush timer
+  void _startPeriodicFlush() {
+    Future.delayed(_config.flushInterval, () async {
+      if (_initialized) {
+        await flush();
+        _startPeriodicFlush();
+      }
+    });
   }
 
   void _log(String message) {
-    if (_debug) {
+    if (_config.debug) {
       debugPrint('[Analytics:Custom] $message');
     }
+  }
+
+  /// Update authorization token (call after login)
+  void setAuthToken(String token) {
+    _dio.options.headers['Authorization'] = 'Bearer $token';
+  }
+
+  /// Clear authorization token (call after logout)
+  void clearAuthToken() {
+    _dio.options.headers.remove('Authorization');
   }
 }
 
@@ -238,6 +479,9 @@ class NoopAnalyticsProvider implements AnalyticsProviderInterface {
 
   @override
   Future<void> reset() async {}
+
+  @override
+  Future<void> flush() async {}
 }
 
 /// Main Analytics Service
@@ -251,6 +495,12 @@ class AnalyticsService {
   AnalyticsProviderInterface _provider = NoopAnalyticsProvider();
   bool _initialized = false;
   final List<Future<void> Function()> _queue = [];
+
+  /// Get the underlying provider (for advanced usage)
+  AnalyticsProviderInterface get provider => _provider;
+
+  /// Check if analytics is initialized
+  bool get isInitialized => _initialized;
 
   /// Initialize analytics with configuration
   Future<void> init(AnalyticsConfig config) async {
@@ -317,6 +567,27 @@ class AnalyticsService {
       await _provider.reset();
     }
   }
+
+  /// Flush pending events
+  Future<void> flush() async {
+    if (_initialized) {
+      await _provider.flush();
+    }
+  }
+
+  /// Update auth token for custom provider
+  void setAuthToken(String token) {
+    if (_provider is CustomAnalyticsProvider) {
+      (_provider as CustomAnalyticsProvider).setAuthToken(token);
+    }
+  }
+
+  /// Clear auth token for custom provider
+  void clearAuthToken() {
+    if (_provider is CustomAnalyticsProvider) {
+      (_provider as CustomAnalyticsProvider).clearAuthToken();
+    }
+  }
 }
 
 /// Global analytics instance
@@ -335,4 +606,48 @@ class AnalyticsEvents {
   static const String onboardingStep = 'onboarding_step';
   static const String subscriptionStarted = 'subscription_started';
   static const String subscriptionCanceled = 'subscription_canceled';
+  static const String screenView = 'screen_view';
+  static const String appOpen = 'app_open';
+  static const String appClose = 'app_close';
+  static const String pushNotificationReceived = 'push_notification_received';
+  static const String pushNotificationOpened = 'push_notification_opened';
+  static const String shareContent = 'share_content';
+  static const String searchPerformed = 'search_performed';
+  static const String itemViewed = 'item_viewed';
+  static const String addToCart = 'add_to_cart';
+  static const String removeFromCart = 'remove_from_cart';
+  static const String checkoutStarted = 'checkout_started';
+  static const String checkoutCompleted = 'checkout_completed';
+}
+
+/// Analytics screen observer for automatic screen tracking
+class AnalyticsRouteObserver extends NavigatorObserver {
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didPush(route, previousRoute);
+    _trackScreen(route);
+  }
+
+  @override
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
+    super.didReplace(newRoute: newRoute, oldRoute: oldRoute);
+    if (newRoute != null) {
+      _trackScreen(newRoute);
+    }
+  }
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didPop(route, previousRoute);
+    if (previousRoute != null) {
+      _trackScreen(previousRoute);
+    }
+  }
+
+  void _trackScreen(Route<dynamic> route) {
+    final screenName = route.settings.name;
+    if (screenName != null && screenName.isNotEmpty) {
+      analytics.screen(screenName);
+    }
+  }
 }

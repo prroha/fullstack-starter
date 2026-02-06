@@ -1,33 +1,29 @@
 {
   "name": "Email",
-  "version": "1.0.0",
-  "description": "Email sending with templates and queue support",
+  "version": "1.1.0",
+  "description": "Email sending with templates and queue support using Resend",
   "tier": "standard",
   "price": "19",
   "category": "communication",
-  "platforms": "backend,web",
+  "platforms": "backend,web,mobile",
   "dependencies": {
     "backend": {
-      "nodemailer": "^6.9.0",
-      "handlebars": "^4.7.8"
+      "resend": "^3.2.0"
     }
   },
   "devDependencies": {
-    "backend": {
-      "@types/nodemailer": "^6.4.0"
-    }
+    "backend": {}
   },
   "env": {
-    "SMTP_HOST": "smtp.example.com",
-    "SMTP_PORT": "587",
-    "SMTP_USER": "",
-    "SMTP_PASS": "",
-    "SMTP_FROM": "noreply@example.com"
+    "RESEND_API_KEY": "",
+    "EMAIL_FROM": "noreply@example.com"
   },
   "postInstall": [
-    "Configure SMTP credentials in backend/.env",
-    "Create email templates in backend/src/templates/email/",
-    "Import and use EmailService in your controllers"
+    "Get your API key from https://resend.com/api-keys",
+    "Configure RESEND_API_KEY in backend/.env",
+    "Configure EMAIL_FROM with your verified domain",
+    "Import and use EmailService in your controllers",
+    "Mount email routes at /api/email"
   ],
   "documentation": "https://docs.fullstack-starter.dev/modules/email"
 }

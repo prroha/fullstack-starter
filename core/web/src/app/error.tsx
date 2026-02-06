@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { logger, reportError } from "@/lib/logger";
 
 interface ErrorProps {
   error: Error & { digest?: string };
@@ -9,8 +10,11 @@ interface ErrorProps {
 
 export default function Error({ error, reset }: ErrorProps) {
   useEffect(() => {
-    // Log the error to an error reporting service
-    console.error("Application error:", error);
+    // Log the error to the logging service
+    logger.error("PageError", "Application error occurred", error, {
+      digest: error.digest,
+    });
+    reportError(error, { digest: error.digest, boundary: "page" });
   }, [error]);
 
   return (

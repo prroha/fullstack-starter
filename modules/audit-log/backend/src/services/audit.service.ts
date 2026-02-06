@@ -1,3 +1,5 @@
+import { PrismaClient } from '@prisma/client';
+
 // =============================================================================
 // Types
 // =============================================================================
@@ -91,11 +93,10 @@ export class AuditService {
   private flushInterval: ReturnType<typeof setInterval> | null = null;
   private readonly BATCH_SIZE = 100;
   private readonly FLUSH_INTERVAL_MS = 5000;
+  private prisma: PrismaClient;
 
-  // In production, inject PrismaClient
-  // private prisma: PrismaClient;
-
-  constructor(config?: Partial<AuditConfig>) {
+  constructor(config?: Partial<AuditConfig>, prisma?: PrismaClient) {
+    this.prisma = prisma || new PrismaClient();
     this.config = {
       enabled: config?.enabled ?? process.env.AUDIT_LOG_ENABLED !== 'false',
       retentionDays: config?.retentionDays ?? parseInt(process.env.AUDIT_LOG_RETENTION_DAYS || '365'),
@@ -183,59 +184,63 @@ export class AuditService {
       sortOrder = 'desc',
     } = options;
 
-    // In production, use Prisma:
-    // const where: Prisma.AuditLogWhereInput = {};
-    //
-    // if (startDate || endDate) {
-    //   where.timestamp = {};
-    //   if (startDate) where.timestamp.gte = startDate;
-    //   if (endDate) where.timestamp.lte = endDate;
-    // }
-    //
-    // if (userId) where.userId = userId;
-    // if (level) where.level = level;
-    // if (levels?.length) where.level = { in: levels };
-    // if (action) where.action = { contains: action };
-    // if (actions?.length) where.action = { in: actions };
-    // if (category) where.category = category;
-    // if (categories?.length) where.category = { in: categories };
-    //
-    // if (search) {
-    //   where.OR = [
-    //     { action: { contains: search, mode: 'insensitive' } },
-    //     { path: { contains: search, mode: 'insensitive' } },
-    //     { userEmail: { contains: search, mode: 'insensitive' } },
-    //   ];
-    // }
-    //
-    // const [logs, total] = await Promise.all([
-    //   this.prisma.auditLog.findMany({
-    //     where,
-    //     orderBy: { [sortBy]: sortOrder },
-    //     skip: (page - 1) * limit,
-    //     take: limit,
-    //   }),
-    //   this.prisma.auditLog.count({ where }),
-    // ]);
+    const where: Record<string, unknown> = {};
 
-    // Stub implementation
-    console.log('[AuditService] Query with options:', {
-      startDate,
-      endDate,
-      userId,
-      level,
-      category,
-      search,
-      page,
-      limit,
-    });
+    // Date range filter
+    if (startDate || endDate) {
+      where.timestamp = {};
+      if (startDate) (where.timestamp as Record<string, Date>).gte = startDate;
+      if (endDate) (where.timestamp as Record<string, Date>).lte = endDate;
+    }
+
+    // User filter
+    if (userId) where.userId = userId;
+
+    // Level filter (single or multiple)
+    if (level) where.level = level;
+    if (levels?.length) where.level = { in: levels };
+
+    // Action filter (single or multiple)
+    if (action) where.action = { contains: action };
+    if (actions?.length) where.action = { in: actions };
+
+    // Category filter (single or multiple)
+    if (category) where.category = category;
+    if (categories?.length) where.category = { in: categories };
+
+    // Search filter (searches across action, path, userEmail)
+    if (search) {
+      where.OR = [
+        { action: { contains: search, mode: 'insensitive' } },
+        { path: { contains: search, mode: 'insensitive' } },
+        { userEmail: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    const [logs, total] = await Promise.all([
+      this.prisma.auditLog.findMany({
+        where,
+        orderBy: { [sortBy]: sortOrder },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.auditLog.count({ where }),
+    ]);
+
+    // Convert metadata from JSON string to object if needed
+    const formattedLogs: AuditLogRecord[] = logs.map((log) => ({
+      ...log,
+      metadata: typeof log.metadata === 'string'
+        ? JSON.parse(log.metadata)
+        : log.metadata as Record<string, unknown> | undefined,
+    }));
 
     return {
-      logs: [],
-      total: 0,
+      logs: formattedLogs,
+      total,
       page,
       limit,
-      totalPages: 0,
+      totalPages: Math.ceil(total / limit),
     };
   }
 
@@ -243,11 +248,16 @@ export class AuditService {
    * Get a single audit log by ID
    */
   async getById(id: string): Promise<AuditLogRecord | null> {
-    // In production:
-    // return this.prisma.auditLog.findUnique({ where: { id } });
+    const log = await this.prisma.auditLog.findUnique({ where: { id } });
 
-    console.log('[AuditService] Get by ID:', id);
-    return null;
+    if (!log) return null;
+
+    return {
+      ...log,
+      metadata: typeof log.metadata === 'string'
+        ? JSON.parse(log.metadata)
+        : log.metadata as Record<string, unknown> | undefined,
+    };
   }
 
   /**
@@ -256,33 +266,71 @@ export class AuditService {
   async getStats(days: number = 30): Promise<AuditStats> {
     const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
-    // In production:
-    // const [total, byLevel, byCategory, dailyCounts] = await Promise.all([
-    //   this.prisma.auditLog.count({ where: { timestamp: { gte: startDate } } }),
-    //   this.prisma.auditLog.groupBy({
-    //     by: ['level'],
-    //     _count: true,
-    //     where: { timestamp: { gte: startDate } },
-    //   }),
-    //   this.prisma.auditLog.groupBy({
-    //     by: ['category'],
-    //     _count: true,
-    //     where: { timestamp: { gte: startDate } },
-    //   }),
-    //   // Raw query for daily counts
-    // ]);
+    const [total, byLevelRaw, byCategoryRaw] = await Promise.all([
+      this.prisma.auditLog.count({ where: { timestamp: { gte: startDate } } }),
+      this.prisma.auditLog.groupBy({
+        by: ['level'],
+        _count: true,
+        where: { timestamp: { gte: startDate } },
+      }),
+      this.prisma.auditLog.groupBy({
+        by: ['category'],
+        _count: true,
+        where: { timestamp: { gte: startDate } },
+      }),
+    ]);
 
-    // Stub implementation
+    // Build byLevel object
+    const byLevel: Record<AuditLevel, number> = {
+      info: 0,
+      warning: 0,
+      error: 0,
+      security: 0,
+    };
+    for (const item of byLevelRaw) {
+      if (item.level && item.level in byLevel) {
+        byLevel[item.level as AuditLevel] = item._count;
+      }
+    }
+
+    // Build byCategory object
+    const byCategory: Record<string, number> = {};
+    for (const item of byCategoryRaw) {
+      if (item.category) {
+        byCategory[item.category] = item._count;
+      }
+    }
+
+    // Get daily activity counts for the last N days using raw query
+    const recentActivity: Array<{ date: string; count: number }> = [];
+    try {
+      const dailyCounts = await this.prisma.$queryRaw<
+        Array<{ date: string; count: bigint }>
+      >`
+        SELECT DATE(timestamp) as date, COUNT(*) as count
+        FROM "AuditLog"
+        WHERE timestamp >= ${startDate}
+        GROUP BY DATE(timestamp)
+        ORDER BY date DESC
+        LIMIT 30
+      `;
+
+      for (const row of dailyCounts) {
+        recentActivity.push({
+          date: row.date,
+          count: Number(row.count),
+        });
+      }
+    } catch (err) {
+      // Raw query may not work with all database providers, fallback to empty array
+      console.warn('[AuditService] Failed to get daily counts:', err);
+    }
+
     return {
-      total: 0,
-      byLevel: {
-        info: 0,
-        warning: 0,
-        error: 0,
-        security: 0,
-      },
-      byCategory: {},
-      recentActivity: [],
+      total,
+      byLevel,
+      byCategory,
+      recentActivity,
     };
   }
 
@@ -298,14 +346,11 @@ export class AuditService {
       Date.now() - this.config.retentionDays * 24 * 60 * 60 * 1000
     );
 
-    // In production:
-    // const result = await this.prisma.auditLog.deleteMany({
-    //   where: { timestamp: { lt: cutoffDate } },
-    // });
-    // return result.count;
+    const result = await this.prisma.auditLog.deleteMany({
+      where: { timestamp: { lt: cutoffDate } },
+    });
 
-    console.log('[AuditService] Cleanup logs before:', cutoffDate);
-    return 0;
+    return result.count;
   }
 
   /**
@@ -417,17 +462,32 @@ export class AuditService {
 
     const entries = this.queue.splice(0, this.BATCH_SIZE);
 
-    // In production, batch insert:
-    // await this.prisma.auditLog.createMany({
-    //   data: entries.map((entry) => ({
-    //     ...entry,
-    //     timestamp: new Date(),
-    //     metadata: entry.metadata ? JSON.stringify(entry.metadata) : null,
-    //   })),
-    // });
-
-    // Stub: Just log to console
-    console.log(`[AuditService] Flushing ${entries.length} audit log entries`);
+    try {
+      await this.prisma.auditLog.createMany({
+        data: entries.map((entry) => ({
+          level: entry.level || 'info',
+          action: entry.action,
+          category: entry.category || 'api',
+          userId: entry.userId,
+          userEmail: entry.userEmail,
+          targetId: entry.targetId,
+          targetType: entry.targetType,
+          method: entry.method,
+          path: entry.path,
+          statusCode: entry.statusCode,
+          ipAddress: entry.ipAddress,
+          userAgent: entry.userAgent,
+          duration: entry.duration,
+          metadata: entry.metadata ? entry.metadata : undefined,
+          error: entry.error,
+          timestamp: new Date(),
+        })),
+      });
+    } catch (err) {
+      // Re-add entries to queue on failure
+      this.queue.unshift(...entries);
+      throw err;
+    }
   }
 
   private parseLevels(levelsStr?: string): AuditLevel[] {
@@ -469,13 +529,24 @@ export class AuditService {
 // =============================================================================
 
 let auditServiceInstance: AuditService | null = null;
+let sharedPrismaClient: PrismaClient | null = null;
+
+/**
+ * Initialize the audit service with a shared Prisma client
+ * Call this once during application startup
+ */
+export function initAuditService(prisma: PrismaClient, config?: Partial<AuditConfig>): AuditService {
+  sharedPrismaClient = prisma;
+  auditServiceInstance = new AuditService(config, prisma);
+  return auditServiceInstance;
+}
 
 /**
  * Get or create the audit service singleton
  */
 export function getAuditService(): AuditService {
   if (!auditServiceInstance) {
-    auditServiceInstance = new AuditService();
+    auditServiceInstance = new AuditService(undefined, sharedPrismaClient || undefined);
   }
   return auditServiceInstance;
 }
@@ -483,8 +554,8 @@ export function getAuditService(): AuditService {
 /**
  * Create a custom audit service instance
  */
-export function createAuditService(config: Partial<AuditConfig>): AuditService {
-  return new AuditService(config);
+export function createAuditService(config: Partial<AuditConfig>, prisma?: PrismaClient): AuditService {
+  return new AuditService(config, prisma || sharedPrismaClient || undefined);
 }
 
 export default AuditService;

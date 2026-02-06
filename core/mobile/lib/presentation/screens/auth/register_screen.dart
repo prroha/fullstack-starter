@@ -9,6 +9,9 @@ import '../../router/routes.dart';
 import '../../widgets/common/app_button.dart';
 import '../../widgets/common/app_text_field.dart';
 
+/// Password strength levels
+enum PasswordStrength { weak, fair, good, strong }
+
 /// Registration screen with form validation
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -24,20 +27,98 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _confirmPasswordController = TextEditingController();
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  PasswordStrength _passwordStrength = PasswordStrength.weak;
+
+  @override
+  void initState() {
+    super.initState();
+    _passwordController.addListener(_updatePasswordStrength);
+  }
 
   @override
   void dispose() {
+    _passwordController.removeListener(_updatePasswordStrength);
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
   }
 
+  void _updatePasswordStrength() {
+    final password = _passwordController.text;
+    setState(() {
+      _passwordStrength = _calculatePasswordStrength(password);
+    });
+  }
+
+  PasswordStrength _calculatePasswordStrength(String password) {
+    if (password.isEmpty) return PasswordStrength.weak;
+
+    int score = 0;
+
+    // Length checks
+    if (password.length >= 8) score++;
+    if (password.length >= 12) score++;
+
+    // Character type checks
+    if (RegExp(r'[a-z]').hasMatch(password)) score++;
+    if (RegExp(r'[A-Z]').hasMatch(password)) score++;
+    if (RegExp(r'[0-9]').hasMatch(password)) score++;
+    if (RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(password)) score++;
+
+    if (score <= 2) return PasswordStrength.weak;
+    if (score <= 4) return PasswordStrength.fair;
+    if (score <= 5) return PasswordStrength.good;
+    return PasswordStrength.strong;
+  }
+
+  Color _getStrengthColor(PasswordStrength strength) {
+    switch (strength) {
+      case PasswordStrength.weak:
+        return Colors.red;
+      case PasswordStrength.fair:
+        return Colors.orange;
+      case PasswordStrength.good:
+        return Colors.yellow.shade700;
+      case PasswordStrength.strong:
+        return Colors.green;
+    }
+  }
+
+  String _getStrengthLabel(PasswordStrength strength) {
+    switch (strength) {
+      case PasswordStrength.weak:
+        return 'Weak';
+      case PasswordStrength.fair:
+        return 'Fair';
+      case PasswordStrength.good:
+        return 'Good';
+      case PasswordStrength.strong:
+        return 'Strong';
+    }
+  }
+
+  double _getStrengthProgress(PasswordStrength strength) {
+    switch (strength) {
+      case PasswordStrength.weak:
+        return 0.25;
+      case PasswordStrength.fair:
+        return 0.5;
+      case PasswordStrength.good:
+        return 0.75;
+      case PasswordStrength.strong:
+        return 1.0;
+    }
+  }
+
   String? _validateEmail(String? value) {
     if (value == null || value.isEmpty) {
       return 'Email is required';
     }
-    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    // RFC 5322 compliant email regex pattern
+    final emailRegex = RegExp(
+      r'^[a-zA-Z0-9.!#$%&*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,253}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,253}[a-zA-Z0-9])?)+$',
+    );
     if (!emailRegex.hasMatch(value)) {
       return 'Please enter a valid email';
     }
@@ -48,8 +129,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     if (value == null || value.isEmpty) {
       return 'Password is required';
     }
-    if (value.length < 6) {
-      return 'Password must be at least 6 characters';
+    if (value.length < 8) {
+      return 'Password must be at least 8 characters';
+    }
+    // Additional strength requirements
+    if (!RegExp(r'[a-zA-Z]').hasMatch(value)) {
+      return 'Password must contain at least one letter';
+    }
+    if (!RegExp(r'[0-9]').hasMatch(value)) {
+      return 'Password must contain at least one number';
     }
     return null;
   }
@@ -77,9 +165,56 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     }
   }
 
+  Widget _buildPasswordStrengthIndicator() {
+    final password = _passwordController.text;
+    if (password.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: _getStrengthProgress(_passwordStrength),
+                  backgroundColor: Colors.grey.shade300,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    _getStrengthColor(_passwordStrength),
+                  ),
+                  minHeight: 4,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              _getStrengthLabel(_passwordStrength),
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: _getStrengthColor(_passwordStrength),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Use 8+ characters with uppercase, lowercase, numbers, and symbols',
+          style: TextStyle(
+            fontSize: 11,
+            color: AppColors.textSecondary.withAlpha(180),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
+    final errorMessage = authState.error;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -114,8 +249,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 AppSpacing.gapXl,
                 AppSpacing.gapMd,
 
-                // Error message
-                if (authState.error != null) ...[
+                // Error message - using safe null access
+                if (errorMessage != null && errorMessage.isNotEmpty) ...[
                   Container(
                     padding: AppSpacing.cardPadding,
                     decoration: BoxDecoration(
@@ -128,9 +263,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         AppSpacing.gapHSm,
                         Expanded(
                           child: Text(
-                            authState.error!,
+                            errorMessage,
                             style: const TextStyle(color: AppColors.error),
                           ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close, color: AppColors.error, size: 18),
+                          onPressed: () => ref.read(authProvider.notifier).clearError(),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
                         ),
                       ],
                     ),
@@ -151,28 +292,34 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 ),
                 AppSpacing.gapMd,
 
-                // Password field
-                AppTextField(
-                  controller: _passwordController,
-                  label: 'Password',
-                  hint: 'Enter your password',
-                  obscureText: _obscurePassword,
-                  textInputAction: TextInputAction.next,
-                  prefixIcon: const Icon(Icons.lock_outline),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscurePassword
-                          ? Icons.visibility_outlined
-                          : Icons.visibility_off_outlined,
+                // Password field with strength indicator
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    AppTextField(
+                      controller: _passwordController,
+                      label: 'Password',
+                      hint: 'Enter your password',
+                      obscureText: _obscurePassword,
+                      textInputAction: TextInputAction.next,
+                      prefixIcon: const Icon(Icons.lock_outline),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscurePassword
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscurePassword = !_obscurePassword;
+                          });
+                        },
+                      ),
+                      validator: _validatePassword,
+                      enabled: !authState.isLoading,
                     ),
-                    onPressed: () {
-                      setState(() {
-                        _obscurePassword = !_obscurePassword;
-                      });
-                    },
-                  ),
-                  validator: _validatePassword,
-                  enabled: !authState.isLoading,
+                    _buildPasswordStrengthIndicator(),
+                  ],
                 ),
                 AppSpacing.gapMd,
 

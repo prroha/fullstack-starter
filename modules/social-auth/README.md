@@ -159,58 +159,96 @@ SocialLoginButtons(
 
 ## Database Schema
 
-Add provider fields to User model in `prisma/schema.prisma`:
+Add the SocialAccount model to your `prisma/schema.prisma` and update the User model:
 
 ```prisma
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+// ============================================================================
+// MODELS
+// ============================================================================
+
+/// User model - core authentication
 model User {
   id            String    @id @default(uuid())
   email         String    @unique
-  passwordHash  String?   // Nullable for social-only users
+  passwordHash  String    @map("password_hash") // Empty string for social-only users
   name          String?
-  avatar        String?
+  avatar        String?   // Profile picture URL from social provider
   role          UserRole  @default(USER)
-  isActive      Boolean   @default(true)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  isActive      Boolean   @default(true) @map("is_active")
+  emailVerified Boolean   @default(false) @map("email_verified")
 
-  // Social auth providers
+  // Auth provider tracking
+  authProvider  String    @default("email") @map("auth_provider") // 'email', 'google', 'github', 'apple'
+
+  // Session management
+  activeDeviceId String?  @map("active_device_id")
+
+  // Timestamps
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  // Relations
   socialAccounts SocialAccount[]
+
+  @@index([email])
+  @@map("users")
 }
 
+/// Social account linking - allows multiple providers per user
 model SocialAccount {
   id            String   @id @default(uuid())
-  userId        String
+  userId        String   @map("user_id")
   provider      String   // 'google', 'github', 'apple', 'facebook'
-  providerId    String   // Provider's user ID
-  email         String?
-  name          String?
-  avatar        String?
-  accessToken   String?
-  refreshToken  String?
-  expiresAt     DateTime?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  providerId    String   @map("provider_id") // Provider's unique user ID
+  email         String?  // Email from provider (may differ from User.email)
+  name          String?  // Display name from provider
+  avatar        String?  // Avatar URL from provider
+  accessToken   String?  @map("access_token") // Encrypted in production
+  refreshToken  String?  @map("refresh_token") // Encrypted in production
+  expiresAt     DateTime? @map("expires_at") // Token expiration
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([provider, providerId])
+  @@unique([provider, providerId]) // Each provider account can only be linked once
   @@index([userId])
+  @@map("social_accounts")
 }
+```
+
+After adding the schema, run migrations:
+
+```bash
+cd backend
+npx prisma migrate dev --name add_social_accounts
+npx prisma generate
 ```
 
 ## API Endpoints
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/oauth/google` | Initiate Google OAuth |
+| GET | `/oauth/providers` | List available OAuth providers |
+| GET | `/oauth/google` | Initiate Google OAuth (web) |
 | GET | `/oauth/google/callback` | Google OAuth callback |
-| GET | `/oauth/github` | Initiate GitHub OAuth |
+| GET | `/oauth/github` | Initiate GitHub OAuth (web) |
 | GET | `/oauth/github/callback` | GitHub OAuth callback |
-| POST | `/oauth/apple/callback` | Apple Sign In callback |
-| POST | `/oauth/mobile/google` | Mobile Google sign-in |
-| POST | `/oauth/mobile/apple` | Mobile Apple sign-in |
-| GET | `/oauth/providers` | List available providers |
-| DELETE | `/oauth/disconnect/:provider` | Disconnect social account |
+| POST | `/oauth/mobile/google` | Mobile Google sign-in (ID token) |
+| POST | `/oauth/mobile/github` | Mobile GitHub sign-in (access token) |
+| POST | `/oauth/mobile/apple` | Mobile Apple sign-in (ID token) |
+| GET | `/oauth/accounts` | List linked social accounts (auth required) |
+| POST | `/oauth/link/:provider` | Link social account (auth required) |
+| DELETE | `/oauth/disconnect/:provider` | Disconnect social account (auth required) |
 
 ## Authentication Flow
 
@@ -326,13 +364,38 @@ Authorization: Bearer <jwt>
 
 ## Security Considerations
 
-- Always verify OAuth state parameter to prevent CSRF
-- Validate ID tokens on the backend, not client
-- Store access tokens encrypted in database
+### CSRF Protection (State Parameter)
+
+This module implements secure CSRF protection using cryptographically random state parameters:
+
+1. **State Generation**: When initiating OAuth flow, a 32-byte random token is generated
+2. **State Storage**: The token is stored server-side with a 10-minute TTL
+3. **State Validation**: On callback, the state is validated before processing
+4. **One-Time Use**: Each state token can only be used once
+
+```typescript
+// State is automatically generated and validated
+// GET /oauth/google?returnUrl=/dashboard
+// The state parameter contains encrypted CSRF token + return URL
+```
+
+### Token Security
+
+- **Apple JWT Verification**: Tokens are verified using Apple's public keys (fetched from `appleid.apple.com/auth/keys`)
+- **Google Token Verification**: Uses official Google OAuth2Client library
+- **GitHub Token Verification**: Validates via GitHub API with the provided access token
+
+### Best Practices
+
+- Always verify OAuth state parameter to prevent CSRF attacks
+- Validate ID tokens on the backend, never trust client-side validation
+- Store access/refresh tokens encrypted in database (implement encryption before production)
 - Implement rate limiting on OAuth endpoints
-- Use HTTPS in production
-- Validate redirect URLs against whitelist
-- Don't expose client secrets to frontend
+- Use HTTPS in production (required for OAuth redirects)
+- Validate redirect URLs against a whitelist
+- Never expose client secrets to frontend code
+- Implement token rotation for refresh tokens
+- Monitor for suspicious login patterns (multiple providers, geographic anomalies)
 
 ## Troubleshooting
 

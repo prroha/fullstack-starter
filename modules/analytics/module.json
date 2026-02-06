@@ -1,7 +1,7 @@
 {
   "name": "Analytics",
-  "version": "1.0.0",
-  "description": "User analytics, event tracking, and dashboard",
+  "version": "1.1.0",
+  "description": "User analytics, event tracking, and dashboard with multi-provider support",
   "tier": "premium",
   "price": "39",
   "category": "insights",
@@ -12,6 +12,9 @@
     },
     "web": {
       "recharts": "^2.10.0"
+    },
+    "mobile": {
+      "dio": "^5.4.0"
     }
   },
   "devDependencies": {
@@ -19,15 +22,52 @@
       "@types/ua-parser-js": "^0.7.39"
     }
   },
+  "optionalDependencies": {
+    "web": {
+      "mixpanel-browser": "^2.49.0",
+      "posthog-js": "^1.96.0"
+    },
+    "mobile": {
+      "mixpanel_flutter": "^2.3.0"
+    }
+  },
   "env": {
     "ANALYTICS_ENABLED": "true",
     "ANALYTICS_RETENTION_DAYS": "90"
   },
+  "envWeb": {
+    "NEXT_PUBLIC_ANALYTICS_PROVIDER": "custom",
+    "NEXT_PUBLIC_ANALYTICS_ENABLED": "true"
+  },
+  "files": {
+    "backend": [
+      "backend/src/services/analytics.service.ts",
+      "backend/src/routes/analytics.routes.ts"
+    ],
+    "web": [
+      "web/src/lib/analytics.ts"
+    ],
+    "mobile": [
+      "mobile/lib/core/services/analytics_service.dart"
+    ]
+  },
+  "routes": {
+    "backend": {
+      "prefix": "/api/analytics",
+      "file": "routes/analytics.routes.ts"
+    }
+  },
+  "prismaModels": [
+    "AnalyticsEvent",
+    "AnalyticsAggregate"
+  ],
   "postInstall": [
     "Add analytics middleware to your Express app",
-    "Update Prisma schema with AnalyticsEvent model",
-    "Run database migrations",
-    "Add AnalyticsDashboard component to admin pages"
+    "Update Prisma schema with AnalyticsEvent and AnalyticsAggregate models",
+    "Run database migrations: npx prisma migrate dev --name add_analytics",
+    "Register analytics routes in your Express app",
+    "Add AnalyticsDashboard component to admin pages",
+    "Configure environment variables for your chosen provider"
   ],
   "documentation": "https://docs.fullstack-starter.dev/modules/analytics"
 }

@@ -2,6 +2,8 @@ import passport from 'passport';
 import { Strategy as GoogleStrategy, Profile as GoogleProfile } from 'passport-google-oauth20';
 import { Strategy as GitHubStrategy, Profile as GitHubProfile } from 'passport-github2';
 import { OAuth2Client, TokenPayload } from 'google-auth-library';
+import * as jose from 'jose';
+import crypto from 'crypto';
 
 // =============================================================================
 // Types
@@ -46,6 +48,21 @@ export interface OAuthResult {
 
 export type OAuthProvider = 'google' | 'github' | 'apple' | 'facebook';
 
+// Apple public keys cache
+interface ApplePublicKeyCache {
+  keys: jose.JWK[];
+  lastFetched: number;
+}
+
+// CSRF State store (in production, use Redis or database)
+interface StateEntry {
+  createdAt: number;
+  returnUrl?: string;
+}
+
+const stateStore = new Map<string, StateEntry>();
+const STATE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
 // =============================================================================
 // OAuth Service
 // =============================================================================
@@ -53,6 +70,10 @@ export type OAuthProvider = 'google' | 'github' | 'apple' | 'facebook';
 export class OAuthService {
   private googleClient: OAuth2Client | null = null;
   private config: OAuthConfig;
+  private applePublicKeyCache: ApplePublicKeyCache | null = null;
+  private static readonly APPLE_KEYS_URL = 'https://appleid.apple.com/auth/keys';
+  private static readonly APPLE_ISSUER = 'https://appleid.apple.com';
+  private static readonly APPLE_KEYS_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
   constructor(config?: OAuthConfig) {
     this.config = config || this.getDefaultConfig();
@@ -264,54 +285,125 @@ export class OAuthService {
   }
 
   /**
-   * Verify Apple identity token
+   * Fetch Apple's public keys for JWT verification
+   */
+  private async fetchApplePublicKeys(): Promise<jose.JWK[]> {
+    // Check cache validity
+    if (
+      this.applePublicKeyCache &&
+      Date.now() - this.applePublicKeyCache.lastFetched < OAuthService.APPLE_KEYS_CACHE_TTL_MS
+    ) {
+      return this.applePublicKeyCache.keys;
+    }
+
+    try {
+      const response = await fetch(OAuthService.APPLE_KEYS_URL);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch Apple public keys: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const keys = data.keys as jose.JWK[];
+
+      // Update cache
+      this.applePublicKeyCache = {
+        keys,
+        lastFetched: Date.now(),
+      };
+
+      return keys;
+    } catch (error) {
+      console.error('[OAuthService] Failed to fetch Apple public keys:', error);
+      // Return cached keys if available, even if expired
+      if (this.applePublicKeyCache) {
+        return this.applePublicKeyCache.keys;
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Verify Apple identity token with proper JWT signature verification
    */
   async verifyAppleToken(
     identityToken: string,
-    authorizationCode?: string
+    _authorizationCode?: string
   ): Promise<OAuthResult> {
     if (!this.config.apple) {
       return { success: false, error: 'Apple Sign In not configured' };
     }
 
     try {
-      // Decode the JWT (Apple identity token)
-      const parts = identityToken.split('.');
-      if (parts.length !== 3) {
-        return { success: false, error: 'Invalid identity token format' };
+      // Decode header to get key ID (kid)
+      const protectedHeader = jose.decodeProtectedHeader(identityToken);
+      if (!protectedHeader.kid) {
+        return { success: false, error: 'Missing key ID in token header' };
       }
 
-      const payload = JSON.parse(
-        Buffer.from(parts[1], 'base64').toString('utf-8')
-      );
+      // Fetch Apple's public keys
+      const appleKeys = await this.fetchApplePublicKeys();
 
-      // Verify issuer
-      if (payload.iss !== 'https://appleid.apple.com') {
-        return { success: false, error: 'Invalid token issuer' };
+      // Find the matching key
+      const matchingKey = appleKeys.find((key) => key.kid === protectedHeader.kid);
+      if (!matchingKey) {
+        // Invalidate cache and retry once in case keys were rotated
+        this.applePublicKeyCache = null;
+        const freshKeys = await this.fetchApplePublicKeys();
+        const retryKey = freshKeys.find((key) => key.kid === protectedHeader.kid);
+        if (!retryKey) {
+          return { success: false, error: 'Unable to find matching Apple public key' };
+        }
+        Object.assign(matchingKey ?? {}, retryKey);
       }
 
-      // Verify audience
-      if (payload.aud !== this.config.apple.clientId) {
-        return { success: false, error: 'Invalid token audience' };
-      }
+      // Import the public key
+      const publicKey = await jose.importJWK(matchingKey!, protectedHeader.alg!);
 
-      // Check expiration
-      if (payload.exp * 1000 < Date.now()) {
-        return { success: false, error: 'Token expired' };
+      // Verify the token
+      const { payload } = await jose.jwtVerify(identityToken, publicKey, {
+        issuer: OAuthService.APPLE_ISSUER,
+        audience: this.config.apple.clientId,
+      });
+
+      // Type assertion for Apple token payload
+      const applePayload = payload as {
+        sub: string;
+        email?: string;
+        email_verified?: string | boolean;
+        is_private_email?: string | boolean;
+        real_user_status?: number;
+        nonce_supported?: boolean;
+      };
+
+      // Validate required claims
+      if (!applePayload.sub) {
+        return { success: false, error: 'Missing subject claim in token' };
       }
 
       const user: OAuthUser = {
         provider: 'apple',
-        providerId: payload.sub,
-        email: payload.email || null,
-        name: null, // Apple only provides name on first sign-in
+        providerId: applePayload.sub,
+        email: applePayload.email || null,
+        name: null, // Apple only provides name on first sign-in via authorization response
         avatar: null,
-        raw: payload,
+        raw: applePayload as Record<string, unknown>,
       };
 
       return { success: true, user };
     } catch (error) {
       console.error('[OAuthService] Apple token verification error:', error);
+
+      // Handle specific jose errors
+      if (error instanceof jose.errors.JWTExpired) {
+        return { success: false, error: 'Token expired' };
+      }
+      if (error instanceof jose.errors.JWTClaimValidationFailed) {
+        return { success: false, error: 'Token claim validation failed' };
+      }
+      if (error instanceof jose.errors.JWSSignatureVerificationFailed) {
+        return { success: false, error: 'Invalid token signature' };
+      }
+
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Token verification failed',
@@ -432,6 +524,91 @@ export class OAuthService {
 
       default:
         return null;
+    }
+  }
+
+  // ===========================================================================
+  // CSRF State Management
+  // ===========================================================================
+
+  /**
+   * Generate a cryptographically secure state parameter for CSRF protection
+   * @param returnUrl Optional URL to redirect to after authentication
+   * @returns Base64-encoded state parameter
+   */
+  generateState(returnUrl?: string): string {
+    // Generate random bytes for CSRF token
+    const csrfToken = crypto.randomBytes(32).toString('hex');
+
+    // Store state with metadata
+    stateStore.set(csrfToken, {
+      createdAt: Date.now(),
+      returnUrl,
+    });
+
+    // Cleanup expired states periodically
+    this.cleanupExpiredStates();
+
+    // Encode state as JSON then Base64 for URL safety
+    const statePayload = JSON.stringify({
+      csrf: csrfToken,
+      returnUrl,
+    });
+
+    return Buffer.from(statePayload).toString('base64url');
+  }
+
+  /**
+   * Validate state parameter from OAuth callback
+   * @param state The state parameter from the callback
+   * @returns Object with validation result and original returnUrl
+   */
+  validateState(state: string): { valid: boolean; returnUrl?: string; error?: string } {
+    try {
+      // Decode the state parameter
+      const statePayload = JSON.parse(
+        Buffer.from(state, 'base64url').toString('utf-8')
+      );
+
+      const csrfToken = statePayload.csrf;
+      if (!csrfToken) {
+        return { valid: false, error: 'Missing CSRF token in state' };
+      }
+
+      // Look up the state entry
+      const stateEntry = stateStore.get(csrfToken);
+      if (!stateEntry) {
+        return { valid: false, error: 'Invalid or expired state parameter' };
+      }
+
+      // Check expiration
+      if (Date.now() - stateEntry.createdAt > STATE_TTL_MS) {
+        stateStore.delete(csrfToken);
+        return { valid: false, error: 'State parameter expired' };
+      }
+
+      // Remove used state (one-time use)
+      stateStore.delete(csrfToken);
+
+      return {
+        valid: true,
+        returnUrl: stateEntry.returnUrl,
+      };
+    } catch (error) {
+      console.error('[OAuthService] State validation error:', error);
+      return { valid: false, error: 'Invalid state parameter format' };
+    }
+  }
+
+  /**
+   * Cleanup expired state entries
+   */
+  private cleanupExpiredStates(): void {
+    const now = Date.now();
+    for (const [token, entry] of stateStore.entries()) {
+      if (now - entry.createdAt > STATE_TTL_MS) {
+        stateStore.delete(token);
+      }
     }
   }
 }

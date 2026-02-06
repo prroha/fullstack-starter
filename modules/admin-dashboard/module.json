@@ -1,11 +1,21 @@
 {
   "name": "Admin Dashboard",
-  "version": "1.0.0",
-  "description": "Full admin dashboard with user management and settings",
+  "version": "1.1.0",
+  "description": "Full admin dashboard with user management, settings persistence, activity logging, and RBAC",
   "tier": "enterprise",
   "price": "79",
   "category": "admin",
-  "platforms": "backend,web",
+  "platforms": "backend,web,mobile",
+  "features": [
+    "Dashboard statistics with user metrics",
+    "User management with pagination and search",
+    "Role-based access control (ADMIN, MANAGER)",
+    "Permission-based endpoint protection",
+    "System settings with persistence",
+    "Activity logging and audit trail",
+    "Responsive admin UI components",
+    "React hooks for data fetching"
+  ],
   "dependencies": {
     "backend": {},
     "web": {
@@ -13,13 +23,55 @@
     }
   },
   "env": {
-    "ADMIN_EMAIL": "admin@example.com"
+    "ADMIN_EMAIL": "admin@example.com",
+    "APP_NAME": "My App",
+    "SUPPORT_EMAIL": "support@example.com"
+  },
+  "exports": {
+    "backend": {
+      "controllers": ["admin.controller.ts"],
+      "routes": ["admin.routes.ts"],
+      "middleware": ["requireAdmin", "requireAdminOrManager", "requirePermission", "requireAnyPermission", "requireAllPermissions"]
+    },
+    "web": {
+      "components": ["admin-stats-card.tsx", "admin-users-table.tsx", "admin-sidebar.tsx", "admin-header.tsx"],
+      "hooks": ["use-admin.ts"],
+      "pages": ["admin/page.tsx", "admin/users/page.tsx"]
+    }
   },
   "postInstall": [
-    "Add admin routes to backend/src/routes/index.ts",
+    "Add admin routes to backend/src/routes/index.ts: app.use('/api/admin', createAdminRoutes(prisma))",
     "Create admin user or update existing user role to ADMIN",
     "Add admin pages to web/src/app/admin/",
-    "Configure admin-only middleware for protected routes"
+    "Configure auth middleware before admin routes",
+    "Import components: import { AdminStatsCard, AdminUsersTable, AdminSidebar, AdminHeader } from '@/modules/admin-dashboard/web/src/components'",
+    "Import hooks: import { useAdminStats, useAdminUsers, useAdminSettings, useAdminActivity } from '@/modules/admin-dashboard/web/src/lib'"
   ],
+  "roles": {
+    "ADMIN": {
+      "description": "Full access to all admin features",
+      "permissions": [
+        "users:read",
+        "users:create",
+        "users:update",
+        "users:delete",
+        "users:manage_roles",
+        "settings:read",
+        "settings:update",
+        "activity:read",
+        "stats:read"
+      ]
+    },
+    "MANAGER": {
+      "description": "Limited admin access for user management",
+      "permissions": [
+        "users:read",
+        "users:update",
+        "settings:read",
+        "activity:read",
+        "stats:read"
+      ]
+    }
+  },
   "documentation": "https://docs.fullstack-starter.dev/modules/admin-dashboard"
 }

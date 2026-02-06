@@ -208,6 +208,130 @@ const handleSubscribe = async (priceId: string) => {
 | `STRIPE_SUCCESS_URL` | No | Redirect URL after successful payment |
 | `STRIPE_CANCEL_URL` | No | Redirect URL after canceled payment |
 
+## Database Schema
+
+Add these models to your `prisma/schema.prisma`:
+
+```prisma
+// ============================================================================
+// PAYMENT ENUMS
+// ============================================================================
+
+enum SubscriptionStatus {
+  active
+  canceled
+  incomplete
+  incomplete_expired
+  past_due
+  trialing
+  unpaid
+  paused
+}
+
+enum PaymentStatus {
+  pending
+  succeeded
+  failed
+  refunded
+  canceled
+}
+
+// ============================================================================
+// PAYMENT MODELS
+// ============================================================================
+
+/// Subscription model - tracks Stripe subscriptions
+model Subscription {
+  id                    String             @id @default(uuid())
+  stripeSubscriptionId  String             @unique @map("stripe_subscription_id")
+  stripeCustomerId      String             @map("stripe_customer_id")
+  userId                String?            @map("user_id")
+  user                  User?              @relation(fields: [userId], references: [id])
+
+  status                SubscriptionStatus @default(active)
+  priceId               String             @map("price_id")
+  productId             String             @map("product_id")
+
+  currentPeriodStart    DateTime           @map("current_period_start")
+  currentPeriodEnd      DateTime           @map("current_period_end")
+  cancelAtPeriodEnd     Boolean            @default(false) @map("cancel_at_period_end")
+
+  createdAt             DateTime           @default(now()) @map("created_at")
+  updatedAt             DateTime           @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@index([stripeCustomerId])
+  @@index([status])
+  @@map("subscriptions")
+}
+
+/// Payment model - tracks payment history
+model Payment {
+  id                    String        @id @default(uuid())
+  stripePaymentIntentId String?       @unique @map("stripe_payment_intent_id")
+  stripeInvoiceId       String?       @unique @map("stripe_invoice_id")
+  stripeCustomerId      String        @map("stripe_customer_id")
+  userId                String?       @map("user_id")
+  user                  User?         @relation(fields: [userId], references: [id])
+
+  amount                Int           // Amount in cents
+  currency              String        @default("usd")
+  status                PaymentStatus @default(pending)
+
+  metadata              Json?
+
+  createdAt             DateTime      @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([stripeCustomerId])
+  @@index([status])
+  @@map("payments")
+}
+
+/// WebhookEvent model - for idempotency tracking
+model WebhookEvent {
+  id            String   @id @default(uuid())
+  stripeEventId String   @unique @map("stripe_event_id")
+  eventType     String   @map("event_type")
+  processedAt   DateTime @default(now()) @map("processed_at")
+
+  @@index([stripeEventId])
+  @@map("webhook_events")
+}
+```
+
+Also add the `stripeCustomerId` field to your User model:
+
+```prisma
+model User {
+  // ... existing fields ...
+
+  stripeCustomerId  String?   @unique @map("stripe_customer_id")
+
+  // Relations
+  subscriptions     Subscription[]
+  payments          Payment[]
+
+  // ... rest of model ...
+}
+```
+
+### Migration Instructions
+
+1. Add the schema to your `prisma/schema.prisma` file
+2. Generate migration:
+```bash
+cd core/backend
+npx prisma migrate dev --name add_payments
+```
+
+3. Generate Prisma client:
+```bash
+npx prisma generate
+```
+
+4. Update the webhook handlers in `payment.routes.ts` to use your Prisma client instead of the placeholder functions
+
 ## Testing
 
 Use Stripe test mode and test card numbers:

@@ -34,7 +34,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (value == null || value.isEmpty) {
       return 'Email is required';
     }
-    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    // RFC 5322 compliant email regex pattern
+    final emailRegex = RegExp(
+      r'^[a-zA-Z0-9.!#$%&*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,253}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,253}[a-zA-Z0-9])?)+$',
+    );
     if (!emailRegex.hasMatch(value)) {
       return 'Please enter a valid email';
     }
@@ -45,8 +48,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (value == null || value.isEmpty) {
       return 'Password is required';
     }
-    if (value.length < 6) {
-      return 'Password must be at least 6 characters';
+    if (value.length < 8) {
+      return 'Password must be at least 8 characters';
     }
     return null;
   }
@@ -66,6 +69,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
+    final errorMessage = authState.error;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -100,8 +104,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 AppSpacing.gapXl,
                 AppSpacing.gapMd,
 
-                // Error message
-                if (authState.error != null) ...[
+                // Error message - using safe null access
+                if (errorMessage != null && errorMessage.isNotEmpty) ...[
                   Container(
                     padding: AppSpacing.cardPadding,
                     decoration: BoxDecoration(
@@ -114,9 +118,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         AppSpacing.gapHSm,
                         Expanded(
                           child: Text(
-                            authState.error!,
+                            errorMessage,
                             style: const TextStyle(color: AppColors.error),
                           ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close, color: AppColors.error, size: 18),
+                          onPressed: () => ref.read(authProvider.notifier).clearError(),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
                         ),
                       ],
                     ),

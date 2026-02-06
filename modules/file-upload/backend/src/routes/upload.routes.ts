@@ -4,8 +4,21 @@ import {
   createMultipleUpload,
   requireFile,
   requireFiles,
+  validateFileContent,
+  virusScanPlaceholder,
 } from '../middleware/upload.middleware';
 import { getStorageService } from '../services/storage.service';
+
+// =============================================================================
+// Auth Middleware Import
+// =============================================================================
+// Import from core backend - adjust path based on your project structure
+// If using as a standalone module, you may need to adjust the import path
+import {
+  authMiddleware,
+  optionalAuthMiddleware,
+  AuthenticatedRequest,
+} from '../../../../core/backend/src/middleware/auth.middleware';
 
 // =============================================================================
 // Types
@@ -39,10 +52,11 @@ const storage = getStorageService();
 
 /**
  * POST /upload
- * Upload a single file
+ * Upload a single file (requires authentication)
  */
 router.post(
   '/',
+  authMiddleware,
   createSingleUpload({
     maxFileSize: 10 * 1024 * 1024, // 10MB
     allowedTypes: [
@@ -54,6 +68,8 @@ router.post(
     ],
   }),
   requireFile,
+  validateFileContent,
+  virusScanPlaceholder,
   async (req: Request, res: Response): Promise<void> => {
     try {
       const file = req.file!;
@@ -96,15 +112,83 @@ router.post(
 );
 
 // =============================================================================
+// Public Single File Upload (Optional Auth)
+// =============================================================================
+
+/**
+ * POST /upload/public
+ * Upload a single file to public storage (optional authentication)
+ * Use this for public-facing uploads like profile pictures
+ */
+router.post(
+  '/public',
+  optionalAuthMiddleware,
+  createSingleUpload({
+    maxFileSize: 5 * 1024 * 1024, // 5MB for public uploads
+    allowedTypes: [
+      'image/jpeg',
+      'image/png',
+      'image/gif',
+      'image/webp',
+    ],
+  }),
+  requireFile,
+  validateFileContent,
+  virusScanPlaceholder,
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const file = req.file!;
+      const folder = 'public';
+      const authReq = req as AuthenticatedRequest;
+      const userId = authReq.user?.userId;
+
+      const result = await storage.upload(file.buffer, {
+        filename: file.originalname,
+        contentType: file.mimetype,
+        folder: userId ? `${folder}/${userId}` : folder,
+        isPublic: true,
+        metadata: userId ? { uploadedBy: userId } : undefined,
+      });
+
+      if (!result.success) {
+        res.status(500).json({
+          success: false,
+          error: result.error || 'Upload failed',
+        } as UploadResponse);
+        return;
+      }
+
+      res.json({
+        success: true,
+        file: {
+          key: result.key!,
+          url: result.url!,
+          size: result.size!,
+          contentType: result.contentType!,
+          originalName: file.originalname,
+        },
+      } as UploadResponse);
+    } catch (error) {
+      console.error('[UploadRoutes] Public upload error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Internal server error',
+      } as UploadResponse);
+    }
+  }
+);
+
+// =============================================================================
 // Multiple Files Upload
 // =============================================================================
 
 /**
  * POST /upload/multiple
- * Upload multiple files (max 10)
+ * Upload multiple files (max 10, requires authentication)
  */
 router.post(
   '/multiple',
+  authMiddleware,
   createMultipleUpload({
     maxFileSize: 10 * 1024 * 1024,
     maxFiles: 10,
@@ -176,9 +260,9 @@ router.post(
 
 /**
  * GET /upload/signed-url/:key
- * Get a signed URL for a private file
+ * Get a signed URL for a private file (requires authentication)
  */
-router.get('/signed-url/*', async (req: Request, res: Response): Promise<void> => {
+router.get('/signed-url/*', authMiddleware, async (req: Request, res: Response): Promise<void> => {
   try {
     const key = req.params[0];
 
@@ -213,9 +297,9 @@ router.get('/signed-url/*', async (req: Request, res: Response): Promise<void> =
 
 /**
  * POST /upload/presigned
- * Get a presigned URL for direct client-side upload
+ * Get a presigned URL for direct client-side upload (requires authentication)
  */
-router.post('/presigned', async (req: Request, res: Response): Promise<void> => {
+router.post('/presigned', authMiddleware, async (req: Request, res: Response): Promise<void> => {
   try {
     const { filename, contentType, folder } = req.body;
 
@@ -255,9 +339,9 @@ router.post('/presigned', async (req: Request, res: Response): Promise<void> => 
 
 /**
  * DELETE /upload/:key
- * Delete a file
+ * Delete a file (requires authentication)
  */
-router.delete('/*', async (req: Request, res: Response): Promise<void> => {
+router.delete('/*', authMiddleware, async (req: Request, res: Response): Promise<void> => {
   try {
     const key = req.params[0];
 
@@ -292,9 +376,9 @@ router.delete('/*', async (req: Request, res: Response): Promise<void> => {
 
 /**
  * GET /upload/list
- * List files in a folder
+ * List files in a folder (requires authentication)
  */
-router.get('/list', async (req: Request, res: Response): Promise<void> => {
+router.get('/list', authMiddleware, async (req: Request, res: Response): Promise<void> => {
   try {
     const prefix = (req.query.prefix as string) || '';
     const limit = parseInt(req.query.limit as string) || 100;

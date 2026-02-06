@@ -1,9 +1,9 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
-
-// Note: Uncomment these imports when packages are installed:
-// import 'package:flutter_stripe/flutter_stripe.dart';
-// import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:http/http.dart' as http;
+import 'package:flutter_stripe/flutter_stripe.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 // =============================================================================
 // Types
@@ -196,11 +196,50 @@ class PaymentResult {
   }
 }
 
+/// Checkout session response
+class CheckoutSession {
+  final String sessionId;
+  final String? url;
+
+  const CheckoutSession({
+    required this.sessionId,
+    this.url,
+  });
+
+  factory CheckoutSession.fromJson(Map<String, dynamic> json) {
+    return CheckoutSession(
+      sessionId: json['sessionId'] as String,
+      url: json['url'] as String?,
+    );
+  }
+}
+
+/// Payment sheet parameters from backend
+class PaymentSheetParams {
+  final String clientSecret;
+  final String? customerId;
+  final String? ephemeralKey;
+
+  const PaymentSheetParams({
+    required this.clientSecret,
+    this.customerId,
+    this.ephemeralKey,
+  });
+
+  factory PaymentSheetParams.fromJson(Map<String, dynamic> json) {
+    return PaymentSheetParams(
+      clientSecret: json['clientSecret'] as String,
+      customerId: json['customerId'] as String?,
+      ephemeralKey: json['ephemeralKey'] as String?,
+    );
+  }
+}
+
 // =============================================================================
 // Payment Service
 // =============================================================================
 
-/// Service for handling payments
+/// Service for handling payments with Stripe
 class PaymentService {
   static final PaymentService _instance = PaymentService._internal();
 
@@ -211,7 +250,10 @@ class PaymentService {
   bool _initialized = false;
   String? _publishableKey;
   String? _merchantId;
-  String _apiBaseUrl = '/api/v1';
+  String _apiBaseUrl = '';
+  String? _authToken;
+
+  final http.Client _httpClient = http.Client();
 
   // Stream controllers
   final StreamController<PaymentStatus> _statusController =
@@ -224,32 +266,93 @@ class PaymentService {
   // Initialization
   // ===========================================================================
 
-  /// Initialize payment service
+  /// Initialize payment service with Stripe
   Future<void> init({
     required String publishableKey,
+    required String apiBaseUrl,
     String? merchantId,
-    String? apiBaseUrl,
+    String? authToken,
   }) async {
     if (_initialized) return;
 
     _publishableKey = publishableKey;
     _merchantId = merchantId;
-    if (apiBaseUrl != null) _apiBaseUrl = apiBaseUrl;
+    _apiBaseUrl = apiBaseUrl;
+    _authToken = authToken;
 
     try {
-      // Initialize Stripe
-      // Uncomment when flutter_stripe is installed:
-      // Stripe.publishableKey = publishableKey;
-      // if (merchantId != null) {
-      //   Stripe.merchantIdentifier = merchantId;
-      // }
-      // await Stripe.instance.applySettings();
+      // Initialize Stripe SDK
+      Stripe.publishableKey = publishableKey;
+      if (merchantId != null) {
+        Stripe.merchantIdentifier = merchantId;
+      }
+      await Stripe.instance.applySettings();
 
       _initialized = true;
       _log('Payment service initialized');
     } catch (e) {
       _log('Payment service initialization error: $e');
       rethrow;
+    }
+  }
+
+  /// Update auth token (call after login)
+  void setAuthToken(String? token) {
+    _authToken = token;
+  }
+
+  // ===========================================================================
+  // HTTP Helpers
+  // ===========================================================================
+
+  Map<String, String> get _headers {
+    final headers = <String, String>{
+      'Content-Type': 'application/json',
+    };
+    if (_authToken != null) {
+      headers['Authorization'] = 'Bearer $_authToken';
+    }
+    return headers;
+  }
+
+  Future<Map<String, dynamic>> _get(String endpoint) async {
+    final response = await _httpClient.get(
+      Uri.parse('$_apiBaseUrl$endpoint'),
+      headers: _headers,
+    );
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    }
+
+    final error = _parseError(response);
+    throw Exception(error);
+  }
+
+  Future<Map<String, dynamic>> _post(
+    String endpoint, {
+    Map<String, dynamic>? body,
+  }) async {
+    final response = await _httpClient.post(
+      Uri.parse('$_apiBaseUrl$endpoint'),
+      headers: _headers,
+      body: body != null ? jsonEncode(body) : null,
+    );
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    }
+
+    final error = _parseError(response);
+    throw Exception(error);
+  }
+
+  String _parseError(http.Response response) {
+    try {
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      return data['error'] as String? ?? 'Request failed';
+    } catch (_) {
+      return 'Request failed with status ${response.statusCode}';
     }
   }
 
@@ -260,35 +363,15 @@ class PaymentService {
   /// Fetch available prices from backend
   Future<List<PriceInfo>> fetchPrices() async {
     try {
-      // In production, call your API:
-      // final response = await http.get(Uri.parse('$_apiBaseUrl/payment/prices'));
-      // final data = jsonDecode(response.body);
-      // if (data['success']) {
-      //   return (data['prices'] as List)
-      //       .map((p) => PriceInfo.fromJson(p))
-      //       .toList();
-      // }
+      final data = await _get('/payment/prices');
 
-      // Stub implementation
-      await Future.delayed(const Duration(milliseconds: 500));
-      return [
-        const PriceInfo(
-          id: 'price_monthly',
-          productName: 'Pro Monthly',
-          productDescription: 'Full access to all features',
-          unitAmount: 999,
-          currency: 'usd',
-          interval: 'month',
-        ),
-        const PriceInfo(
-          id: 'price_yearly',
-          productName: 'Pro Yearly',
-          productDescription: 'Save 20% with annual billing',
-          unitAmount: 9588,
-          currency: 'usd',
-          interval: 'year',
-        ),
-      ];
+      if (data['success'] == true && data['prices'] != null) {
+        return (data['prices'] as List)
+            .map((p) => PriceInfo.fromJson(p as Map<String, dynamic>))
+            .toList();
+      }
+
+      return [];
     } catch (e) {
       _log('Fetch prices error: $e');
       return [];
@@ -299,38 +382,44 @@ class PaymentService {
   // Checkout
   // ===========================================================================
 
-  /// Start checkout flow for a subscription
+  /// Start checkout flow using Stripe hosted page
+  /// Opens the checkout URL in a browser
   Future<PaymentResult> startCheckout({
     required String priceId,
     String? customerEmail,
+    String? successUrl,
+    String? cancelUrl,
   }) async {
     _statusController.add(PaymentStatus.processing);
 
     try {
-      // Create checkout session on backend
-      // final response = await http.post(
-      //   Uri.parse('$_apiBaseUrl/payment/checkout'),
-      //   headers: {'Content-Type': 'application/json'},
-      //   body: jsonEncode({
-      //     'priceId': priceId,
-      //     'customerEmail': customerEmail,
-      //   }),
-      // );
-      //
-      // final data = jsonDecode(response.body);
-      // if (!data['success']) {
-      //   throw Exception(data['error']);
-      // }
-      //
-      // final sessionUrl = data['url'];
-      // // Open checkout URL in browser or webview
-      // // For full mobile experience, use Payment Sheet instead
+      final data = await _post('/payment/checkout', body: {
+        'priceId': priceId,
+        if (customerEmail != null) 'customerEmail': customerEmail,
+        if (successUrl != null) 'successUrl': successUrl,
+        if (cancelUrl != null) 'cancelUrl': cancelUrl,
+      });
 
-      // Stub implementation
-      await Future.delayed(const Duration(seconds: 2));
-      _statusController.add(PaymentStatus.success);
+      if (data['success'] != true || data['url'] == null) {
+        throw Exception(data['error'] ?? 'Failed to create checkout session');
+      }
 
-      return PaymentResult.success(subscriptionId: 'sub_stub_123');
+      final checkoutUrl = data['url'] as String;
+
+      // Open checkout URL in browser
+      final uri = Uri.parse(checkoutUrl);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+        _statusController.add(PaymentStatus.requiresAction);
+
+        return PaymentResult(
+          success: true,
+          status: PaymentStatus.requiresAction,
+          subscriptionId: data['sessionId'] as String?,
+        );
+      } else {
+        throw Exception('Could not open checkout URL');
+      }
     } catch (e) {
       _log('Checkout error: $e');
       _statusController.add(PaymentStatus.failed);
@@ -338,7 +427,8 @@ class PaymentService {
     }
   }
 
-  /// Present Stripe Payment Sheet
+  /// Present Stripe Payment Sheet for in-app payment
+  /// Requires a payment intent from the backend
   Future<PaymentResult> presentPaymentSheet({
     required String priceId,
     String? customerEmail,
@@ -350,55 +440,54 @@ class PaymentService {
     _statusController.add(PaymentStatus.processing);
 
     try {
-      // 1. Create payment intent on backend
-      // final response = await http.post(
-      //   Uri.parse('$_apiBaseUrl/payment/create-payment-intent'),
-      //   headers: {'Content-Type': 'application/json'},
-      //   body: jsonEncode({
-      //     'priceId': priceId,
-      //     'customerEmail': customerEmail,
-      //   }),
-      // );
-      //
-      // final data = jsonDecode(response.body);
-      // final clientSecret = data['clientSecret'];
-      // final customerId = data['customerId'];
-      // final ephemeralKey = data['ephemeralKey'];
+      // 1. Create payment sheet parameters on backend
+      final data = await _post('/payment/create-payment-sheet', body: {
+        'priceId': priceId,
+        if (customerEmail != null) 'customerEmail': customerEmail,
+      });
+
+      if (data['success'] != true) {
+        throw Exception(data['error'] ?? 'Failed to create payment sheet');
+      }
+
+      final params = PaymentSheetParams.fromJson(data);
 
       // 2. Initialize payment sheet
-      // await Stripe.instance.initPaymentSheet(
-      //   paymentSheetParameters: SetupPaymentSheetParameters(
-      //     paymentIntentClientSecret: clientSecret,
-      //     customerEphemeralKeySecret: ephemeralKey,
-      //     customerId: customerId,
-      //     merchantDisplayName: 'Your App Name',
-      //     applePay: PaymentSheetApplePay(
-      //       merchantCountryCode: 'US',
-      //     ),
-      //     googlePay: PaymentSheetGooglePay(
-      //       merchantCountryCode: 'US',
-      //       testEnv: kDebugMode,
-      //     ),
-      //   ),
-      // );
+      await Stripe.instance.initPaymentSheet(
+        paymentSheetParameters: SetupPaymentSheetParameters(
+          paymentIntentClientSecret: params.clientSecret,
+          customerEphemeralKeySecret: params.ephemeralKey,
+          customerId: params.customerId,
+          merchantDisplayName: 'Your App Name',
+          applePay: const PaymentSheetApplePay(
+            merchantCountryCode: 'US',
+          ),
+          googlePay: PaymentSheetGooglePay(
+            merchantCountryCode: 'US',
+            testEnv: kDebugMode,
+          ),
+          style: ThemeMode.system,
+        ),
+      );
 
       // 3. Present payment sheet
-      // await Stripe.instance.presentPaymentSheet();
+      await Stripe.instance.presentPaymentSheet();
 
-      // Stub implementation
-      await Future.delayed(const Duration(seconds: 2));
       _statusController.add(PaymentStatus.success);
 
-      return PaymentResult.success(paymentIntentId: 'pi_stub_123');
-    } on Exception catch (e) {
-      // Handle specific Stripe exceptions
-      // if (e is StripeException) {
-      //   if (e.error.code == FailureCode.Canceled) {
-      //     _statusController.add(PaymentStatus.cancelled);
-      //     return PaymentResult.cancelled();
-      //   }
-      // }
+      return PaymentResult.success(
+        paymentIntentId: params.clientSecret.split('_secret_').first,
+      );
+    } on StripeException catch (e) {
+      if (e.error.code == FailureCode.Canceled) {
+        _statusController.add(PaymentStatus.cancelled);
+        return PaymentResult.cancelled();
+      }
 
+      _log('Payment sheet error: ${e.error.message}');
+      _statusController.add(PaymentStatus.failed);
+      return PaymentResult.failure(e.error.message ?? 'Payment failed');
+    } catch (e) {
       _log('Payment sheet error: $e');
       _statusController.add(PaymentStatus.failed);
       return PaymentResult.failure(e.toString());
@@ -412,18 +501,32 @@ class PaymentService {
   /// Get current user's subscription
   Future<SubscriptionInfo?> getCurrentSubscription() async {
     try {
-      // In production:
-      // final response = await http.get(
-      //   Uri.parse('$_apiBaseUrl/payment/subscription'),
-      //   headers: {'Authorization': 'Bearer $token'},
-      // );
-      //
-      // final data = jsonDecode(response.body);
-      // if (data['success'] && data['subscription'] != null) {
-      //   return SubscriptionInfo.fromJson(data['subscription']);
-      // }
+      final data = await _get('/payment/subscription/current');
 
-      // Stub implementation
+      if (data['success'] == true && data['subscription'] != null) {
+        return SubscriptionInfo.fromJson(
+          data['subscription'] as Map<String, dynamic>,
+        );
+      }
+
+      return null;
+    } catch (e) {
+      _log('Get subscription error: $e');
+      return null;
+    }
+  }
+
+  /// Get subscription by ID
+  Future<SubscriptionInfo?> getSubscription(String subscriptionId) async {
+    try {
+      final data = await _get('/payment/subscription/$subscriptionId');
+
+      if (data['success'] == true && data['subscription'] != null) {
+        return SubscriptionInfo.fromJson(
+          data['subscription'] as Map<String, dynamic>,
+        );
+      }
+
       return null;
     } catch (e) {
       _log('Get subscription error: $e');
@@ -434,20 +537,28 @@ class PaymentService {
   /// Cancel subscription at period end
   Future<bool> cancelSubscription(String subscriptionId) async {
     try {
-      // In production:
-      // final response = await http.post(
-      //   Uri.parse('$_apiBaseUrl/payment/subscription/$subscriptionId/cancel'),
-      //   headers: {'Authorization': 'Bearer $token'},
-      // );
-      //
-      // final data = jsonDecode(response.body);
-      // return data['success'] == true;
+      final data = await _post(
+        '/payment/subscription/$subscriptionId/cancel',
+      );
 
-      // Stub implementation
-      await Future.delayed(const Duration(milliseconds: 500));
-      return true;
+      return data['success'] == true;
     } catch (e) {
       _log('Cancel subscription error: $e');
+      return false;
+    }
+  }
+
+  /// Cancel subscription immediately
+  Future<bool> cancelSubscriptionImmediately(String subscriptionId) async {
+    try {
+      final data = await _post(
+        '/payment/subscription/$subscriptionId/cancel',
+        body: {'immediate': true},
+      );
+
+      return data['success'] == true;
+    } catch (e) {
+      _log('Cancel subscription immediately error: $e');
       return false;
     }
   }
@@ -455,20 +566,28 @@ class PaymentService {
   /// Resume a canceled subscription
   Future<bool> resumeSubscription(String subscriptionId) async {
     try {
-      // In production:
-      // final response = await http.post(
-      //   Uri.parse('$_apiBaseUrl/payment/subscription/$subscriptionId/resume'),
-      //   headers: {'Authorization': 'Bearer $token'},
-      // );
-      //
-      // final data = jsonDecode(response.body);
-      // return data['success'] == true;
+      final data = await _post(
+        '/payment/subscription/$subscriptionId/resume',
+      );
 
-      // Stub implementation
-      await Future.delayed(const Duration(milliseconds: 500));
-      return true;
+      return data['success'] == true;
     } catch (e) {
       _log('Resume subscription error: $e');
+      return false;
+    }
+  }
+
+  /// Change subscription plan
+  Future<bool> changePlan(String subscriptionId, String newPriceId) async {
+    try {
+      final data = await _post(
+        '/payment/subscription/$subscriptionId/change-plan',
+        body: {'priceId': newPriceId},
+      );
+
+      return data['success'] == true;
+    } catch (e) {
+      _log('Change plan error: $e');
       return false;
     }
   }
@@ -477,25 +596,38 @@ class PaymentService {
   // Customer Portal
   // ===========================================================================
 
-  /// Open Stripe customer portal for subscription management
+  /// Get Stripe customer portal URL and open it
   Future<String?> getCustomerPortalUrl() async {
     try {
-      // In production:
-      // final response = await http.post(
-      //   Uri.parse('$_apiBaseUrl/payment/portal'),
-      //   headers: {'Authorization': 'Bearer $token'},
-      // );
-      //
-      // final data = jsonDecode(response.body);
-      // if (data['success']) {
-      //   return data['url'];
-      // }
+      final data = await _post('/payment/portal');
 
-      // Stub implementation
-      return 'https://billing.stripe.com/portal';
+      if (data['success'] == true && data['url'] != null) {
+        return data['url'] as String;
+      }
+
+      return null;
     } catch (e) {
       _log('Get portal URL error: $e');
       return null;
+    }
+  }
+
+  /// Open Stripe customer portal in browser
+  Future<bool> openCustomerPortal() async {
+    try {
+      final url = await getCustomerPortalUrl();
+      if (url == null) return false;
+
+      final uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+        return true;
+      }
+
+      return false;
+    } catch (e) {
+      _log('Open portal error: $e');
+      return false;
     }
   }
 
@@ -509,9 +641,13 @@ class PaymentService {
     }
   }
 
+  /// Check if service is initialized
+  bool get isInitialized => _initialized;
+
   /// Dispose resources
   void dispose() {
     _statusController.close();
+    _httpClient.close();
   }
 }
 

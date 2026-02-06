@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import { db } from "../lib/db";
 import { config } from "../config";
-import { generateTokenPair } from "../utils/jwt";
+import { generateTokenPair, verifyToken, JwtPayload } from "../utils/jwt";
 import { ApiError } from "../middleware/error.middleware";
 import { ErrorCodes } from "../utils/response";
 
@@ -26,6 +26,17 @@ interface LoginResult {
   };
   accessToken: string;
   refreshToken: string;
+}
+
+interface RefreshResult {
+  accessToken: string;
+  refreshToken: string;
+  user: {
+    id: string;
+    email: string;
+    name: string | null;
+    role: string;
+  };
 }
 
 class AuthService {
@@ -116,6 +127,55 @@ class AuthService {
       },
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
+    };
+  }
+
+  /**
+   * Refresh access token using a valid refresh token
+   */
+  async refreshToken(refreshToken: string): Promise<RefreshResult> {
+    // Verify the refresh token
+    let payload: JwtPayload;
+    try {
+      payload = verifyToken(refreshToken);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Invalid token";
+      if (message.includes("expired")) {
+        throw ApiError.unauthorized("Refresh token expired", ErrorCodes.TOKEN_EXPIRED);
+      }
+      throw ApiError.unauthorized("Invalid refresh token", ErrorCodes.INVALID_TOKEN);
+    }
+
+    // Find the user
+    const user = await db.user.findUnique({
+      where: { id: payload.userId },
+    });
+
+    if (!user) {
+      throw ApiError.unauthorized("User not found", ErrorCodes.USER_NOT_FOUND);
+    }
+
+    // Check if user is active
+    if (!user.isActive) {
+      throw ApiError.forbidden("Account is deactivated", ErrorCodes.FORBIDDEN);
+    }
+
+    // Generate new token pair
+    const tokens = generateTokenPair({
+      userId: user.id,
+      email: user.email,
+      deviceId: payload.deviceId,
+    });
+
+    return {
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+      },
     };
   }
 }

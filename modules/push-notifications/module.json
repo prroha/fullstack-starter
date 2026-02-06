@@ -9,19 +9,77 @@
   "dependencies": {
     "backend": {
       "firebase-admin": "^12.0.0"
+    },
+    "web": {
+      "firebase": "^10.7.0"
+    },
+    "mobile": {
+      "firebase_core": "^2.24.0",
+      "firebase_messaging": "^14.7.0",
+      "flutter_local_notifications": "^16.3.0"
     }
+  },
+  "files": {
+    "backend": [
+      "src/services/push.service.ts",
+      "src/services/device.service.ts",
+      "src/routes/notifications.routes.ts"
+    ],
+    "web": [
+      "src/lib/push-notifications.ts",
+      "public/firebase-messaging-sw.js"
+    ],
+    "mobile": [
+      "lib/core/services/push_notification_service.dart",
+      "lib/presentation/providers/notification_provider.dart"
+    ]
   },
   "env": {
     "FIREBASE_PROJECT_ID": "",
     "FIREBASE_PRIVATE_KEY": "",
-    "FIREBASE_CLIENT_EMAIL": ""
+    "FIREBASE_CLIENT_EMAIL": "",
+    "NEXT_PUBLIC_FIREBASE_API_KEY": "",
+    "NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN": "",
+    "NEXT_PUBLIC_FIREBASE_PROJECT_ID": "",
+    "NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "",
+    "NEXT_PUBLIC_FIREBASE_APP_ID": "",
+    "NEXT_PUBLIC_FIREBASE_VAPID_KEY": ""
   },
   "postInstall": [
     "Create a Firebase project and download service account key",
     "Configure Firebase credentials in backend/.env",
+    "Add Firebase web config to web/.env.local",
+    "Update firebase-messaging-sw.js with your Firebase config",
     "Add service worker for web push (public/firebase-messaging-sw.js)",
     "Configure Firebase in mobile app (android/app/google-services.json)",
+    "Add GoogleService-Info.plist to ios/Runner/",
     "Update Prisma schema with DeviceToken model"
   ],
+  "prismaSchema": {
+    "DeviceToken": {
+      "id": "String @id @default(uuid())",
+      "userId": "String",
+      "token": "String @unique",
+      "platform": "String",
+      "deviceName": "String?",
+      "isActive": "Boolean @default(true)",
+      "createdAt": "DateTime @default(now())",
+      "updatedAt": "DateTime @updatedAt",
+      "user": "User @relation(fields: [userId], references: [id], onDelete: Cascade)",
+      "@@index": ["[userId]", "[token]"]
+    },
+    "Notification": {
+      "id": "String @id @default(uuid())",
+      "userId": "String?",
+      "title": "String",
+      "body": "String",
+      "data": "Json?",
+      "status": "String @default(\"pending\")",
+      "sentAt": "DateTime?",
+      "createdAt": "DateTime @default(now())",
+      "user": "User? @relation(fields: [userId], references: [id], onDelete: SetNull)",
+      "@@index": ["[userId]", "[status]"]
+    }
+  },
   "documentation": "https://docs.fullstack-starter.dev/modules/push-notifications"
 }

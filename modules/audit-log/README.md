@@ -54,7 +54,7 @@ model AuditLog {
   timestamp   DateTime @default(now())
   level       String   @default("info") // info, warning, error, security
   action      String   // e.g., "user.login", "user.update", "payment.create"
-  category    String   // e.g., "auth", "user", "payment", "admin"
+  category    String   @default("api") // e.g., "auth", "user", "payment", "admin", "api", "system", "security"
   userId      String?
   userEmail   String?
   targetId    String?  // ID of affected resource
@@ -68,13 +68,35 @@ model AuditLog {
   metadata    Json?    // Additional context
   error       String?  // Error message if applicable
 
-  @@index([timestamp])
-  @@index([userId])
-  @@index([action])
-  @@index([level])
-  @@index([category])
+  // Indexes for efficient querying
+  // Primary lookup indexes
+  @@index([timestamp(sort: Desc)])  // Most queries sort by timestamp descending
+  @@index([userId])                  // Filter by user
+  @@index([level])                   // Filter by log level
+  @@index([category])                // Filter by category
+  @@index([action])                  // Filter/search by action
+
+  // Composite indexes for common query patterns
+  @@index([userId, timestamp(sort: Desc)])      // User activity over time
+  @@index([level, timestamp(sort: Desc)])       // Level-based log viewing
+  @@index([category, timestamp(sort: Desc)])    // Category-based log viewing
+  @@index([userId, level, timestamp(sort: Desc)]) // User logs by level
+
+  // Cleanup index
+  @@index([timestamp])  // For retention policy cleanup (DELETE WHERE timestamp < cutoff)
 }
 ```
+
+#### Index Strategy
+
+The indexes are designed for common query patterns:
+
+1. **timestamp (desc)** - Default sort order for log viewing
+2. **userId** - Filter logs by specific user
+3. **level** - Filter by severity (info, warning, error, security)
+4. **category** - Filter by action category (auth, user, admin, payment, etc.)
+5. **action** - Text search on action names
+6. **Composite indexes** - Optimized for multi-filter queries with sorting
 
 Run migration:
 

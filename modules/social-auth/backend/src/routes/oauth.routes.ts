@@ -1,6 +1,8 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import passport from 'passport';
 import { getOAuthService, OAuthUser, OAuthProvider } from '../services/oauth.service';
+import { db } from '@core/backend/src/lib/db';
+import { generateAccessToken, generateRefreshToken } from '@core/backend/src/utils/jwt';
 
 // =============================================================================
 // Types
@@ -72,9 +74,9 @@ router.get('/google', (req: Request, res: Response, next: NextFunction): void =>
     return;
   }
 
-  // Store return URL in session/state if provided
+  // Generate secure state parameter for CSRF protection
   const returnUrl = req.query.returnUrl as string;
-  const state = returnUrl ? Buffer.from(returnUrl).toString('base64') : undefined;
+  const state = oauth.generateState(returnUrl);
 
   passport.authenticate('google', {
     scope: ['profile', 'email'],
@@ -98,21 +100,22 @@ router.get(
         return;
       }
 
-      // Find or create user in database
-      const { user, token } = await findOrCreateUser(oauthUser);
-
-      // Decode return URL from state
+      // Validate CSRF state parameter
       let redirectUrl = SUCCESS_REDIRECT;
       if (req.query.state) {
-        try {
-          const returnUrl = Buffer.from(req.query.state as string, 'base64').toString();
-          if (returnUrl.startsWith('/')) {
-            redirectUrl = SUCCESS_REDIRECT.replace('/auth/callback', returnUrl);
-          }
-        } catch {
-          // Ignore invalid state
+        const stateValidation = oauth.validateState(req.query.state as string);
+        if (!stateValidation.valid) {
+          console.error('[OAuthRoutes] State validation failed:', stateValidation.error);
+          res.redirect(FAILURE_REDIRECT + '&reason=csrf_validation_failed');
+          return;
+        }
+        if (stateValidation.returnUrl && stateValidation.returnUrl.startsWith('/')) {
+          redirectUrl = SUCCESS_REDIRECT.replace('/auth/callback', stateValidation.returnUrl);
         }
       }
+
+      // Find or create user in database
+      const { user, token } = await findOrCreateUser(oauthUser);
 
       // Set auth cookie and redirect
       res.cookie('auth_token', token, {
@@ -144,8 +147,9 @@ router.get('/github', (req: Request, res: Response, next: NextFunction): void =>
     return;
   }
 
+  // Generate secure state parameter for CSRF protection
   const returnUrl = req.query.returnUrl as string;
-  const state = returnUrl ? Buffer.from(returnUrl).toString('base64') : undefined;
+  const state = oauth.generateState(returnUrl);
 
   passport.authenticate('github', {
     scope: ['user:email'],
@@ -169,19 +173,21 @@ router.get(
         return;
       }
 
-      const { user, token } = await findOrCreateUser(oauthUser);
-
+      // Validate CSRF state parameter
       let redirectUrl = SUCCESS_REDIRECT;
       if (req.query.state) {
-        try {
-          const returnUrl = Buffer.from(req.query.state as string, 'base64').toString();
-          if (returnUrl.startsWith('/')) {
-            redirectUrl = SUCCESS_REDIRECT.replace('/auth/callback', returnUrl);
-          }
-        } catch {
-          // Ignore invalid state
+        const stateValidation = oauth.validateState(req.query.state as string);
+        if (!stateValidation.valid) {
+          console.error('[OAuthRoutes] State validation failed:', stateValidation.error);
+          res.redirect(FAILURE_REDIRECT + '&reason=csrf_validation_failed');
+          return;
+        }
+        if (stateValidation.returnUrl && stateValidation.returnUrl.startsWith('/')) {
+          redirectUrl = SUCCESS_REDIRECT.replace('/auth/callback', stateValidation.returnUrl);
         }
       }
+
+      const { user, token } = await findOrCreateUser(oauthUser);
 
       res.cookie('auth_token', token, {
         httpOnly: true,
@@ -332,8 +338,56 @@ router.post('/mobile/apple', async (req: Request, res: Response): Promise<void> 
 });
 
 // =============================================================================
-// Account Linking
+// Account Management
 // =============================================================================
+
+/**
+ * GET /oauth/accounts
+ * List all linked social accounts for the authenticated user
+ */
+router.get('/accounts', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      res.status(401).json({ error: 'Authentication required' });
+      return;
+    }
+
+    const user = await db.user.findUnique({
+      where: { id: userId },
+      include: {
+        socialAccounts: {
+          select: {
+            id: true,
+            provider: true,
+            email: true,
+            name: true,
+            avatar: true,
+            createdAt: true,
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+
+    res.json({
+      success: true,
+      accounts: user.socialAccounts,
+      hasPassword: !!user.passwordHash,
+      canDisconnect: !!user.passwordHash || user.socialAccounts.length > 1,
+    });
+  } catch (error) {
+    console.error('[OAuthRoutes] Get accounts error:', error);
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'Failed to get linked accounts',
+    });
+  }
+});
 
 /**
  * POST /oauth/link/:provider
@@ -375,24 +429,46 @@ router.post(
         return;
       }
 
-      // Link account to user (implement with your database)
-      // await prisma.socialAccount.create({
-      //   data: {
-      //     userId,
-      //     provider: oauthUser.provider,
-      //     providerId: oauthUser.providerId,
-      //     email: oauthUser.email,
-      //     name: oauthUser.name,
-      //     avatar: oauthUser.avatar,
-      //   },
-      // });
+      // Check if this social account is already linked to another user
+      const existingAccount = await db.socialAccount.findUnique({
+        where: {
+          provider_providerId: {
+            provider: oauthUser.provider,
+            providerId: oauthUser.providerId,
+          },
+        },
+      });
+
+      if (existingAccount) {
+        if (existingAccount.userId === userId) {
+          res.status(400).json({ error: 'This account is already linked to your profile' });
+          return;
+        }
+        res.status(400).json({ error: 'This social account is already linked to another user' });
+        return;
+      }
+
+      // Link account to user
+      const linkedAccount = await db.socialAccount.create({
+        data: {
+          userId,
+          provider: oauthUser.provider,
+          providerId: oauthUser.providerId,
+          email: oauthUser.email,
+          name: oauthUser.name,
+          avatar: oauthUser.avatar,
+          accessToken: oauthUser.accessToken,
+          refreshToken: oauthUser.refreshToken,
+        },
+      });
 
       res.json({
         success: true,
         message: `${provider} account linked successfully`,
         linkedAccount: {
-          provider: oauthUser.provider,
-          email: oauthUser.email,
+          id: linkedAccount.id,
+          provider: linkedAccount.provider,
+          email: linkedAccount.email,
         },
       });
     } catch (error) {
@@ -420,21 +496,44 @@ router.delete(
         return;
       }
 
+      // Validate provider parameter
+      if (!['google', 'github', 'apple', 'facebook'].includes(provider)) {
+        res.status(400).json({ error: 'Invalid provider' });
+        return;
+      }
+
       // Check user has password or other linked accounts before disconnecting
-      // const user = await prisma.user.findUnique({
-      //   where: { id: userId },
-      //   include: { socialAccounts: true },
-      // });
-      //
-      // if (!user?.passwordHash && user?.socialAccounts.length <= 1) {
-      //   return res.status(400).json({
-      //     error: 'Cannot disconnect last authentication method',
-      //   });
-      // }
-      //
-      // await prisma.socialAccount.deleteMany({
-      //   where: { userId, provider },
-      // });
+      const user = await db.user.findUnique({
+        where: { id: userId },
+        include: { socialAccounts: true },
+      });
+
+      if (!user) {
+        res.status(404).json({ error: 'User not found' });
+        return;
+      }
+
+      // Ensure user won't be locked out
+      const hasPassword = !!user.passwordHash;
+      const socialAccountCount = user.socialAccounts.length;
+      const hasThisProvider = user.socialAccounts.some((acc) => acc.provider === provider);
+
+      if (!hasThisProvider) {
+        res.status(400).json({ error: `No ${provider} account is linked` });
+        return;
+      }
+
+      if (!hasPassword && socialAccountCount <= 1) {
+        res.status(400).json({
+          error: 'Cannot disconnect last authentication method. Please set a password first or link another social account.',
+        });
+        return;
+      }
+
+      // Delete the social account link
+      await db.socialAccount.deleteMany({
+        where: { userId, provider },
+      });
 
       res.json({
         success: true,
@@ -466,86 +565,103 @@ interface UserWithTokens {
 
 /**
  * Find or create user from OAuth data
- * Replace this with your actual database implementation
+ * Uses Prisma for database operations
  */
 async function findOrCreateUser(oauthUser: OAuthUser): Promise<UserWithTokens> {
-  // TODO: Implement with your database (Prisma example below)
-  //
-  // // Check if social account exists
-  // let socialAccount = await prisma.socialAccount.findUnique({
-  //   where: {
-  //     provider_providerId: {
-  //       provider: oauthUser.provider,
-  //       providerId: oauthUser.providerId,
-  //     },
-  //   },
-  //   include: { user: true },
-  // });
-  //
-  // let user;
-  //
-  // if (socialAccount) {
-  //   // Existing user
-  //   user = socialAccount.user;
-  //
-  //   // Update social account tokens
-  //   await prisma.socialAccount.update({
-  //     where: { id: socialAccount.id },
-  //     data: {
-  //       accessToken: oauthUser.accessToken,
-  //       refreshToken: oauthUser.refreshToken,
-  //     },
-  //   });
-  // } else {
-  //   // Check if user with same email exists
-  //   if (oauthUser.email) {
-  //     user = await prisma.user.findUnique({
-  //       where: { email: oauthUser.email },
-  //     });
-  //   }
-  //
-  //   if (!user) {
-  //     // Create new user
-  //     user = await prisma.user.create({
-  //       data: {
-  //         email: oauthUser.email || `${oauthUser.providerId}@${oauthUser.provider}.oauth`,
-  //         name: oauthUser.name,
-  //         avatar: oauthUser.avatar,
-  //       },
-  //     });
-  //   }
-  //
-  //   // Create social account link
-  //   await prisma.socialAccount.create({
-  //     data: {
-  //       userId: user.id,
-  //       provider: oauthUser.provider,
-  //       providerId: oauthUser.providerId,
-  //       email: oauthUser.email,
-  //       name: oauthUser.name,
-  //       avatar: oauthUser.avatar,
-  //       accessToken: oauthUser.accessToken,
-  //       refreshToken: oauthUser.refreshToken,
-  //     },
-  //   });
-  // }
-  //
-  // // Generate JWT tokens
-  // const token = generateAccessToken(user);
-  // const refreshToken = generateRefreshToken(user);
+  // Check if social account already exists
+  let socialAccount = await db.socialAccount.findUnique({
+    where: {
+      provider_providerId: {
+        provider: oauthUser.provider,
+        providerId: oauthUser.providerId,
+      },
+    },
+    include: { user: true },
+  });
 
-  // Stub implementation - replace with above
-  const stubUser = {
-    id: `user-${oauthUser.providerId}`,
-    email: oauthUser.email,
-    name: oauthUser.name,
-    avatar: oauthUser.avatar,
-  };
+  let user;
+
+  if (socialAccount) {
+    // Existing user - update social account tokens if provided
+    user = socialAccount.user;
+
+    if (oauthUser.accessToken || oauthUser.refreshToken) {
+      await db.socialAccount.update({
+        where: { id: socialAccount.id },
+        data: {
+          accessToken: oauthUser.accessToken,
+          refreshToken: oauthUser.refreshToken,
+          // Update profile info if changed
+          email: oauthUser.email || socialAccount.email,
+          name: oauthUser.name || socialAccount.name,
+          avatar: oauthUser.avatar || socialAccount.avatar,
+          updatedAt: new Date(),
+        },
+      });
+    }
+
+    // Update user's avatar if not set and provider has one
+    if (!user.avatar && oauthUser.avatar) {
+      await db.user.update({
+        where: { id: user.id },
+        data: { avatar: oauthUser.avatar },
+      });
+      user.avatar = oauthUser.avatar;
+    }
+  } else {
+    // No existing social account - check if user with same email exists
+    if (oauthUser.email) {
+      user = await db.user.findUnique({
+        where: { email: oauthUser.email },
+      });
+    }
+
+    if (!user) {
+      // Create new user
+      // Generate a placeholder email if none provided (some providers like Apple may hide email)
+      const email = oauthUser.email || `${oauthUser.providerId}@${oauthUser.provider}.oauth`;
+
+      user = await db.user.create({
+        data: {
+          email,
+          name: oauthUser.name,
+          avatar: oauthUser.avatar,
+          authProvider: oauthUser.provider,
+          emailVerified: !!oauthUser.email, // Assume verified if provider gave us email
+          passwordHash: '', // No password for social-only users
+        },
+      });
+    }
+
+    // Create social account link
+    await db.socialAccount.create({
+      data: {
+        userId: user.id,
+        provider: oauthUser.provider,
+        providerId: oauthUser.providerId,
+        email: oauthUser.email,
+        name: oauthUser.name,
+        avatar: oauthUser.avatar,
+        accessToken: oauthUser.accessToken,
+        refreshToken: oauthUser.refreshToken,
+      },
+    });
+  }
+
+  // Generate JWT tokens
+  const tokenPayload = { userId: user.id, email: user.email };
+  const token = generateAccessToken(tokenPayload);
+  const refreshToken = generateRefreshToken(tokenPayload);
 
   return {
-    user: stubUser,
-    token: 'stub-access-token',
-    refreshToken: 'stub-refresh-token',
+    user: {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      avatar: user.avatar,
+    },
+    token,
+    refreshToken,
   };
 }
 

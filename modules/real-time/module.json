@@ -5,21 +5,53 @@
   "complexity": "high",
   "dependencies": {
     "backend": {
-      "socket.io": "^4.7.0"
+      "socket.io": "^4.7.0",
+      "jsonwebtoken": "^9.0.0"
     },
     "web": {
       "socket.io-client": "^4.7.0"
+    },
+    "mobile": {
+      "socket_io_client": "^2.0.0",
+      "flutter_riverpod": "^2.0.0"
     }
   },
   "files": {
-    "backend": ["src/lib/socket.ts"]
+    "backend": [
+      "src/lib/socket.ts"
+    ],
+    "web": [
+      "src/lib/socket.ts",
+      "src/hooks/use-socket.ts",
+      "src/components/chat-widget.tsx",
+      "src/components/presence-indicator.tsx"
+    ],
+    "mobile": [
+      "lib/core/services/socket_service.dart",
+      "lib/presentation/providers/socket_provider.dart",
+      "lib/presentation/widgets/chat_widget.dart"
+    ]
   },
   "env_vars": [
     "SOCKET_CORS_ORIGIN",
-    "SOCKET_PATH"
+    "SOCKET_PATH",
+    "JWT_SECRET"
   ],
   "installation": {
-    "backend": "npm install socket.io",
-    "web": "npm install socket.io-client"
-  }
+    "backend": "npm install socket.io jsonwebtoken && npm install -D @types/jsonwebtoken",
+    "web": "npm install socket.io-client",
+    "mobile": "flutter pub add socket_io_client flutter_riverpod"
+  },
+  "features": [
+    "JWT token authentication on connection",
+    "Room-based access control (public, private, admin-only)",
+    "Real-time messaging with typing indicators",
+    "User presence tracking (online/away/busy/offline)",
+    "Push notifications to specific users",
+    "Automatic reconnection with exponential backoff",
+    "Custom room access checker support",
+    "React hooks for socket events",
+    "Flutter Riverpod state management",
+    "Chat UI components for web and mobile"
+  ]
 }
