@@ -10,6 +10,40 @@ A production-ready monorepo starter template for building full-stack application
 | **Web** | Next.js 15 + React 19 + Tailwind CSS v4 |
 | **Mobile** | Flutter + Riverpod + Clean Architecture |
 
+## Best For
+
+This starter is ideal for building **content-driven applications** with user authentication and cross-platform needs.
+
+### Perfect Use Cases
+
+| Category | Examples |
+|----------|----------|
+| **Educational Platforms** | Online courses, E-learning apps, Document libraries, Study material portals |
+| **Content & Media** | News apps, Blog platforms, Digital magazines, Podcast apps |
+| **E-commerce** | Product catalogs, Marketplace apps, Subscription services |
+| **SaaS Products** | Admin dashboards, CRM systems, Project management tools |
+| **Community Apps** | Forums, Social platforms, Membership sites |
+| **Service Marketplaces** | Booking platforms, Freelance marketplaces, Appointment systems |
+
+### Example Projects You Can Build
+
+1. **Online Course Platform** - Sell courses with video/PDF content, user subscriptions, progress tracking
+2. **Document Library** - Secure document sharing with access control (like PadhaiSathi)
+3. **News/Blog App** - Content publishing with admin panel, categories, user accounts
+4. **Membership Site** - Gated content with subscription tiers and payment integration
+5. **Internal Tool** - Company dashboard with role-based access, data management
+6. **Marketplace** - Multi-vendor platform with listings, purchases, user profiles
+7. **Booking System** - Appointment scheduling with notifications, calendars
+
+### When NOT to Use
+
+- Real-time heavy apps (use Socket.io/WebSocket additions)
+- Games or graphics-intensive apps
+- Simple static websites (use plain Next.js)
+- Microservices architecture (this is monolithic)
+
+---
+
 ## Features
 
 ### Backend
