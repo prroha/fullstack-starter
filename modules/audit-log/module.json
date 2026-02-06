@@ -1,0 +1,24 @@
+{
+  "name": "Audit Log",
+  "version": "1.0.0",
+  "description": "Comprehensive audit logging for compliance and debugging",
+  "tier": "enterprise",
+  "price": "29",
+  "category": "security",
+  "platforms": "backend,web",
+  "dependencies": {
+    "backend": {}
+  },
+  "env": {
+    "AUDIT_LOG_ENABLED": "true",
+    "AUDIT_LOG_RETENTION_DAYS": "365"
+  },
+  "postInstall": [
+    "Add AuditLog model to Prisma schema",
+    "Run database migrations",
+    "Add audit middleware to backend/src/middleware/",
+    "Configure which actions to audit in config",
+    "Add audit log viewer to admin dashboard"
+  ],
+  "documentation": "https://docs.fullstack-starter.dev/modules/audit-log"
+}

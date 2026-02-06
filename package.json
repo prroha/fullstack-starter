@@ -12,8 +12,8 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "build": "npm run build --workspaces --if-present",
-    "dev:backend": "npm run dev --workspace=backend",
-    "dev:web": "npm run dev --workspace=web",
+    "dev:backend": "npm run dev --workspace=core/backend",
+    "dev:web": "npm run dev --workspace=core/web",
     "docker:dev": "docker compose -f docker-compose.dev.yml up",
     "docker:dev:build": "docker compose -f docker-compose.dev.yml up --build",
     "docker:prod": "docker compose up -d",
@@ -22,8 +22,8 @@
     "docker:logs": "docker compose logs -f"
   },
   "workspaces": [
-    "backend",
-    "web"
+    "core/backend",
+    "core/web"
   ],
   "devDependencies": {
     "husky": "^9.1.0",

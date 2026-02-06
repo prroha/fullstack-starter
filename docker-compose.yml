@@ -33,7 +33,7 @@ services:
   # ==========================================================================
   backend:
     build:
-      context: ./backend
+      context: ./core/backend
       dockerfile: Dockerfile
     container_name: fullstack-backend
     restart: unless-stopped
@@ -64,7 +64,7 @@ services:
   # ==========================================================================
   web:
     build:
-      context: ./web
+      context: ./core/web
       dockerfile: Dockerfile
     container_name: fullstack-web
     restart: unless-stopped

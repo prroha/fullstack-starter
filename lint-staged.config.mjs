@@ -7,27 +7,27 @@ export default {
   // ==========================================================================
   // Backend (Express + TypeScript)
   // ==========================================================================
-  "backend/**/*.{ts,tsx}": [
+  "core/backend/**/*.{ts,tsx}": [
     "eslint --fix --max-warnings=0",
   ],
-  "backend/**/*.{json,md}": [
+  "core/backend/**/*.{json,md}": [
     "prettier --write",
   ],
 
   // ==========================================================================
   // Web (Next.js + TypeScript)
   // ==========================================================================
-  "web/**/*.{ts,tsx,js,jsx}": [
+  "core/web/**/*.{ts,tsx,js,jsx}": [
     "eslint --fix --max-warnings=0",
   ],
-  "web/**/*.{json,md,css,scss}": [
+  "core/web/**/*.{json,md,css,scss}": [
     "prettier --write",
   ],
 
   // ==========================================================================
   // Mobile (Flutter/Dart)
   // ==========================================================================
-  "mobile/**/*.dart": (filenames) => [
+  "core/mobile/**/*.dart": (filenames) => [
     `dart format ${filenames.join(" ")}`,
     `dart analyze ${filenames.map(f => f.replace(/\/[^/]+$/, "")).filter((v, i, a) => a.indexOf(v) === i).join(" ")} || true`,
   ],
@@ -42,7 +42,7 @@ export default {
   // ==========================================================================
   // Prisma Schema
   // ==========================================================================
-  "backend/prisma/schema.prisma": [
+  "core/backend/prisma/schema.prisma": [
     "npx prisma format",
   ],
 };

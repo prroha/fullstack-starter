@@ -1,0 +1,27 @@
+{
+  "name": "Push Notifications",
+  "version": "1.0.0",
+  "description": "Push notifications for web and mobile with FCM",
+  "tier": "enterprise",
+  "price": "29",
+  "category": "communication",
+  "platforms": "backend,web,mobile",
+  "dependencies": {
+    "backend": {
+      "firebase-admin": "^12.0.0"
+    }
+  },
+  "env": {
+    "FIREBASE_PROJECT_ID": "",
+    "FIREBASE_PRIVATE_KEY": "",
+    "FIREBASE_CLIENT_EMAIL": ""
+  },
+  "postInstall": [
+    "Create a Firebase project and download service account key",
+    "Configure Firebase credentials in backend/.env",
+    "Add service worker for web push (public/firebase-messaging-sw.js)",
+    "Configure Firebase in mobile app (android/app/google-services.json)",
+    "Update Prisma schema with DeviceToken model"
+  ],
+  "documentation": "https://docs.fullstack-starter.dev/modules/push-notifications"
+}

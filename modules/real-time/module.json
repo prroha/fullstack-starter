@@ -1,0 +1,25 @@
+{
+  "name": "real-time",
+  "description": "Real-time communication with Socket.IO for notifications, chat, and live updates",
+  "price_suggestion": "$600-1000",
+  "complexity": "high",
+  "dependencies": {
+    "backend": {
+      "socket.io": "^4.7.0"
+    },
+    "web": {
+      "socket.io-client": "^4.7.0"
+    }
+  },
+  "files": {
+    "backend": ["src/lib/socket.ts"]
+  },
+  "env_vars": [
+    "SOCKET_CORS_ORIGIN",
+    "SOCKET_PATH"
+  ],
+  "installation": {
+    "backend": "npm install socket.io",
+    "web": "npm install socket.io-client"
+  }
+}

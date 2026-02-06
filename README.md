@@ -350,6 +350,60 @@ flutter pub run build_runner build  # Generate code
 
 ---
 
+## Modular Architecture
+
+This starter template is designed with a modular architecture, making it easy to add or remove features based on your project requirements.
+
+### Core Modules Included
+
+| Module | Description | Status |
+|--------|-------------|--------|
+| **Authentication** | JWT auth, login, register, password reset | Included |
+| **User Management** | Profile management, account settings | Included |
+| **Core API** | Express server, Prisma ORM, error handling | Included |
+
+### Add-on Modules
+
+Extend your application with these optional modules:
+
+| Module | Description | Complexity |
+|--------|-------------|------------|
+| **Email** | Transactional emails, templates | Medium |
+| **File Upload** | S3/local storage, image processing | Medium |
+| **Payments** | Stripe/Razorpay, subscriptions | High |
+| **Analytics** | Event tracking, dashboards | Medium |
+| **Admin Dashboard** | User management, system settings | High |
+
+### Documentation
+
+For comprehensive documentation, see the `/docs` directory:
+
+- **[PRICING.md](./docs/PRICING.md)** - Client pricing guide for freelancers and agencies
+  - Tier packages (Basic to Enterprise)
+  - Individual module pricing
+  - Add-on services
+  - Pricing calculator with examples
+  - Negotiation tips and contract templates
+
+- **[MODULES.md](./docs/MODULES.md)** - Technical module documentation
+  - Architecture overview
+  - Module features and dependencies
+  - Environment variables reference
+  - Integration guides
+  - API endpoint reference
+
+### For Freelancers & Agencies
+
+This starter is designed to accelerate client project delivery:
+
+1. **Quick Start**: Clone, configure, and deploy in hours, not weeks
+2. **Modular Pricing**: Quote clients based on features they need
+3. **Production Ready**: Security, error handling, and best practices built-in
+4. **Cross-Platform**: Web and mobile from one codebase approach
+5. **Maintainable**: Clean architecture that future developers will appreciate
+
+---
+
 ## License
 
 MIT

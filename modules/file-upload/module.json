@@ -1,0 +1,39 @@
+{
+  "name": "File Upload",
+  "version": "1.0.0",
+  "description": "File upload with S3/local storage and image processing",
+  "tier": "standard",
+  "price": "19",
+  "category": "storage",
+  "platforms": "backend,web,mobile",
+  "dependencies": {
+    "backend": {
+      "multer": "^1.4.5-lts.1",
+      "@aws-sdk/client-s3": "^3.400.0",
+      "sharp": "^0.33.0"
+    },
+    "web": {
+      "react-dropzone": "^14.2.0"
+    }
+  },
+  "devDependencies": {
+    "backend": {
+      "@types/multer": "^1.4.11"
+    }
+  },
+  "env": {
+    "UPLOAD_PROVIDER": "local",
+    "UPLOAD_MAX_SIZE": "10485760",
+    "AWS_S3_BUCKET": "",
+    "AWS_S3_REGION": "",
+    "AWS_ACCESS_KEY_ID": "",
+    "AWS_SECRET_ACCESS_KEY": ""
+  },
+  "postInstall": [
+    "Choose storage provider: 'local' or 's3' in UPLOAD_PROVIDER",
+    "Configure AWS credentials if using S3",
+    "Mount upload routes in backend/src/routes/index.ts",
+    "Add FileUpload component to your forms"
+  ],
+  "documentation": "https://docs.fullstack-starter.dev/modules/file-upload"
+}

@@ -1,0 +1,40 @@
+{
+  "name": "Social Authentication",
+  "version": "1.0.0",
+  "description": "OAuth login with Google, Apple, Facebook, and GitHub",
+  "tier": "enterprise",
+  "price": "39",
+  "category": "authentication",
+  "platforms": "backend,web,mobile",
+  "dependencies": {
+    "backend": {
+      "passport": "^0.7.0",
+      "passport-google-oauth20": "^2.0.0",
+      "passport-github2": "^0.1.12"
+    }
+  },
+  "devDependencies": {
+    "backend": {
+      "@types/passport": "^1.0.16",
+      "@types/passport-google-oauth20": "^2.0.14"
+    }
+  },
+  "env": {
+    "GOOGLE_CLIENT_ID": "",
+    "GOOGLE_CLIENT_SECRET": "",
+    "GITHUB_CLIENT_ID": "",
+    "GITHUB_CLIENT_SECRET": "",
+    "APPLE_CLIENT_ID": "",
+    "APPLE_TEAM_ID": "",
+    "APPLE_KEY_ID": "",
+    "APPLE_PRIVATE_KEY": ""
+  },
+  "postInstall": [
+    "Register OAuth apps with providers (Google, GitHub, etc.)",
+    "Configure OAuth credentials in backend/.env",
+    "Add OAuth routes to backend/src/routes/index.ts",
+    "Add social login buttons to web login page",
+    "Configure deep linking for mobile OAuth flow"
+  ],
+  "documentation": "https://docs.fullstack-starter.dev/modules/social-auth"
+}

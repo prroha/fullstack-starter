@@ -1,0 +1,33 @@
+{
+  "name": "Email",
+  "version": "1.0.0",
+  "description": "Email sending with templates and queue support",
+  "tier": "standard",
+  "price": "19",
+  "category": "communication",
+  "platforms": "backend,web",
+  "dependencies": {
+    "backend": {
+      "nodemailer": "^6.9.0",
+      "handlebars": "^4.7.8"
+    }
+  },
+  "devDependencies": {
+    "backend": {
+      "@types/nodemailer": "^6.4.0"
+    }
+  },
+  "env": {
+    "SMTP_HOST": "smtp.example.com",
+    "SMTP_PORT": "587",
+    "SMTP_USER": "",
+    "SMTP_PASS": "",
+    "SMTP_FROM": "noreply@example.com"
+  },
+  "postInstall": [
+    "Configure SMTP credentials in backend/.env",
+    "Create email templates in backend/src/templates/email/",
+    "Import and use EmailService in your controllers"
+  ],
+  "documentation": "https://docs.fullstack-starter.dev/modules/email"
+}

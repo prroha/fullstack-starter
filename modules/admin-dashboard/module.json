@@ -1,0 +1,25 @@
+{
+  "name": "Admin Dashboard",
+  "version": "1.0.0",
+  "description": "Full admin dashboard with user management and settings",
+  "tier": "enterprise",
+  "price": "79",
+  "category": "admin",
+  "platforms": "backend,web",
+  "dependencies": {
+    "backend": {},
+    "web": {
+      "@tanstack/react-table": "^8.11.0"
+    }
+  },
+  "env": {
+    "ADMIN_EMAIL": "admin@example.com"
+  },
+  "postInstall": [
+    "Add admin routes to backend/src/routes/index.ts",
+    "Create admin user or update existing user role to ADMIN",
+    "Add admin pages to web/src/app/admin/",
+    "Configure admin-only middleware for protected routes"
+  ],
+  "documentation": "https://docs.fullstack-starter.dev/modules/admin-dashboard"
+}

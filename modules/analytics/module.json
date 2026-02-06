@@ -1,0 +1,33 @@
+{
+  "name": "Analytics",
+  "version": "1.0.0",
+  "description": "User analytics, event tracking, and dashboard",
+  "tier": "premium",
+  "price": "39",
+  "category": "insights",
+  "platforms": "backend,web,mobile",
+  "dependencies": {
+    "backend": {
+      "ua-parser-js": "^1.0.37"
+    },
+    "web": {
+      "recharts": "^2.10.0"
+    }
+  },
+  "devDependencies": {
+    "backend": {
+      "@types/ua-parser-js": "^0.7.39"
+    }
+  },
+  "env": {
+    "ANALYTICS_ENABLED": "true",
+    "ANALYTICS_RETENTION_DAYS": "90"
+  },
+  "postInstall": [
+    "Add analytics middleware to your Express app",
+    "Update Prisma schema with AnalyticsEvent model",
+    "Run database migrations",
+    "Add AnalyticsDashboard component to admin pages"
+  ],
+  "documentation": "https://docs.fullstack-starter.dev/modules/analytics"
+}
