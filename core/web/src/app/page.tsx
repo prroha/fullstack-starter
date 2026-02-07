@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/lib/auth-context";
 import Link from "next/link";
-import { Spinner } from "@/components/ui/spinner";
+import { Spinner } from "@/components/ui";
 
 export default function Home() {
   const { user, isLoading, isAuthenticated, logout } = useAuth();

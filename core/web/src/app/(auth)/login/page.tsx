@@ -14,11 +14,10 @@ import {
   FormLabel,
   FormControl,
   FormMessage,
-  Input,
-  Button,
   useZodForm,
-} from "@/components/ui/form";
-import { FormErrorBoundary } from "@/components/error-boundary";
+} from "@/components/forms";
+import { Input, Button } from "@/components/ui";
+import { FormErrorBoundary } from "@/components/shared";
 
 export default function LoginPage() {
   const router = useRouter();

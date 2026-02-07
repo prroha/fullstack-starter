@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { SkeletonAuth } from "@/components/ui/skeleton";
+import { SkeletonAuth } from "@/components/ui";
 
 export default function AuthLayout({
   children,

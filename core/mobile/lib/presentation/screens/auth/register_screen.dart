@@ -6,8 +6,8 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../providers/auth_provider.dart';
 import '../../router/routes.dart';
-import '../../widgets/common/app_button.dart';
-import '../../widgets/common/app_text_field.dart';
+import '../../widgets/atoms/app_button.dart';
+import '../../widgets/molecules/app_text_field.dart';
 
 /// Password strength levels
 enum PasswordStrength { weak, fair, good, strong }

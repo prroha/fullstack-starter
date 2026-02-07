@@ -41,3 +41,5 @@ export function SpinnerOverlay({ message = "Loading..." }: SpinnerOverlayProps) 
     </div>
   );
 }
+
+export type { SpinnerProps, SpinnerOverlayProps };

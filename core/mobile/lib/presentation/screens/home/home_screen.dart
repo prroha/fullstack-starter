@@ -6,7 +6,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../providers/auth_provider.dart';
 import '../../router/routes.dart';
-import '../../widgets/common/app_button.dart';
+import '../../widgets/atoms/app_button.dart';
 
 /// Home screen with user info and logout functionality
 class HomeScreen extends ConsumerWidget {

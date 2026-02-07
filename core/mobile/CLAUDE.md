@@ -16,7 +16,7 @@ Use these to quickly find what you need:
 - **State**: `providers/`, `StateNotifier`, `Riverpod`, `ref.watch`, `ref.read`
 - **Theme**: `app_colors.dart`, `app_spacing.dart`
 - **Errors**: `failures.dart`, `exceptions.dart`, `Either`, `Failure`
-- **Widgets**: `widgets/common/`, `AppButton`
+- **Widgets**: `widgets/`, `atoms/`, `molecules/`, `organisms/`, `layout/`
 
 ---
 
@@ -112,9 +112,11 @@ domain/
 presentation/
 ├── providers/                  # Riverpod state management
 ├── screens/                    # Screen widgets
-└── widgets/
-    └── common/                 # Reusable UI components
-        └── app_button.dart
+└── widgets/                    # Atomic design widgets
+    ├── atoms/                  # Primitives (button, text, icon, badge)
+    ├── molecules/              # Composed (text_field, card, search_bar)
+    ├── organisms/              # Complex (header, drawer, avatar)
+    └── layout/                 # Structural (scaffold, loading, error, empty)
 ```
 
 ---
@@ -341,10 +343,39 @@ class AppSpacing {
 }
 ```
 
-### Common Widgets
+### Widget Library (Atomic Design)
+
+**Atoms** (`widgets/atoms/`)
 | Widget | File | Purpose |
 |--------|------|---------|
-| `AppButton` | app_button.dart | Primary/secondary/outline buttons |
+| `AppButton` | app_button.dart | Primary/secondary/outline/text buttons |
+| `AppText` | app_text.dart | Styled text (heading, body, caption, label) |
+| `AppIcon` | app_icon.dart | Icon with size/color presets |
+| `AppBadge` | app_badge.dart | Notification/status badges |
+
+**Molecules** (`widgets/molecules/`)
+| Widget | File | Purpose |
+|--------|------|---------|
+| `AppTextField` | app_text_field.dart | Form text input with label/error |
+| `AppCard` | app_card.dart | Card with header/content/footer |
+| `AppSearchBar` | search_bar.dart | Search input with clear button |
+| `PasswordField` | password_field.dart | Password input with show/hide |
+
+**Organisms** (`widgets/organisms/`)
+| Widget | File | Purpose |
+|--------|------|---------|
+| `AppHeader` | app_header.dart | App bar with back/title/actions |
+| `AppDrawer` | app_drawer.dart | Navigation drawer with menu |
+| `UserAvatar` | user_avatar.dart | Avatar with initials fallback |
+
+**Layout** (`widgets/layout/`)
+| Widget | File | Purpose |
+|--------|------|---------|
+| `ScreenScaffold` | screen_scaffold.dart | Scaffold with header/body/FAB |
+| `LoadingWidget` | loading_overlay.dart | Centered loading spinner |
+| `LoadingOverlay` | loading_overlay.dart | Content with loading overlay |
+| `EmptyState` | empty_state.dart | Empty state with action |
+| `ErrorState` | error_state.dart | Error state with retry |
 
 ---
 

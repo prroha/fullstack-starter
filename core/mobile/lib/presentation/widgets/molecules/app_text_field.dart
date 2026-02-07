@@ -3,24 +3,78 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 
-/// Styled text input field
+/// A styled text input field with label, hint, and error support.
+///
+/// This is a molecule-level widget that combines a label, text input,
+/// and error message into a cohesive form field component.
+///
+/// Example:
+/// ```dart
+/// AppTextField(
+///   controller: emailController,
+///   label: 'Email',
+///   hint: 'Enter your email',
+///   keyboardType: TextInputType.emailAddress,
+///   validator: (value) => value?.isEmpty ?? true ? 'Required' : null,
+/// )
+/// ```
 class AppTextField extends StatelessWidget {
+  /// Controller for the text field.
   final TextEditingController? controller;
+
+  /// Optional label displayed above the field.
   final String? label;
+
+  /// Placeholder text displayed when the field is empty.
   final String? hint;
+
+  /// Error text displayed below the field.
   final String? errorText;
+
+  /// Whether to obscure the text (for passwords).
   final bool obscureText;
+
+  /// The type of keyboard to display.
   final TextInputType keyboardType;
+
+  /// The action button on the keyboard.
   final TextInputAction textInputAction;
+
+  /// Called when the text changes.
   final ValueChanged<String>? onChanged;
+
+  /// Called when the user submits the field.
   final ValueChanged<String>? onSubmitted;
+
+  /// Validator for form validation.
   final FormFieldValidator<String>? validator;
+
+  /// Widget displayed at the start of the field.
   final Widget? prefixIcon;
+
+  /// Widget displayed at the end of the field.
   final Widget? suffixIcon;
+
+  /// Whether the field is enabled.
   final bool enabled;
+
+  /// Maximum number of lines for the field.
   final int maxLines;
+
+  /// Whether to autofocus this field.
   final bool autofocus;
+
+  /// Focus node for controlling focus.
   final FocusNode? focusNode;
+
+  /// Initial value for the field.
+  final String? initialValue;
+
+  /// Maximum length of the input.
+  final int? maxLength;
+
+  /// Helper text displayed below the field.
+  final String? helperText;
 
   const AppTextField({
     super.key,
@@ -40,6 +94,9 @@ class AppTextField extends StatelessWidget {
     this.maxLines = 1,
     this.autofocus = false,
     this.focusNode,
+    this.initialValue,
+    this.maxLength,
+    this.helperText,
   });
 
   @override
@@ -60,6 +117,7 @@ class AppTextField extends StatelessWidget {
         ],
         TextFormField(
           controller: controller,
+          initialValue: initialValue,
           obscureText: obscureText,
           keyboardType: keyboardType,
           textInputAction: textInputAction,
@@ -68,6 +126,7 @@ class AppTextField extends StatelessWidget {
           validator: validator,
           enabled: enabled,
           maxLines: maxLines,
+          maxLength: maxLength,
           autofocus: autofocus,
           focusNode: focusNode,
           style: const TextStyle(
@@ -80,10 +139,15 @@ class AppTextField extends StatelessWidget {
               color: AppColors.textMuted,
             ),
             errorText: errorText,
+            helperText: helperText,
+            helperStyle: const TextStyle(
+              color: AppColors.textMuted,
+              fontSize: 12,
+            ),
             prefixIcon: prefixIcon,
             suffixIcon: suffixIcon,
             filled: true,
-            fillColor: AppColors.surface,
+            fillColor: enabled ? AppColors.surface : AppColors.border.withAlpha(50),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: AppSpacing.md,
               vertical: AppSpacing.md,

@@ -3,8 +3,8 @@ import { Suspense } from "react";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
-import { Toaster } from "@/components/ui/sonner";
-import { SkeletonPage } from "@/components/ui/skeleton";
+import { Toaster } from "@/components/feedback";
+import { SkeletonPage } from "@/components/ui";
 
 const inter = Inter({ subsets: ["latin"] });
 
