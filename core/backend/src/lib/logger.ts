@@ -3,14 +3,33 @@
  *
  * A simple logger wrapper that can be easily swapped to Winston/Pino later.
  * All logging should go through this module instead of direct console calls.
+ *
+ * Supports request correlation IDs for end-to-end tracing.
  */
 
+import { AsyncLocalStorage } from "async_hooks";
 import { config } from "../config";
 
 type LogLevel = "debug" | "info" | "warn" | "error";
 
 interface LogContext {
   [key: string]: unknown;
+}
+
+/**
+ * AsyncLocalStorage for request-scoped context (e.g., requestId)
+ */
+interface RequestContext {
+  requestId: string;
+}
+
+export const requestContext = new AsyncLocalStorage<RequestContext>();
+
+/**
+ * Get the current request ID from AsyncLocalStorage
+ */
+function getCurrentRequestId(): string | undefined {
+  return requestContext.getStore()?.requestId;
 }
 
 const LOG_LEVELS: Record<LogLevel, number> = {
@@ -29,7 +48,14 @@ function shouldLog(level: LogLevel): boolean {
 
 function formatMessage(level: LogLevel, message: string, context?: LogContext): string {
   const timestamp = new Date().toISOString();
-  const contextStr = context ? ` ${JSON.stringify(context)}` : "";
+  const requestId = getCurrentRequestId();
+
+  // Merge requestId into context if available
+  const fullContext = requestId
+    ? { requestId, ...context }
+    : context;
+
+  const contextStr = fullContext ? ` ${JSON.stringify(fullContext)}` : "";
 
   if (config.isProduction()) {
     // JSON format for production (easier to parse in log aggregators)
@@ -37,12 +63,13 @@ function formatMessage(level: LogLevel, message: string, context?: LogContext): 
       timestamp,
       level,
       message,
-      ...context,
+      ...fullContext,
     });
   }
 
   // Human-readable format for development
-  return `[${timestamp}] [${level.toUpperCase()}] ${message}${contextStr}`;
+  const requestIdStr = requestId ? ` [${requestId.substring(0, 8)}]` : "";
+  return `[${timestamp}] [${level.toUpperCase()}]${requestIdStr} ${message}${contextStr}`;
 }
 
 /**
@@ -95,5 +122,50 @@ export const logger = {
     console.info(formatMessage("info", `[AUDIT] ${message}`, auditContext));
   },
 };
+
+/**
+ * Create a logger instance with a fixed request ID
+ * Use this when you need to log outside the async context
+ *
+ * @param requestId - The correlation ID for this request
+ * @returns A logger that includes the requestId in all logs
+ */
+export function createRequestLogger(requestId: string) {
+  return {
+    debug(message: string, context?: LogContext): void {
+      if (shouldLog("debug")) {
+        console.debug(formatMessage("debug", message, { requestId, ...context }));
+      }
+    },
+
+    info(message: string, context?: LogContext): void {
+      if (shouldLog("info")) {
+        console.info(formatMessage("info", message, { requestId, ...context }));
+      }
+    },
+
+    warn(message: string, context?: LogContext): void {
+      if (shouldLog("warn")) {
+        console.warn(formatMessage("warn", message, { requestId, ...context }));
+      }
+    },
+
+    error(message: string, context?: LogContext): void {
+      if (shouldLog("error")) {
+        console.error(formatMessage("error", message, { requestId, ...context }));
+      }
+    },
+
+    security(message: string, context?: LogContext): void {
+      const securityContext = { requestId, ...context, _security: true };
+      console.warn(formatMessage("warn", `[SECURITY] ${message}`, securityContext));
+    },
+
+    audit(message: string, context?: LogContext): void {
+      const auditContext = { requestId, ...context, _audit: true };
+      console.info(formatMessage("info", `[AUDIT] ${message}`, auditContext));
+    },
+  };
+}
 
 export default logger;

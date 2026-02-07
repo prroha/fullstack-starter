@@ -17,8 +17,9 @@ final dioProvider = Provider<Dio>((ref) {
     ),
   );
 
-  // Add interceptors
+  // Add interceptors (order matters: request ID first for tracing)
   dio.interceptors.addAll([
+    RequestIdInterceptor(),
     LoggingInterceptor(),
     AuthInterceptor(ref),
   ]);

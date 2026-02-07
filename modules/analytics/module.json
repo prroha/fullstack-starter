@@ -1,7 +1,7 @@
 {
   "name": "Analytics",
-  "version": "1.1.0",
-  "description": "User analytics, event tracking, and dashboard with multi-provider support",
+  "version": "1.2.0",
+  "description": "User analytics, event tracking, error tracking (Sentry), and dashboard with multi-provider support",
   "tier": "premium",
   "price": "39",
   "category": "insights",
@@ -23,32 +23,47 @@
     }
   },
   "optionalDependencies": {
+    "backend": {
+      "@sentry/node": "^8.0.0",
+      "@sentry/profiling-node": "^8.0.0"
+    },
     "web": {
       "mixpanel-browser": "^2.49.0",
-      "posthog-js": "^1.96.0"
+      "posthog-js": "^1.96.0",
+      "@sentry/nextjs": "^8.0.0"
     },
     "mobile": {
-      "mixpanel_flutter": "^2.3.0"
+      "mixpanel_flutter": "^2.3.0",
+      "sentry_flutter": "^7.14.0"
     }
   },
   "env": {
     "ANALYTICS_ENABLED": "true",
-    "ANALYTICS_RETENTION_DAYS": "90"
+    "ANALYTICS_RETENTION_DAYS": "90",
+    "SENTRY_DSN": "",
+    "ERROR_TRACKING_ENABLED": "true"
   },
   "envWeb": {
     "NEXT_PUBLIC_ANALYTICS_PROVIDER": "custom",
-    "NEXT_PUBLIC_ANALYTICS_ENABLED": "true"
+    "NEXT_PUBLIC_ANALYTICS_ENABLED": "true",
+    "NEXT_PUBLIC_SENTRY_DSN": "",
+    "NEXT_PUBLIC_SENTRY_ENVIRONMENT": "development"
   },
   "files": {
     "backend": [
       "backend/src/services/analytics.service.ts",
-      "backend/src/routes/analytics.routes.ts"
+      "backend/src/services/error-tracking.service.ts",
+      "backend/src/routes/analytics.routes.ts",
+      "backend/src/middleware/sentry.middleware.ts"
     ],
     "web": [
-      "web/src/lib/analytics.ts"
+      "web/src/lib/analytics.ts",
+      "web/src/lib/error-tracking.ts",
+      "web/src/components/error-boundary-sentry.tsx"
     ],
     "mobile": [
-      "mobile/lib/core/services/analytics_service.dart"
+      "mobile/lib/core/services/analytics_service.dart",
+      "mobile/lib/core/services/error_tracking_service.dart"
     ]
   },
   "routes": {
@@ -61,13 +76,26 @@
     "AnalyticsEvent",
     "AnalyticsAggregate"
   ],
+  "features": {
+    "analytics": {
+      "description": "Event tracking and user analytics",
+      "tier": "premium"
+    },
+    "errorTracking": {
+      "description": "Sentry error tracking and performance monitoring",
+      "tier": "premium"
+    }
+  },
   "postInstall": [
     "Add analytics middleware to your Express app",
     "Update Prisma schema with AnalyticsEvent and AnalyticsAggregate models",
     "Run database migrations: npx prisma migrate dev --name add_analytics",
     "Register analytics routes in your Express app",
     "Add AnalyticsDashboard component to admin pages",
-    "Configure environment variables for your chosen provider"
+    "Configure environment variables for your chosen provider",
+    "(Optional) Install Sentry packages for error tracking",
+    "(Optional) Add Sentry middleware to app.ts",
+    "(Optional) Wrap Next.js app with ErrorTrackingProvider and AppErrorBoundary"
   ],
   "documentation": "https://docs.fullstack-starter.dev/modules/analytics"
 }

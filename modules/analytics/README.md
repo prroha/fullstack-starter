@@ -12,6 +12,8 @@ Unified analytics tracking for web and mobile with support for multiple provider
 - **Auto-Initialize**: Automatic setup from environment variables
 - **Backend Service**: Full analytics collection and aggregation
 - **Export Support**: JSON and CSV export functionality
+- **Error Tracking (Premium)**: Sentry integration for comprehensive error monitoring
+- **Performance Monitoring (Premium)**: Transaction tracing and performance insights
 
 ## Supported Providers
 
@@ -472,6 +474,417 @@ The analytics module includes several privacy-focused features:
 7. **Batch events**: Use batch tracking for high-frequency events
 8. **Handle errors gracefully**: Analytics failures shouldn't break your app
 
+---
+
+## Error Tracking with Sentry (Premium Feature)
+
+Comprehensive error tracking and performance monitoring using Sentry.
+
+### Getting Your Sentry DSN
+
+1. Create an account at [sentry.io](https://sentry.io)
+2. Create a new project (select your platform: Node.js, Next.js, or Flutter)
+3. Copy the DSN from Project Settings > Client Keys (DSN)
+4. The DSN looks like: `https://xxx@xxx.ingest.sentry.io/xxx`
+
+### Backend Setup
+
+#### 1. Install Dependencies
+
+```bash
+cd core/backend
+npm install @sentry/node @sentry/profiling-node
+```
+
+#### 2. Copy Error Tracking Files
+
+```bash
+mkdir -p src/services src/middleware
+cp modules/analytics/backend/src/services/error-tracking.service.ts src/services/
+cp modules/analytics/backend/src/middleware/sentry.middleware.ts src/middleware/
+```
+
+#### 3. Initialize in app.ts
+
+```typescript
+import { errorTracking } from './services/error-tracking.service';
+import {
+  sentryRequestHandler,
+  sentryErrorHandler,
+  sentryTracingMiddleware,
+} from './middleware/sentry.middleware';
+
+// Initialize Sentry FIRST (before any other code)
+errorTracking.initErrorTracking({
+  dsn: process.env.SENTRY_DSN!,
+  environment: process.env.NODE_ENV,
+  release: process.env.npm_package_version,
+  tracesSampleRate: 0.1, // 10% of transactions
+  enableTracing: true,
+});
+
+const app = express();
+
+// Add Sentry request handler FIRST
+app.use(sentryRequestHandler);
+app.use(sentryTracingMiddleware);
+
+// Your other middleware
+app.use(express.json());
+app.use(cors());
+
+// Your routes
+app.use('/api', routes);
+
+// Add Sentry error handler BEFORE your error handler
+app.use(sentryErrorHandler);
+
+// Your error handler
+app.use(errorHandler);
+```
+
+#### 4. Add Environment Variables
+
+```env
+SENTRY_DSN=https://xxx@xxx.ingest.sentry.io/xxx
+ERROR_TRACKING_ENABLED=true
+```
+
+#### 5. Capture Errors in Your Code
+
+```typescript
+import { errorTracking } from './services/error-tracking.service';
+
+// Capture exceptions
+try {
+  await riskyOperation();
+} catch (error) {
+  errorTracking.captureException(error, {
+    user: { id: userId, email: userEmail },
+    tags: { feature: 'payment' },
+    extra: { orderId, amount },
+  });
+  throw error;
+}
+
+// Capture messages
+errorTracking.captureMessage('User upgraded to premium', 'info', {
+  user: { id: userId },
+  tags: { action: 'upgrade' },
+});
+
+// Set user context (after login)
+errorTracking.setUser({
+  id: user.id,
+  email: user.email,
+  username: user.name,
+});
+
+// Add breadcrumbs for debugging
+errorTracking.addBreadcrumb({
+  category: 'payment',
+  message: 'Payment initiated',
+  level: 'info',
+  data: { amount, currency },
+});
+```
+
+### Web (Next.js) Setup
+
+#### 1. Install Dependencies
+
+```bash
+cd core/web
+npx @sentry/wizard@latest -i nextjs
+# OR manually:
+npm install @sentry/nextjs
+```
+
+#### 2. Copy Error Tracking Files
+
+```bash
+cp modules/analytics/web/src/lib/error-tracking.ts src/lib/
+cp modules/analytics/web/src/components/error-boundary-sentry.tsx src/components/
+```
+
+#### 3. Create Sentry Config Files
+
+Create `sentry.client.config.ts`:
+
+```typescript
+import * as Sentry from '@sentry/nextjs';
+
+Sentry.init({
+  dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
+  environment: process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT || process.env.NODE_ENV,
+  tracesSampleRate: 0.1,
+  replaysSessionSampleRate: 0.1,
+  replaysOnErrorSampleRate: 1.0,
+  integrations: [Sentry.replayIntegration()],
+});
+```
+
+Create `sentry.server.config.ts`:
+
+```typescript
+import * as Sentry from '@sentry/nextjs';
+
+Sentry.init({
+  dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
+  environment: process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT || process.env.NODE_ENV,
+  tracesSampleRate: 0.1,
+});
+```
+
+Create `sentry.edge.config.ts`:
+
+```typescript
+import * as Sentry from '@sentry/nextjs';
+
+Sentry.init({
+  dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
+  tracesSampleRate: 0.1,
+});
+```
+
+#### 4. Update next.config.js
+
+```javascript
+const { withSentryConfig } = require('@sentry/nextjs');
+
+const nextConfig = {
+  // Your existing config
+};
+
+module.exports = withSentryConfig(nextConfig, {
+  org: 'your-org',
+  project: 'your-project',
+  silent: true,
+  widenClientFileUpload: true,
+  hideSourceMaps: true,
+  disableLogger: true,
+});
+```
+
+#### 5. Add Environment Variables
+
+```env
+NEXT_PUBLIC_SENTRY_DSN=https://xxx@xxx.ingest.sentry.io/xxx
+NEXT_PUBLIC_SENTRY_ENVIRONMENT=production
+SENTRY_AUTH_TOKEN=your_auth_token  # For source maps
+```
+
+#### 6. Wrap Your App with Error Boundary
+
+In `app/layout.tsx` or `pages/_app.tsx`:
+
+```tsx
+import { AppErrorBoundary } from '@/components/error-boundary-sentry';
+import { ErrorTrackingProvider } from '@/lib/error-tracking';
+
+export default function RootLayout({ children }) {
+  return (
+    <html>
+      <body>
+        <ErrorTrackingProvider>
+          <AppErrorBoundary>
+            {children}
+          </AppErrorBoundary>
+        </ErrorTrackingProvider>
+      </body>
+    </html>
+  );
+}
+```
+
+#### 7. Use in Components
+
+```tsx
+import { useErrorTracking, useSetUserContext } from '@/lib/error-tracking';
+import { SentryErrorBoundary } from '@/components/error-boundary-sentry';
+
+function MyComponent() {
+  const { captureException, captureMessage, setUser } = useErrorTracking();
+
+  // Auto-set user context when user changes
+  useSetUserContext(user);
+
+  const handleAction = async () => {
+    try {
+      await riskyAction();
+    } catch (error) {
+      captureException(error, {
+        tags: { action: 'my_action' },
+      });
+    }
+  };
+
+  return (
+    <SentryErrorBoundary scopeName="my-component">
+      <div>My Component</div>
+    </SentryErrorBoundary>
+  );
+}
+```
+
+### Mobile (Flutter) Setup
+
+#### 1. Add Dependencies
+
+```yaml
+# pubspec.yaml
+dependencies:
+  sentry_flutter: ^7.14.0
+```
+
+#### 2. Copy Error Tracking Service
+
+```bash
+cp modules/analytics/mobile/lib/core/services/error_tracking_service.dart lib/core/services/
+```
+
+#### 3. Initialize in main.dart
+
+```dart
+import 'package:flutter/foundation.dart';
+import 'package:your_app/core/services/error_tracking_service.dart';
+
+void main() async {
+  // Option 1: Simple initialization
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await errorTracking.init(ErrorTrackingConfig(
+    dsn: 'https://xxx@xxx.ingest.sentry.io/xxx',
+    environment: kReleaseMode ? 'production' : 'development',
+    release: '1.0.0+1',
+    tracesSampleRate: 0.1,
+    debug: kDebugMode,
+  ));
+
+  runApp(MyApp());
+
+  // Option 2: With zone error catching (recommended)
+  await runAppWithErrorTracking(
+    config: ErrorTrackingConfig(
+      dsn: 'https://xxx@xxx.ingest.sentry.io/xxx',
+      environment: kReleaseMode ? 'production' : 'development',
+    ),
+    appRunner: () => runApp(MyApp()),
+  );
+}
+```
+
+#### 4. Add Navigation Observer
+
+```dart
+MaterialApp(
+  navigatorObservers: [
+    AnalyticsRouteObserver(),          // For analytics
+    ErrorTrackingNavigatorObserver(),  // For error tracking breadcrumbs
+  ],
+)
+```
+
+#### 5. Use in Your Code
+
+```dart
+import 'package:your_app/core/services/error_tracking_service.dart';
+
+// Capture exceptions
+try {
+  await riskyOperation();
+} catch (e, stack) {
+  await errorTracking.captureException(
+    e,
+    stackTrace: stack,
+    context: ErrorContext(
+      user: UserContext(id: userId, email: userEmail),
+      tags: {'feature': 'payment'},
+      extra: {'orderId': orderId},
+    ),
+  );
+  rethrow;
+}
+
+// Capture messages
+await errorTracking.captureMessage(
+  'User upgraded to premium',
+  level: SeverityLevel.info,
+  context: ErrorContext(
+    user: UserContext(id: userId),
+  ),
+);
+
+// Set user context (after login)
+errorTracking.setUser(UserContext(
+  id: user.id,
+  email: user.email,
+  username: user.name,
+));
+
+// Clear user context (after logout)
+errorTracking.setUser(null);
+
+// Add breadcrumbs
+errorTracking.addBreadcrumb(Breadcrumb(
+  category: 'payment',
+  message: 'Payment initiated',
+  level: SeverityLevel.info,
+  data: {'amount': amount, 'currency': currency},
+));
+
+// Wrap async operations
+final result = await errorTracking.wrap(() async {
+  return await someAsyncOperation();
+});
+```
+
+### Environment Variables Summary
+
+#### Backend
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SENTRY_DSN` | - | Sentry DSN for backend |
+| `ERROR_TRACKING_ENABLED` | `true` | Enable/disable error tracking |
+
+#### Web
+
+| Variable | Description |
+|----------|-------------|
+| `NEXT_PUBLIC_SENTRY_DSN` | Sentry DSN for web |
+| `NEXT_PUBLIC_SENTRY_ENVIRONMENT` | Environment name |
+| `SENTRY_AUTH_TOKEN` | Auth token for source maps |
+
+### Source Maps Configuration
+
+For production debugging with readable stack traces:
+
+1. Generate source maps during build
+2. Upload to Sentry using the CLI or webpack plugin
+3. Hide source maps from public access
+
+```bash
+# Install Sentry CLI
+npm install -g @sentry/cli
+
+# Upload source maps (after build)
+sentry-cli releases files <release> upload-sourcemaps ./dist
+```
+
+### Best Practices
+
+1. **Initialize early**: Set up error tracking before any other code
+2. **Set user context**: Call `setUser()` after login for better debugging
+3. **Add breadcrumbs**: Track user actions leading to errors
+4. **Use fingerprints**: Group similar errors for better organization
+5. **Set appropriate sample rates**: 10% is good for production
+6. **Handle sensitive data**: Don't send PII in error reports
+7. **Test in development**: Use debug mode to verify setup
+8. **Monitor performance**: Use tracing to identify slow operations
+
+---
+
 ## Pricing Suggestion
 
 $400-600 for integration including:
@@ -480,3 +893,9 @@ $400-600 for integration including:
 - Dashboard configuration
 - Backend integration
 - Documentation and training
+
+**Add-on: Error Tracking (+$200-300)**
+- Sentry setup and configuration
+- Error boundary implementation
+- Source maps configuration
+- Performance monitoring setup

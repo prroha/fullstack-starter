@@ -3,16 +3,61 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
 
 import '../constants/api_constants.dart';
 import '../services/token_manager.dart';
 
+/// Header name for request correlation ID
+const String requestIdHeader = 'x-request-id';
+
+/// UUID generator instance for request IDs
+const _uuid = Uuid();
+
+/// Request ID interceptor for end-to-end request tracing
+///
+/// Generates a unique UUID for each request and adds it to the
+/// x-request-id header. This enables correlation of requests
+/// across client, server, and logs.
+class RequestIdInterceptor extends Interceptor {
+  @override
+  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
+    // Generate unique request ID
+    final requestId = _uuid.v4();
+    options.headers[requestIdHeader] = requestId;
+
+    // Store request ID for error logging
+    options.extra['requestId'] = requestId;
+
+    if (kDebugMode) {
+      print('REQUEST ID: $requestId');
+    }
+
+    handler.next(options);
+  }
+
+  @override
+  void onError(DioException err, ErrorInterceptorHandler handler) {
+    final requestId = err.requestOptions.extra['requestId'] as String?;
+
+    if (kDebugMode && requestId != null) {
+      print('ERROR [requestId: $requestId]: ${err.response?.statusCode} ${err.requestOptions.uri}');
+      print('   ${err.message}');
+    }
+
+    handler.next(err);
+  }
+}
+
 /// Logging interceptor for debugging
+/// Includes request ID for correlation when available
 class LoggingInterceptor extends Interceptor {
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
     if (kDebugMode) {
-      print('REQUEST: ${options.method} ${options.uri}');
+      final requestId = options.headers[requestIdHeader] ?? options.extra['requestId'];
+      final idPrefix = requestId != null ? '[${requestId.toString().substring(0, 8)}] ' : '';
+      print('${idPrefix}REQUEST: ${options.method} ${options.uri}');
     }
     handler.next(options);
   }
@@ -20,7 +65,9 @@ class LoggingInterceptor extends Interceptor {
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) {
     if (kDebugMode) {
-      print('RESPONSE: ${response.statusCode} ${response.requestOptions.uri}');
+      final requestId = response.requestOptions.extra['requestId'];
+      final idPrefix = requestId != null ? '[${requestId.toString().substring(0, 8)}] ' : '';
+      print('${idPrefix}RESPONSE: ${response.statusCode} ${response.requestOptions.uri}');
     }
     handler.next(response);
   }
@@ -28,7 +75,9 @@ class LoggingInterceptor extends Interceptor {
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
     if (kDebugMode) {
-      print('ERROR: ${err.response?.statusCode} ${err.requestOptions.uri}');
+      final requestId = err.requestOptions.extra['requestId'];
+      final idPrefix = requestId != null ? '[${requestId.toString().substring(0, 8)}] ' : '';
+      print('${idPrefix}ERROR: ${err.response?.statusCode} ${err.requestOptions.uri}');
       print('   ${err.message}');
     }
     handler.next(err);

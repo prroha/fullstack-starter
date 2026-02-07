@@ -8,7 +8,8 @@ import { errorMiddleware } from "./middleware/error.middleware";
 import { csrfProtection } from "./middleware/csrf.middleware";
 import { sanitizeInput } from "./middleware/sanitize.middleware";
 import { generalRateLimiter } from "./middleware/rate-limit.middleware";
-import { logger } from "./lib/logger";
+import { requestIdMiddleware, REQUEST_ID_HEADER } from "./middleware/request-id.middleware";
+import { logger, requestContext } from "./lib/logger";
 import routes from "./routes";
 
 const app = express();
@@ -48,9 +49,25 @@ app.use(cors({
     "X-CSRF-Token",
     "X-XSRF-Token",
     "X-API-Key",
+    REQUEST_ID_HEADER,
   ],
-  exposedHeaders: ["X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Reset"],
+  exposedHeaders: [
+    "X-RateLimit-Limit",
+    "X-RateLimit-Remaining",
+    "X-RateLimit-Reset",
+    REQUEST_ID_HEADER,
+  ],
 }));
+
+// Request ID middleware (early in chain for request tracing)
+app.use(requestIdMiddleware);
+
+// Wrap all requests in AsyncLocalStorage for request-scoped logging
+app.use((req, res, next) => {
+  requestContext.run({ requestId: req.id }, () => {
+    next();
+  });
+});
 
 // Body parsing
 app.use(express.json({ limit: "10mb" }));

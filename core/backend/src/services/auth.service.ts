@@ -4,6 +4,7 @@ import { config } from "../config";
 import { generateTokenPair, verifyToken, JwtPayload } from "../utils/jwt";
 import { ApiError } from "../middleware/error.middleware";
 import { ErrorCodes } from "../utils/response";
+import { lockoutService, LockoutStatus } from "./lockout.service";
 
 interface RegisterInput {
   email: string;
@@ -37,6 +38,20 @@ interface RefreshResult {
     name: string | null;
     role: string;
   };
+}
+
+/**
+ * Custom error class for account lockout
+ * Includes lockout details for proper error response
+ */
+export class AccountLockedError extends Error {
+  public lockoutStatus: LockoutStatus;
+
+  constructor(message: string, lockoutStatus: LockoutStatus) {
+    super(message);
+    this.name = "AccountLockedError";
+    this.lockoutStatus = lockoutStatus;
+  }
 }
 
 class AuthService {
@@ -79,17 +94,28 @@ class AuthService {
 
   /**
    * Login user with email and password
+   * Includes brute force protection via account lockout
    */
   async login(input: LoginInput): Promise<LoginResult> {
     const { email, password, deviceId } = input;
 
-    // Find user
+    // Find user with lockout fields
     const user = await db.user.findUnique({
       where: { email: email.toLowerCase() },
     });
 
     if (!user) {
+      // Don't reveal whether user exists - use consistent error
       throw ApiError.unauthorized("Invalid credentials", ErrorCodes.INVALID_CREDENTIALS);
+    }
+
+    // Check if account is locked out (before password check to prevent timing attacks)
+    const lockoutStatus = lockoutService.getLockoutStatus(user);
+    if (lockoutStatus.isLocked) {
+      throw new AccountLockedError(
+        `Account is locked. Try again in ${lockoutStatus.minutesUntilUnlock} minutes.`,
+        lockoutStatus
+      );
     }
 
     // Check if active
@@ -97,11 +123,24 @@ class AuthService {
       throw ApiError.forbidden("Account is deactivated", ErrorCodes.FORBIDDEN);
     }
 
-    // Verify password
+    // Verify password (bcrypt.compare is constant-time to prevent timing attacks)
     const isValidPassword = await bcrypt.compare(password, user.passwordHash);
     if (!isValidPassword) {
+      // Record failed attempt and possibly lock the account
+      const newLockoutStatus = await lockoutService.recordFailedAttempt(user.id, user.email);
+
+      if (newLockoutStatus.isLocked) {
+        throw new AccountLockedError(
+          `Account is now locked due to too many failed attempts. Try again in ${newLockoutStatus.minutesUntilUnlock} minutes.`,
+          newLockoutStatus
+        );
+      }
+
       throw ApiError.unauthorized("Invalid credentials", ErrorCodes.INVALID_CREDENTIALS);
     }
+
+    // Successful login - reset failed attempts
+    await lockoutService.resetFailedAttempts(user.id);
 
     // Update active device if provided
     if (deviceId) {

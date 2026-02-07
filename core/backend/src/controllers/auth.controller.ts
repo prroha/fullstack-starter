@@ -1,6 +1,6 @@
 import { Response, NextFunction } from "express";
-import { authService } from "../services/auth.service";
-import { successResponse } from "../utils/response";
+import { authService, AccountLockedError } from "../services/auth.service";
+import { successResponse, errorResponse, ErrorCodes } from "../utils/response";
 import { z } from "zod";
 import { AppRequest, AuthenticatedRequest } from "../types";
 import { generateCsrfToken } from "../middleware/csrf.middleware";
@@ -87,6 +87,18 @@ class AuthController {
         csrfToken, // Also return in body for non-browser clients
       }));
     } catch (error) {
+      // Handle account lockout errors with detailed response
+      if (error instanceof AccountLockedError) {
+        const { lockoutStatus } = error;
+        return res.status(423).json(errorResponse(
+          ErrorCodes.ACCOUNT_LOCKED,
+          error.message,
+          {
+            lockedUntil: lockoutStatus.lockedUntil?.toISOString(),
+            minutesUntilUnlock: lockoutStatus.minutesUntilUnlock,
+          }
+        ));
+      }
       next(error);
     }
   }

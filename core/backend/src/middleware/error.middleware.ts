@@ -49,12 +49,15 @@ export class ApiError extends Error {
  */
 export function errorMiddleware(
   err: Error,
-  _req: Request,
+  req: Request,
   res: Response,
   _next: NextFunction
 ): void {
-  // Log all errors
+  const requestId = req.id;
+
+  // Log all errors with request ID for correlation
   logger.error("Request error", {
+    requestId,
     name: err.name,
     message: err.message,
     stack: config.isDevelopment() ? err.stack : undefined,
@@ -66,17 +69,20 @@ export function errorMiddleware(
       field: e.path.join("."),
       message: e.message,
     }));
-    res.status(400).json(errorResponse(
+    const response = errorResponse(
       ErrorCodes.VALIDATION_ERROR,
       "Validation error",
       details
-    ));
+    );
+    (response.error as { requestId?: string }).requestId = requestId;
+    res.status(400).json(response);
     return;
   }
 
   // Handle API errors
   if (err instanceof ApiError) {
     const response = errorResponse(err.code, err.message);
+    (response.error as { requestId?: string }).requestId = requestId;
     if (config.isDevelopment() && !err.isOperational) {
       (response.error as { stack?: string }).stack = err.stack;
     }
@@ -87,17 +93,20 @@ export function errorMiddleware(
   // Handle Prisma errors
   if (err.name === "PrismaClientKnownRequestError") {
     const details = config.isDevelopment() ? err.message : undefined;
-    res.status(400).json(errorResponse(
+    const response = errorResponse(
       ErrorCodes.DATABASE_ERROR,
       "Database error",
       details
-    ));
+    );
+    (response.error as { requestId?: string }).requestId = requestId;
+    res.status(400).json(response);
     return;
   }
 
   // Handle unknown errors
   const message = config.isProduction() ? "Internal server error" : err.message;
   const response = errorResponse(ErrorCodes.INTERNAL_ERROR, message);
+  (response.error as { requestId?: string }).requestId = requestId;
   if (config.isDevelopment()) {
     (response.error as { stack?: string }).stack = err.stack;
   }

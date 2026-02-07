@@ -4,6 +4,25 @@ import { logger } from "./logger";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
+// Request ID header for correlation
+const REQUEST_ID_HEADER = "x-request-id";
+
+/**
+ * Generate a UUID v4 for request correlation
+ */
+function generateRequestId(): string {
+  // Use crypto.randomUUID if available (modern browsers)
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  // Fallback for older environments
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
 // =====================================================
 // Configuration
 // =====================================================
@@ -34,33 +53,35 @@ export class ApiError extends Error {
     message: string,
     public code?: string,
     public details?: unknown,
-    public isRetryable: boolean = false
+    public isRetryable: boolean = false,
+    public requestId?: string
   ) {
     super(message);
     this.name = "ApiError";
   }
 
-  static fromResponse(status: number, data: Record<string, unknown>): ApiError {
+  static fromResponse(status: number, data: Record<string, unknown>, requestId?: string): ApiError {
     const error = data.error as Record<string, unknown> | undefined;
     return new ApiError(
       status,
       (error?.message as string) || "Request failed",
       error?.code as string | undefined,
       error?.details,
-      status >= 500 || status === 429
+      status >= 500 || status === 429,
+      requestId || (error?.requestId as string | undefined)
     );
   }
 
-  static networkError(message: string, originalError?: Error): ApiError {
-    const error = new ApiError(0, message, "NETWORK_ERROR", undefined, true);
+  static networkError(message: string, originalError?: Error, requestId?: string): ApiError {
+    const error = new ApiError(0, message, "NETWORK_ERROR", undefined, true, requestId);
     if (originalError) {
       error.cause = originalError;
     }
     return error;
   }
 
-  static timeoutError(): ApiError {
-    return new ApiError(0, "Request timed out", "TIMEOUT_ERROR", undefined, true);
+  static timeoutError(requestId?: string): ApiError {
+    return new ApiError(0, "Request timed out", "TIMEOUT_ERROR", undefined, true, requestId);
   }
 }
 
@@ -221,13 +242,18 @@ class ApiClient {
   private async executeRequest<T>(
     endpoint: string,
     options: RequestInit = {},
-    attempt: number = 0
+    attempt: number = 0,
+    requestId?: string
   ): Promise<ApiResponse<T>> {
+    // Generate request ID on first attempt for correlation
+    const correlationId = requestId || generateRequestId();
+
     let url = `${this.config.baseUrl}${endpoint}`;
     let requestOptions: RequestInit = {
       ...options,
       headers: {
         "Content-Type": "application/json",
+        [REQUEST_ID_HEADER]: correlationId,
         ...options.headers,
       },
       credentials: "include",
@@ -254,16 +280,18 @@ class ApiClient {
         data = await response.text();
       }
 
-      // Log successful request
+      // Log successful request with correlation ID
       logger.debug("API", `${options.method || "GET"} ${endpoint}`, {
         status: response.status,
         duration: `${duration}ms`,
+        requestId: correlationId,
       });
 
       if (!response.ok) {
         const apiError = ApiError.fromResponse(
           response.status,
-          typeof data === "object" && data !== null ? (data as Record<string, unknown>) : {}
+          typeof data === "object" && data !== null ? (data as Record<string, unknown>) : {},
+          correlationId
         );
 
         // Retry on retryable errors
@@ -276,9 +304,10 @@ class ApiClient {
           logger.warn("API", `Retrying request (attempt ${attempt + 1}/${this.config.retries})`, {
             endpoint,
             delay: `${delay}ms`,
+            requestId: correlationId,
           });
           await sleep(delay);
-          return this.executeRequest<T>(endpoint, options, attempt + 1);
+          return this.executeRequest<T>(endpoint, options, attempt + 1, correlationId);
         }
 
         throw apiError;
@@ -298,7 +327,8 @@ class ApiClient {
       if (!(error instanceof ApiError)) {
         const networkError = ApiError.networkError(
           this.getNetworkErrorMessage(error),
-          error instanceof Error ? error : undefined
+          error instanceof Error ? error : undefined,
+          correlationId
         );
 
         // Retry on network errors
@@ -312,14 +342,16 @@ class ApiClient {
             endpoint,
             error: networkError.message,
             delay: `${delay}ms`,
+            requestId: correlationId,
           });
           await sleep(delay);
-          return this.executeRequest<T>(endpoint, options, attempt + 1);
+          return this.executeRequest<T>(endpoint, options, attempt + 1, correlationId);
         }
 
         logger.error("API", `Request failed: ${endpoint}`, networkError, {
           duration: `${duration}ms`,
           attempts: attempt + 1,
+          requestId: correlationId,
         });
 
         // Run error interceptors
@@ -331,12 +363,13 @@ class ApiClient {
         throw processedError;
       }
 
-      // Log API error
+      // Log API error with correlation ID
       logger.error("API", `Request failed: ${endpoint}`, error, {
         status: error.status,
         code: error.code,
         duration: `${duration}ms`,
         attempts: attempt + 1,
+        requestId: correlationId,
       });
 
       // Run error interceptors

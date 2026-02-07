@@ -26,6 +26,10 @@ export type AuthUser = Pick<
  */
 export interface AppRequest extends Request {
   /**
+   * Unique correlation ID for request tracing (set by request-id middleware)
+   */
+  id: string;
+  /**
    * JWT payload (set by auth middleware after token verification)
    */
   user?: JwtPayload;
@@ -44,9 +48,19 @@ export interface AppRequest extends Request {
  * Use this type after authMiddleware has run
  */
 export interface AuthenticatedRequest extends Request {
+  id: string;
   user: JwtPayload;
   dbUser: User;
   csrfToken?: string;
+}
+
+// Extend Express Request type globally to include id property
+declare global {
+  namespace Express {
+    interface Request {
+      id: string;
+    }
+  }
 }
 
 /**
