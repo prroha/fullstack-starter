@@ -376,21 +376,34 @@ Extend your application with these optional modules:
 
 ### Documentation
 
-For comprehensive documentation, see the `/docs` directory:
+For comprehensive documentation, see the [`/docs`](./docs) directory:
+
+#### Development Cheatsheets (~7,000 lines)
+
+Production-ready guides to review before every major release:
+
+| Cheatsheet | Description |
+|------------|-------------|
+| [**README**](./docs/README.md) | Navigation hub for all cheatsheets |
+| [Web App Quality](./docs/WEB_APP_QUALITY_CHEATSHEET.md) | Full-stack quality, security, testing, compliance |
+| [Frontend UI](./docs/FRONTEND_UI_CHEATSHEET.md) | React/Next.js, components, performance, accessibility |
+| [Backend](./docs/BACKEND_CHEATSHEET.md) | API design, auth, caching, error handling |
+| [Database & ORM](./docs/DATABASE_ORM_CHEATSHEET.md) | PostgreSQL, Prisma, queries, migrations |
+| [Deployment](./docs/DEPLOYMENT_SERVER_CHEATSHEET.md) | Docker, CI/CD, Kubernetes, monitoring |
+| [Mobile Flutter](./docs/MOBILE_FLUTTER_CHEATSHEET.md) | Architecture, state, networking, app stores |
+
+#### Business Documentation
 
 - **[PRICING.md](./docs/PRICING.md)** - Client pricing guide for freelancers and agencies
   - Tier packages (Basic to Enterprise)
   - Individual module pricing
   - Add-on services
   - Pricing calculator with examples
-  - Negotiation tips and contract templates
 
 - **[MODULES.md](./docs/MODULES.md)** - Technical module documentation
   - Architecture overview
   - Module features and dependencies
-  - Environment variables reference
   - Integration guides
-  - API endpoint reference
 
 ### For Freelancers & Agencies
 
