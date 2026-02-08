@@ -4,6 +4,333 @@
 
 ---
 
+## Phase 0: Platform Foundation (~2 weeks)
+
+> Core infrastructure, database schema, backend services, and UI component library.
+
+### Backend Infrastructure
+
+#### Database Schema (Prisma)
+- [x] User model with auth fields
+- [x] Password reset token model
+- [x] Email verification token model
+- [x] Session model for multi-device auth
+- [x] Contact message model
+- [x] Audit log model with action types
+- [x] Notification model
+- [x] FAQ & FAQ category models
+- [x] Announcement model
+- [x] Setting model (key-value store)
+- [x] Content page model (CMS)
+- [x] Coupon model (discount codes)
+- [x] Order model (revenue tracking)
+
+#### Authentication System
+- [x] JWT token service (access + refresh)
+- [x] Auth controller (register, login, logout)
+- [x] Auth middleware (token validation)
+- [x] Password hashing (bcrypt)
+- [x] Password reset flow (email tokens)
+- [x] Email verification flow
+- [x] Session management service
+- [x] Account lockout service (brute force protection)
+
+#### Core Services
+- [x] User service (CRUD, profile)
+- [x] Auth service (tokens, validation)
+- [x] Email service (Resend integration)
+- [x] Audit service (action logging)
+- [x] Notification service
+- [x] Session service
+- [x] Search service
+- [x] Export service (CSV generation)
+
+#### Security Middleware
+- [x] CSRF protection middleware
+- [x] Rate limiting middleware
+- [x] Request sanitization middleware
+- [x] Request ID middleware (tracing)
+- [x] Error handling middleware
+- [x] File upload middleware
+
+#### API Response Utilities
+- [x] Success response helper
+- [x] Paginated response helper
+- [x] Error response helper with codes
+- [x] Zod validation integration
+
+#### Testing & Documentation
+- [ ] Test framework setup (Vitest/Jest)
+- [ ] Unit tests for services
+- [ ] Integration tests for API endpoints
+- [ ] API documentation (Swagger/OpenAPI)
+
+### Frontend Infrastructure
+
+#### UI Component Library (38+ components)
+- [x] Button (variants, sizes, loading)
+- [x] Input (with label, error states)
+- [x] Textarea
+- [x] Select (custom options)
+- [x] Checkbox
+- [x] Radio
+- [x] Switch (toggle)
+- [x] Label
+- [x] Text (typography)
+- [x] Icon (Lucide icons)
+- [x] IconButton
+- [x] Badge (status variants)
+- [x] StatusBadge
+- [x] Avatar
+- [x] AvatarUpload
+- [x] Spinner
+- [x] Skeleton (loading states)
+- [x] Card (header, content, footer)
+- [x] Table (header, row, cell)
+- [x] Modal
+- [x] Dialog
+- [x] Accordion
+- [x] Tabs
+- [x] NavLink
+- [x] AppLink
+- [x] MenuItem
+- [x] Divider
+- [x] KBD (keyboard shortcuts)
+- [x] QRCode
+- [x] TagInput
+- [x] Autocomplete
+- [x] PasswordStrength
+- [x] ThemeToggle
+- [x] ThemeSelector
+- [x] ConfirmButton
+- [x] ExportButton
+- [x] FieldWrapper
+- [x] VisuallyHidden
+
+#### Layout Components
+- [x] DashboardLayout (sidebar + header)
+- [x] DashboardSidebar
+- [x] DashboardHeader
+- [x] AuthLayout
+- [x] PublicLayout
+
+#### Auth Pages
+- [x] Login page
+- [x] Register page
+- [x] Forgot password page
+- [x] Reset password page
+- [x] Email verification page
+
+#### Loading States (Route Groups)
+- [x] Root loading.tsx
+- [x] (auth) group loading.tsx
+- [x] (public) group loading.tsx
+- [x] (dashboard) group loading.tsx
+- [x] (protected)/admin group loading.tsx
+
+#### Public Pages
+- [x] Landing/Home page
+- [x] About page
+- [x] FAQ page (with accordion)
+- [x] Contact page (form)
+- [x] Terms of service page
+- [x] Privacy policy page
+
+#### User Dashboard
+- [x] Dashboard home page
+- [x] Profile page (edit profile)
+- [x] Notifications page
+- [x] Settings page
+- [x] Change password page
+- [x] Active sessions page
+
+#### Core Contexts & Hooks
+- [x] AuthContext (user, login, logout)
+- [x] useAuth hook
+- [x] API client with interceptors
+- [x] Toast notifications (sonner)
+
+---
+
+## Phase 0.1: Admin Platform (~1 week)
+
+> Complete admin dashboard for platform management.
+
+### Admin Backend APIs
+
+#### User Management
+- [x] Get all users (paginated, filtered)
+- [x] Get user by ID
+- [x] Update user (role, status)
+- [x] Delete/deactivate user
+- [x] Admin stats endpoint
+- [x] Export users to CSV
+- [ ] Bulk delete users
+
+#### Contact Messages
+- [x] Get all messages (paginated)
+- [x] Get message by ID
+- [x] Update message status
+- [x] Delete message
+- [x] Export messages to CSV
+- [ ] Bulk delete messages
+
+#### Audit Logs
+- [x] Get all logs (paginated, filtered)
+- [x] Get log by ID
+- [x] Get entity types
+- [x] Export logs to CSV
+
+#### FAQ Management
+- [x] CRUD for FAQ categories
+- [x] CRUD for FAQ items
+- [x] Reorder FAQs
+- [x] Toggle active status
+- [x] Export FAQs to CSV
+
+#### Announcements
+- [x] CRUD for announcements
+- [x] Filter by type, status
+- [x] Schedule start/end dates
+- [x] Pin/unpin announcements
+- [x] Export announcements to CSV
+
+#### Settings
+- [x] CRUD for settings
+- [x] Support for types (string, number, boolean, JSON)
+- [x] Public/private settings
+- [x] Export settings to CSV
+
+#### Content Pages (CMS)
+- [x] CRUD for content pages
+- [x] Slug-based routing
+- [x] SEO meta fields
+- [x] Publish/draft status
+- [x] Export content pages to CSV
+
+#### Coupons
+- [x] CRUD for coupons
+- [x] Percentage and fixed discounts
+- [x] Validity dates
+- [x] Max uses limit
+- [x] Usage tracking
+- [x] Export coupons to CSV
+
+#### Orders
+- [x] Get all orders (paginated, filtered)
+- [x] Get order by ID
+- [x] Update order status
+- [x] Order statistics (revenue, counts)
+- [x] User order history
+- [x] Export orders to CSV
+
+### Admin Frontend Pages
+
+#### Admin Layout
+- [x] Admin sidebar navigation
+- [x] Admin header with user menu
+- [x] Role-based access (ADMIN only)
+- [x] Mobile responsive menu
+
+#### Dashboard
+- [x] Admin dashboard home
+- [x] Stats cards (users, orders, revenue)
+- [x] Recent activity
+- [x] Loading skeleton
+
+#### User Management
+- [x] Users table with pagination
+- [x] Search and filter
+- [x] Sorting by columns
+- [x] User detail view
+- [x] Edit user role/status
+- [x] Export to CSV
+- [x] Loading skeleton
+- [ ] Bulk selection/delete
+
+#### Contact Messages
+- [x] Messages table
+- [x] Status filter
+- [x] Search messages
+- [x] Message detail modal
+- [x] Reply/archive actions
+- [x] Loading skeleton (messages/loading.tsx)
+- [x] Export to CSV
+- [ ] Bulk selection/delete
+
+#### Audit Logs
+- [x] Logs table with pagination
+- [x] Filter by action, entity
+- [x] Date range filter
+- [x] Log detail view (expandable)
+- [x] Export to CSV
+- [x] Loading skeleton
+
+#### FAQ Management
+- [x] FAQs table
+- [x] Add/edit FAQ modal
+- [x] Category management
+- [x] Toggle active status
+- [x] Loading skeleton
+- [x] Search FAQs
+- [x] Sorting
+- [x] Pagination
+- [x] Export to CSV
+
+#### Announcements
+- [x] Announcements table
+- [x] Add/edit modal
+- [x] Type badges
+- [x] Active/inactive filter
+- [x] Loading skeleton
+- [x] Search announcements
+- [x] Sorting
+- [x] Pagination
+- [x] Export to CSV
+
+#### Settings
+- [x] Settings table
+- [x] Add/edit modal
+- [x] Type-specific inputs
+- [x] Search settings
+- [x] Loading skeleton
+- [x] Sorting
+- [x] Export to CSV
+
+#### Content Pages
+- [x] Content pages table
+- [x] Add/edit modal with SEO fields
+- [x] Preview link
+- [x] Publish/draft filter
+- [x] Loading skeleton
+- [x] Search pages
+- [ ] Sorting
+- [x] Pagination
+- [x] Export to CSV
+
+#### Coupons
+- [x] Coupons table
+- [x] Add/edit modal
+- [x] Usage statistics
+- [x] Active filter
+- [x] Loading skeleton
+- [x] Search coupons
+- [x] Sorting
+- [x] Pagination
+- [x] Export to CSV
+
+#### Orders
+- [x] Orders table with pagination
+- [x] Filter by status, date
+- [x] Search orders
+- [x] Order detail modal
+- [x] Update status
+- [x] Revenue statistics
+- [x] Export to CSV
+- [x] Loading skeleton
+
+---
+
 ## Phase 1: MVP (~4 weeks)
 
 ### Week 1: Foundation & Showcase
@@ -440,6 +767,8 @@
 
 | Phase | Status | Progress | Target Date |
 |-------|--------|----------|-------------|
+| Phase 0: Foundation | 🟡 In Progress | 95% | TBD |
+| Phase 0.1: Admin Platform | ✅ Completed | 98% | Done |
 | Phase 1: MVP | ⬜ Not Started | 0% | TBD |
 | Phase 2: Pilot | ⬜ Not Started | 0% | TBD |
 | Phase 3: Release | ⬜ Not Started | 0% | TBD |
@@ -451,6 +780,41 @@
 - 🟡 In Progress
 - ✅ Completed
 - ⏸️ Blocked
+
+### Phase 0 Remaining Work
+
+**Backend:**
+- [ ] Test framework setup (Vitest)
+- [ ] Unit tests for core services
+- [ ] API documentation (Swagger/OpenAPI)
+
+### Phase 0.1 Remaining Work (Nice to have)
+
+- [ ] Content pages: Sorting
+- [ ] Bulk delete endpoints
+
+### Completed Summary
+
+**Backend (13 controllers, 13 services):**
+- Authentication (JWT, sessions, OAuth-ready)
+- User management with roles
+- Complete CRUD for all admin entities
+- Security (CSRF, rate limiting, audit logging)
+- Email integration (Resend)
+- Comprehensive logging & request tracing
+
+**Frontend (38+ UI components, 32 pages):**
+- Comprehensive UI component library
+- Auth flow (login, register, password reset, email verification)
+- User dashboard (profile, settings, notifications)
+- Admin panel with 10 management screens
+- Public pages (about, FAQ, contact, terms, privacy)
+
+**Database (14 models):**
+- User, Session, PasswordResetToken, EmailVerificationToken
+- AuditLog, Notification, ContactMessage
+- FAQ, FaqCategory, Announcement
+- Setting, ContentPage, Coupon, Order
 
 ---
 

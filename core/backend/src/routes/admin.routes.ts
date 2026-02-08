@@ -64,6 +64,11 @@ router.get("/contact-messages/unread-count", (req, res, next) =>
   contactController.getUnreadCount(req, res, next)
 );
 
+// Export contact messages (must be before /:id to avoid matching "export" as id)
+router.get("/contact-messages/export", (req, res, next) =>
+  contactController.exportMessages(req, res, next)
+);
+
 router.get("/contact-messages", (req, res, next) =>
   contactController.getAll(req, res, next)
 );

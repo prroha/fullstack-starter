@@ -25,6 +25,11 @@ router.get("/", (req, res, next) =>
   couponController.getAll(req as unknown as AuthenticatedRequest, res, next)
 );
 
+// Export coupons (must be before /:id to avoid matching "export" as id)
+router.get("/export", (req, res, next) =>
+  couponController.exportCoupons(req as unknown as AuthenticatedRequest, res, next)
+);
+
 // Get single coupon by ID
 router.get("/:id", (req, res, next) =>
   couponController.getById(req as unknown as AuthenticatedRequest, res, next)

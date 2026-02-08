@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { AuthenticatedRequest } from "../types";
 import { db } from "../lib/db";
 import { auditService } from "../services/audit.service";
+import { exportService } from "../services/export.service";
 import { successResponse, errorResponse, ErrorCodes } from "../utils/response";
 import { z } from "zod";
 
@@ -323,6 +324,41 @@ export const faqController = {
       });
 
       res.json(successResponse({ categories }));
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * Export all FAQs as CSV (admin only)
+   * GET /api/v1/admin/faqs/export
+   */
+  async exportFaqs(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    try {
+      const timestamp = new Date().toISOString().split("T")[0];
+
+      const faqs = await db.faq.findMany({
+        include: { category: { select: { name: true } } },
+        orderBy: [{ order: "asc" }, { createdAt: "desc" }],
+      });
+
+      const csv = exportService.exportToCsv(faqs, [
+        { header: "ID", accessor: "id" },
+        { header: "Category", accessor: (item) => item.category?.name || "" },
+        { header: "Question", accessor: "question" },
+        { header: "Answer", accessor: "answer" },
+        { header: "Order", accessor: "order" },
+        { header: "Active", accessor: "isActive" },
+        { header: "Created At", accessor: (item) => item.createdAt.toISOString() },
+        { header: "Updated At", accessor: (item) => item.updatedAt.toISOString() },
+      ]);
+
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="faqs-export-${timestamp}.csv"`
+      );
+      res.send(csv);
     } catch (error) {
       next(error);
     }

@@ -24,6 +24,11 @@ router.get("/", (req, res, next) =>
   announcementController.getAll(req as unknown as AuthenticatedRequest, res, next)
 );
 
+// Export announcements (must be before /:id to avoid matching "export" as id)
+router.get("/export", (req, res, next) =>
+  announcementController.exportAnnouncements(req as unknown as AuthenticatedRequest, res, next)
+);
+
 router.get("/:id", (req, res, next) =>
   announcementController.getById(req as unknown as AuthenticatedRequest, res, next)
 );

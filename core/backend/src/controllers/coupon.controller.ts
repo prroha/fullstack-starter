@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { AuthenticatedRequest } from "../types";
 import { db } from "../lib/db";
 import { auditService } from "../services/audit.service";
+import { exportService } from "../services/export.service";
 import { successResponse, paginatedResponse, errorResponse, ErrorCodes } from "../utils/response";
 import { z } from "zod";
 import { DiscountType } from "@prisma/client";
@@ -352,6 +353,44 @@ export const couponController = {
       });
 
       res.json(successResponse({ coupon: updatedCoupon }));
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * Export all coupons as CSV (admin only)
+   * GET /api/v1/admin/coupons/export
+   */
+  async exportCoupons(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    try {
+      const timestamp = new Date().toISOString().split("T")[0];
+
+      const coupons = await db.coupon.findMany({
+        orderBy: { createdAt: "desc" },
+      });
+
+      const csv = exportService.exportToCsv(coupons, [
+        { header: "ID", accessor: "id" },
+        { header: "Code", accessor: "code" },
+        { header: "Discount Type", accessor: "discountType" },
+        { header: "Discount Value", accessor: "discountValue" },
+        { header: "Min Purchase", accessor: (item) => item.minPurchase?.toString() || "" },
+        { header: "Max Uses", accessor: (item) => item.maxUses?.toString() || "" },
+        { header: "Used Count", accessor: "usedCount" },
+        { header: "Valid From", accessor: (item) => item.validFrom?.toISOString() || "" },
+        { header: "Valid Until", accessor: (item) => item.validUntil?.toISOString() || "" },
+        { header: "Active", accessor: "isActive" },
+        { header: "Created At", accessor: (item) => item.createdAt.toISOString() },
+        { header: "Updated At", accessor: (item) => item.updatedAt.toISOString() },
+      ]);
+
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="coupons-export-${timestamp}.csv"`
+      );
+      res.send(csv);
     } catch (error) {
       next(error);
     }

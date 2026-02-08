@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { AuthenticatedRequest } from "../types";
 import { db } from "../lib/db";
 import { auditService } from "../services/audit.service";
+import { exportService } from "../services/export.service";
 import { successResponse, errorResponse, ErrorCodes, paginatedResponse } from "../utils/response";
 import { z } from "zod";
 
@@ -189,6 +190,42 @@ export const announcementController = {
       });
 
       res.json(successResponse({ announcements }));
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * Export all announcements as CSV (admin only)
+   * GET /api/v1/admin/announcements/export
+   */
+  async exportAnnouncements(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    try {
+      const timestamp = new Date().toISOString().split("T")[0];
+
+      const announcements = await db.announcement.findMany({
+        orderBy: [{ isPinned: "desc" }, { createdAt: "desc" }],
+      });
+
+      const csv = exportService.exportToCsv(announcements, [
+        { header: "ID", accessor: "id" },
+        { header: "Title", accessor: "title" },
+        { header: "Content", accessor: "content" },
+        { header: "Type", accessor: "type" },
+        { header: "Start Date", accessor: (item) => item.startDate?.toISOString() || "" },
+        { header: "End Date", accessor: (item) => item.endDate?.toISOString() || "" },
+        { header: "Active", accessor: "isActive" },
+        { header: "Pinned", accessor: "isPinned" },
+        { header: "Created At", accessor: (item) => item.createdAt.toISOString() },
+        { header: "Updated At", accessor: (item) => item.updatedAt.toISOString() },
+      ]);
+
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="announcements-export-${timestamp}.csv"`
+      );
+      res.send(csv);
     } catch (error) {
       next(error);
     }

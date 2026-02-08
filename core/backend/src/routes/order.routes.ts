@@ -34,6 +34,11 @@ adminRouter.get("/stats", (req, res, next) =>
   orderController.getStats(req as unknown as AuthenticatedRequest, res, next)
 );
 
+// Export orders (must be before /:id to avoid matching "export" as id)
+adminRouter.get("/export", (req, res, next) =>
+  orderController.exportOrders(req as unknown as AuthenticatedRequest, res, next)
+);
+
 // Get all orders
 adminRouter.get("/", (req, res, next) =>
   orderController.getAll(req as unknown as AuthenticatedRequest, res, next)

@@ -24,6 +24,11 @@ router.get("/", (req, res, next) =>
   settingController.getAll(req as unknown as AuthenticatedRequest, res, next)
 );
 
+// Export settings (must be before /:key to avoid matching "export" as key)
+router.get("/export", (req, res, next) =>
+  settingController.exportSettings(req as unknown as AuthenticatedRequest, res, next)
+);
+
 router.get("/:key", (req, res, next) =>
   settingController.getByKey(req as unknown as AuthenticatedRequest, res, next)
 );

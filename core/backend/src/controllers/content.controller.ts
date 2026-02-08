@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { AuthenticatedRequest } from "../types";
 import { db } from "../lib/db";
 import { auditService } from "../services/audit.service";
+import { exportService } from "../services/export.service";
 import { successResponse, errorResponse, ErrorCodes, paginatedResponse } from "../utils/response";
 import { z } from "zod";
 
@@ -187,6 +188,41 @@ export const contentController = {
       }
 
       res.json(successResponse({ page }));
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * Export all content pages as CSV (admin only)
+   * GET /api/v1/admin/content/export
+   */
+  async exportContentPages(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    try {
+      const timestamp = new Date().toISOString().split("T")[0];
+
+      const pages = await db.contentPage.findMany({
+        orderBy: { updatedAt: "desc" },
+      });
+
+      const csv = exportService.exportToCsv(pages, [
+        { header: "ID", accessor: "id" },
+        { header: "Slug", accessor: "slug" },
+        { header: "Title", accessor: "title" },
+        { header: "Content", accessor: "content" },
+        { header: "Meta Title", accessor: (item) => item.metaTitle || "" },
+        { header: "Meta Description", accessor: (item) => item.metaDesc || "" },
+        { header: "Published", accessor: "isPublished" },
+        { header: "Created At", accessor: (item) => item.createdAt.toISOString() },
+        { header: "Updated At", accessor: (item) => item.updatedAt.toISOString() },
+      ]);
+
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="content-pages-export-${timestamp}.csv"`
+      );
+      res.send(csv);
     } catch (error) {
       next(error);
     }

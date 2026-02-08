@@ -19,8 +19,12 @@ import {
   TableHeader,
   IconButton,
   Label,
+  ExportCsvButton,
 } from "@/components/ui";
 import { api, PaginatedResponse } from "@/lib/api";
+import { downloadFile } from "@/lib/export";
+import { API_CONFIG } from "@/lib/constants";
+import { toast } from "sonner";
 
 interface ContentPage {
   id: string;
@@ -34,6 +38,15 @@ interface ContentPage {
   updatedAt: string;
 }
 
+interface PaginationInfo {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrev: boolean;
+}
+
 export default function AdminContentPage() {
   const [pages, setPages] = useState<ContentPage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,6 +54,9 @@ export default function AdminContentPage() {
   const [editing, setEditing] = useState<ContentPage | null>(null);
   const [saving, setSaving] = useState(false);
   const [filterPublished, setFilterPublished] = useState<string>("");
+  const [search, setSearch] = useState("");
+  const [searchDebounced, setSearchDebounced] = useState("");
+  const [pagination, setPagination] = useState<PaginationInfo | null>(null);
 
   const [form, setForm] = useState({
     slug: "",
@@ -51,25 +67,44 @@ export default function AdminContentPage() {
     isPublished: false,
   });
 
-  const loadData = useCallback(async () => {
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchDebounced(search);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  const loadData = useCallback(async (page = 1) => {
     try {
+      setLoading(true);
       const params = new URLSearchParams();
+      params.append("page", page.toString());
+      params.append("limit", "10");
       if (filterPublished) params.append("isPublished", filterPublished);
+      if (searchDebounced) params.append("search", searchDebounced);
 
       const res = await api.get<PaginatedResponse<ContentPage>>(
         `/content?${params.toString()}`
       );
       setPages(res.data?.items || []);
+      if (res.data?.pagination) {
+        setPagination(res.data.pagination);
+      }
     } catch (error) {
       console.error("Failed to load content pages:", error);
     } finally {
       setLoading(false);
     }
-  }, [filterPublished]);
+  }, [filterPublished, searchDebounced]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  const handlePageChange = (page: number) => {
+    loadData(page);
+  };
 
   const openModal = (page?: ContentPage) => {
     if (page) {
@@ -111,7 +146,7 @@ export default function AdminContentPage() {
         await api.post("/content", data);
       }
       setShowModal(false);
-      loadData();
+      loadData(pagination?.page || 1);
     } catch (error) {
       console.error("Failed to save content page:", error);
     } finally {
@@ -123,7 +158,7 @@ export default function AdminContentPage() {
     if (!confirm("Are you sure you want to delete this page?")) return;
     try {
       await api.delete(`/content/${id}`);
-      loadData();
+      loadData(pagination?.page || 1);
     } catch (error) {
       console.error("Failed to delete page:", error);
     }
@@ -137,7 +172,8 @@ export default function AdminContentPage() {
     });
   };
 
-  if (loading) {
+  // Show loading spinner only on initial load (when pages array is empty)
+  if (loading && pages.length === 0 && !pagination) {
     return (
       <div className="flex items-center justify-center h-64">
         <Spinner size="lg" />
@@ -153,35 +189,55 @@ export default function AdminContentPage() {
           <h1 className="text-2xl font-bold">Content Pages</h1>
           <Text color="muted">Manage static content pages (CMS)</Text>
         </div>
-        <Button onClick={() => openModal()}>
-          <Icon name="Plus" size="sm" className="mr-2" />
-          Add Page
-        </Button>
+        <div className="flex gap-2">
+          <ExportCsvButton
+            label="Export"
+            onExport={async () => {
+              await downloadFile(`${API_CONFIG.BASE_URL}/content/export`);
+            }}
+            onSuccess={() => toast.success("Content pages exported successfully")}
+            onError={(error) => toast.error(error.message || "Export failed")}
+          />
+          <Button onClick={() => openModal()}>
+            <Icon name="Plus" size="sm" className="mr-2" />
+            Add Page
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
-      <div className="flex gap-4">
-        <Button
-          variant={filterPublished === "" ? "default" : "outline"}
-          size="sm"
-          onClick={() => setFilterPublished("")}
-        >
-          All
-        </Button>
-        <Button
-          variant={filterPublished === "true" ? "default" : "outline"}
-          size="sm"
-          onClick={() => setFilterPublished("true")}
-        >
-          Published
-        </Button>
-        <Button
-          variant={filterPublished === "false" ? "default" : "outline"}
-          size="sm"
-          onClick={() => setFilterPublished("false")}
-        >
-          Draft
-        </Button>
+      <div className="flex flex-col md:flex-row gap-4">
+        <div className="flex-1 min-w-[200px]">
+          <Input
+            type="search"
+            placeholder="Search by title or slug..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <div className="flex gap-2">
+          <Button
+            variant={filterPublished === "" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setFilterPublished("")}
+          >
+            All
+          </Button>
+          <Button
+            variant={filterPublished === "true" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setFilterPublished("true")}
+          >
+            Published
+          </Button>
+          <Button
+            variant={filterPublished === "false" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setFilterPublished("false")}
+          >
+            Draft
+          </Button>
+        </div>
       </div>
 
       {/* Table */}
@@ -255,6 +311,64 @@ export default function AdminContentPage() {
             </tbody>
           </Table>
         </CardContent>
+
+        {/* Pagination */}
+        {pagination && pagination.totalPages > 1 && (
+          <div className="border-t p-4">
+            <div className="flex items-center justify-between">
+              <Text size="sm" color="muted">
+                Showing {(pagination.page - 1) * pagination.limit + 1} to{" "}
+                {Math.min(pagination.page * pagination.limit, pagination.total)} of{" "}
+                {pagination.total} pages
+              </Text>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(pagination.page - 1)}
+                  disabled={!pagination.hasPrev}
+                >
+                  Previous
+                </Button>
+                {Array.from({ length: pagination.totalPages }, (_, i) => i + 1)
+                  .filter(
+                    (p) =>
+                      p === 1 ||
+                      p === pagination.totalPages ||
+                      Math.abs(p - pagination.page) <= 1
+                  )
+                  .map((page, index, arr) => {
+                    const prevPage = arr[index - 1];
+                    const showEllipsis = prevPage && page - prevPage > 1;
+
+                    return (
+                      <div key={page} className="flex items-center">
+                        {showEllipsis && (
+                          <span className="px-2 text-muted-foreground">...</span>
+                        )}
+                        <Button
+                          variant={page === pagination.page ? "default" : "ghost"}
+                          size="sm"
+                          onClick={() => handlePageChange(page)}
+                          className="w-9"
+                        >
+                          {page}
+                        </Button>
+                      </div>
+                    );
+                  })}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(pagination.page + 1)}
+                  disabled={!pagination.hasNext}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </Card>
 
       {/* Modal */}

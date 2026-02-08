@@ -1,5 +1,7 @@
 import { Response, NextFunction } from "express";
 import { contactService } from "../services/contact.service";
+import { exportService } from "../services/export.service";
+import { db } from "../lib/db";
 import { successResponse, paginatedResponse } from "../utils/response";
 import { z } from "zod";
 import { AppRequest } from "../types";
@@ -146,6 +148,40 @@ class ContactController {
       const count = await contactService.getUnreadCount();
 
       res.json(successResponse({ count }));
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Export all contact messages as CSV (admin only)
+   * GET /api/v1/admin/contact-messages/export
+   */
+  async exportMessages(req: AppRequest, res: Response, next: NextFunction) {
+    try {
+      const timestamp = new Date().toISOString().split("T")[0];
+
+      const messages = await db.contactMessage.findMany({
+        orderBy: { createdAt: "desc" },
+      });
+
+      const csv = exportService.exportToCsv(messages, [
+        { header: "ID", accessor: "id" },
+        { header: "Name", accessor: "name" },
+        { header: "Email", accessor: "email" },
+        { header: "Subject", accessor: "subject" },
+        { header: "Message", accessor: "message" },
+        { header: "Status", accessor: "status" },
+        { header: "Created At", accessor: (item) => item.createdAt.toISOString() },
+        { header: "Updated At", accessor: (item) => item.updatedAt.toISOString() },
+      ]);
+
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="contact-messages-export-${timestamp}.csv"`
+      );
+      res.send(csv);
     } catch (error) {
       next(error);
     }

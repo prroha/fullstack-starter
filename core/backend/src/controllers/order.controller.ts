@@ -2,6 +2,8 @@ import { Response, NextFunction } from "express";
 import { AuditAction, OrderStatus, PaymentMethod } from "@prisma/client";
 import { orderService } from "../services/order.service";
 import { auditService } from "../services/audit.service";
+import { exportService } from "../services/export.service";
+import { db } from "../lib/db";
 import {
   successResponse,
   paginatedResponse,
@@ -226,6 +228,51 @@ class OrderController {
 
       const order = await orderService.getUserOrderById(userId, orderId);
       res.json(successResponse({ order }));
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Export all orders as CSV (admin only)
+   * GET /api/v1/admin/orders/export
+   */
+  async exportOrders(
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    try {
+      const timestamp = new Date().toISOString().split("T")[0];
+
+      const orders = await db.order.findMany({
+        include: { user: { select: { name: true } } },
+        orderBy: { createdAt: "desc" },
+      });
+
+      const csv = exportService.exportToCsv(orders, [
+        { header: "ID", accessor: "id" },
+        { header: "User ID", accessor: (item) => item.userId || "" },
+        { header: "User Name", accessor: (item) => item.user?.name || "" },
+        { header: "Email", accessor: "email" },
+        { header: "Status", accessor: "status" },
+        { header: "Payment Method", accessor: "paymentMethod" },
+        { header: "Payment ID", accessor: (item) => item.paymentId || "" },
+        { header: "Subtotal", accessor: "subtotal" },
+        { header: "Discount", accessor: "discount" },
+        { header: "Total", accessor: "total" },
+        { header: "Coupon Code", accessor: (item) => item.couponCode || "" },
+        { header: "Items", accessor: (item) => JSON.stringify(item.items) },
+        { header: "Created At", accessor: (item) => item.createdAt.toISOString() },
+        { header: "Updated At", accessor: (item) => item.updatedAt.toISOString() },
+      ]);
+
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="orders-export-${timestamp}.csv"`
+      );
+      res.send(csv);
     } catch (error) {
       next(error);
     }

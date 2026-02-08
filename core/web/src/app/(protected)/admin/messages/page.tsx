@@ -2,7 +2,9 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { api, ApiError, ContactMessage, ContactMessageStatus } from "@/lib/api";
-import { Button, Input, Badge, SkeletonTable, Text } from "@/components/ui";
+import { Button, Input, Badge, SkeletonTable, Text, ExportCsvButton } from "@/components/ui";
+import { downloadFile } from "@/lib/export";
+import { API_CONFIG } from "@/lib/constants";
 import { Alert } from "@/components/feedback";
 import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
@@ -493,6 +495,14 @@ export default function AdminMessagesPage() {
             View and manage contact form submissions
           </Text>
         </div>
+        <ExportCsvButton
+          label="Export"
+          onExport={async () => {
+            await downloadFile(`${API_CONFIG.BASE_URL}/admin/contact-messages/export`);
+          }}
+          onSuccess={() => toast.success("Messages exported successfully")}
+          onError={(error) => toast.error(error.message || "Export failed")}
+        />
       </div>
 
       {/* Filters */}

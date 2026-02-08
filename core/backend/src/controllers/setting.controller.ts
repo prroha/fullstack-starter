@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { AuthenticatedRequest } from "../types";
 import { db } from "../lib/db";
 import { auditService } from "../services/audit.service";
+import { exportService } from "../services/export.service";
 import { successResponse, errorResponse, ErrorCodes } from "../utils/response";
 import { z } from "zod";
 
@@ -205,6 +206,40 @@ export const settingController = {
       }, {});
 
       res.json(successResponse({ settings: settingsMap }));
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * Export all settings as CSV (admin only)
+   * GET /api/v1/admin/settings/export
+   */
+  async exportSettings(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    try {
+      const timestamp = new Date().toISOString().split("T")[0];
+
+      const settings = await db.setting.findMany({
+        orderBy: { key: "asc" },
+      });
+
+      const csv = exportService.exportToCsv(settings, [
+        { header: "ID", accessor: "id" },
+        { header: "Key", accessor: "key" },
+        { header: "Value", accessor: "value" },
+        { header: "Type", accessor: "type" },
+        { header: "Description", accessor: (item) => item.description || "" },
+        { header: "Public", accessor: "isPublic" },
+        { header: "Created At", accessor: (item) => item.createdAt.toISOString() },
+        { header: "Updated At", accessor: (item) => item.updatedAt.toISOString() },
+      ]);
+
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="settings-export-${timestamp}.csv"`
+      );
+      res.send(csv);
     } catch (error) {
       next(error);
     }

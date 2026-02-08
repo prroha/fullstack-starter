@@ -21,8 +21,12 @@ import {
   TableHeader,
   IconButton,
   Label,
+  ExportCsvButton,
 } from "@/components/ui";
 import { api } from "@/lib/api";
+import { downloadFile } from "@/lib/export";
+import { API_CONFIG } from "@/lib/constants";
+import { toast } from "sonner";
 
 interface FaqCategory {
   id: string;
@@ -39,14 +43,36 @@ interface Faq {
   answer: string;
   order: number;
   isActive: boolean;
+  createdAt: string;
   category?: { id: string; name: string; slug: string } | null;
 }
+
+interface PaginationInfo {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrev: boolean;
+}
+
+type SortField = "question" | "createdAt";
+type SortOrder = "asc" | "desc";
 
 export default function AdminFaqsPage() {
   const [faqs, setFaqs] = useState<Faq[]>([]);
   const [categories, setCategories] = useState<FaqCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [pagination, setPagination] = useState<PaginationInfo | null>(null);
+
+  // Search state
+  const [search, setSearch] = useState("");
+  const [searchDebounced, setSearchDebounced] = useState("");
+
+  // Sort state
+  const [sortField, setSortField] = useState<SortField>("createdAt");
+  const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
 
   // Modal states
   const [showFaqModal, setShowFaqModal] = useState(false);
@@ -71,24 +97,60 @@ export default function AdminFaqsPage() {
     order: 0,
   });
 
-  const loadData = useCallback(async () => {
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchDebounced(search);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  const loadData = useCallback(async (page = 1) => {
     try {
+      setLoading(true);
+      const params = new URLSearchParams();
+      params.set("page", String(page));
+      params.set("limit", "10");
+      if (selectedCategory) params.set("categoryId", selectedCategory);
+      if (searchDebounced) params.set("search", searchDebounced);
+      if (sortField) params.set("sortBy", sortField);
+      if (sortOrder) params.set("sortOrder", sortOrder);
+
       const [faqsRes, categoriesRes] = await Promise.all([
-        api.get<{ faqs: Faq[] }>(`/faqs${selectedCategory ? `?categoryId=${selectedCategory}` : ""}`),
+        api.get<{ faqs: Faq[]; pagination: PaginationInfo }>(`/faqs?${params.toString()}`),
         api.get<{ categories: FaqCategory[] }>("/faqs/categories"),
       ]);
       setFaqs(faqsRes.data?.faqs || []);
+      setPagination(faqsRes.data?.pagination || null);
       setCategories(categoriesRes.data?.categories || []);
     } catch (error) {
       console.error("Failed to load FAQs:", error);
     } finally {
       setLoading(false);
     }
-  }, [selectedCategory]);
+  }, [selectedCategory, searchDebounced, sortField, sortOrder]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  const handlePageChange = (page: number) => {
+    loadData(page);
+  };
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortOrder("asc");
+    }
+  };
+
+  const getSortIcon = (field: SortField) => {
+    if (sortField !== field) return "ArrowUpDown";
+    return sortOrder === "asc" ? "ArrowUp" : "ArrowDown";
+  };
 
   const openFaqModal = (faq?: Faq) => {
     if (faq) {
@@ -199,6 +261,14 @@ export default function AdminFaqsPage() {
           <Text color="muted">Manage frequently asked questions</Text>
         </div>
         <div className="flex gap-2">
+          <ExportCsvButton
+            label="Export"
+            onExport={async () => {
+              await downloadFile(`${API_CONFIG.BASE_URL}/faqs/export`);
+            }}
+            onSuccess={() => toast.success("FAQs exported successfully")}
+            onError={(error) => toast.error(error.message || "Export failed")}
+          />
           <Button variant="outline" onClick={() => openCategoryModal()}>
             <Icon name="FolderPlus" size="sm" className="mr-2" />
             Add Category
@@ -248,8 +318,16 @@ export default function AdminFaqsPage() {
         </CardContent>
       </Card>
 
-      {/* Filter */}
-      <div className="flex items-center gap-4">
+      {/* Search and Filter */}
+      <div className="flex flex-wrap items-center gap-4">
+        <div className="flex-1 min-w-[200px]">
+          <Input
+            type="search"
+            placeholder="Search FAQs by question..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
         <Select
           value={selectedCategory}
           onChange={(val) => setSelectedCategory(val)}
@@ -257,6 +335,21 @@ export default function AdminFaqsPage() {
           options={[
             { value: "", label: "All Categories" },
             ...categories.map((cat) => ({ value: cat.id, label: cat.name }))
+          ]}
+        />
+        <Select
+          value={`${sortField}-${sortOrder}`}
+          onChange={(val) => {
+            const [field, order] = val.split("-") as [SortField, SortOrder];
+            setSortField(field);
+            setSortOrder(order);
+          }}
+          className="w-48"
+          options={[
+            { value: "createdAt-desc", label: "Newest First" },
+            { value: "createdAt-asc", label: "Oldest First" },
+            { value: "question-asc", label: "Question A-Z" },
+            { value: "question-desc", label: "Question Z-A" },
           ]}
         />
       </div>
@@ -267,17 +360,49 @@ export default function AdminFaqsPage() {
           <Table>
             <thead>
               <TableRow>
-                <TableHeader>Question</TableHeader>
+                <TableHeader>
+                  <button
+                    onClick={() => handleSort("question")}
+                    className="flex items-center gap-1 hover:text-foreground"
+                  >
+                    Question
+                    <Icon name={getSortIcon("question")} size="xs" />
+                  </button>
+                </TableHeader>
                 <TableHeader>Category</TableHeader>
                 <TableHeader>Status</TableHeader>
+                <TableHeader>
+                  <button
+                    onClick={() => handleSort("createdAt")}
+                    className="flex items-center gap-1 hover:text-foreground"
+                  >
+                    Created
+                    <Icon name={getSortIcon("createdAt")} size="xs" />
+                  </button>
+                </TableHeader>
                 <TableHeader className="text-right">Actions</TableHeader>
               </TableRow>
             </thead>
             <tbody>
               {faqs.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center py-8">
-                    <Text color="muted">No FAQs found</Text>
+                  <TableCell colSpan={5} className="text-center py-8">
+                    <Text color="muted">
+                      {searchDebounced ? "No FAQs match your search" : "No FAQs found"}
+                    </Text>
+                    {searchDebounced && (
+                      <Button
+                        variant="link"
+                        size="sm"
+                        onClick={() => {
+                          setSearch("");
+                          setSearchDebounced("");
+                        }}
+                        className="mt-2"
+                      >
+                        Clear search
+                      </Button>
+                    )}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -297,6 +422,11 @@ export default function AdminFaqsPage() {
                       <Badge variant={faq.isActive ? "success" : "warning"}>
                         {faq.isActive ? "Active" : "Inactive"}
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Text color="muted" size="sm">
+                        {faq.createdAt ? new Date(faq.createdAt).toLocaleDateString() : "-"}
+                      </Text>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
@@ -322,6 +452,66 @@ export default function AdminFaqsPage() {
             </tbody>
           </Table>
         </CardContent>
+
+        {/* Pagination */}
+        {pagination && pagination.totalPages > 1 && (
+          <div className="border-t p-4">
+            <div className="flex items-center justify-between">
+              <Text size="sm" color="muted">
+                Showing {(pagination.page - 1) * pagination.limit + 1} to{" "}
+                {Math.min(pagination.page * pagination.limit, pagination.total)} of{" "}
+                {pagination.total} FAQs
+              </Text>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(pagination.page - 1)}
+                  disabled={!pagination.hasPrev}
+                >
+                  <Icon name="ChevronLeft" size="sm" className="mr-1" />
+                  Previous
+                </Button>
+                {Array.from({ length: pagination.totalPages }, (_, i) => i + 1)
+                  .filter(
+                    (p) =>
+                      p === 1 ||
+                      p === pagination.totalPages ||
+                      Math.abs(p - pagination.page) <= 1
+                  )
+                  .map((page, index, arr) => {
+                    const prevPage = arr[index - 1];
+                    const showEllipsis = prevPage && page - prevPage > 1;
+
+                    return (
+                      <div key={page} className="flex items-center">
+                        {showEllipsis && (
+                          <span className="px-2 text-muted-foreground">...</span>
+                        )}
+                        <Button
+                          variant={page === pagination.page ? "default" : "ghost"}
+                          size="sm"
+                          onClick={() => handlePageChange(page)}
+                          className="w-9"
+                        >
+                          {page}
+                        </Button>
+                      </div>
+                    );
+                  })}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(pagination.page + 1)}
+                  disabled={!pagination.hasNext}
+                >
+                  Next
+                  <Icon name="ChevronRight" size="sm" className="ml-1" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </Card>
 
       {/* FAQ Modal */}

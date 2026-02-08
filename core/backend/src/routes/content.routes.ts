@@ -24,6 +24,11 @@ router.get("/", (req, res, next) =>
   contentController.getAll(req as unknown as AuthenticatedRequest, res, next)
 );
 
+// Export content pages (must be before /:id to avoid matching "export" as id)
+router.get("/export", (req, res, next) =>
+  contentController.exportContentPages(req as unknown as AuthenticatedRequest, res, next)
+);
+
 router.get("/:id", (req, res, next) =>
   contentController.getById(req as unknown as AuthenticatedRequest, res, next)
 );

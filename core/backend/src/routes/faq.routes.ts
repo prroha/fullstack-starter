@@ -46,6 +46,11 @@ router.get("/", (req, res, next) =>
   faqController.getFaqs(req as unknown as AuthenticatedRequest, res, next)
 );
 
+// Export FAQs (must be before /:id to avoid matching "export" as id)
+router.get("/export", (req, res, next) =>
+  faqController.exportFaqs(req as unknown as AuthenticatedRequest, res, next)
+);
+
 router.get("/:id", (req, res, next) =>
   faqController.getFaq(req as unknown as AuthenticatedRequest, res, next)
 );

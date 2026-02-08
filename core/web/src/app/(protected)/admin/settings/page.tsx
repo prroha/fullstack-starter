@@ -21,8 +21,12 @@ import {
   TableHeader,
   IconButton,
   Label,
+  ExportCsvButton,
 } from "@/components/ui";
 import { api } from "@/lib/api";
+import { downloadFile } from "@/lib/export";
+import { API_CONFIG } from "@/lib/constants";
+import { toast } from "sonner";
 
 interface Setting {
   id: string;
@@ -31,6 +35,7 @@ interface Setting {
   type: "STRING" | "NUMBER" | "BOOLEAN" | "JSON";
   description: string | null;
   isPublic: boolean;
+  createdAt: string;
 }
 
 const typeOptions = [
@@ -40,6 +45,13 @@ const typeOptions = [
   { value: "JSON", label: "JSON" },
 ];
 
+const sortOptions = [
+  { value: "key:asc", label: "Key A-Z" },
+  { value: "key:desc", label: "Key Z-A" },
+  { value: "createdAt:desc", label: "Newest First" },
+  { value: "createdAt:asc", label: "Oldest First" },
+];
+
 export default function AdminSettingsPage() {
   const [settings, setSettings] = useState<Setting[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,6 +59,7 @@ export default function AdminSettingsPage() {
   const [editing, setEditing] = useState<Setting | null>(null);
   const [saving, setSaving] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState("key:asc");
 
   const [form, setForm] = useState<{
     key: string;
@@ -132,11 +145,22 @@ export default function AdminSettingsPage() {
     }
   };
 
-  const filteredSettings = settings.filter(
-    (s) =>
-      s.key.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.description?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredSettings = settings
+    .filter(
+      (s) =>
+        s.key.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        s.description?.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    .sort((a, b) => {
+      const [field, order] = sortBy.split(":") as ["key" | "createdAt", "asc" | "desc"];
+      let comparison = 0;
+      if (field === "key") {
+        comparison = a.key.localeCompare(b.key);
+      } else if (field === "createdAt") {
+        comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      }
+      return order === "desc" ? -comparison : comparison;
+    });
 
   const formatValue = (setting: Setting) => {
     if (setting.type === "BOOLEAN") {
@@ -168,15 +192,25 @@ export default function AdminSettingsPage() {
           <h1 className="text-2xl font-bold">Settings</h1>
           <Text color="muted">Manage application settings</Text>
         </div>
-        <Button onClick={() => openModal()}>
-          <Icon name="Plus" size="sm" className="mr-2" />
-          Add Setting
-        </Button>
+        <div className="flex gap-2">
+          <ExportCsvButton
+            label="Export"
+            onExport={async () => {
+              await downloadFile(`${API_CONFIG.BASE_URL}/settings/export`);
+            }}
+            onSuccess={() => toast.success("Settings exported successfully")}
+            onError={(error) => toast.error(error.message || "Export failed")}
+          />
+          <Button onClick={() => openModal()}>
+            <Icon name="Plus" size="sm" className="mr-2" />
+            Add Setting
+          </Button>
+        </div>
       </div>
 
-      {/* Search */}
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1 max-w-md">
+      {/* Search and Sort */}
+      <div className="flex flex-wrap items-center gap-4">
+        <div className="relative flex-1 min-w-[200px] max-w-md">
           <Icon name="Search" size="sm" className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={searchQuery}
@@ -185,6 +219,12 @@ export default function AdminSettingsPage() {
             className="pl-9"
           />
         </div>
+        <Select
+          value={sortBy}
+          onChange={(val) => setSortBy(val)}
+          className="w-40"
+          options={sortOptions}
+        />
       </div>
 
       {/* Table */}
