@@ -1,22 +1,25 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { api, ApiError, AuditLog, AuditAction } from "@/lib/api";
-import { Button, Input, Badge, SkeletonTable, ExportCsvButton, Text } from "@/components/ui";
+import { Button, Input, Badge, Text, Select } from "@/components/ui";
 import { Alert } from "@/components/feedback";
-import { EmptySearch, EmptyList } from "@/components/shared";
 import { Icon } from "@/components/ui/icon";
+import { AdminPageHeader, AdminTableContainer } from "@/components/admin";
+import { useAdminList } from "@/lib/hooks";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { downloadFile } from "@/lib/export";
 
-interface PaginationInfo {
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
-  hasNext: boolean;
-  hasPrev: boolean;
+// =====================================================
+// Types
+// =====================================================
+
+interface AuditFilters {
+  action: "" | AuditAction;
+  entity: string;
+  startDate: string;
+  endDate: string;
 }
 
 // =====================================================
@@ -62,18 +65,15 @@ function LogDetails({ log }: { log: AuditLog }) {
             </div>
             <div className="pl-6 space-y-1">
               <Text as="p" size="sm">
-                <Text as="span" color="muted">ID:</Text>{" "}
-                {log.userId || "N/A"}
+                <Text as="span" color="muted">ID:</Text> {log.userId || "N/A"}
               </Text>
               {log.user && (
                 <>
                   <Text as="p" size="sm">
-                    <Text as="span" color="muted">Email:</Text>{" "}
-                    {log.user.email}
+                    <Text as="span" color="muted">Email:</Text> {log.user.email}
                   </Text>
                   <Text as="p" size="sm">
-                    <Text as="span" color="muted">Name:</Text>{" "}
-                    {log.user.name || "N/A"}
+                    <Text as="span" color="muted">Name:</Text> {log.user.name || "N/A"}
                   </Text>
                 </>
               )}
@@ -88,12 +88,10 @@ function LogDetails({ log }: { log: AuditLog }) {
             </div>
             <div className="pl-6 space-y-1">
               <Text as="p" size="sm">
-                <Text as="span" color="muted">IP Address:</Text>{" "}
-                {log.ipAddress || "N/A"}
+                <Text as="span" color="muted">IP Address:</Text> {log.ipAddress || "N/A"}
               </Text>
               <Text as="p" size="sm" className="break-all">
-                <Text as="span" color="muted">User Agent:</Text>{" "}
-                {log.userAgent || "N/A"}
+                <Text as="span" color="muted">User Agent:</Text> {log.userAgent || "N/A"}
               </Text>
             </div>
           </div>
@@ -216,103 +214,13 @@ function LogRow({
 }
 
 // =====================================================
-// Pagination Component
-// =====================================================
-
-function Pagination({
-  pagination,
-  onPageChange,
-}: {
-  pagination: PaginationInfo;
-  onPageChange: (page: number) => void;
-}) {
-  const pages = Array.from({ length: pagination.totalPages }, (_, i) => i + 1);
-  const visiblePages = pages.filter(
-    (p) =>
-      p === 1 ||
-      p === pagination.totalPages ||
-      Math.abs(p - pagination.page) <= 1
-  );
-
-  return (
-    <div className="flex items-center justify-between px-2">
-      <Text variant="caption" color="muted">
-        Showing {(pagination.page - 1) * pagination.limit + 1} to{" "}
-        {Math.min(pagination.page * pagination.limit, pagination.total)} of{" "}
-        {pagination.total} logs
-      </Text>
-      <div className="flex items-center gap-1">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onPageChange(pagination.page - 1)}
-          disabled={!pagination.hasPrev}
-        >
-          Previous
-        </Button>
-        {visiblePages.map((page, index) => {
-          const prevPage = visiblePages[index - 1];
-          const showEllipsis = prevPage && page - prevPage > 1;
-
-          return (
-            <div key={page} className="flex items-center">
-              {showEllipsis && (
-                <span className="px-2 text-muted-foreground">...</span>
-              )}
-              <Button
-                variant={page === pagination.page ? "default" : "ghost"}
-                size="sm"
-                onClick={() => onPageChange(page)}
-                className="w-9"
-              >
-                {page}
-              </Button>
-            </div>
-          );
-        })}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onPageChange(pagination.page + 1)}
-          disabled={!pagination.hasNext}
-        >
-          Next
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-// =====================================================
 // Main Admin Audit Logs Page
 // =====================================================
 
 export default function AdminAuditLogsPage() {
-  const [logs, setLogs] = useState<AuditLog[]>([]);
-  const [pagination, setPagination] = useState<PaginationInfo | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
-
-  // Filters
-  const [search, setSearch] = useState("");
-  const [searchDebounced, setSearchDebounced] = useState("");
-  const [actionFilter, setActionFilter] = useState<"" | AuditAction>("");
-  const [entityFilter, setEntityFilter] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-
-  // Filter options
   const [actionTypes, setActionTypes] = useState<AuditAction[]>([]);
   const [entityTypes, setEntityTypes] = useState<string[]>([]);
-
-  // Debounce search
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setSearchDebounced(search);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [search]);
 
   // Fetch filter options
   useEffect(() => {
@@ -335,45 +243,45 @@ export default function AdminAuditLogsPage() {
     fetchFilterOptions();
   }, []);
 
-  const fetchLogs = useCallback(
-    async (page = 1) => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        const response = await api.getAuditLogs({
-          page,
-          limit: 20,
-          search: searchDebounced || undefined,
-          action: actionFilter || undefined,
-          entity: entityFilter || undefined,
-          startDate: startDate ? new Date(startDate).toISOString() : undefined,
-          endDate: endDate ? new Date(endDate).toISOString() : undefined,
-        });
+  // Use shared admin list hook
+  const {
+    items: logs,
+    pagination,
+    isLoading,
+    error,
+    search,
+    setSearch,
+    searchDebounced,
+    filters,
+    setFilter,
+    handlePageChange,
+    clearFilters,
+    hasActiveFilters,
+    isEmpty,
+  } = useAdminList<AuditLog, AuditFilters>({
+    fetchFn: async ({ page, limit, search, filters }) => {
+      const response = await api.getAuditLogs({
+        page,
+        limit: 20,
+        search: search || undefined,
+        action: filters.action || undefined,
+        entity: filters.entity || undefined,
+        startDate: filters.startDate ? new Date(filters.startDate).toISOString() : undefined,
+        endDate: filters.endDate ? new Date(filters.endDate).toISOString() : undefined,
+      });
 
-        if (response.data) {
-          setLogs(response.data.items);
-          setPagination(response.data.pagination);
-        }
-      } catch (err) {
-        if (err instanceof ApiError) {
-          setError(err.message);
-        } else {
-          setError("Failed to load audit logs");
-        }
-      } finally {
-        setIsLoading(false);
+      if (!response.data) {
+        throw new Error("Failed to load audit logs");
       }
+
+      return {
+        items: response.data.items,
+        pagination: response.data.pagination,
+      };
     },
-    [searchDebounced, actionFilter, entityFilter, startDate, endDate]
-  );
-
-  useEffect(() => {
-    fetchLogs();
-  }, [fetchLogs]);
-
-  const handlePageChange = (page: number) => {
-    fetchLogs(page);
-  };
+    initialFilters: { action: "", entity: "", startDate: "", endDate: "" },
+    limit: 20,
+  });
 
   const toggleRow = (id: string) => {
     setExpandedRows((prev) => {
@@ -387,43 +295,42 @@ export default function AdminAuditLogsPage() {
     });
   };
 
-  const clearFilters = () => {
-    setSearch("");
-    setSearchDebounced("");
-    setActionFilter("");
-    setEntityFilter("");
-    setStartDate("");
-    setEndDate("");
-  };
+  const actionFilterOptions = [
+    { value: "", label: "All Actions" },
+    ...actionTypes.map((action) => ({
+      value: action,
+      label: actionVariants[action]?.label || action,
+    })),
+  ];
 
-  const hasActiveFilters =
-    searchDebounced || actionFilter || entityFilter || startDate || endDate;
+  const entityFilterOptions = [
+    { value: "", label: "All Entities" },
+    ...entityTypes.map((entity) => ({
+      value: entity,
+      label: entity,
+    })),
+  ];
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Audit Logs</h1>
-          <Text color="muted">
-            View all system activity and user actions
-          </Text>
-        </div>
-        <ExportCsvButton
-          label="Export Logs"
-          onExport={async () => {
+      <AdminPageHeader
+        title="Audit Logs"
+        description="View all system activity and user actions"
+        exportConfig={{
+          label: "Export Logs",
+          onExport: async () => {
             await downloadFile(
               api.getAdminAuditLogsExportUrl({
-                startDate: startDate || undefined,
-                endDate: endDate || undefined,
-                action: actionFilter || undefined,
+                startDate: filters.startDate || undefined,
+                endDate: filters.endDate || undefined,
+                action: filters.action || undefined,
               })
             );
-          }}
-          onSuccess={() => toast.success("Audit logs exported successfully")}
-          onError={(error) => toast.error(error.message || "Export failed")}
-        />
-      </div>
+          },
+          successMessage: "Audit logs exported successfully",
+        }}
+      />
 
       {/* Filters */}
       <div className="space-y-4">
@@ -436,30 +343,18 @@ export default function AdminAuditLogsPage() {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <select
-            value={actionFilter}
-            onChange={(e) => setActionFilter(e.target.value as "" | AuditAction)}
-            className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-          >
-            <option value="">All Actions</option>
-            {actionTypes.map((action) => (
-              <option key={action} value={action}>
-                {actionVariants[action]?.label || action}
-              </option>
-            ))}
-          </select>
-          <select
-            value={entityFilter}
-            onChange={(e) => setEntityFilter(e.target.value)}
-            className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-          >
-            <option value="">All Entities</option>
-            {entityTypes.map((entity) => (
-              <option key={entity} value={entity}>
-                {entity}
-              </option>
-            ))}
-          </select>
+          <Select
+            options={actionFilterOptions}
+            value={filters.action}
+            onChange={(value) => setFilter("action", value as "" | AuditAction)}
+            className="w-40"
+          />
+          <Select
+            options={entityFilterOptions}
+            value={filters.entity}
+            onChange={(value) => setFilter("entity", value)}
+            className="w-40"
+          />
         </div>
 
         {/* Date Range Filters */}
@@ -468,8 +363,8 @@ export default function AdminAuditLogsPage() {
             <label className="text-sm text-muted-foreground">From:</label>
             <Input
               type="datetime-local"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
+              value={filters.startDate}
+              onChange={(e) => setFilter("startDate", e.target.value)}
               className="w-auto"
             />
           </div>
@@ -477,8 +372,8 @@ export default function AdminAuditLogsPage() {
             <label className="text-sm text-muted-foreground">To:</label>
             <Input
               type="datetime-local"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
+              value={filters.endDate}
+              onChange={(e) => setFilter("endDate", e.target.value)}
               className="w-auto"
             />
           </div>
@@ -494,78 +389,47 @@ export default function AdminAuditLogsPage() {
       {error && <Alert variant="destructive">{error}</Alert>}
 
       {/* Logs Table */}
-      <div className="rounded-lg border bg-card">
-        {isLoading ? (
-          <div className="p-6">
-            <SkeletonTable rows={10} columns={6} />
-          </div>
-        ) : logs.length === 0 ? (
-          <div className="p-6">
-            {hasActiveFilters ? (
-              <EmptySearch
-                searchQuery={searchDebounced}
-                action={{
-                  label: "Clear filters",
-                  onClick: clearFilters,
-                  variant: "outline",
-                }}
+      <AdminTableContainer
+        isLoading={isLoading}
+        isEmpty={isEmpty}
+        hasActiveFilters={hasActiveFilters}
+        searchQuery={searchDebounced}
+        onClearFilters={clearFilters}
+        emptyState={{
+          title: "No audit logs",
+          description: "System activity will be recorded here as users interact with the application.",
+        }}
+        pagination={pagination}
+        onPageChange={handlePageChange}
+        itemLabel="logs"
+        skeletonRows={10}
+        skeletonColumns={6}
+      >
+        <table className="w-full">
+          <thead>
+            <tr className="border-b bg-muted/50">
+              <th className="px-4 py-3 text-left text-sm font-medium w-10">
+                {/* Expand toggle */}
+              </th>
+              <th className="px-4 py-3 text-left text-sm font-medium">Timestamp</th>
+              <th className="px-4 py-3 text-left text-sm font-medium">Action</th>
+              <th className="px-4 py-3 text-left text-sm font-medium">Entity</th>
+              <th className="px-4 py-3 text-left text-sm font-medium">User</th>
+              <th className="px-4 py-3 text-left text-sm font-medium">IP Address</th>
+            </tr>
+          </thead>
+          <tbody>
+            {logs.map((log) => (
+              <LogRow
+                key={log.id}
+                log={log}
+                isExpanded={expandedRows.has(log.id)}
+                onToggle={() => toggleRow(log.id)}
               />
-            ) : (
-              <EmptyList
-                title="No audit logs"
-                description="System activity will be recorded here as users interact with the application."
-              />
-            )}
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b bg-muted/50">
-                  <th className="px-4 py-3 text-left text-sm font-medium w-10">
-                    {/* Expand toggle */}
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">
-                    Timestamp
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">
-                    Action
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">
-                    Entity
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">
-                    User
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">
-                    IP Address
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {logs.map((log) => (
-                  <LogRow
-                    key={log.id}
-                    log={log}
-                    isExpanded={expandedRows.has(log.id)}
-                    onToggle={() => toggleRow(log.id)}
-                  />
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {/* Pagination */}
-        {pagination && pagination.totalPages > 1 && (
-          <div className="border-t p-4">
-            <Pagination
-              pagination={pagination}
-              onPageChange={handlePageChange}
-            />
-          </div>
-        )}
-      </div>
+            ))}
+          </tbody>
+        </table>
+      </AdminTableContainer>
     </div>
   );
 }

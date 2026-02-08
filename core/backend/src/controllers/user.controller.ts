@@ -1,26 +1,25 @@
 import { Response, NextFunction } from "express";
 import { userService } from "../services/user.service";
 import { exportService, ExportFormat } from "../services/export.service";
-import { successResponse } from "../utils/response";
+import { successResponse, errorResponse, ErrorCodes } from "../utils/response";
 import { z } from "zod";
 import { AppRequest, AuthenticatedRequest } from "../types";
+import { strictNameSchema, emailSchema } from "../utils/validation-schemas";
+import { validateOrRespond } from "../utils/controller-helpers";
 
-// Validation schemas
+// ============================================================================
+// Validation Schemas
+// ============================================================================
+
 const updateProfileSchema = z.object({
-  name: z
-    .string()
-    .min(1, "Name cannot be empty")
-    .max(100, "Name must be less than 100 characters")
-    .regex(/^[a-zA-Z\s'-]+$/, "Name can only contain letters, spaces, hyphens, and apostrophes")
-    .optional(),
-  email: z
-    .string()
-    .email("Invalid email format")
-    .optional(),
+  name: strictNameSchema.optional(),
+  email: emailSchema.optional(),
 }).refine(
   (data) => data.name !== undefined || data.email !== undefined,
   { message: "At least one field (name or email) must be provided" }
 );
+
+const exportFormatSchema = z.enum(["json", "csv"]).optional().default("json");
 
 class UserController {
   /**
@@ -82,13 +81,9 @@ class UserController {
       const authReq = req as AuthenticatedRequest;
 
       if (!req.file) {
-        res.status(400).json({
-          success: false,
-          error: {
-            code: "INVALID_INPUT",
-            message: "No file uploaded",
-          },
-        });
+        res.status(400).json(
+          errorResponse(ErrorCodes.INVALID_INPUT, "No file uploaded")
+        );
         return;
       }
 
@@ -127,19 +122,16 @@ class UserController {
   async exportMyData(req: AppRequest, res: Response, next: NextFunction) {
     try {
       const authReq = req as AuthenticatedRequest;
-      const format = (req.query.format as ExportFormat) || "json";
 
-      // Validate format
-      if (format !== "json" && format !== "csv") {
-        res.status(400).json({
-          success: false,
-          error: {
-            code: "VALIDATION_ERROR",
-            message: "Invalid format. Use 'json' or 'csv'",
-          },
-        });
+      // Validate format using schema
+      const formatResult = exportFormatSchema.safeParse(req.query.format);
+      if (!formatResult.success) {
+        res.status(400).json(
+          errorResponse(ErrorCodes.VALIDATION_ERROR, "Invalid format. Use 'json' or 'csv'")
+        );
         return;
       }
+      const format = formatResult.data;
 
       const data = await exportService.exportUserData(authReq.dbUser.id, format);
 

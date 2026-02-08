@@ -189,6 +189,15 @@ class ContactService {
       where: { status: ContactMessageStatus.PENDING },
     });
   }
+
+  /**
+   * Get all contact messages for export (admin only)
+   */
+  async getAllForExport() {
+    return db.contactMessage.findMany({
+      orderBy: { createdAt: "desc" },
+    });
+  }
 }
 
 // ============================================================================

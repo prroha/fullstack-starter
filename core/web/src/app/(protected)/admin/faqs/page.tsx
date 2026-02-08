@@ -21,12 +21,17 @@ import {
   TableHeader,
   IconButton,
   Label,
-  ExportCsvButton,
 } from "@/components/ui";
 import { api } from "@/lib/api";
+import { AdminPageHeader, AdminPagination } from "@/components/admin";
+import { useAdminList } from "@/lib/hooks";
 import { downloadFile } from "@/lib/export";
 import { API_CONFIG } from "@/lib/constants";
 import { toast } from "sonner";
+
+// =====================================================
+// Types
+// =====================================================
 
 interface FaqCategory {
   id: string;
@@ -47,32 +52,17 @@ interface Faq {
   category?: { id: string; name: string; slug: string } | null;
 }
 
-interface PaginationInfo {
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
-  hasNext: boolean;
-  hasPrev: boolean;
+interface FaqFilters {
+  categoryId: string;
+  sortBy: string;
 }
 
-type SortField = "question" | "createdAt";
-type SortOrder = "asc" | "desc";
+// =====================================================
+// Main Component
+// =====================================================
 
 export default function AdminFaqsPage() {
-  const [faqs, setFaqs] = useState<Faq[]>([]);
   const [categories, setCategories] = useState<FaqCategory[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState<string>("");
-  const [pagination, setPagination] = useState<PaginationInfo | null>(null);
-
-  // Search state
-  const [search, setSearch] = useState("");
-  const [searchDebounced, setSearchDebounced] = useState("");
-
-  // Sort state
-  const [sortField, setSortField] = useState<SortField>("createdAt");
-  const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
 
   // Modal states
   const [showFaqModal, setShowFaqModal] = useState(false);
@@ -97,60 +87,62 @@ export default function AdminFaqsPage() {
     order: 0,
   });
 
-  // Debounce search
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setSearchDebounced(search);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [search]);
-
-  const loadData = useCallback(async (page = 1) => {
+  // Fetch categories
+  const fetchCategories = useCallback(async () => {
     try {
-      setLoading(true);
+      const res = await api.get<{ categories: FaqCategory[] }>("/faqs/categories");
+      setCategories(res.data?.categories || []);
+    } catch (error) {
+      console.error("Failed to load categories:", error);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
+
+  // Use shared admin list hook
+  const {
+    items: faqs,
+    pagination,
+    isLoading,
+    search,
+    setSearch,
+    searchDebounced,
+    filters,
+    setFilter,
+    handlePageChange,
+    hasActiveFilters,
+    isEmpty,
+    refetch,
+  } = useAdminList<Faq, FaqFilters>({
+    fetchFn: async ({ page, limit, search, filters }) => {
       const params = new URLSearchParams();
       params.set("page", String(page));
-      params.set("limit", "10");
-      if (selectedCategory) params.set("categoryId", selectedCategory);
-      if (searchDebounced) params.set("search", searchDebounced);
-      if (sortField) params.set("sortBy", sortField);
-      if (sortOrder) params.set("sortOrder", sortOrder);
+      params.set("limit", String(limit));
+      if (filters.categoryId) params.set("categoryId", filters.categoryId);
+      if (search) params.set("search", search);
+      if (filters.sortBy) {
+        const [field, order] = filters.sortBy.split("-");
+        params.set("sortBy", field);
+        params.set("sortOrder", order);
+      }
 
-      const [faqsRes, categoriesRes] = await Promise.all([
-        api.get<{ faqs: Faq[]; pagination: PaginationInfo }>(`/faqs?${params.toString()}`),
-        api.get<{ categories: FaqCategory[] }>("/faqs/categories"),
-      ]);
-      setFaqs(faqsRes.data?.faqs || []);
-      setPagination(faqsRes.data?.pagination || null);
-      setCategories(categoriesRes.data?.categories || []);
-    } catch (error) {
-      console.error("Failed to load FAQs:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedCategory, searchDebounced, sortField, sortOrder]);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
-
-  const handlePageChange = (page: number) => {
-    loadData(page);
-  };
-
-  const handleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-    } else {
-      setSortField(field);
-      setSortOrder("asc");
-    }
-  };
-
-  const getSortIcon = (field: SortField) => {
-    if (sortField !== field) return "ArrowUpDown";
-    return sortOrder === "asc" ? "ArrowUp" : "ArrowDown";
-  };
+      const res = await api.get<{ faqs: Faq[]; pagination: { page: number; limit: number; total: number; totalPages: number; hasNext: boolean; hasPrev: boolean } }>(`/faqs?${params.toString()}`);
+      return {
+        items: res.data?.faqs || [],
+        pagination: res.data?.pagination || {
+          page,
+          limit,
+          total: 0,
+          totalPages: 1,
+          hasNext: false,
+          hasPrev: false,
+        },
+      };
+    },
+    initialFilters: { categoryId: "", sortBy: "createdAt-desc" },
+  });
 
   const openFaqModal = (faq?: Faq) => {
     if (faq) {
@@ -195,12 +187,15 @@ export default function AdminFaqsPage() {
 
       if (editingFaq) {
         await api.patch(`/faqs/${editingFaq.id}`, data);
+        toast.success("FAQ updated");
       } else {
         await api.post("/faqs", data);
+        toast.success("FAQ created");
       }
       setShowFaqModal(false);
-      loadData();
+      refetch();
     } catch (error) {
+      toast.error("Failed to save FAQ");
       console.error("Failed to save FAQ:", error);
     } finally {
       setSaving(false);
@@ -211,8 +206,10 @@ export default function AdminFaqsPage() {
     if (!confirm("Are you sure you want to delete this FAQ?")) return;
     try {
       await api.delete(`/faqs/${id}`);
-      loadData();
+      toast.success("FAQ deleted");
+      refetch();
     } catch (error) {
+      toast.error("Failed to delete FAQ");
       console.error("Failed to delete FAQ:", error);
     }
   };
@@ -222,12 +219,16 @@ export default function AdminFaqsPage() {
     try {
       if (editingCategory) {
         await api.patch(`/faqs/categories/${editingCategory.id}`, categoryForm);
+        toast.success("Category updated");
       } else {
         await api.post("/faqs/categories", categoryForm);
+        toast.success("Category created");
       }
       setShowCategoryModal(false);
-      loadData();
+      fetchCategories();
+      refetch();
     } catch (error) {
+      toast.error("Failed to save category");
       console.error("Failed to save category:", error);
     } finally {
       setSaving(false);
@@ -238,47 +239,53 @@ export default function AdminFaqsPage() {
     if (!confirm("Are you sure you want to delete this category? FAQs will be uncategorized.")) return;
     try {
       await api.delete(`/faqs/categories/${id}`);
-      loadData();
+      toast.success("Category deleted");
+      fetchCategories();
+      refetch();
     } catch (error) {
+      toast.error("Failed to delete category");
       console.error("Failed to delete category:", error);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Spinner size="lg" />
-      </div>
-    );
-  }
+  const categoryFilterOptions = [
+    { value: "", label: "All Categories" },
+    ...categories.map((cat) => ({ value: cat.id, label: cat.name })),
+  ];
+
+  const sortOptions = [
+    { value: "createdAt-desc", label: "Newest First" },
+    { value: "createdAt-asc", label: "Oldest First" },
+    { value: "question-asc", label: "Question A-Z" },
+    { value: "question-desc", label: "Question Z-A" },
+  ];
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">FAQs</h1>
-          <Text color="muted">Manage frequently asked questions</Text>
-        </div>
-        <div className="flex gap-2">
-          <ExportCsvButton
-            label="Export"
-            onExport={async () => {
-              await downloadFile(`${API_CONFIG.BASE_URL}/faqs/export`);
-            }}
-            onSuccess={() => toast.success("FAQs exported successfully")}
-            onError={(error) => toast.error(error.message || "Export failed")}
-          />
-          <Button variant="outline" onClick={() => openCategoryModal()}>
-            <Icon name="FolderPlus" size="sm" className="mr-2" />
-            Add Category
-          </Button>
-          <Button onClick={() => openFaqModal()}>
-            <Icon name="Plus" size="sm" className="mr-2" />
-            Add FAQ
-          </Button>
-        </div>
-      </div>
+      <AdminPageHeader
+        title="FAQs"
+        description="Manage frequently asked questions"
+        exportConfig={{
+          label: "Export",
+          onExport: async () => {
+            await downloadFile(`${API_CONFIG.BASE_URL}/faqs/export`);
+          },
+          successMessage: "FAQs exported successfully",
+        }}
+        actions={
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => openCategoryModal()}>
+              <Icon name="FolderPlus" size="sm" className="mr-2" />
+              Add Category
+            </Button>
+            <Button onClick={() => openFaqModal()}>
+              <Icon name="Plus" size="sm" className="mr-2" />
+              Add FAQ
+            </Button>
+          </div>
+        }
+      />
 
       {/* Categories */}
       <Card>
@@ -329,28 +336,16 @@ export default function AdminFaqsPage() {
           />
         </div>
         <Select
-          value={selectedCategory}
-          onChange={(val) => setSelectedCategory(val)}
+          value={filters.categoryId}
+          onChange={(val) => setFilter("categoryId", val)}
           className="w-48"
-          options={[
-            { value: "", label: "All Categories" },
-            ...categories.map((cat) => ({ value: cat.id, label: cat.name }))
-          ]}
+          options={categoryFilterOptions}
         />
         <Select
-          value={`${sortField}-${sortOrder}`}
-          onChange={(val) => {
-            const [field, order] = val.split("-") as [SortField, SortOrder];
-            setSortField(field);
-            setSortOrder(order);
-          }}
+          value={filters.sortBy}
+          onChange={(val) => setFilter("sortBy", val)}
           className="w-48"
-          options={[
-            { value: "createdAt-desc", label: "Newest First" },
-            { value: "createdAt-asc", label: "Oldest First" },
-            { value: "question-asc", label: "Question A-Z" },
-            { value: "question-desc", label: "Question Z-A" },
-          ]}
+          options={sortOptions}
         />
       </div>
 
@@ -360,43 +355,33 @@ export default function AdminFaqsPage() {
           <Table>
             <thead>
               <TableRow>
-                <TableHeader>
-                  <button
-                    onClick={() => handleSort("question")}
-                    className="flex items-center gap-1 hover:text-foreground"
-                  >
-                    Question
-                    <Icon name={getSortIcon("question")} size="xs" />
-                  </button>
-                </TableHeader>
+                <TableHeader>Question</TableHeader>
                 <TableHeader>Category</TableHeader>
                 <TableHeader>Status</TableHeader>
-                <TableHeader>
-                  <button
-                    onClick={() => handleSort("createdAt")}
-                    className="flex items-center gap-1 hover:text-foreground"
-                  >
-                    Created
-                    <Icon name={getSortIcon("createdAt")} size="xs" />
-                  </button>
-                </TableHeader>
+                <TableHeader>Created</TableHeader>
                 <TableHeader className="text-right">Actions</TableHeader>
               </TableRow>
             </thead>
             <tbody>
-              {faqs.length === 0 ? (
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-8">
+                    <Spinner size="lg" />
+                  </TableCell>
+                </TableRow>
+              ) : isEmpty ? (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center py-8">
                     <Text color="muted">
-                      {searchDebounced ? "No FAQs match your search" : "No FAQs found"}
+                      {hasActiveFilters ? "No FAQs match your search" : "No FAQs found"}
                     </Text>
-                    {searchDebounced && (
+                    {hasActiveFilters && (
                       <Button
                         variant="link"
                         size="sm"
                         onClick={() => {
                           setSearch("");
-                          setSearchDebounced("");
+                          setFilter("categoryId", "");
                         }}
                         className="mt-2"
                       >
@@ -451,67 +436,18 @@ export default function AdminFaqsPage() {
               )}
             </tbody>
           </Table>
-        </CardContent>
 
-        {/* Pagination */}
-        {pagination && pagination.totalPages > 1 && (
-          <div className="border-t p-4">
-            <div className="flex items-center justify-between">
-              <Text size="sm" color="muted">
-                Showing {(pagination.page - 1) * pagination.limit + 1} to{" "}
-                {Math.min(pagination.page * pagination.limit, pagination.total)} of{" "}
-                {pagination.total} FAQs
-              </Text>
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handlePageChange(pagination.page - 1)}
-                  disabled={!pagination.hasPrev}
-                >
-                  <Icon name="ChevronLeft" size="sm" className="mr-1" />
-                  Previous
-                </Button>
-                {Array.from({ length: pagination.totalPages }, (_, i) => i + 1)
-                  .filter(
-                    (p) =>
-                      p === 1 ||
-                      p === pagination.totalPages ||
-                      Math.abs(p - pagination.page) <= 1
-                  )
-                  .map((page, index, arr) => {
-                    const prevPage = arr[index - 1];
-                    const showEllipsis = prevPage && page - prevPage > 1;
-
-                    return (
-                      <div key={page} className="flex items-center">
-                        {showEllipsis && (
-                          <span className="px-2 text-muted-foreground">...</span>
-                        )}
-                        <Button
-                          variant={page === pagination.page ? "default" : "ghost"}
-                          size="sm"
-                          onClick={() => handlePageChange(page)}
-                          className="w-9"
-                        >
-                          {page}
-                        </Button>
-                      </div>
-                    );
-                  })}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handlePageChange(pagination.page + 1)}
-                  disabled={!pagination.hasNext}
-                >
-                  Next
-                  <Icon name="ChevronRight" size="sm" className="ml-1" />
-                </Button>
-              </div>
+          {/* Pagination */}
+          {pagination && pagination.totalPages > 1 && (
+            <div className="border-t p-4">
+              <AdminPagination
+                pagination={pagination}
+                onPageChange={handlePageChange}
+                itemLabel="FAQs"
+              />
             </div>
-          </div>
-        )}
+          )}
+        </CardContent>
       </Card>
 
       {/* FAQ Modal */}

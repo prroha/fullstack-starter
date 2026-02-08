@@ -11,17 +11,25 @@ import {
 } from "../utils/response";
 import { z } from "zod";
 import { AuthenticatedRequest } from "../types";
+import {
+  paginationSchema,
+  booleanFilterSchema,
+  nameSchema,
+} from "../utils/validation-schemas";
+import {
+  ensureParam,
+  ensureExists,
+  getUserIdFromToken,
+} from "../utils/controller-helpers";
 
-// Validation schemas
-const getUsersQuerySchema = z.object({
-  page: z.coerce.number().int().positive().optional().default(1),
-  limit: z.coerce.number().int().positive().max(100).optional().default(10),
+// ============================================================================
+// Validation Schemas
+// ============================================================================
+
+const getUsersQuerySchema = paginationSchema.extend({
   search: z.string().optional(),
   role: z.enum(["USER", "ADMIN"]).optional(),
-  isActive: z
-    .string()
-    .transform((v) => v === "true")
-    .optional(),
+  isActive: booleanFilterSchema,
   sortBy: z.enum(["createdAt", "email", "name"]).optional().default("createdAt"),
   sortOrder: z.enum(["asc", "desc"]).optional().default("desc"),
 });
@@ -29,7 +37,7 @@ const getUsersQuerySchema = z.object({
 const updateUserSchema = z.object({
   role: z.enum(["USER", "ADMIN"]).optional(),
   isActive: z.boolean().optional(),
-  name: z.string().min(1).max(100).optional(),
+  name: nameSchema.optional(),
 });
 
 class AdminController {
@@ -91,12 +99,7 @@ class AdminController {
     try {
       const id = req.params.id as string;
 
-      if (!id) {
-        res
-          .status(400)
-          .json(
-            errorResponse(ErrorCodes.VALIDATION_ERROR, "User ID is required")
-          );
+      if (!ensureParam(id, res, "User ID")) {
         return;
       }
 
@@ -119,12 +122,7 @@ class AdminController {
     try {
       const id = req.params.id as string;
 
-      if (!id) {
-        res
-          .status(400)
-          .json(
-            errorResponse(ErrorCodes.VALIDATION_ERROR, "User ID is required")
-          );
+      if (!ensureParam(id, res, "User ID")) {
         return;
       }
 
@@ -159,21 +157,16 @@ class AdminController {
   ): Promise<void> {
     try {
       const id = req.params.id as string;
-      const currentUserId = req.user?.userId;
+      const currentUserId = getUserIdFromToken(req);
 
-      if (!id) {
-        res
-          .status(400)
-          .json(
-            errorResponse(ErrorCodes.VALIDATION_ERROR, "User ID is required")
-          );
+      if (!ensureParam(id, res, "User ID")) {
         return;
       }
 
       if (!currentUserId) {
-        res
-          .status(401)
-          .json(errorResponse(ErrorCodes.AUTH_REQUIRED, "Not authenticated"));
+        res.status(401).json(
+          errorResponse(ErrorCodes.AUTH_REQUIRED, "Not authenticated")
+        );
         return;
       }
 

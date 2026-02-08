@@ -3,20 +3,24 @@
 import { logger } from "./logger";
 import { API_CONFIG, DURATIONS, HTTP_STATUS } from "./constants";
 import type {
-  User,
   UserRole,
-  AdminUser,
   UserProfile,
   Avatar,
 } from "@/types/user";
 import type {
+  User,
+  AdminUser,
   ApiResponse,
   PaginatedResponse,
   AuthResponse as AuthResponseType,
   AdminStats,
+  Notification,
+  NotificationType,
+  AuditLog,
+  AuditAction,
 } from "@/types/api";
-import type { Notification, NotificationType, GetNotificationsParams } from "@/types/notification";
-import type { AuditLog, AuditAction, GetAuditLogsParams } from "@/types/audit";
+import type { GetNotificationsParams } from "@/types/notification";
+import type { GetAuditLogsParams } from "@/types/audit";
 import type {
   ContactMessage,
   ContactMessageStatus,
@@ -107,11 +111,19 @@ export class ApiError extends Error {
 // Re-export types from @/types for backward compatibility
 // =====================================================
 
-export type { UserRole, User, AdminUser } from "@/types/user";
-export type { NotificationType, Notification } from "@/types/notification";
-export type { AuditAction, AuditLog } from "@/types/audit";
-export type { ContactMessageStatus, ContactMessage } from "@/types/contact";
-export type { ApiResponse, PaginatedResponse } from "@/types/api";
+export type { UserRole } from "@/types/user";
+export type {
+  User,
+  AdminUser,
+  Notification,
+  NotificationType,
+  AuditAction,
+  AuditLog,
+  ContactMessageStatus,
+  ContactMessage,
+  ApiResponse,
+  PaginatedResponse,
+} from "@/types/api";
 
 // =====================================================
 // Interceptor Types

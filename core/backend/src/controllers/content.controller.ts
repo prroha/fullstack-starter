@@ -1,14 +1,25 @@
+/**
+ * Content Controller
+ *
+ * Handles HTTP requests for CMS content page management.
+ * Delegates business logic to contentService.
+ */
+
 import { Request, Response, NextFunction } from "express";
 import { AuthenticatedRequest } from "../types";
-import { db } from "../lib/db";
+import { contentService } from "../services/content.service";
 import { auditService } from "../services/audit.service";
-import { exportService } from "../services/export.service";
-import { successResponse, errorResponse, ErrorCodes, paginatedResponse } from "../utils/response";
+import { successResponse, paginatedResponse } from "../utils/response";
 import { z } from "zod";
+import { slugSchema, seoMetaSchema, booleanFilterSchema, paginationSchema } from "../utils/validation-schemas";
+import { validateOrRespond, sendCsvExport } from "../utils/controller-helpers";
 
-// Validation schemas
+// ============================================================================
+// Validation Schemas
+// ============================================================================
+
 const contentPageSchema = z.object({
-  slug: z.string().min(1).max(100).regex(/^[a-z0-9-]+$/),
+  slug: slugSchema,
   title: z.string().min(1).max(200),
   content: z.string().min(1),
   metaTitle: z.string().max(60).nullable().optional(),
@@ -16,32 +27,29 @@ const contentPageSchema = z.object({
   isPublished: z.boolean().optional(),
 });
 
+const getContentPagesQuerySchema = paginationSchema.extend({
+  isPublished: booleanFilterSchema,
+});
+
+// ============================================================================
+// Controller
+// ============================================================================
+
 export const contentController = {
-  // ============================================================================
+  // ==========================================================================
   // Admin endpoints
-  // ============================================================================
+  // ==========================================================================
 
   async getAll(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
-      const { isPublished, page = "1", limit = "20" } = req.query;
+      const query = getContentPagesQuerySchema.parse(req.query);
+      const result = await contentService.getAll({
+        isPublished: query.isPublished,
+        page: query.page,
+        limit: query.limit,
+      });
 
-      const where: Record<string, unknown> = {};
-      if (isPublished !== undefined) where.isPublished = isPublished === "true";
-
-      const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
-      const take = parseInt(limit as string);
-
-      const [pages, total] = await Promise.all([
-        db.contentPage.findMany({
-          where,
-          orderBy: { updatedAt: "desc" },
-          skip,
-          take,
-        }),
-        db.contentPage.count({ where }),
-      ]);
-
-      res.json(paginatedResponse(pages, parseInt(page as string), take, total));
+      res.json(paginatedResponse(result.pages, result.page, result.limit, result.total));
     } catch (error) {
       next(error);
     }
@@ -50,13 +58,7 @@ export const contentController = {
   async getById(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
       const id = req.params.id as string;
-
-      const page = await db.contentPage.findUnique({ where: { id } });
-
-      if (!page) {
-        return res.status(404).json(errorResponse(ErrorCodes.NOT_FOUND, "Page not found"));
-      }
-
+      const page = await contentService.getById(id);
       res.json(successResponse({ page }));
     } catch (error) {
       next(error);
@@ -65,25 +67,17 @@ export const contentController = {
 
   async create(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
-      const parsed = contentPageSchema.safeParse(req.body);
-      if (!parsed.success) {
-        return res.status(400).json(errorResponse(ErrorCodes.VALIDATION_ERROR, "Invalid input"));
-      }
+      const validated = validateOrRespond(contentPageSchema, req.body, res);
+      if (!validated) return;
 
-      // Check if slug already exists
-      const existing = await db.contentPage.findUnique({ where: { slug: parsed.data.slug } });
-      if (existing) {
-        return res.status(409).json(errorResponse(ErrorCodes.CONFLICT, "Slug already exists"));
-      }
-
-      const page = await db.contentPage.create({ data: parsed.data });
+      const page = await contentService.create(validated);
 
       await auditService.log({
         userId: req.user.userId,
         action: "CREATE",
         entity: "ContentPage",
         entityId: page.id,
-        changes: { new: { slug: parsed.data.slug, title: parsed.data.title } },
+        changes: { new: { slug: validated.slug, title: validated.title } },
         req,
       });
 
@@ -96,28 +90,11 @@ export const contentController = {
   async update(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
       const id = req.params.id as string;
-      const parsed = contentPageSchema.partial().safeParse(req.body);
-      if (!parsed.success) {
-        return res.status(400).json(errorResponse(ErrorCodes.VALIDATION_ERROR, "Invalid input"));
-      }
+      const validated = validateOrRespond(contentPageSchema.partial(), req.body, res);
+      if (!validated) return;
 
-      const existing = await db.contentPage.findUnique({ where: { id } });
-      if (!existing) {
-        return res.status(404).json(errorResponse(ErrorCodes.NOT_FOUND, "Page not found"));
-      }
-
-      // If changing slug, check for conflicts
-      if (parsed.data.slug && parsed.data.slug !== existing.slug) {
-        const slugExists = await db.contentPage.findUnique({ where: { slug: parsed.data.slug } });
-        if (slugExists) {
-          return res.status(409).json(errorResponse(ErrorCodes.CONFLICT, "Slug already exists"));
-        }
-      }
-
-      const page = await db.contentPage.update({
-        where: { id },
-        data: parsed.data,
-      });
+      const existing = await contentService.getById(id);
+      const page = await contentService.update(id, validated);
 
       await auditService.log({
         userId: req.user.userId,
@@ -140,13 +117,7 @@ export const contentController = {
   async delete(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
       const id = req.params.id as string;
-
-      const existing = await db.contentPage.findUnique({ where: { id } });
-      if (!existing) {
-        return res.status(404).json(errorResponse(ErrorCodes.NOT_FOUND, "Page not found"));
-      }
-
-      await db.contentPage.delete({ where: { id } });
+      const existing = await contentService.delete(id);
 
       await auditService.log({
         userId: req.user.userId,
@@ -163,30 +134,14 @@ export const contentController = {
     }
   },
 
-  // ============================================================================
+  // ==========================================================================
   // Public endpoints
-  // ============================================================================
+  // ==========================================================================
 
   async getBySlug(req: Request, res: Response, next: NextFunction) {
     try {
       const slug = req.params.slug as string;
-
-      const page = await db.contentPage.findUnique({
-        where: { slug },
-        select: {
-          slug: true,
-          title: true,
-          content: true,
-          metaTitle: true,
-          metaDesc: true,
-          updatedAt: true,
-        },
-      });
-
-      if (!page) {
-        return res.status(404).json(errorResponse(ErrorCodes.NOT_FOUND, "Page not found"));
-      }
-
+      const page = await contentService.getBySlug(slug);
       res.json(successResponse({ page }));
     } catch (error) {
       next(error);
@@ -199,13 +154,9 @@ export const contentController = {
    */
   async exportContentPages(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
-      const timestamp = new Date().toISOString().split("T")[0];
+      const pages = await contentService.getAllForExport();
 
-      const pages = await db.contentPage.findMany({
-        orderBy: { updatedAt: "desc" },
-      });
-
-      const csv = exportService.exportToCsv(pages, [
+      sendCsvExport(res, pages, [
         { header: "ID", accessor: "id" },
         { header: "Slug", accessor: "slug" },
         { header: "Title", accessor: "title" },
@@ -215,14 +166,7 @@ export const contentController = {
         { header: "Published", accessor: "isPublished" },
         { header: "Created At", accessor: (item) => item.createdAt.toISOString() },
         { header: "Updated At", accessor: (item) => item.updatedAt.toISOString() },
-      ]);
-
-      res.setHeader("Content-Type", "text/csv; charset=utf-8");
-      res.setHeader(
-        "Content-Disposition",
-        `attachment; filename="content-pages-export-${timestamp}.csv"`
-      );
-      res.send(csv);
+      ], { filenamePrefix: "content-pages-export" });
     } catch (error) {
       next(error);
     }

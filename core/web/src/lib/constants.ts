@@ -342,9 +342,16 @@ export const API_ENDPOINTS = {
 } as const;
 
 // =====================================================
-// User Roles
+// User Roles - Derived from API types (single source of truth)
 // =====================================================
 
+// To modify roles, update the OpenAPI schema in backend/src/swagger.ts
+// Then run: npm run types:sync
+
+// Re-export helpers from api types
+export { hasAdminAccess, isSuperAdmin } from "@/types/api";
+
+// Object form for backward compatibility (used for type derivation)
 export const USER_ROLES = {
   USER: "USER",
   ADMIN: "ADMIN",

@@ -9,11 +9,14 @@ import {
 } from "../utils/response";
 import { z } from "zod";
 import { AuthenticatedRequest } from "../types";
+import { paginationSchema, uuidSchema } from "../utils/validation-schemas";
+import { ensureParam, ensureExists } from "../utils/controller-helpers";
 
-// Validation schemas
-const getAuditLogsQuerySchema = z.object({
-  page: z.coerce.number().int().positive().optional().default(1),
-  limit: z.coerce.number().int().positive().max(100).optional().default(20),
+// ============================================================================
+// Validation Schemas
+// ============================================================================
+
+const getAuditLogsQuerySchema = paginationSchema.extend({
   userId: z.string().uuid().optional(),
   action: z.nativeEnum(AuditAction).optional(),
   entity: z.string().optional(),
@@ -68,21 +71,13 @@ class AuditController {
     try {
       const id = req.params.id as string;
 
-      if (!id) {
-        res
-          .status(400)
-          .json(
-            errorResponse(ErrorCodes.VALIDATION_ERROR, "Audit log ID is required")
-          );
+      if (!ensureParam(id, res, "Audit log ID")) {
         return;
       }
 
       const log = await auditService.getLogById(id);
 
-      if (!log) {
-        res
-          .status(404)
-          .json(errorResponse(ErrorCodes.NOT_FOUND, "Audit log not found"));
+      if (!ensureExists(log, res, "Audit log")) {
         return;
       }
 

@@ -1,12 +1,23 @@
+/**
+ * Announcement Controller
+ *
+ * Handles HTTP requests for announcement management.
+ * Delegates business logic to announcementService.
+ */
+
 import { Request, Response, NextFunction } from "express";
 import { AuthenticatedRequest } from "../types";
-import { db } from "../lib/db";
+import { announcementService } from "../services/announcement.service";
 import { auditService } from "../services/audit.service";
-import { exportService } from "../services/export.service";
-import { successResponse, errorResponse, ErrorCodes, paginatedResponse } from "../utils/response";
+import { successResponse, paginatedResponse } from "../utils/response";
 import { z } from "zod";
+import { booleanFilterSchema, paginationSchema } from "../utils/validation-schemas";
+import { validateOrRespond, sendCsvExport, getPaginationFromQuery } from "../utils/controller-helpers";
 
-// Validation schemas
+// ============================================================================
+// Validation Schemas
+// ============================================================================
+
 const announcementSchema = z.object({
   title: z.string().min(1).max(200),
   content: z.string().min(1),
@@ -17,33 +28,54 @@ const announcementSchema = z.object({
   isPinned: z.boolean().optional(),
 });
 
+const getAnnouncementsQuerySchema = paginationSchema.extend({
+  type: z.enum(["INFO", "WARNING", "SUCCESS", "PROMO"]).optional(),
+  isActive: booleanFilterSchema,
+});
+
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+/**
+ * Parse date strings to Date objects for database
+ */
+function parseDateFields(data: {
+  startDate?: string | null;
+  endDate?: string | null;
+}): { startDate?: Date | null; endDate?: Date | null } {
+  const result: { startDate?: Date | null; endDate?: Date | null } = {};
+
+  if (data.startDate !== undefined) {
+    result.startDate = data.startDate ? new Date(data.startDate) : null;
+  }
+  if (data.endDate !== undefined) {
+    result.endDate = data.endDate ? new Date(data.endDate) : null;
+  }
+
+  return result;
+}
+
+// ============================================================================
+// Controller
+// ============================================================================
+
 export const announcementController = {
-  // ============================================================================
+  // ==========================================================================
   // Admin endpoints
-  // ============================================================================
+  // ==========================================================================
 
   async getAll(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
-      const { type, isActive, page = "1", limit = "20" } = req.query;
+      const query = getAnnouncementsQuerySchema.parse(req.query);
+      const result = await announcementService.getAll({
+        type: query.type,
+        isActive: query.isActive,
+        page: query.page,
+        limit: query.limit,
+      });
 
-      const where: Record<string, unknown> = {};
-      if (type) where.type = type;
-      if (isActive !== undefined) where.isActive = isActive === "true";
-
-      const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
-      const take = parseInt(limit as string);
-
-      const [announcements, total] = await Promise.all([
-        db.announcement.findMany({
-          where,
-          orderBy: [{ isPinned: "desc" }, { createdAt: "desc" }],
-          skip,
-          take,
-        }),
-        db.announcement.count({ where }),
-      ]);
-
-      res.json(paginatedResponse(announcements, parseInt(page as string), take, total));
+      res.json(paginatedResponse(result.announcements, result.page, result.limit, result.total));
     } catch (error) {
       next(error);
     }
@@ -52,13 +84,7 @@ export const announcementController = {
   async getById(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
       const id = req.params.id as string;
-
-      const announcement = await db.announcement.findUnique({ where: { id } });
-
-      if (!announcement) {
-        return res.status(404).json(errorResponse(ErrorCodes.NOT_FOUND, "Announcement not found"));
-      }
-
+      const announcement = await announcementService.getById(id);
       res.json(successResponse({ announcement }));
     } catch (error) {
       next(error);
@@ -67,17 +93,13 @@ export const announcementController = {
 
   async create(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
-      const parsed = announcementSchema.safeParse(req.body);
-      if (!parsed.success) {
-        return res.status(400).json(errorResponse(ErrorCodes.VALIDATION_ERROR, "Invalid input"));
-      }
+      const validated = validateOrRespond(announcementSchema, req.body, res);
+      if (!validated) return;
 
-      const announcement = await db.announcement.create({
-        data: {
-          ...parsed.data,
-          startDate: parsed.data.startDate ? new Date(parsed.data.startDate) : null,
-          endDate: parsed.data.endDate ? new Date(parsed.data.endDate) : null,
-        },
+      const { startDate, endDate, ...rest } = validated;
+      const announcement = await announcementService.create({
+        ...rest,
+        ...parseDateFields({ startDate, endDate }),
       });
 
       await auditService.log({
@@ -85,7 +107,7 @@ export const announcementController = {
         action: "CREATE",
         entity: "Announcement",
         entityId: announcement.id,
-        changes: { new: parsed.data },
+        changes: { new: validated },
         req,
       });
 
@@ -98,27 +120,15 @@ export const announcementController = {
   async update(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
       const id = req.params.id as string;
-      const parsed = announcementSchema.partial().safeParse(req.body);
-      if (!parsed.success) {
-        return res.status(400).json(errorResponse(ErrorCodes.VALIDATION_ERROR, "Invalid input"));
-      }
+      const validated = validateOrRespond(announcementSchema.partial(), req.body, res);
+      if (!validated) return;
 
-      const existing = await db.announcement.findUnique({ where: { id } });
-      if (!existing) {
-        return res.status(404).json(errorResponse(ErrorCodes.NOT_FOUND, "Announcement not found"));
-      }
+      const existing = await announcementService.getById(id);
 
-      const announcement = await db.announcement.update({
-        where: { id },
-        data: {
-          ...parsed.data,
-          startDate: parsed.data.startDate !== undefined
-            ? (parsed.data.startDate ? new Date(parsed.data.startDate) : null)
-            : undefined,
-          endDate: parsed.data.endDate !== undefined
-            ? (parsed.data.endDate ? new Date(parsed.data.endDate) : null)
-            : undefined,
-        },
+      const { startDate, endDate, ...rest } = validated;
+      const announcement = await announcementService.update(id, {
+        ...rest,
+        ...parseDateFields({ startDate, endDate }),
       });
 
       await auditService.log({
@@ -139,13 +149,7 @@ export const announcementController = {
   async delete(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
       const id = req.params.id as string;
-
-      const existing = await db.announcement.findUnique({ where: { id } });
-      if (!existing) {
-        return res.status(404).json(errorResponse(ErrorCodes.NOT_FOUND, "Announcement not found"));
-      }
-
-      await db.announcement.delete({ where: { id } });
+      const existing = await announcementService.delete(id);
 
       await auditService.log({
         userId: req.user.userId,
@@ -162,33 +166,13 @@ export const announcementController = {
     }
   },
 
-  // ============================================================================
+  // ==========================================================================
   // Public endpoints
-  // ============================================================================
+  // ==========================================================================
 
   async getActive(req: Request, res: Response, next: NextFunction) {
     try {
-      const now = new Date();
-
-      const announcements = await db.announcement.findMany({
-        where: {
-          isActive: true,
-          OR: [
-            { startDate: null },
-            { startDate: { lte: now } },
-          ],
-          AND: [
-            {
-              OR: [
-                { endDate: null },
-                { endDate: { gte: now } },
-              ],
-            },
-          ],
-        },
-        orderBy: [{ isPinned: "desc" }, { createdAt: "desc" }],
-      });
-
+      const announcements = await announcementService.getActive();
       res.json(successResponse({ announcements }));
     } catch (error) {
       next(error);
@@ -201,13 +185,9 @@ export const announcementController = {
    */
   async exportAnnouncements(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
-      const timestamp = new Date().toISOString().split("T")[0];
+      const announcements = await announcementService.getAllForExport();
 
-      const announcements = await db.announcement.findMany({
-        orderBy: [{ isPinned: "desc" }, { createdAt: "desc" }],
-      });
-
-      const csv = exportService.exportToCsv(announcements, [
+      sendCsvExport(res, announcements, [
         { header: "ID", accessor: "id" },
         { header: "Title", accessor: "title" },
         { header: "Content", accessor: "content" },
@@ -218,14 +198,7 @@ export const announcementController = {
         { header: "Pinned", accessor: "isPinned" },
         { header: "Created At", accessor: (item) => item.createdAt.toISOString() },
         { header: "Updated At", accessor: (item) => item.updatedAt.toISOString() },
-      ]);
-
-      res.setHeader("Content-Type", "text/csv; charset=utf-8");
-      res.setHeader(
-        "Content-Disposition",
-        `attachment; filename="announcements-export-${timestamp}.csv"`
-      );
-      res.send(csv);
+      ], { filenamePrefix: "announcements-export" });
     } catch (error) {
       next(error);
     }

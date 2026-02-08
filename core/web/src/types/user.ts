@@ -2,46 +2,23 @@
 // User Types
 // =====================================================
 
-import { USER_ROLES } from "@/lib/constants";
+// Import UserRole from the single source of truth (OpenAPI generated types)
+import type { UserRole } from "@/types/api";
+
+// Re-export for convenience
+export type { UserRole };
+
+// Note: User and AdminUser types are defined in api.ts (from OpenAPI spec)
+// Only define additional types here that aren't in the OpenAPI spec
 
 /**
- * User role enum values
- */
-export type UserRole = (typeof USER_ROLES)[keyof typeof USER_ROLES];
-
-/**
- * Base user type for authenticated users
- */
-export interface User {
-  id: string;
-  email: string;
-  name: string | null;
-  role: UserRole;
-  emailVerified?: boolean;
-}
-
-/**
- * Extended user type for admin views
- */
-export interface AdminUser {
-  id: string;
-  email: string;
-  name: string | null;
-  role: UserRole;
-  isActive: boolean;
-  emailVerified: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-/**
- * User profile type
+ * User profile type (extended with additional fields)
  */
 export interface UserProfile {
   id: string;
   email: string;
   name: string | null;
-  role: string;
+  role: UserRole;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;

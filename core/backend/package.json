@@ -18,7 +18,8 @@
     "db:seed:prod": "NODE_ENV=production ts-node prisma/seed.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "openapi:export": "ts-node scripts/export-openapi.ts"
   },
   "prisma": {
     "seed": "node dist/prisma/seed.js || ts-node prisma/seed.ts"

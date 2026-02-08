@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import {
   Card,
   CardContent,
@@ -20,12 +20,17 @@ import {
   TableHeader,
   IconButton,
   Label,
-  ExportCsvButton,
 } from "@/components/ui";
 import { api, PaginatedResponse } from "@/lib/api";
+import { AdminPageHeader, AdminPagination } from "@/components/admin";
+import { useAdminList } from "@/lib/hooks";
 import { downloadFile } from "@/lib/export";
 import { API_CONFIG } from "@/lib/constants";
 import { toast } from "sonner";
+
+// =====================================================
+// Types
+// =====================================================
 
 interface Announcement {
   id: string;
@@ -39,13 +44,10 @@ interface Announcement {
   createdAt: string;
 }
 
-interface PaginationInfo {
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
-  hasNext: boolean;
-  hasPrev: boolean;
+interface AnnouncementFilters {
+  type: string;
+  isActive: string;
+  sortBy: string;
 }
 
 const typeOptions = [
@@ -63,85 +65,13 @@ const sortOptions = [
 ];
 
 // =====================================================
-// Pagination Component
+// Main Component
 // =====================================================
 
-function Pagination({
-  pagination,
-  onPageChange,
-}: {
-  pagination: PaginationInfo;
-  onPageChange: (page: number) => void;
-}) {
-  const pages = Array.from({ length: pagination.totalPages }, (_, i) => i + 1);
-  const visiblePages = pages.filter(
-    (p) =>
-      p === 1 ||
-      p === pagination.totalPages ||
-      Math.abs(p - pagination.page) <= 1
-  );
-
-  return (
-    <div className="flex items-center justify-between px-2">
-      <Text variant="caption" color="muted">
-        Showing {(pagination.page - 1) * pagination.limit + 1} to{" "}
-        {Math.min(pagination.page * pagination.limit, pagination.total)} of{" "}
-        {pagination.total} announcements
-      </Text>
-      <div className="flex items-center gap-1">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onPageChange(pagination.page - 1)}
-          disabled={!pagination.hasPrev}
-        >
-          Previous
-        </Button>
-        {visiblePages.map((page, index) => {
-          const prevPage = visiblePages[index - 1];
-          const showEllipsis = prevPage && page - prevPage > 1;
-
-          return (
-            <div key={page} className="flex items-center">
-              {showEllipsis && (
-                <span className="px-2 text-muted-foreground">...</span>
-              )}
-              <Button
-                variant={page === pagination.page ? "default" : "ghost"}
-                size="sm"
-                onClick={() => onPageChange(page)}
-                className="w-9"
-              >
-                {page}
-              </Button>
-            </div>
-          );
-        })}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onPageChange(pagination.page + 1)}
-          disabled={!pagination.hasNext}
-        >
-          Next
-        </Button>
-      </div>
-    </div>
-  );
-}
-
 export default function AdminAnnouncementsPage() {
-  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
-  const [pagination, setPagination] = useState<PaginationInfo | null>(null);
-  const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Announcement | null>(null);
   const [saving, setSaving] = useState(false);
-  const [filterType, setFilterType] = useState<string>("");
-  const [filterActive, setFilterActive] = useState<string>("");
-  const [search, setSearch] = useState("");
-  const [searchDebounced, setSearchDebounced] = useState("");
-  const [sortBy, setSortBy] = useState("createdAt:desc");
 
   const [form, setForm] = useState<{
     title: string;
@@ -161,25 +91,29 @@ export default function AdminAnnouncementsPage() {
     isPinned: false,
   });
 
-  // Debounce search
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setSearchDebounced(search);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [search]);
-
-  const loadData = useCallback(async (page = 1) => {
-    try {
-      setLoading(true);
+  // Use shared admin list hook
+  const {
+    items: announcements,
+    pagination,
+    isLoading,
+    search,
+    setSearch,
+    filters,
+    setFilter,
+    handlePageChange,
+    hasActiveFilters,
+    isEmpty,
+    refetch,
+  } = useAdminList<Announcement, AnnouncementFilters>({
+    fetchFn: async ({ page, limit, search, filters }) => {
       const params = new URLSearchParams();
       params.append("page", page.toString());
-      params.append("limit", "10");
-      if (filterType) params.append("type", filterType);
-      if (filterActive) params.append("isActive", filterActive);
-      if (searchDebounced) params.append("search", searchDebounced);
-      if (sortBy) {
-        const [field, order] = sortBy.split(":");
+      params.append("limit", limit.toString());
+      if (filters.type) params.append("type", filters.type);
+      if (filters.isActive) params.append("isActive", filters.isActive);
+      if (search) params.append("search", search);
+      if (filters.sortBy) {
+        const [field, order] = filters.sortBy.split(":");
         params.append("sortBy", field);
         params.append("sortOrder", order);
       }
@@ -187,24 +121,21 @@ export default function AdminAnnouncementsPage() {
       const res = await api.get<PaginatedResponse<Announcement>>(
         `/announcements?${params.toString()}`
       );
-      setAnnouncements(res.data?.items || []);
-      if (res.data?.pagination) {
-        setPagination(res.data.pagination);
-      }
-    } catch (error) {
-      console.error("Failed to load announcements:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, [filterType, filterActive, searchDebounced, sortBy]);
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
-
-  const handlePageChange = (page: number) => {
-    loadData(page);
-  };
+      return {
+        items: res.data?.items || [],
+        pagination: res.data?.pagination || {
+          page,
+          limit,
+          total: 0,
+          totalPages: 1,
+          hasNext: false,
+          hasPrev: false,
+        },
+      };
+    },
+    initialFilters: { type: "", isActive: "", sortBy: "createdAt:desc" },
+  });
 
   const openModal = (announcement?: Announcement) => {
     if (announcement) {
@@ -244,12 +175,15 @@ export default function AdminAnnouncementsPage() {
 
       if (editing) {
         await api.patch(`/announcements/${editing.id}`, data);
+        toast.success("Announcement updated");
       } else {
         await api.post("/announcements", data);
+        toast.success("Announcement created");
       }
       setShowModal(false);
-      loadData(pagination?.page || 1);
+      refetch(pagination?.page || 1);
     } catch (error) {
+      toast.error("Failed to save announcement");
       console.error("Failed to save announcement:", error);
     } finally {
       setSaving(false);
@@ -260,8 +194,10 @@ export default function AdminAnnouncementsPage() {
     if (!confirm("Are you sure you want to delete this announcement?")) return;
     try {
       await api.delete(`/announcements/${id}`);
-      loadData(pagination?.page || 1);
+      toast.success("Announcement deleted");
+      refetch(pagination?.page || 1);
     } catch (error) {
+      toast.error("Failed to delete announcement");
       console.error("Failed to delete announcement:", error);
     }
   };
@@ -276,29 +212,37 @@ export default function AdminAnnouncementsPage() {
     return new Date(date).toLocaleDateString();
   };
 
+  const typeFilterOptions = [
+    { value: "", label: "All Types" },
+    ...typeOptions.map((t) => ({ value: t.value, label: t.label })),
+  ];
+
+  const statusFilterOptions = [
+    { value: "", label: "All Status" },
+    { value: "true", label: "Active" },
+    { value: "false", label: "Inactive" },
+  ];
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">Announcements</h1>
-          <Text color="muted">Manage system announcements and banners</Text>
-        </div>
-        <div className="flex gap-2">
-          <ExportCsvButton
-            label="Export"
-            onExport={async () => {
-              await downloadFile(`${API_CONFIG.BASE_URL}/announcements/export`);
-            }}
-            onSuccess={() => toast.success("Announcements exported successfully")}
-            onError={(error) => toast.error(error.message || "Export failed")}
-          />
+      <AdminPageHeader
+        title="Announcements"
+        description="Manage system announcements and banners"
+        exportConfig={{
+          label: "Export",
+          onExport: async () => {
+            await downloadFile(`${API_CONFIG.BASE_URL}/announcements/export`);
+          },
+          successMessage: "Announcements exported successfully",
+        }}
+        actions={
           <Button onClick={() => openModal()}>
             <Icon name="Plus" size="sm" className="mr-2" />
             Add Announcement
           </Button>
-        </div>
-      </div>
+        }
+      />
 
       {/* Filters */}
       <div className="flex flex-wrap gap-4">
@@ -311,27 +255,20 @@ export default function AdminAnnouncementsPage() {
           />
         </div>
         <Select
-          value={filterType}
-          onChange={(val) => setFilterType(val)}
+          value={filters.type}
+          onChange={(val) => setFilter("type", val)}
           className="w-40"
-          options={[
-            { value: "", label: "All Types" },
-            ...typeOptions.map((t) => ({ value: t.value, label: t.label })),
-          ]}
+          options={typeFilterOptions}
         />
         <Select
-          value={filterActive}
-          onChange={(val) => setFilterActive(val)}
+          value={filters.isActive}
+          onChange={(val) => setFilter("isActive", val)}
           className="w-40"
-          options={[
-            { value: "", label: "All Status" },
-            { value: "true", label: "Active" },
-            { value: "false", label: "Inactive" },
-          ]}
+          options={statusFilterOptions}
         />
         <Select
-          value={sortBy}
-          onChange={(val) => setSortBy(val)}
+          value={filters.sortBy}
+          onChange={(val) => setFilter("sortBy", val)}
           className="w-40"
           options={sortOptions}
         />
@@ -351,17 +288,17 @@ export default function AdminAnnouncementsPage() {
               </TableRow>
             </thead>
             <tbody>
-              {loading ? (
+              {isLoading ? (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center py-8">
                     <Spinner size="lg" />
                   </TableCell>
                 </TableRow>
-              ) : announcements.length === 0 ? (
+              ) : isEmpty ? (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center py-8">
                     <Text color="muted">
-                      {searchDebounced || filterType || filterActive
+                      {hasActiveFilters
                         ? "No announcements match your filters"
                         : "No announcements found"}
                     </Text>
@@ -414,9 +351,10 @@ export default function AdminAnnouncementsPage() {
           {/* Pagination */}
           {pagination && pagination.totalPages > 1 && (
             <div className="border-t p-4">
-              <Pagination
+              <AdminPagination
                 pagination={pagination}
                 onPageChange={handlePageChange}
+                itemLabel="announcements"
               />
             </div>
           )}

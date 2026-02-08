@@ -1,15 +1,26 @@
+/**
+ * FAQ Controller
+ *
+ * Handles HTTP requests for FAQ management.
+ * Delegates business logic to faqService.
+ */
+
 import { Request, Response, NextFunction } from "express";
 import { AuthenticatedRequest } from "../types";
-import { db } from "../lib/db";
+import { faqService } from "../services/faq.service";
 import { auditService } from "../services/audit.service";
-import { exportService } from "../services/export.service";
 import { successResponse, errorResponse, ErrorCodes } from "../utils/response";
 import { z } from "zod";
+import { slugSchema, orderableSchema, publishableSchema } from "../utils/validation-schemas";
+import { validateOrRespond, sendCsvExport } from "../utils/controller-helpers";
 
-// Validation schemas
+// ============================================================================
+// Validation Schemas
+// ============================================================================
+
 const faqCategorySchema = z.object({
   name: z.string().min(1).max(100),
-  slug: z.string().min(1).max(100).regex(/^[a-z0-9-]+$/),
+  slug: slugSchema,
   order: z.number().int().optional(),
   isActive: z.boolean().optional(),
 });
@@ -22,18 +33,18 @@ const faqSchema = z.object({
   isActive: z.boolean().optional(),
 });
 
+// ============================================================================
+// Controller
+// ============================================================================
+
 export const faqController = {
-  // ============================================================================
+  // ==========================================================================
   // FAQ Categories
-  // ============================================================================
+  // ==========================================================================
 
   async getCategories(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
-      const categories = await db.faqCategory.findMany({
-        include: { _count: { select: { faqs: true } } },
-        orderBy: { order: "asc" },
-      });
-
+      const categories = await faqService.getCategories();
       res.json(successResponse({ categories }));
     } catch (error) {
       next(error);
@@ -42,21 +53,17 @@ export const faqController = {
 
   async createCategory(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
-      const parsed = faqCategorySchema.safeParse(req.body);
-      if (!parsed.success) {
-        return res.status(400).json(errorResponse(ErrorCodes.VALIDATION_ERROR, "Invalid input"));
-      }
+      const validated = validateOrRespond(faqCategorySchema, req.body, res);
+      if (!validated) return;
 
-      const category = await db.faqCategory.create({
-        data: parsed.data,
-      });
+      const category = await faqService.createCategory(validated);
 
       await auditService.log({
         userId: req.user.userId,
         action: "CREATE",
         entity: "FaqCategory",
         entityId: category.id,
-        changes: { new: parsed.data },
+        changes: { new: validated },
         req,
       });
 
@@ -69,20 +76,11 @@ export const faqController = {
   async updateCategory(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
       const id = req.params.id as string;
-      const parsed = faqCategorySchema.partial().safeParse(req.body);
-      if (!parsed.success) {
-        return res.status(400).json(errorResponse(ErrorCodes.VALIDATION_ERROR, "Invalid input"));
-      }
+      const validated = validateOrRespond(faqCategorySchema.partial(), req.body, res);
+      if (!validated) return;
 
-      const existing = await db.faqCategory.findUnique({ where: { id } });
-      if (!existing) {
-        return res.status(404).json(errorResponse(ErrorCodes.NOT_FOUND, "Category not found"));
-      }
-
-      const category = await db.faqCategory.update({
-        where: { id },
-        data: parsed.data,
-      });
+      const existing = await faqService.getCategoryById(id);
+      const category = await faqService.updateCategory(id, validated);
 
       await auditService.log({
         userId: req.user.userId,
@@ -102,13 +100,7 @@ export const faqController = {
   async deleteCategory(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
       const id = req.params.id as string;
-
-      const existing = await db.faqCategory.findUnique({ where: { id } });
-      if (!existing) {
-        return res.status(404).json(errorResponse(ErrorCodes.NOT_FOUND, "Category not found"));
-      }
-
-      await db.faqCategory.delete({ where: { id } });
+      const existing = await faqService.deleteCategory(id);
 
       await auditService.log({
         userId: req.user.userId,
@@ -125,22 +117,17 @@ export const faqController = {
     }
   },
 
-  // ============================================================================
+  // ==========================================================================
   // FAQs
-  // ============================================================================
+  // ==========================================================================
 
   async getFaqs(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
       const { categoryId, isActive } = req.query;
 
-      const where: Record<string, unknown> = {};
-      if (categoryId) where.categoryId = categoryId as string;
-      if (isActive !== undefined) where.isActive = isActive === "true";
-
-      const faqs = await db.faq.findMany({
-        where,
-        include: { category: { select: { id: true, name: true, slug: true } } },
-        orderBy: [{ order: "asc" }, { createdAt: "desc" }],
+      const faqs = await faqService.getFaqs({
+        categoryId: categoryId as string | undefined,
+        isActive: isActive !== undefined ? isActive === "true" : undefined,
       });
 
       res.json(successResponse({ faqs }));
@@ -152,16 +139,7 @@ export const faqController = {
   async getFaq(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
       const id = req.params.id as string;
-
-      const faq = await db.faq.findUnique({
-        where: { id },
-        include: { category: { select: { id: true, name: true, slug: true } } },
-      });
-
-      if (!faq) {
-        return res.status(404).json(errorResponse(ErrorCodes.NOT_FOUND, "FAQ not found"));
-      }
-
+      const faq = await faqService.getFaqById(id);
       res.json(successResponse({ faq }));
     } catch (error) {
       next(error);
@@ -170,25 +148,17 @@ export const faqController = {
 
   async createFaq(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
-      const parsed = faqSchema.safeParse(req.body);
-      if (!parsed.success) {
-        return res.status(400).json(errorResponse(ErrorCodes.VALIDATION_ERROR, "Invalid input"));
-      }
+      const validated = validateOrRespond(faqSchema, req.body, res);
+      if (!validated) return;
 
-      const faq = await db.faq.create({
-        data: {
-          ...parsed.data,
-          categoryId: parsed.data.categoryId || null,
-        },
-        include: { category: { select: { id: true, name: true, slug: true } } },
-      });
+      const faq = await faqService.createFaq(validated);
 
       await auditService.log({
         userId: req.user.userId,
         action: "CREATE",
         entity: "Faq",
         entityId: faq.id,
-        changes: { new: parsed.data },
+        changes: { new: validated },
         req,
       });
 
@@ -201,24 +171,11 @@ export const faqController = {
   async updateFaq(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
       const id = req.params.id as string;
-      const parsed = faqSchema.partial().safeParse(req.body);
-      if (!parsed.success) {
-        return res.status(400).json(errorResponse(ErrorCodes.VALIDATION_ERROR, "Invalid input"));
-      }
+      const validated = validateOrRespond(faqSchema.partial(), req.body, res);
+      if (!validated) return;
 
-      const existing = await db.faq.findUnique({ where: { id } });
-      if (!existing) {
-        return res.status(404).json(errorResponse(ErrorCodes.NOT_FOUND, "FAQ not found"));
-      }
-
-      const faq = await db.faq.update({
-        where: { id },
-        data: {
-          ...parsed.data,
-          categoryId: parsed.data.categoryId === null ? null : parsed.data.categoryId,
-        },
-        include: { category: { select: { id: true, name: true, slug: true } } },
-      });
+      const existing = await faqService.getFaqById(id);
+      const faq = await faqService.updateFaq(id, validated);
 
       await auditService.log({
         userId: req.user.userId,
@@ -238,13 +195,7 @@ export const faqController = {
   async deleteFaq(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
       const id = req.params.id as string;
-
-      const existing = await db.faq.findUnique({ where: { id } });
-      if (!existing) {
-        return res.status(404).json(errorResponse(ErrorCodes.NOT_FOUND, "FAQ not found"));
-      }
-
-      await db.faq.delete({ where: { id } });
+      const existing = await faqService.deleteFaq(id);
 
       await auditService.log({
         userId: req.user.userId,
@@ -264,46 +215,21 @@ export const faqController = {
   async reorderFaqs(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
       const { items } = req.body as { items: { id: string; order: number }[] };
-
-      await db.$transaction(
-        items.map((item) =>
-          db.faq.update({
-            where: { id: item.id },
-            data: { order: item.order },
-          })
-        )
-      );
-
+      await faqService.reorderFaqs(items);
       res.json(successResponse({ message: "FAQs reordered" }));
     } catch (error) {
       next(error);
     }
   },
 
-  // ============================================================================
+  // ==========================================================================
   // Public endpoints (no auth required)
-  // ============================================================================
+  // ==========================================================================
 
   async getPublicFaqs(req: Request, res: Response, next: NextFunction) {
     try {
       const { categorySlug } = req.query;
-
-      const where: Record<string, unknown> = { isActive: true };
-      if (categorySlug) {
-        const category = await db.faqCategory.findUnique({
-          where: { slug: categorySlug as string },
-        });
-        if (category) {
-          where.categoryId = category.id;
-        }
-      }
-
-      const faqs = await db.faq.findMany({
-        where,
-        include: { category: { select: { id: true, name: true, slug: true } } },
-        orderBy: [{ order: "asc" }, { createdAt: "desc" }],
-      });
-
+      const faqs = await faqService.getPublicFaqs(categorySlug as string | undefined);
       res.json(successResponse({ faqs }));
     } catch (error) {
       next(error);
@@ -312,17 +238,7 @@ export const faqController = {
 
   async getPublicCategories(req: Request, res: Response, next: NextFunction) {
     try {
-      const categories = await db.faqCategory.findMany({
-        where: { isActive: true },
-        include: {
-          faqs: {
-            where: { isActive: true },
-            orderBy: { order: "asc" },
-          },
-        },
-        orderBy: { order: "asc" },
-      });
-
+      const categories = await faqService.getPublicCategories();
       res.json(successResponse({ categories }));
     } catch (error) {
       next(error);
@@ -335,14 +251,9 @@ export const faqController = {
    */
   async exportFaqs(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
-      const timestamp = new Date().toISOString().split("T")[0];
+      const faqs = await faqService.getAllForExport();
 
-      const faqs = await db.faq.findMany({
-        include: { category: { select: { name: true } } },
-        orderBy: [{ order: "asc" }, { createdAt: "desc" }],
-      });
-
-      const csv = exportService.exportToCsv(faqs, [
+      sendCsvExport(res, faqs, [
         { header: "ID", accessor: "id" },
         { header: "Category", accessor: (item) => item.category?.name || "" },
         { header: "Question", accessor: "question" },
@@ -351,14 +262,7 @@ export const faqController = {
         { header: "Active", accessor: "isActive" },
         { header: "Created At", accessor: (item) => item.createdAt.toISOString() },
         { header: "Updated At", accessor: (item) => item.updatedAt.toISOString() },
-      ]);
-
-      res.setHeader("Content-Type", "text/csv; charset=utf-8");
-      res.setHeader(
-        "Content-Disposition",
-        `attachment; filename="faqs-export-${timestamp}.csv"`
-      );
-      res.send(csv);
+      ], { filenamePrefix: "faqs-export" });
     } catch (error) {
       next(error);
     }

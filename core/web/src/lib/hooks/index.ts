@@ -97,3 +97,13 @@ export type {
   SearchResults,
   SearchType,
 } from "./use-search";
+
+// -----------------------------------------------------
+// Admin List
+// -----------------------------------------------------
+// Hook for admin list pages with pagination, search, and filters
+export { useAdminList } from "./use-admin-list";
+export type {
+  UseAdminListOptions,
+  UseAdminListReturn,
+} from "./use-admin-list";

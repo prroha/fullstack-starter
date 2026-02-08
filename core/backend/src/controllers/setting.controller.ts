@@ -1,12 +1,22 @@
+/**
+ * Setting Controller
+ *
+ * Handles HTTP requests for application settings management.
+ * Delegates business logic to settingService.
+ */
+
 import { Request, Response, NextFunction } from "express";
 import { AuthenticatedRequest } from "../types";
-import { db } from "../lib/db";
+import { settingService } from "../services/setting.service";
 import { auditService } from "../services/audit.service";
-import { exportService } from "../services/export.service";
-import { successResponse, errorResponse, ErrorCodes } from "../utils/response";
+import { successResponse } from "../utils/response";
 import { z } from "zod";
+import { validateOrRespond, sendCsvExport } from "../utils/controller-helpers";
 
-// Validation schemas
+// ============================================================================
+// Validation Schemas
+// ============================================================================
+
 const settingSchema = z.object({
   key: z.string().min(1).max(100).regex(/^[a-zA-Z0-9_.]+$/),
   value: z.string(),
@@ -22,17 +32,18 @@ const bulkUpdateSchema = z.object({
   })),
 });
 
+// ============================================================================
+// Controller
+// ============================================================================
+
 export const settingController = {
-  // ============================================================================
+  // ==========================================================================
   // Admin endpoints
-  // ============================================================================
+  // ==========================================================================
 
   async getAll(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
-      const settings = await db.setting.findMany({
-        orderBy: { key: "asc" },
-      });
-
+      const settings = await settingService.getAll();
       res.json(successResponse({ settings }));
     } catch (error) {
       next(error);
@@ -42,13 +53,7 @@ export const settingController = {
   async getByKey(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
       const key = req.params.key as string;
-
-      const setting = await db.setting.findUnique({ where: { key } });
-
-      if (!setting) {
-        return res.status(404).json(errorResponse(ErrorCodes.NOT_FOUND, "Setting not found"));
-      }
-
+      const setting = await settingService.getByKey(key);
       res.json(successResponse({ setting }));
     } catch (error) {
       next(error);
@@ -57,25 +62,17 @@ export const settingController = {
 
   async create(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
-      const parsed = settingSchema.safeParse(req.body);
-      if (!parsed.success) {
-        return res.status(400).json(errorResponse(ErrorCodes.VALIDATION_ERROR, "Invalid input"));
-      }
+      const validated = validateOrRespond(settingSchema, req.body, res);
+      if (!validated) return;
 
-      // Check if key already exists
-      const existing = await db.setting.findUnique({ where: { key: parsed.data.key } });
-      if (existing) {
-        return res.status(409).json(errorResponse(ErrorCodes.CONFLICT, "Setting key already exists"));
-      }
-
-      const setting = await db.setting.create({ data: parsed.data });
+      const setting = await settingService.create(validated);
 
       await auditService.log({
         userId: req.user.userId,
         action: "CREATE",
         entity: "Setting",
         entityId: setting.id,
-        changes: { new: { key: parsed.data.key, isPublic: parsed.data.isPublic } },
+        changes: { new: { key: validated.key, isPublic: validated.isPublic } },
         req,
       });
 
@@ -88,20 +85,11 @@ export const settingController = {
   async update(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
       const key = req.params.key as string;
-      const parsed = settingSchema.partial().omit({ key: true }).safeParse(req.body);
-      if (!parsed.success) {
-        return res.status(400).json(errorResponse(ErrorCodes.VALIDATION_ERROR, "Invalid input"));
-      }
+      const validated = validateOrRespond(settingSchema.partial().omit({ key: true }), req.body, res);
+      if (!validated) return;
 
-      const existing = await db.setting.findUnique({ where: { key } });
-      if (!existing) {
-        return res.status(404).json(errorResponse(ErrorCodes.NOT_FOUND, "Setting not found"));
-      }
-
-      const setting = await db.setting.update({
-        where: { key },
-        data: parsed.data,
-      });
+      const existing = await settingService.getByKey(key);
+      const setting = await settingService.update(key, validated);
 
       await auditService.log({
         userId: req.user.userId,
@@ -121,31 +109,21 @@ export const settingController = {
 
   async bulkUpdate(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
-      const parsed = bulkUpdateSchema.safeParse(req.body);
-      if (!parsed.success) {
-        return res.status(400).json(errorResponse(ErrorCodes.VALIDATION_ERROR, "Invalid input"));
-      }
+      const validated = validateOrRespond(bulkUpdateSchema, req.body, res);
+      if (!validated) return;
 
-      await db.$transaction(
-        parsed.data.settings.map((s) =>
-          db.setting.upsert({
-            where: { key: s.key },
-            update: { value: s.value },
-            create: { key: s.key, value: s.value },
-          })
-        )
-      );
+      const count = await settingService.bulkUpdate(validated.settings);
 
       await auditService.log({
         userId: req.user.userId,
         action: "UPDATE",
         entity: "Setting",
-        changes: { keys: parsed.data.settings.map((s) => s.key) },
+        changes: { keys: validated.settings.map((s) => s.key) },
         req,
-        metadata: { bulkUpdate: true, count: parsed.data.settings.length },
+        metadata: { bulkUpdate: true, count },
       });
 
-      res.json(successResponse({ message: "Settings updated", count: parsed.data.settings.length }));
+      res.json(successResponse({ message: "Settings updated", count }));
     } catch (error) {
       next(error);
     }
@@ -154,13 +132,7 @@ export const settingController = {
   async delete(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
       const key = req.params.key as string;
-
-      const existing = await db.setting.findUnique({ where: { key } });
-      if (!existing) {
-        return res.status(404).json(errorResponse(ErrorCodes.NOT_FOUND, "Setting not found"));
-      }
-
-      await db.setting.delete({ where: { key } });
+      const existing = await settingService.delete(key);
 
       await auditService.log({
         userId: req.user.userId,
@@ -177,35 +149,14 @@ export const settingController = {
     }
   },
 
-  // ============================================================================
+  // ==========================================================================
   // Public endpoints
-  // ============================================================================
+  // ==========================================================================
 
   async getPublic(req: Request, res: Response, next: NextFunction) {
     try {
-      const settings = await db.setting.findMany({
-        where: { isPublic: true },
-        select: { key: true, value: true, type: true },
-        orderBy: { key: "asc" },
-      });
-
-      // Convert to key-value object for easier consumption
-      const settingsMap = settings.reduce<Record<string, unknown>>((acc, s) => {
-        let value: unknown = s.value;
-        if (s.type === "NUMBER") value = parseFloat(s.value);
-        else if (s.type === "BOOLEAN") value = s.value === "true";
-        else if (s.type === "JSON") {
-          try {
-            value = JSON.parse(s.value);
-          } catch {
-            value = s.value;
-          }
-        }
-        acc[s.key] = value;
-        return acc;
-      }, {});
-
-      res.json(successResponse({ settings: settingsMap }));
+      const settings = await settingService.getPublic();
+      res.json(successResponse({ settings }));
     } catch (error) {
       next(error);
     }
@@ -217,13 +168,9 @@ export const settingController = {
    */
   async exportSettings(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
-      const timestamp = new Date().toISOString().split("T")[0];
+      const settings = await settingService.getAllForExport();
 
-      const settings = await db.setting.findMany({
-        orderBy: { key: "asc" },
-      });
-
-      const csv = exportService.exportToCsv(settings, [
+      sendCsvExport(res, settings, [
         { header: "ID", accessor: "id" },
         { header: "Key", accessor: "key" },
         { header: "Value", accessor: "value" },
@@ -232,14 +179,7 @@ export const settingController = {
         { header: "Public", accessor: "isPublic" },
         { header: "Created At", accessor: (item) => item.createdAt.toISOString() },
         { header: "Updated At", accessor: (item) => item.updatedAt.toISOString() },
-      ]);
-
-      res.setHeader("Content-Type", "text/csv; charset=utf-8");
-      res.setHeader(
-        "Content-Disposition",
-        `attachment; filename="settings-export-${timestamp}.csv"`
-      );
-      res.send(csv);
+      ], { filenamePrefix: "settings-export" });
     } catch (error) {
       next(error);
     }

@@ -1,11 +1,11 @@
 import { Response, NextFunction } from "express";
 import { contactService } from "../services/contact.service";
-import { exportService } from "../services/export.service";
-import { db } from "../lib/db";
 import { successResponse, paginatedResponse } from "../utils/response";
 import { z } from "zod";
 import { AppRequest } from "../types";
 import { ContactMessageStatus } from "@prisma/client";
+import { emailSchema, paginationSchema } from "../utils/validation-schemas";
+import { sendCsvExport } from "../utils/controller-helpers";
 
 // ============================================================================
 // Validation Schemas
@@ -16,10 +16,7 @@ const createContactMessageSchema = z.object({
     .string()
     .min(2, "Name must be at least 2 characters")
     .max(100, "Name must be less than 100 characters"),
-  email: z
-    .string()
-    .email("Invalid email format")
-    .max(255, "Email must be less than 255 characters"),
+  email: emailSchema.pipe(z.string().max(255, "Email must be less than 255 characters")),
   subject: z
     .string()
     .min(3, "Subject must be at least 3 characters")
@@ -34,9 +31,7 @@ const updateContactMessageSchema = z.object({
   status: z.nativeEnum(ContactMessageStatus).optional(),
 });
 
-const getContactMessagesSchema = z.object({
-  page: z.coerce.number().min(1).default(1),
-  limit: z.coerce.number().min(1).max(100).default(20),
+const getContactMessagesSchema = paginationSchema.extend({
   status: z.nativeEnum(ContactMessageStatus).optional(),
   search: z.string().optional(),
   sortBy: z.enum(["createdAt", "status"]).optional(),
@@ -159,13 +154,9 @@ class ContactController {
    */
   async exportMessages(req: AppRequest, res: Response, next: NextFunction) {
     try {
-      const timestamp = new Date().toISOString().split("T")[0];
+      const messages = await contactService.getAllForExport();
 
-      const messages = await db.contactMessage.findMany({
-        orderBy: { createdAt: "desc" },
-      });
-
-      const csv = exportService.exportToCsv(messages, [
+      sendCsvExport(res, messages, [
         { header: "ID", accessor: "id" },
         { header: "Name", accessor: "name" },
         { header: "Email", accessor: "email" },
@@ -174,14 +165,7 @@ class ContactController {
         { header: "Status", accessor: "status" },
         { header: "Created At", accessor: (item) => item.createdAt.toISOString() },
         { header: "Updated At", accessor: (item) => item.updatedAt.toISOString() },
-      ]);
-
-      res.setHeader("Content-Type", "text/csv; charset=utf-8");
-      res.setHeader(
-        "Content-Disposition",
-        `attachment; filename="contact-messages-export-${timestamp}.csv"`
-      );
-      res.send(csv);
+      ], { filenamePrefix: "contact-messages-export" });
     } catch (error) {
       next(error);
     }

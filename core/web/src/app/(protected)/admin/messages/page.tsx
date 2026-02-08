@@ -1,22 +1,22 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { api, ApiError, ContactMessage, ContactMessageStatus } from "@/lib/api";
-import { Button, Input, Badge, SkeletonTable, Text, ExportCsvButton } from "@/components/ui";
-import { downloadFile } from "@/lib/export";
-import { API_CONFIG } from "@/lib/constants";
+import { Button, Input, Badge, Text, Select, Modal } from "@/components/ui";
 import { Alert } from "@/components/feedback";
 import { Icon } from "@/components/ui/icon";
-import { cn } from "@/lib/utils";
+import { AdminPageHeader, AdminTableContainer } from "@/components/admin";
+import { useAdminList } from "@/lib/hooks";
+import { downloadFile } from "@/lib/export";
+import { API_CONFIG } from "@/lib/constants";
 import { toast } from "sonner";
 
-interface PaginationInfo {
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
-  hasNext: boolean;
-  hasPrev: boolean;
+// =====================================================
+// Types
+// =====================================================
+
+interface MessageFilters {
+  status: "" | ContactMessageStatus;
 }
 
 // =====================================================
@@ -126,74 +126,6 @@ function MessageRow({
 }
 
 // =====================================================
-// Pagination Component
-// =====================================================
-
-function Pagination({
-  pagination,
-  onPageChange,
-}: {
-  pagination: PaginationInfo;
-  onPageChange: (page: number) => void;
-}) {
-  const pages = Array.from({ length: pagination.totalPages }, (_, i) => i + 1);
-  const visiblePages = pages.filter(
-    (p) =>
-      p === 1 ||
-      p === pagination.totalPages ||
-      Math.abs(p - pagination.page) <= 1
-  );
-
-  return (
-    <div className="flex items-center justify-between px-2">
-      <Text variant="caption" color="muted">
-        Showing {(pagination.page - 1) * pagination.limit + 1} to{" "}
-        {Math.min(pagination.page * pagination.limit, pagination.total)} of{" "}
-        {pagination.total} messages
-      </Text>
-      <div className="flex items-center gap-1">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onPageChange(pagination.page - 1)}
-          disabled={!pagination.hasPrev}
-        >
-          Previous
-        </Button>
-        {visiblePages.map((page, index) => {
-          const prevPage = visiblePages[index - 1];
-          const showEllipsis = prevPage && page - prevPage > 1;
-
-          return (
-            <div key={page} className="flex items-center">
-              {showEllipsis && (
-                <span className="px-2 text-muted-foreground">...</span>
-              )}
-              <Button
-                variant={page === pagination.page ? "default" : "ghost"}
-                size="sm"
-                onClick={() => onPageChange(page)}
-                className="w-9"
-              >
-                {page}
-              </Button>
-            </div>
-          );
-        })}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onPageChange(pagination.page + 1)}
-          disabled={!pagination.hasNext}
-        >
-          Next
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-// =====================================================
 // View Message Modal
 // =====================================================
 
@@ -211,16 +143,15 @@ function ViewMessageModal({
   isUpdating: boolean;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div
-        className="absolute inset-0 bg-black/50"
-        onClick={onClose}
-        aria-hidden="true"
-      />
-      <div className="relative z-10 w-full max-w-2xl rounded-lg border bg-background p-6 shadow-lg max-h-[90vh] overflow-y-auto">
-        <div className="flex items-start justify-between mb-4">
+    <Modal
+      isOpen
+      onClose={onClose}
+      title={message.subject}
+      size="lg"
+    >
+      <div className="space-y-4">
+        <div className="flex items-start justify-between">
           <div>
-            <h2 className="text-lg font-semibold">{message.subject}</h2>
             <Text variant="caption" color="muted">
               From: {message.name} ({message.email})
             </Text>
@@ -231,11 +162,11 @@ function ViewMessageModal({
           <StatusBadge status={message.status} />
         </div>
 
-        <div className="border-t border-b py-4 my-4">
+        <div className="border-t border-b py-4">
           <Text className="whitespace-pre-wrap">{message.message}</Text>
         </div>
 
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between pt-2">
           <div className="flex items-center gap-2">
             {message.status === "PENDING" && (
               <Button
@@ -258,9 +189,7 @@ function ViewMessageModal({
               </Button>
             )}
             <a
-              href={`mailto:${message.email}?subject=Re: ${encodeURIComponent(
-                message.subject
-              )}`}
+              href={`mailto:${message.email}?subject=Re: ${encodeURIComponent(message.subject)}`}
               className="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-primary text-primary-foreground hover:bg-primary/90"
             >
               Reply via Email
@@ -281,7 +210,7 @@ function ViewMessageModal({
           </div>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }
 
@@ -299,32 +228,21 @@ function DeleteConfirmModal({
   isDeleting: boolean;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div
-        className="absolute inset-0 bg-black/50"
-        onClick={onCancel}
-        aria-hidden="true"
-      />
-      <div className="relative z-10 w-full max-w-md rounded-lg border bg-background p-6 shadow-lg">
-        <h2 className="text-lg font-semibold mb-2">Delete Message</h2>
-        <Text color="muted" className="mb-6">
-          Are you sure you want to delete this message? This action cannot be
-          undone.
+    <Modal isOpen onClose={onCancel} title="Delete Message">
+      <div className="space-y-4">
+        <Text color="muted">
+          Are you sure you want to delete this message? This action cannot be undone.
         </Text>
-        <div className="flex justify-end gap-2">
+        <div className="flex justify-end gap-2 pt-2">
           <Button variant="outline" onClick={onCancel} disabled={isDeleting}>
             Cancel
           </Button>
-          <Button
-            variant="destructive"
-            onClick={onConfirm}
-            isLoading={isDeleting}
-          >
+          <Button variant="destructive" onClick={onConfirm} isLoading={isDeleting}>
             Delete
           </Button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }
 
@@ -339,9 +257,7 @@ function EmptyMessages() {
         <Icon name="Mail" size="lg" color="muted" />
       </div>
       <h3 className="text-lg font-medium text-foreground mb-2">No messages</h3>
-      <Text color="muted">
-        Contact form submissions will appear here.
-      </Text>
+      <Text color="muted">Contact form submissions will appear here.</Text>
     </div>
   );
 }
@@ -351,29 +267,10 @@ function EmptyMessages() {
 // =====================================================
 
 export default function AdminMessagesPage() {
-  const [messages, setMessages] = useState<ContactMessage[]>([]);
-  const [pagination, setPagination] = useState<PaginationInfo | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
-  const [searchDebounced, setSearchDebounced] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"" | ContactMessageStatus>(
-    ""
-  );
-  const [viewingMessage, setViewingMessage] = useState<ContactMessage | null>(
-    null
-  );
+  const [viewingMessage, setViewingMessage] = useState<ContactMessage | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
-
-  // Debounce search
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setSearchDebounced(search);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [search]);
 
   // Fetch unread count
   const fetchUnreadCount = useCallback(async () => {
@@ -387,52 +284,55 @@ export default function AdminMessagesPage() {
     }
   }, []);
 
-  const fetchMessages = useCallback(
-    async (page = 1) => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        const response = await api.getContactMessages({
-          page,
-          limit: 10,
-          search: searchDebounced || undefined,
-          status: statusFilter || undefined,
-          sortBy: "createdAt",
-          sortOrder: "desc",
-        });
-
-        if (response.data) {
-          setMessages(response.data.items);
-          setPagination(response.data.pagination);
-        }
-      } catch (err) {
-        if (err instanceof ApiError) {
-          setError(err.message);
-        } else {
-          setError("Failed to load messages");
-        }
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [searchDebounced, statusFilter]
-  );
-
   useEffect(() => {
-    fetchMessages();
     fetchUnreadCount();
-  }, [fetchMessages, fetchUnreadCount]);
+  }, [fetchUnreadCount]);
 
-  const handlePageChange = (page: number) => {
-    fetchMessages(page);
-  };
+  // Use shared admin list hook
+  const {
+    items: messages,
+    pagination,
+    isLoading,
+    error,
+    search,
+    setSearch,
+    searchDebounced,
+    filters,
+    setFilter,
+    handlePageChange,
+    clearFilters,
+    hasActiveFilters,
+    isEmpty,
+    refetch,
+  } = useAdminList<ContactMessage, MessageFilters>({
+    fetchFn: async ({ page, limit, search, filters }) => {
+      const response = await api.getContactMessages({
+        page,
+        limit,
+        search: search || undefined,
+        status: filters.status || undefined,
+        sortBy: "createdAt",
+        sortOrder: "desc",
+      });
+
+      if (!response.data) {
+        throw new Error("Failed to load messages");
+      }
+
+      return {
+        items: response.data.items,
+        pagination: response.data.pagination,
+      };
+    },
+    initialFilters: { status: "" },
+  });
 
   const handleUpdateStatus = async (id: string, status: ContactMessageStatus) => {
     try {
       setIsUpdating(true);
       await api.updateContactMessage(id, { status });
       toast.success(`Message marked as ${status.toLowerCase()}`);
-      fetchMessages(pagination?.page || 1);
+      refetch(pagination?.page || 1);
       fetchUnreadCount();
 
       // Update viewing message if open
@@ -457,7 +357,7 @@ export default function AdminMessagesPage() {
       toast.success("Message deleted");
       setDeletingId(null);
       setViewingMessage(null);
-      fetchMessages(pagination?.page || 1);
+      refetch(pagination?.page || 1);
       fetchUnreadCount();
     } catch (err) {
       if (err instanceof ApiError) {
@@ -478,32 +378,36 @@ export default function AdminMessagesPage() {
     }
   };
 
+  const statusFilterOptions = [
+    { value: "", label: "All Status" },
+    { value: "PENDING", label: "Pending" },
+    { value: "READ", label: "Read" },
+    { value: "REPLIED", label: "Replied" },
+  ];
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">
+      <AdminPageHeader
+        title={
+          <>
             Contact Messages
             {unreadCount > 0 && (
               <Badge variant="secondary" className="ml-2 align-middle">
                 {unreadCount} new
               </Badge>
             )}
-          </h1>
-          <Text color="muted">
-            View and manage contact form submissions
-          </Text>
-        </div>
-        <ExportCsvButton
-          label="Export"
-          onExport={async () => {
+          </>
+        }
+        description="View and manage contact form submissions"
+        exportConfig={{
+          label: "Export",
+          onExport: async () => {
             await downloadFile(`${API_CONFIG.BASE_URL}/admin/contact-messages/export`);
-          }}
-          onSuccess={() => toast.success("Messages exported successfully")}
-          onError={(error) => toast.error(error.message || "Export failed")}
-        />
-      </div>
+          },
+          successMessage: "Messages exported successfully",
+        }}
+      />
 
       {/* Filters */}
       <div className="flex flex-wrap gap-4">
@@ -515,53 +419,48 @@ export default function AdminMessagesPage() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <select
-          value={statusFilter}
-          onChange={(e) =>
-            setStatusFilter(e.target.value as "" | ContactMessageStatus)
-          }
-          className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-        >
-          <option value="">All Status</option>
-          <option value="PENDING">Pending</option>
-          <option value="READ">Read</option>
-          <option value="REPLIED">Replied</option>
-        </select>
+        <Select
+          options={statusFilterOptions}
+          value={filters.status}
+          onChange={(value) => setFilter("status", value as "" | ContactMessageStatus)}
+          className="w-40"
+        />
       </div>
 
       {/* Error Alert */}
       {error && <Alert variant="destructive">{error}</Alert>}
 
       {/* Messages Table */}
-      <div className="rounded-lg border bg-card">
-        {isLoading ? (
-          <div className="p-6">
-            <SkeletonTable rows={5} columns={5} />
-          </div>
-        ) : messages.length === 0 ? (
-          <div className="p-6">
-            <EmptyMessages />
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
+      <AdminTableContainer
+        isLoading={isLoading}
+        isEmpty={isEmpty}
+        hasActiveFilters={hasActiveFilters}
+        searchQuery={searchDebounced}
+        onClearFilters={clearFilters}
+        emptyState={{
+          title: "No messages",
+          description: "Contact form submissions will appear here.",
+        }}
+        pagination={pagination}
+        onPageChange={handlePageChange}
+        itemLabel="messages"
+        skeletonRows={5}
+        skeletonColumns={5}
+      >
+        {!isEmpty && !isLoading && (
+          messages.length === 0 && !hasActiveFilters ? (
+            <div className="p-6">
+              <EmptyMessages />
+            </div>
+          ) : (
             <table className="w-full">
               <thead>
                 <tr className="border-b bg-muted/50">
-                  <th className="px-4 py-3 text-left text-sm font-medium">
-                    From
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">
-                    Subject / Message
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">
-                    Status
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">
-                    Received
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">
-                    Actions
-                  </th>
+                  <th className="px-4 py-3 text-left text-sm font-medium">From</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium">Subject / Message</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium">Status</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium">Received</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -577,28 +476,16 @@ export default function AdminMessagesPage() {
                 ))}
               </tbody>
             </table>
-          </div>
+          )
         )}
-
-        {/* Pagination */}
-        {pagination && pagination.totalPages > 1 && (
-          <div className="border-t p-4">
-            <Pagination
-              pagination={pagination}
-              onPageChange={handlePageChange}
-            />
-          </div>
-        )}
-      </div>
+      </AdminTableContainer>
 
       {/* View Message Modal */}
       {viewingMessage && (
         <ViewMessageModal
           message={viewingMessage}
           onClose={() => setViewingMessage(null)}
-          onUpdateStatus={(status) =>
-            handleUpdateStatus(viewingMessage.id, status)
-          }
+          onUpdateStatus={(status) => handleUpdateStatus(viewingMessage.id, status)}
           onDelete={() => setDeletingId(viewingMessage.id)}
           isUpdating={isUpdating}
         />

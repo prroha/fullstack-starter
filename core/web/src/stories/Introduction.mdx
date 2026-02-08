@@ -1,0 +1,100 @@
+# Fullstack Starter UI Component Library
+
+Welcome to the Fullstack Starter component library documentation. This Storybook contains all the reusable UI components used in the web application.
+
+## Getting Started
+
+### Running Storybook
+
+```bash
+npm run storybook
+```
+
+This will start Storybook on `http://localhost:6006`.
+
+### Building Storybook
+
+```bash
+npm run build-storybook
+```
+
+## Component Categories
+
+Our components are organized into the following categories:
+
+### Forms
+
+Input components for collecting user data:
+
+- **Button** - Primary action element with multiple variants and sizes
+- **Input** - Text input with character counting support
+- **Textarea** - Multi-line text input
+- **Select** - Dropdown selection with option groups
+- **Checkbox** - Binary selection with indeterminate state
+- **Switch** - Toggle control for on/off settings
+
+### Display
+
+Components for presenting information:
+
+- **Badge** - Labels for status, categories, or counts
+- **Avatar** - User profile images with fallbacks
+- **Card** - Container for grouping content
+- **Table** - Structured tabular data
+- **Icon** - Lucide icon wrapper
+
+### Feedback
+
+Components for user feedback and status:
+
+- **Alert** - Prominent message display
+- **Spinner** - Loading indicators
+- **Modal** - Dialog overlays
+
+### Navigation
+
+Components for navigating the application:
+
+- **NavLink** - Navigation links with active state
+
+### Layout
+
+Structural components:
+
+- **DashboardLayout** - Complete dashboard layout with sidebar
+
+## Design Principles
+
+### Calming Color Palette
+
+Our color system is based on scientific research about colors that promote calm and reduce eye strain:
+
+- **Blues (195-220 hue)** - Proven to reduce heart rate and promote calm
+- **Sage/green undertones** - Associated with nature and restoration
+- **Reduced saturation** - Lower chroma values reduce visual stimulation
+
+### Content-First Spacing
+
+Components use a tighter spacing scale (4px base unit) that maximizes screen real estate while maintaining readability and touch-friendliness.
+
+### Accessibility
+
+All components are designed with accessibility in mind:
+
+- WCAG 2.1 AA compliant contrast ratios
+- Keyboard navigation support
+- Screen reader friendly with proper ARIA attributes
+- Focus indicators for all interactive elements
+
+## Dark Mode
+
+All components support dark mode. Use the theme toggle in the toolbar to preview components in both light and dark modes.
+
+## Contributing
+
+When adding new components:
+
+1. Create the component in `src/components/`
+2. Add a story file in `src/stories/components/[Category]/`
+3. Include multiple story variants showing different states
+4. Add proper documentation using argTypes and JSDoc comments

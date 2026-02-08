@@ -535,6 +535,38 @@ class OrderService {
 
     return order;
   }
+
+  /**
+   * Get all orders for CSV export (admin)
+   */
+  async getAllForExport(): Promise<OrderWithUser[]> {
+    return db.order.findMany({
+      select: {
+        id: true,
+        userId: true,
+        email: true,
+        status: true,
+        paymentMethod: true,
+        paymentId: true,
+        subtotal: true,
+        discount: true,
+        total: true,
+        couponCode: true,
+        items: true,
+        metadata: true,
+        createdAt: true,
+        updatedAt: true,
+        user: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+  }
 }
 
 export const orderService = new OrderService();

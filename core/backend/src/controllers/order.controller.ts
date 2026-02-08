@@ -2,8 +2,6 @@ import { Response, NextFunction } from "express";
 import { AuditAction, OrderStatus, PaymentMethod } from "@prisma/client";
 import { orderService } from "../services/order.service";
 import { auditService } from "../services/audit.service";
-import { exportService } from "../services/export.service";
-import { db } from "../lib/db";
 import {
   successResponse,
   paginatedResponse,
@@ -12,25 +10,22 @@ import {
 } from "../utils/response";
 import { z } from "zod";
 import { AuthenticatedRequest } from "../types";
+import { paginationSchema } from "../utils/validation-schemas";
+import {
+  ensureParam,
+  getUserIdFromToken,
+  sendCsvExport,
+} from "../utils/controller-helpers";
 
-// Validation schemas
-const getOrdersQuerySchema = z.object({
-  page: z.coerce.number().int().positive().optional().default(1),
-  limit: z.coerce.number().int().positive().max(100).optional().default(20),
-  status: z
-    .enum(["PENDING", "COMPLETED", "REFUNDED", "FAILED"])
-    .optional(),
-  paymentMethod: z
-    .enum(["STRIPE", "PAYPAL", "MANUAL"])
-    .optional(),
-  startDate: z
-    .string()
-    .transform((v) => (v ? new Date(v) : undefined))
-    .optional(),
-  endDate: z
-    .string()
-    .transform((v) => (v ? new Date(v) : undefined))
-    .optional(),
+// ============================================================================
+// Validation Schemas
+// ============================================================================
+
+const getOrdersQuerySchema = paginationSchema.extend({
+  status: z.enum(["PENDING", "COMPLETED", "REFUNDED", "FAILED"]).optional(),
+  paymentMethod: z.enum(["STRIPE", "PAYPAL", "MANUAL"]).optional(),
+  startDate: z.string().transform((v) => (v ? new Date(v) : undefined)).optional(),
+  endDate: z.string().transform((v) => (v ? new Date(v) : undefined)).optional(),
   search: z.string().optional(),
   sortBy: z.enum(["createdAt", "total", "email"]).optional().default("createdAt"),
   sortOrder: z.enum(["asc", "desc"]).optional().default("desc"),
@@ -40,8 +35,7 @@ const updateStatusSchema = z.object({
   status: z.enum(["PENDING", "COMPLETED", "REFUNDED", "FAILED"]),
 });
 
-const getUserOrdersQuerySchema = z.object({
-  page: z.coerce.number().int().positive().optional().default(1),
+const getUserOrdersQuerySchema = paginationSchema.extend({
   limit: z.coerce.number().int().positive().max(50).optional().default(10),
 });
 
@@ -89,12 +83,7 @@ class OrderController {
     try {
       const id = req.params.id as string;
 
-      if (!id) {
-        res
-          .status(400)
-          .json(
-            errorResponse(ErrorCodes.VALIDATION_ERROR, "Order ID is required")
-          );
+      if (!ensureParam(id, res, "Order ID")) {
         return;
       }
 
@@ -134,12 +123,7 @@ class OrderController {
     try {
       const id = req.params.id as string;
 
-      if (!id) {
-        res
-          .status(400)
-          .json(
-            errorResponse(ErrorCodes.VALIDATION_ERROR, "Order ID is required")
-          );
+      if (!ensureParam(id, res, "Order ID")) {
         return;
       }
 
@@ -177,12 +161,12 @@ class OrderController {
     next: NextFunction
   ): Promise<void> {
     try {
-      const userId = req.user?.userId;
+      const userId = getUserIdFromToken(req);
 
       if (!userId) {
-        res
-          .status(401)
-          .json(errorResponse(ErrorCodes.AUTH_REQUIRED, "Not authenticated"));
+        res.status(401).json(
+          errorResponse(ErrorCodes.AUTH_REQUIRED, "Not authenticated")
+        );
         return;
       }
 
@@ -207,22 +191,17 @@ class OrderController {
     next: NextFunction
   ): Promise<void> {
     try {
-      const userId = req.user?.userId;
+      const userId = getUserIdFromToken(req);
       const orderId = req.params.id as string;
 
       if (!userId) {
-        res
-          .status(401)
-          .json(errorResponse(ErrorCodes.AUTH_REQUIRED, "Not authenticated"));
+        res.status(401).json(
+          errorResponse(ErrorCodes.AUTH_REQUIRED, "Not authenticated")
+        );
         return;
       }
 
-      if (!orderId) {
-        res
-          .status(400)
-          .json(
-            errorResponse(ErrorCodes.VALIDATION_ERROR, "Order ID is required")
-          );
+      if (!ensureParam(orderId, res, "Order ID")) {
         return;
       }
 
@@ -243,14 +222,9 @@ class OrderController {
     next: NextFunction
   ): Promise<void> {
     try {
-      const timestamp = new Date().toISOString().split("T")[0];
+      const orders = await orderService.getAllForExport();
 
-      const orders = await db.order.findMany({
-        include: { user: { select: { name: true } } },
-        orderBy: { createdAt: "desc" },
-      });
-
-      const csv = exportService.exportToCsv(orders, [
+      sendCsvExport(res, orders, [
         { header: "ID", accessor: "id" },
         { header: "User ID", accessor: (item) => item.userId || "" },
         { header: "User Name", accessor: (item) => item.user?.name || "" },
@@ -265,14 +239,7 @@ class OrderController {
         { header: "Items", accessor: (item) => JSON.stringify(item.items) },
         { header: "Created At", accessor: (item) => item.createdAt.toISOString() },
         { header: "Updated At", accessor: (item) => item.updatedAt.toISOString() },
-      ]);
-
-      res.setHeader("Content-Type", "text/csv; charset=utf-8");
-      res.setHeader(
-        "Content-Disposition",
-        `attachment; filename="orders-export-${timestamp}.csv"`
-      );
-      res.send(csv);
+      ], { filenamePrefix: "orders-export" });
     } catch (error) {
       next(error);
     }

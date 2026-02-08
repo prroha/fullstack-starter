@@ -7,16 +7,31 @@ import { successResponse, errorResponse, ErrorCodes } from "../utils/response";
 import { z } from "zod";
 import { AppRequest, AuthenticatedRequest } from "../types";
 import { generateCsrfToken } from "../middleware/csrf.middleware";
+import {
+  setAuthCookies,
+  clearAuthCookies,
+  extractRefreshToken,
+} from "../utils/cookies";
+import {
+  emailSchema,
+  passwordSchema,
+  strongPasswordSchema,
+  nameSchema,
+} from "../utils/validation-schemas";
+import { ensureParam } from "../utils/controller-helpers";
 
-// Validation schemas
+// ============================================================================
+// Validation Schemas
+// ============================================================================
+
 const registerSchema = z.object({
-  email: z.string().email("Invalid email format"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
-  name: z.string().min(1, "Name is required").optional(),
+  email: emailSchema,
+  password: passwordSchema,
+  name: nameSchema.optional(),
 });
 
 const loginSchema = z.object({
-  email: z.string().email("Invalid email format"),
+  email: emailSchema,
   password: z.string().min(1, "Password is required"),
 });
 
@@ -26,13 +41,7 @@ const refreshSchema = z.object({
 
 const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, "Current password is required"),
-  newPassword: z
-    .string()
-    .min(8, "New password must be at least 8 characters")
-    .regex(
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-      "Password must contain at least one uppercase letter, one lowercase letter, and one number"
-    ),
+  newPassword: strongPasswordSchema,
   confirmPassword: z.string().min(1, "Password confirmation is required"),
 }).refine((data) => data.newPassword === data.confirmPassword, {
   message: "Passwords do not match",
@@ -40,18 +49,12 @@ const changePasswordSchema = z.object({
 });
 
 const forgotPasswordSchema = z.object({
-  email: z.string().email("Invalid email format"),
+  email: emailSchema,
 });
 
 const resetPasswordSchema = z.object({
   token: z.string().min(1, "Reset token is required"),
-  password: z
-    .string()
-    .min(8, "Password must be at least 8 characters")
-    .regex(
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-      "Password must contain at least one uppercase letter, one lowercase letter, and one number"
-    ),
+  password: strongPasswordSchema,
   confirmPassword: z.string().min(1, "Password confirmation is required"),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords do not match",
@@ -108,27 +111,11 @@ class AuthController {
       // Generate CSRF token for the session
       const csrfToken = generateCsrfToken();
 
-      // Set httpOnly cookies for web clients
-      res.cookie("accessToken", result.accessToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      });
-
-      res.cookie("refreshToken", result.refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-      });
-
-      // Set CSRF token cookie (readable by JavaScript for header inclusion)
-      res.cookie("csrfToken", csrfToken, {
-        httpOnly: false, // Must be readable by JS to send in header
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      // Set authentication cookies for web clients
+      setAuthCookies(res, {
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
+        csrfToken,
       });
 
       // Audit log: successful login
@@ -198,16 +185,12 @@ class AuthController {
       const validated = refreshSchema.parse(req.body);
 
       // Try to get refresh token from cookie first, then body
-      const refreshToken = req.cookies?.refreshToken || validated.refreshToken;
+      const refreshToken = extractRefreshToken(req) || validated.refreshToken;
 
       if (!refreshToken) {
-        return res.status(400).json({
-          success: false,
-          error: {
-            code: "INVALID_INPUT",
-            message: "Refresh token is required",
-          },
-        });
+        return res.status(400).json(
+          errorResponse(ErrorCodes.INVALID_INPUT, "Refresh token is required")
+        );
       }
 
       const ipAddress = req.ip || req.socket.remoteAddress;
@@ -219,30 +202,12 @@ class AuthController {
         userAgent,
       });
 
-      // Generate new CSRF token
+      // Generate new CSRF token and set all auth cookies
       const csrfToken = generateCsrfToken();
-
-      // Update cookies with new tokens
-      res.cookie("accessToken", result.accessToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      });
-
-      res.cookie("refreshToken", result.refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-      });
-
-      // Update CSRF token cookie
-      res.cookie("csrfToken", csrfToken, {
-        httpOnly: false,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      setAuthCookies(res, {
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
+        csrfToken,
       });
 
       res.json(successResponse({
@@ -276,17 +241,15 @@ class AuthController {
       }
 
       // Get refresh token to invalidate session
-      const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
+      const refreshToken = extractRefreshToken(req);
 
       // Invalidate session in database
       if (refreshToken) {
         await authService.logout({ refreshToken });
       }
 
-      // Clear cookies
-      res.clearCookie("accessToken");
-      res.clearCookie("refreshToken");
-      res.clearCookie("csrfToken");
+      // Clear all auth cookies
+      clearAuthCookies(res);
 
       res.json(successResponse(null, "Logged out successfully"));
     } catch (error) {
@@ -378,11 +341,8 @@ class AuthController {
     try {
       const token = req.params.token as string;
 
-      if (!token) {
-        return res.status(400).json(errorResponse(
-          ErrorCodes.INVALID_INPUT,
-          "Reset token is required"
-        ));
+      if (!ensureParam(token, res, "Reset token")) {
+        return;
       }
 
       const result = await authService.verifyResetToken(token);
@@ -437,11 +397,8 @@ class AuthController {
     try {
       const token = req.params.token as string;
 
-      if (!token) {
-        return res.status(400).json(errorResponse(
-          ErrorCodes.INVALID_INPUT,
-          "Verification token is required"
-        ));
+      if (!ensureParam(token, res, "Verification token")) {
+        return;
       }
 
       const result = await emailVerificationService.verifyEmail(token);
@@ -481,7 +438,7 @@ class AuthController {
   async getSessions(req: AppRequest, res: Response, next: NextFunction) {
     try {
       const authReq = req as AuthenticatedRequest;
-      const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
+      const refreshToken = extractRefreshToken(req);
 
       const sessions = await authService.getSessions(authReq.dbUser.id, refreshToken);
 
@@ -500,11 +457,8 @@ class AuthController {
       const authReq = req as AuthenticatedRequest;
       const sessionId = req.params.id as string;
 
-      if (!sessionId) {
-        return res.status(400).json(errorResponse(
-          ErrorCodes.INVALID_INPUT,
-          "Session ID is required"
-        ));
+      if (!ensureParam(sessionId, res, "Session ID")) {
+        return;
       }
 
       await authService.revokeSession(authReq.dbUser.id, sessionId);
@@ -522,13 +476,10 @@ class AuthController {
   async revokeAllOtherSessions(req: AppRequest, res: Response, next: NextFunction) {
     try {
       const authReq = req as AuthenticatedRequest;
-      const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
+      const refreshToken = extractRefreshToken(req);
 
-      if (!refreshToken) {
-        return res.status(400).json(errorResponse(
-          ErrorCodes.INVALID_INPUT,
-          "Refresh token is required to identify current session"
-        ));
+      if (!ensureParam(refreshToken, res, "Refresh token")) {
+        return;
       }
 
       const count = await authService.revokeAllOtherSessions(authReq.dbUser.id, refreshToken);

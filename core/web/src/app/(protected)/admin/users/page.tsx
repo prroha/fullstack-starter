@@ -1,26 +1,32 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { api, ApiError, AdminUser } from "@/lib/api";
-import { Button, Input, Badge, SkeletonTable, ExportCsvButton, Text, Select } from "@/components/ui";
+import { Button, Input, Badge, Text, Select, Modal } from "@/components/ui";
 import { Alert } from "@/components/feedback";
-import { EmptyUsers, EmptySearch } from "@/components/shared";
+import { EmptyUsers } from "@/components/shared";
+import { AdminPageHeader, AdminTableContainer } from "@/components/admin";
+import { useAdminList } from "@/lib/hooks";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { downloadFile } from "@/lib/export";
 
-interface PaginationInfo {
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
-  hasNext: boolean;
-  hasPrev: boolean;
+// =====================================================
+// Types
+// =====================================================
+
+type RoleFilter = "" | "USER" | "ADMIN" | "SUPER_ADMIN";
+type StatusFilter = "" | "active" | "inactive";
+
+interface UserFilters {
+  role: RoleFilter;
+  status: StatusFilter;
 }
 
-/**
- * User Row Component
- */
+// =====================================================
+// User Row Component
+// =====================================================
+
 function UserRow({
   user,
   onEdit,
@@ -97,76 +103,10 @@ function UserRow({
   );
 }
 
-/**
- * Pagination Component
- */
-function Pagination({
-  pagination,
-  onPageChange,
-}: {
-  pagination: PaginationInfo;
-  onPageChange: (page: number) => void;
-}) {
-  const pages = Array.from({ length: pagination.totalPages }, (_, i) => i + 1);
-  const visiblePages = pages.filter(
-    (p) =>
-      p === 1 ||
-      p === pagination.totalPages ||
-      Math.abs(p - pagination.page) <= 1
-  );
+// =====================================================
+// Edit User Modal
+// =====================================================
 
-  return (
-    <div className="flex items-center justify-between px-2">
-      <Text variant="caption" color="muted">
-        Showing {(pagination.page - 1) * pagination.limit + 1} to{" "}
-        {Math.min(pagination.page * pagination.limit, pagination.total)} of{" "}
-        {pagination.total} users
-      </Text>
-      <div className="flex items-center gap-1">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onPageChange(pagination.page - 1)}
-          disabled={!pagination.hasPrev}
-        >
-          Previous
-        </Button>
-        {visiblePages.map((page, index) => {
-          const prevPage = visiblePages[index - 1];
-          const showEllipsis = prevPage && page - prevPage > 1;
-
-          return (
-            <div key={page} className="flex items-center">
-              {showEllipsis && (
-                <span className="px-2 text-muted-foreground">...</span>
-              )}
-              <Button
-                variant={page === pagination.page ? "default" : "ghost"}
-                size="sm"
-                onClick={() => onPageChange(page)}
-                className="w-9"
-              >
-                {page}
-              </Button>
-            </div>
-          );
-        })}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onPageChange(pagination.page + 1)}
-          disabled={!pagination.hasNext}
-        >
-          Next
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-/**
- * Edit User Modal
- */
 function EditUserModal({
   user,
   onClose,
@@ -186,129 +126,105 @@ function EditUserModal({
     onSave({ role, name: name || undefined });
   };
 
+  const roleOptions = [
+    { value: "USER", label: "User" },
+    { value: "ADMIN", label: "Admin" },
+    { value: "SUPER_ADMIN", label: "Super Admin" },
+  ];
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div
-        className="absolute inset-0 bg-black/50"
-        onClick={onClose}
-        aria-hidden="true"
-      />
-      <div className="relative z-10 w-full max-w-md rounded-lg border bg-background p-6 shadow-lg">
-        <h2 className="text-lg font-semibold mb-4">Edit User</h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <label htmlFor="email" className="text-sm font-medium">
-              Email
-            </label>
-            <Input id="email" value={user.email} disabled />
-          </div>
-          <div className="space-y-2">
-            <label htmlFor="name" className="text-sm font-medium">
-              Name
-            </label>
-            <Input
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Enter name"
-            />
-          </div>
-          <div className="space-y-2">
-            <label htmlFor="role" className="text-sm font-medium">
-              Role
-            </label>
-            <select
-              id="role"
-              value={role}
-              onChange={(e) => setRole(e.target.value as "USER" | "ADMIN" | "SUPER_ADMIN")}
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-            >
-              <option value="USER">User</option>
-              <option value="ADMIN">Admin</option>
-              <option value="SUPER_ADMIN">Super Admin</option>
-            </select>
-          </div>
-          <div className="flex justify-end gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button type="submit" isLoading={isSaving}>
-              Save Changes
-            </Button>
-          </div>
-        </form>
-      </div>
-    </div>
+    <Modal isOpen onClose={onClose} title="Edit User">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-2">
+          <label htmlFor="email" className="text-sm font-medium">
+            Email
+          </label>
+          <Input id="email" value={user.email} disabled />
+        </div>
+        <div className="space-y-2">
+          <label htmlFor="name" className="text-sm font-medium">
+            Name
+          </label>
+          <Input
+            id="name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Enter name"
+          />
+        </div>
+        <div className="space-y-2">
+          <label htmlFor="role" className="text-sm font-medium">
+            Role
+          </label>
+          <Select
+            options={roleOptions}
+            value={role}
+            onChange={(value) => setRole(value as "USER" | "ADMIN" | "SUPER_ADMIN")}
+          />
+        </div>
+        <div className="flex justify-end gap-2 pt-4">
+          <Button type="button" variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" isLoading={isSaving}>
+            Save Changes
+          </Button>
+        </div>
+      </form>
+    </Modal>
   );
 }
 
-/**
- * Admin Users Page
- */
+// =====================================================
+// Admin Users Page
+// =====================================================
+
 export default function AdminUsersPage() {
-  const [users, setUsers] = useState<AdminUser[]>([]);
-  const [pagination, setPagination] = useState<PaginationInfo | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
-  const [searchDebounced, setSearchDebounced] = useState("");
   const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
-  const [roleFilter, setRoleFilter] = useState<"" | "USER" | "ADMIN" | "SUPER_ADMIN">("");
-  const [statusFilter, setStatusFilter] = useState<"" | "active" | "inactive">(
-    ""
-  );
 
-  // Debounce search
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setSearchDebounced(search);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [search]);
+  // Use shared admin list hook
+  const {
+    items: users,
+    pagination,
+    isLoading,
+    error,
+    search,
+    setSearch,
+    searchDebounced,
+    filters,
+    setFilter,
+    handlePageChange,
+    clearFilters,
+    hasActiveFilters,
+    isEmpty,
+    refetch,
+  } = useAdminList<AdminUser, UserFilters>({
+    fetchFn: async ({ page, limit, search, filters }) => {
+      const response = await api.getAdminUsers({
+        page,
+        limit,
+        search: search || undefined,
+        role: filters.role || undefined,
+        isActive:
+          filters.status === "active"
+            ? true
+            : filters.status === "inactive"
+            ? false
+            : undefined,
+      });
 
-  const fetchUsers = useCallback(
-    async (page = 1) => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        const response = await api.getAdminUsers({
-          page,
-          limit: 10,
-          search: searchDebounced || undefined,
-          role: roleFilter || undefined,
-          isActive:
-            statusFilter === "active"
-              ? true
-              : statusFilter === "inactive"
-              ? false
-              : undefined,
-        });
-
-        if (response.data) {
-          setUsers(response.data.items);
-          setPagination(response.data.pagination);
-        }
-      } catch (err) {
-        if (err instanceof ApiError) {
-          setError(err.message);
-        } else {
-          setError("Failed to load users");
-        }
-      } finally {
-        setIsLoading(false);
+      if (!response.data) {
+        throw new Error("Failed to load users");
       }
+
+      return {
+        items: response.data.items,
+        pagination: response.data.pagination,
+      };
     },
-    [searchDebounced, roleFilter, statusFilter]
-  );
-
-  useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
-
-  const handlePageChange = (page: number) => {
-    fetchUsers(page);
-  };
+    initialFilters: { role: "", status: "" },
+  });
 
   const handleToggleStatus = async (user: AdminUser) => {
     try {
@@ -317,7 +233,7 @@ export default function AdminUsersPage() {
       toast.success(
         `User ${user.isActive ? "deactivated" : "activated"} successfully`
       );
-      fetchUsers(pagination?.page || 1);
+      refetch(pagination?.page || 1);
     } catch (err) {
       if (err instanceof ApiError) {
         toast.error(err.message);
@@ -340,7 +256,7 @@ export default function AdminUsersPage() {
       await api.updateAdminUser(editingUser.id, data);
       toast.success("User updated successfully");
       setEditingUser(null);
-      fetchUsers(pagination?.page || 1);
+      refetch(pagination?.page || 1);
     } catch (err) {
       if (err instanceof ApiError) {
         toast.error(err.message);
@@ -352,25 +268,33 @@ export default function AdminUsersPage() {
     }
   };
 
+  const roleFilterOptions = [
+    { value: "", label: "All Roles" },
+    { value: "USER", label: "User" },
+    { value: "ADMIN", label: "Admin" },
+    { value: "SUPER_ADMIN", label: "Super Admin" },
+  ];
+
+  const statusFilterOptions = [
+    { value: "", label: "All Status" },
+    { value: "active", label: "Active" },
+    { value: "inactive", label: "Inactive" },
+  ];
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Users</h1>
-          <Text color="muted">
-            Manage all users in your application
-          </Text>
-        </div>
-        <ExportCsvButton
-          label="Export Users"
-          onExport={async () => {
+      <AdminPageHeader
+        title="Users"
+        description="Manage all users in your application"
+        exportConfig={{
+          label: "Export Users",
+          onExport: async () => {
             await downloadFile(api.getAdminUsersExportUrl());
-          }}
-          onSuccess={() => toast.success("Users exported successfully")}
-          onError={(error) => toast.error(error.message || "Export failed")}
-        />
-      </div>
+          },
+          successMessage: "Users exported successfully",
+        }}
+      />
 
       {/* Filters */}
       <div className="flex flex-wrap gap-4">
@@ -382,105 +306,74 @@ export default function AdminUsersPage() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <select
-          value={roleFilter}
-          onChange={(e) => setRoleFilter(e.target.value as "" | "USER" | "ADMIN" | "SUPER_ADMIN")}
-          className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-        >
-          <option value="">All Roles</option>
-          <option value="USER">User</option>
-          <option value="ADMIN">Admin</option>
-          <option value="SUPER_ADMIN">Super Admin</option>
-        </select>
-        <select
-          value={statusFilter}
-          onChange={(e) =>
-            setStatusFilter(e.target.value as "" | "active" | "inactive")
-          }
-          className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-        >
-          <option value="">All Status</option>
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
-        </select>
+        <Select
+          options={roleFilterOptions}
+          value={filters.role}
+          onChange={(value) => setFilter("role", value as RoleFilter)}
+          className="w-40"
+        />
+        <Select
+          options={statusFilterOptions}
+          value={filters.status}
+          onChange={(value) => setFilter("status", value as StatusFilter)}
+          className="w-40"
+        />
       </div>
 
       {/* Error Alert */}
       {error && <Alert variant="destructive">{error}</Alert>}
 
       {/* Users Table */}
-      <div className="rounded-lg border bg-card">
-        {isLoading ? (
-          <div className="p-6">
-            <SkeletonTable rows={5} columns={5} />
-          </div>
-        ) : users.length === 0 ? (
-          <div className="p-6">
-            {searchDebounced || roleFilter || statusFilter ? (
-              <EmptySearch
-                searchQuery={searchDebounced}
-                action={{
-                  label: "Clear filters",
-                  onClick: () => {
-                    setSearch("");
-                    setSearchDebounced("");
-                    setRoleFilter("");
-                    setStatusFilter("");
-                  },
-                  variant: "outline",
-                }}
-              />
+      <AdminTableContainer
+        isLoading={isLoading}
+        isEmpty={isEmpty}
+        hasActiveFilters={hasActiveFilters}
+        searchQuery={searchDebounced}
+        onClearFilters={clearFilters}
+        emptyState={{
+          title: "No users",
+          description: "Users will appear here once they register.",
+        }}
+        pagination={pagination}
+        onPageChange={handlePageChange}
+        itemLabel="users"
+        skeletonRows={5}
+        skeletonColumns={5}
+      >
+        {!isEmpty && !isLoading && (
+          <>
+            {/* Show EmptyUsers when no users exist at all */}
+            {users.length === 0 && !hasActiveFilters ? (
+              <div className="p-6">
+                <EmptyUsers />
+              </div>
             ) : (
-              <EmptyUsers />
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b bg-muted/50">
+                    <th className="px-4 py-3 text-left text-sm font-medium">User</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium">Role</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium">Status</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium">Joined</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {users.map((user) => (
+                    <UserRow
+                      key={user.id}
+                      user={user}
+                      onEdit={setEditingUser}
+                      onToggleStatus={handleToggleStatus}
+                      isUpdating={isUpdating}
+                    />
+                  ))}
+                </tbody>
+              </table>
             )}
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b bg-muted/50">
-                  <th className="px-4 py-3 text-left text-sm font-medium">
-                    User
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">
-                    Role
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">
-                    Status
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">
-                    Joined
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((user) => (
-                  <UserRow
-                    key={user.id}
-                    user={user}
-                    onEdit={setEditingUser}
-                    onToggleStatus={handleToggleStatus}
-                    isUpdating={isUpdating}
-                  />
-                ))}
-              </tbody>
-            </table>
-          </div>
+          </>
         )}
-
-        {/* Pagination */}
-        {pagination && pagination.totalPages > 1 && (
-          <div className="border-t p-4">
-            <Pagination
-              pagination={pagination}
-              onPageChange={handlePageChange}
-            />
-          </div>
-        )}
-      </div>
+      </AdminTableContainer>
 
       {/* Edit Modal */}
       {editingUser && (
