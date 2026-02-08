@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/theme_provider.dart';
@@ -11,12 +10,15 @@ import '../../widgets/atoms/app_button.dart';
 import '../../widgets/molecules/app_snackbar.dart';
 import '../../widgets/molecules/email_verification_banner.dart';
 import '../../widgets/notifications/notification_bell.dart';
+import '../../widgets/organisms/app_drawer.dart';
 
-/// Home screen with user info and logout functionality
+/// Home screen with user info, drawer navigation, and logout functionality
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   Future<void> _handleLogout(BuildContext context, WidgetRef ref) async {
+    final colorScheme = Theme.of(context).colorScheme;
+
     // Show confirmation dialog
     final shouldLogout = await showDialog<bool>(
       context: context,
@@ -30,9 +32,9 @@ class HomeScreen extends ConsumerWidget {
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text(
+            child: Text(
               'Logout',
-              style: TextStyle(color: AppColors.error),
+              style: TextStyle(color: colorScheme.error),
             ),
           ),
         ],
@@ -58,6 +60,65 @@ class HomeScreen extends ConsumerWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
+    // Build drawer items based on user role
+    final drawerItems = <AppDrawerItem>[
+      AppDrawerItem(
+        icon: Icons.home_outlined,
+        label: 'Home',
+        isSelected: true,
+        onTap: () {}, // Already on home
+      ),
+      AppDrawerItem(
+        icon: Icons.person_outline,
+        label: 'Profile',
+        onTap: () => context.go(Routes.profile),
+      ),
+      AppDrawerItem(
+        icon: Icons.search,
+        label: 'Search',
+        onTap: () => context.push(Routes.search),
+      ),
+      AppDrawerItem(
+        icon: Icons.notifications_outlined,
+        label: 'Notifications',
+        onTap: () => context.push(Routes.notifications),
+      ),
+    ];
+
+    // Add admin items if user is admin
+    if (authState.isAdmin) {
+      drawerItems.addAll([
+        AppDrawerItem(
+          icon: Icons.dashboard_outlined,
+          label: 'Admin Dashboard',
+          onTap: () => context.push(Routes.adminDashboard),
+        ),
+        AppDrawerItem(
+          icon: Icons.people_outline,
+          label: 'Manage Users',
+          onTap: () => context.push(Routes.adminUsers),
+        ),
+        AppDrawerItem(
+          icon: Icons.history,
+          label: 'Audit Logs',
+          onTap: () => context.push(Routes.adminAuditLogs),
+        ),
+      ]);
+    }
+
+    final footerItems = <AppDrawerItem>[
+      AppDrawerItem(
+        icon: Icons.settings_outlined,
+        label: 'Settings',
+        onTap: () => context.go(Routes.settings),
+      ),
+      AppDrawerItem(
+        icon: Icons.logout,
+        label: 'Logout',
+        onTap: () => _handleLogout(context, ref),
+      ),
+    ];
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Home'),
@@ -69,6 +130,26 @@ class HomeScreen extends ConsumerWidget {
           // User menu - consolidates Profile, Settings, Theme, Logout
           _UserMenu(onLogout: () => _handleLogout(context, ref)),
         ],
+      ),
+      drawer: AppDrawer(
+        headerTitle: authState.email ?? 'User',
+        headerSubtitle: authState.isAdmin ? 'Administrator' : 'Member',
+        headerAvatar: CircleAvatar(
+          radius: 24,
+          backgroundColor: colorScheme.primaryContainer,
+          child: Text(
+            authState.email?.isNotEmpty == true
+                ? authState.email![0].toUpperCase()
+                : 'U',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: colorScheme.onPrimaryContainer,
+            ),
+          ),
+        ),
+        items: drawerItems,
+        footerItems: footerItems,
       ),
       body: SafeArea(
         child: Column(
@@ -88,7 +169,7 @@ class HomeScreen extends ConsumerWidget {
                     Container(
                       padding: AppSpacing.cardContentPadding,
                       decoration: BoxDecoration(
-                        color: colorScheme.surface,
+                        color: colorScheme.surfaceContainerHighest,
                         borderRadius: AppSpacing.borderRadiusMd,
                         boxShadow: [
                           BoxShadow(
@@ -124,6 +205,26 @@ class HomeScreen extends ConsumerWidget {
                                 color: colorScheme.onSurfaceVariant,
                               ),
                             ),
+                          if (authState.isAdmin) ...[
+                            AppSpacing.gapSm,
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: colorScheme.tertiaryContainer,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                'Administrator',
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: colorScheme.onTertiaryContainer,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -237,31 +338,31 @@ class _UserMenu extends ConsumerWidget {
       ),
       itemBuilder: (context) => [
         // Profile
-        PopupMenuItem<String>(
+        const PopupMenuItem<String>(
           value: 'profile',
           child: ListTile(
-            leading: const Icon(Icons.person_outline),
-            title: const Text('Profile'),
+            leading: Icon(Icons.person_outline),
+            title: Text('Profile'),
             contentPadding: EdgeInsets.zero,
             dense: true,
           ),
         ),
         // Settings
-        PopupMenuItem<String>(
+        const PopupMenuItem<String>(
           value: 'settings',
           child: ListTile(
-            leading: const Icon(Icons.settings_outlined),
-            title: const Text('Settings'),
+            leading: Icon(Icons.settings_outlined),
+            title: Text('Settings'),
             contentPadding: EdgeInsets.zero,
             dense: true,
           ),
         ),
         // Search
-        PopupMenuItem<String>(
+        const PopupMenuItem<String>(
           value: 'search',
           child: ListTile(
-            leading: const Icon(Icons.search),
-            title: const Text('Search'),
+            leading: Icon(Icons.search),
+            title: Text('Search'),
             contentPadding: EdgeInsets.zero,
             dense: true,
           ),

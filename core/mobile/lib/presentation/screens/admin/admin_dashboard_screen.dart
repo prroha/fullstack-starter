@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../data/repositories/admin_repository.dart';
 import '../../providers/admin_provider.dart';
@@ -11,7 +10,7 @@ import '../../widgets/atoms/app_button.dart';
 import '../../widgets/layout/error_state.dart';
 import '../../widgets/layout/loading_overlay.dart';
 
-/// Stats Card Widget
+/// Stats Card Widget - uses theme system colors
 class StatsCard extends StatelessWidget {
   final String title;
   final String value;
@@ -28,14 +27,18 @@ class StatsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final effectiveIconColor = iconColor ?? colorScheme.primary;
+
     return Container(
       padding: AppSpacing.cardContentPadding,
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: colorScheme.surfaceContainerHighest,
         borderRadius: AppSpacing.borderRadiusMd,
         boxShadow: [
           BoxShadow(
-            color: AppColors.black.withAlpha(13),
+            color: colorScheme.shadow.withAlpha(13),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -49,21 +52,20 @@ class StatsCard extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: AppColors.textSecondary,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
                 ),
               ),
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: (iconColor ?? AppColors.primary).withAlpha(26),
+                  color: effectiveIconColor.withAlpha(26),
                   borderRadius: AppSpacing.borderRadiusSm,
                 ),
                 child: Icon(
                   icon,
                   size: 20,
-                  color: iconColor ?? AppColors.primary,
+                  color: effectiveIconColor,
                 ),
               ),
             ],
@@ -71,10 +73,9 @@ class StatsCard extends StatelessWidget {
           AppSpacing.gapSm,
           Text(
             value,
-            style: const TextStyle(
-              fontSize: 28,
+            style: theme.textTheme.headlineMedium?.copyWith(
               fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
+              color: colorScheme.onSurface,
             ),
           ),
         ],
@@ -83,7 +84,7 @@ class StatsCard extends StatelessWidget {
   }
 }
 
-/// Signups Chart Widget
+/// Signups Chart Widget - uses theme system colors
 class SignupsChart extends StatelessWidget {
   final List<SignupByDay> data;
 
@@ -93,17 +94,19 @@ class SignupsChart extends StatelessWidget {
   Widget build(BuildContext context) {
     if (data.isEmpty) return const SizedBox.shrink();
 
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final maxCount = data.map((d) => d.count).reduce((a, b) => a > b ? a : b);
     final effectiveMax = maxCount > 0 ? maxCount : 1;
 
     return Container(
       padding: AppSpacing.cardContentPadding,
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: colorScheme.surfaceContainerHighest,
         borderRadius: AppSpacing.borderRadiusMd,
         boxShadow: [
           BoxShadow(
-            color: AppColors.black.withAlpha(13),
+            color: colorScheme.shadow.withAlpha(13),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -112,12 +115,11 @@ class SignupsChart extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Signups (Last 7 Days)',
-            style: TextStyle(
-              fontSize: 16,
+            style: theme.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
+              color: colorScheme.onSurface,
             ),
           ),
           AppSpacing.gapMd,
@@ -136,10 +138,9 @@ class SignupsChart extends StatelessWidget {
                     children: [
                       Text(
                         '${day.count}',
-                        style: const TextStyle(
-                          fontSize: 10,
+                        style: theme.textTheme.labelSmall?.copyWith(
                           fontWeight: FontWeight.w500,
-                          color: AppColors.textSecondary,
+                          color: colorScheme.onSurfaceVariant,
                         ),
                       ),
                       AppSpacing.gapXs,
@@ -147,7 +148,7 @@ class SignupsChart extends StatelessWidget {
                         height: height > 4 ? height : 4,
                         margin: const EdgeInsets.symmetric(horizontal: 4),
                         decoration: BoxDecoration(
-                          color: AppColors.primary,
+                          color: colorScheme.primary,
                           borderRadius: const BorderRadius.vertical(
                             top: Radius.circular(4),
                           ),
@@ -156,9 +157,8 @@ class SignupsChart extends StatelessWidget {
                       AppSpacing.gapXs,
                       Text(
                         dayLabel,
-                        style: const TextStyle(
-                          fontSize: 10,
-                          color: AppColors.textSecondary,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ],
@@ -178,7 +178,7 @@ class SignupsChart extends StatelessWidget {
   }
 }
 
-/// Admin Dashboard Screen
+/// Admin Dashboard Screen - uses theme system colors
 class AdminDashboardScreen extends ConsumerStatefulWidget {
   const AdminDashboardScreen({super.key});
 
@@ -200,13 +200,14 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(adminDashboardProvider);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: colorScheme.surface,
       appBar: AppBar(
         title: const Text('Admin Dashboard'),
         centerTitle: true,
-        backgroundColor: AppColors.surface,
         elevation: 0,
         actions: [
           IconButton(
@@ -242,12 +243,11 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           // Title
-                          const Text(
+                          Text(
                             'Overview',
-                            style: TextStyle(
-                              fontSize: 24,
+                            style: theme.textTheme.headlineSmall?.copyWith(
                               fontWeight: FontWeight.bold,
-                              color: AppColors.textPrimary,
+                              color: colorScheme.onSurface,
                             ),
                           ),
                           AppSpacing.gapMd,
@@ -270,19 +270,19 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                                 title: 'Active Users',
                                 value: '${state.stats!.activeUsers}',
                                 icon: Icons.check_circle,
-                                iconColor: AppColors.success,
+                                iconColor: Colors.green,
                               ),
                               StatsCard(
                                 title: 'Inactive',
                                 value: '${state.stats!.inactiveUsers}',
                                 icon: Icons.cancel,
-                                iconColor: AppColors.error,
+                                iconColor: colorScheme.error,
                               ),
                               StatsCard(
                                 title: 'Recent Signups',
                                 value: '${state.stats!.recentSignups}',
                                 icon: Icons.person_add,
-                                iconColor: AppColors.info,
+                                iconColor: colorScheme.tertiary,
                               ),
                             ],
                           ),

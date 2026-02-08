@@ -668,11 +668,19 @@ class ApiClient {
 
     const requestId = this.generateRequestId();
 
+    // Get CSRF token from cookie for multipart form uploads
+    const csrfToken = this.getCsrfTokenFromCookie();
+
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
       xhr.open("POST", `${this.config.baseUrl}/v1/users/me/avatar`);
       xhr.withCredentials = true;
       xhr.setRequestHeader("x-request-id", requestId);
+
+      // Include CSRF token for file uploads
+      if (csrfToken) {
+        xhr.setRequestHeader("x-csrf-token", csrfToken);
+      }
 
       xhr.upload.onprogress = (event) => {
         if (event.lengthComputable && onProgress) {
@@ -715,6 +723,18 @@ class ApiClient {
       const v = c === "x" ? r : (r & 0x3) | 0x8;
       return v.toString(16);
     });
+  }
+
+  /**
+   * Get CSRF token from cookie for requests that need manual CSRF handling
+   * (e.g., file uploads using XMLHttpRequest)
+   */
+  private getCsrfTokenFromCookie(): string | undefined {
+    if (typeof document === "undefined") {
+      return undefined;
+    }
+    const match = document.cookie.match(/(?:^|;\s*)csrfToken=([^;]*)/);
+    return match ? decodeURIComponent(match[1]) : undefined;
   }
 
   // =====================================================

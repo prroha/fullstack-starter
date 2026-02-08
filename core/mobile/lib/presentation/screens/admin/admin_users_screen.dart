@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/services/export_service.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../data/repositories/admin_repository.dart';
 import '../../providers/admin_provider.dart';
@@ -12,7 +11,7 @@ import '../../widgets/empty_states/empty_search.dart';
 import '../../widgets/layout/error_state.dart';
 import '../../widgets/molecules/app_snackbar.dart';
 
-/// User List Item Widget
+/// User List Item Widget - uses theme system colors
 class UserListItem extends StatelessWidget {
   final AdminUser user;
   final VoidCallback onToggleStatus;
@@ -29,14 +28,17 @@ class UserListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: colorScheme.surfaceContainerHighest,
         borderRadius: AppSpacing.borderRadiusMd,
         boxShadow: [
           BoxShadow(
-            color: AppColors.black.withAlpha(10),
+            color: colorScheme.shadow.withAlpha(10),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -54,8 +56,8 @@ class UserListItem extends StatelessWidget {
                 CircleAvatar(
                   radius: 24,
                   backgroundColor: user.isAdmin
-                      ? AppColors.warning.withAlpha(51)
-                      : AppColors.primary.withAlpha(51),
+                      ? Colors.orange.withAlpha(51)
+                      : colorScheme.primaryContainer,
                   child: Text(
                     (user.name?.isNotEmpty == true
                             ? user.name![0]
@@ -63,7 +65,7 @@ class UserListItem extends StatelessWidget {
                         .toUpperCase(),
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: user.isAdmin ? AppColors.warning : AppColors.primary,
+                      color: user.isAdmin ? Colors.orange : colorScheme.onPrimaryContainer,
                     ),
                   ),
                 ),
@@ -75,17 +77,15 @@ class UserListItem extends StatelessWidget {
                     children: [
                       Text(
                         user.name ?? 'No name',
-                        style: const TextStyle(
-                          fontSize: 16,
+                        style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
+                          color: colorScheme.onSurface,
                         ),
                       ),
                       Text(
                         user.email,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: AppColors.textSecondary,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ],
@@ -95,9 +95,9 @@ class UserListItem extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    _buildRoleBadge(),
+                    _buildRoleBadge(context),
                     AppSpacing.gapXs,
-                    _buildStatusBadge(),
+                    _buildStatusBadge(context),
                   ],
                 ),
               ],
@@ -106,14 +106,12 @@ class UserListItem extends StatelessWidget {
             // Created date
             Text(
               'Joined: ${_formatDate(user.createdAt)}',
-              style: const TextStyle(
-                fontSize: 12,
-                color: AppColors.textSecondary,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
               ),
             ),
             AppSpacing.gapMd,
             // Actions - Edit is primary, status toggle is secondary
-            // Deactivate uses warning color to indicate destructive action
             Row(
               children: [
                 Expanded(
@@ -139,8 +137,8 @@ class UserListItem extends StatelessWidget {
                               : const Icon(Icons.block, size: 14),
                           label: const Text('Deactivate', style: TextStyle(fontSize: 12)),
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: AppColors.error,
-                            side: const BorderSide(color: AppColors.error),
+                            foregroundColor: colorScheme.error,
+                            side: BorderSide(color: colorScheme.error),
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                             shape: RoundedRectangleBorder(
                               borderRadius: AppSpacing.borderRadiusMd,
@@ -164,13 +162,15 @@ class UserListItem extends StatelessWidget {
     );
   }
 
-  Widget _buildRoleBadge() {
+  Widget _buildRoleBadge(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: user.isAdmin
-            ? AppColors.warning.withAlpha(26)
-            : AppColors.secondary.withAlpha(26),
+            ? Colors.orange.withAlpha(26)
+            : colorScheme.secondaryContainer,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
@@ -178,19 +178,21 @@ class UserListItem extends StatelessWidget {
         style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w500,
-          color: user.isAdmin ? AppColors.warning : AppColors.textSecondary,
+          color: user.isAdmin ? Colors.orange : colorScheme.onSecondaryContainer,
         ),
       ),
     );
   }
 
-  Widget _buildStatusBadge() {
+  Widget _buildStatusBadge(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: user.isActive
-            ? AppColors.success.withAlpha(26)
-            : AppColors.error.withAlpha(26),
+            ? Colors.green.withAlpha(26)
+            : colorScheme.errorContainer,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
@@ -198,7 +200,7 @@ class UserListItem extends StatelessWidget {
         style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w500,
-          color: user.isActive ? AppColors.success : AppColors.error,
+          color: user.isActive ? Colors.green : colorScheme.error,
         ),
       ),
     );
@@ -209,7 +211,7 @@ class UserListItem extends StatelessWidget {
   }
 }
 
-/// Edit User Dialog
+/// Edit User Dialog - uses theme system colors
 class EditUserDialog extends StatefulWidget {
   final AdminUser user;
   final Function(String role) onSave;
@@ -235,6 +237,9 @@ class _EditUserDialogState extends State<EditUserDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return AlertDialog(
       title: const Text('Edit User'),
       content: Column(
@@ -243,16 +248,14 @@ class _EditUserDialogState extends State<EditUserDialog> {
         children: [
           Text(
             widget.user.email,
-            style: const TextStyle(
-              fontSize: 14,
-              color: AppColors.textSecondary,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: colorScheme.onSurfaceVariant,
             ),
           ),
           AppSpacing.gapMd,
-          const Text(
+          Text(
             'Role',
-            style: TextStyle(
-              fontSize: 14,
+            style: theme.textTheme.bodyMedium?.copyWith(
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -384,6 +387,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
   }
 
   Future<void> _toggleUserStatus(AdminUser user) async {
+    final colorScheme = Theme.of(context).colorScheme;
     final success =
         await ref.read(adminUsersProvider.notifier).toggleUserStatus(user);
 
@@ -395,7 +399,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                 ? 'User ${user.isActive ? 'deactivated' : 'activated'} successfully'
                 : 'Failed to update user status',
           ),
-          backgroundColor: success ? AppColors.success : AppColors.error,
+          backgroundColor: success ? Colors.green : colorScheme.error,
         ),
       );
     }
@@ -404,23 +408,24 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(adminUsersProvider);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: colorScheme.surface,
       appBar: AppBar(
         title: const Text('Manage Users'),
         centerTitle: true,
-        backgroundColor: AppColors.surface,
         elevation: 0,
         actions: [
           IconButton(
             icon: _isExporting
-                ? const SizedBox(
+                ? SizedBox(
                     width: 20,
                     height: 20,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: AppColors.textSecondary,
+                      color: colorScheme.onSurfaceVariant,
                     ),
                   )
                 : const Icon(Icons.download_outlined),
@@ -440,7 +445,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
         children: [
           // Search and Filters
           Container(
-            color: AppColors.surface,
+            color: colorScheme.surfaceContainerHighest,
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
@@ -608,6 +613,8 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
   }
 
   Widget _buildPagination(AdminUsersState state) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     if (state.totalPages <= 1) return AppSpacing.gapMd;
 
     return Padding(
@@ -624,9 +631,9 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
           AppSpacing.gapHMd,
           Text(
             'Page ${state.page} of ${state.totalPages}',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
-              color: AppColors.textSecondary,
+              color: colorScheme.onSurfaceVariant,
             ),
           ),
           AppSpacing.gapHMd,

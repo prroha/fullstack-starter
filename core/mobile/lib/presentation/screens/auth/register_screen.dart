@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../providers/auth_provider.dart';
 import '../../router/routes.dart';
@@ -14,6 +13,7 @@ import '../../widgets/molecules/app_text_field.dart';
 enum PasswordStrength { weak, fair, good, strong }
 
 /// Registration screen with form validation
+/// Uses centered card layout with theme system colors
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
 
@@ -73,10 +73,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     return PasswordStrength.strong;
   }
 
-  Color _getStrengthColor(PasswordStrength strength) {
+  Color _getStrengthColor(PasswordStrength strength, ColorScheme colorScheme) {
     switch (strength) {
       case PasswordStrength.weak:
-        return Colors.red;
+        return colorScheme.error;
       case PasswordStrength.fair:
         return Colors.orange;
       case PasswordStrength.good:
@@ -183,7 +183,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     }
   }
 
-  Widget _buildPasswordStrengthIndicator() {
+  Widget _buildPasswordStrengthIndicator(ColorScheme colorScheme) {
     final password = _passwordController.text;
     if (password.isEmpty) return const SizedBox.shrink();
 
@@ -198,9 +198,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 borderRadius: BorderRadius.circular(4),
                 child: LinearProgressIndicator(
                   value: _getStrengthProgress(_passwordStrength),
-                  backgroundColor: Colors.grey.shade300,
+                  backgroundColor: colorScheme.outlineVariant,
                   valueColor: AlwaysStoppedAnimation<Color>(
-                    _getStrengthColor(_passwordStrength),
+                    _getStrengthColor(_passwordStrength, colorScheme),
                   ),
                   minHeight: 4,
                 ),
@@ -212,7 +212,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
-                color: _getStrengthColor(_passwordStrength),
+                color: _getStrengthColor(_passwordStrength, colorScheme),
               ),
             ),
           ],
@@ -222,7 +222,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           'Use 8+ characters with uppercase, lowercase, numbers, and symbols',
           style: TextStyle(
             fontSize: 11,
-            color: AppColors.textSecondary.withAlpha(180),
+            color: colorScheme.onSurfaceVariant.withAlpha(180),
           ),
         ),
       ],
@@ -233,172 +233,212 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
     final errorMessage = authState.error;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: colorScheme.surface,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: AppSpacing.screenPadding,
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                AppSpacing.gapXl,
-                // Header
-                const Text(
-                  'Create Account',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                AppSpacing.gapSm,
-                const Text(
-                  'Sign up to get started',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: AppColors.textSecondary,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                AppSpacing.gapXl,
-                AppSpacing.gapMd,
-
-                // Error message - using safe null access
-                if (errorMessage != null && errorMessage.isNotEmpty) ...[
-                  Container(
-                    padding: AppSpacing.cardContentPadding,
-                    decoration: BoxDecoration(
-                      color: AppColors.error.withAlpha(25),
-                      borderRadius: AppSpacing.borderRadiusMd,
+        child: Center(
+          child: SingleChildScrollView(
+            padding: AppSpacing.screenPadding,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 400),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Logo/Branding
+                    Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        color: colorScheme.primary,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Icon(
+                        Icons.person_add_rounded,
+                        size: 48,
+                        color: colorScheme.onPrimary,
+                      ),
                     ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.error_outline, color: AppColors.error),
-                        AppSpacing.gapHSm,
-                        Expanded(
-                          child: Text(
-                            errorMessage,
-                            style: const TextStyle(color: AppColors.error),
+                    AppSpacing.gapLg,
+
+                    // Auth Card
+                    Container(
+                      padding: AppSpacing.cardContentPadding,
+                      decoration: BoxDecoration(
+                        color: colorScheme.surfaceContainerHighest,
+                        borderRadius: AppSpacing.borderRadiusLg,
+                        boxShadow: [
+                          BoxShadow(
+                            color: colorScheme.shadow.withAlpha(20),
+                            blurRadius: 20,
+                            offset: const Offset(0, 8),
                           ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // Header
+                          Text(
+                            'Create Account',
+                            style: theme.textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: colorScheme.onSurface,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          AppSpacing.gapXs,
+                          Text(
+                            'Sign up to get started',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          AppSpacing.gapLg,
+
+                          // Error message
+                          if (errorMessage != null && errorMessage.isNotEmpty) ...[
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: colorScheme.errorContainer,
+                                borderRadius: AppSpacing.borderRadiusMd,
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.error_outline, color: colorScheme.error),
+                                  AppSpacing.gapHSm,
+                                  Expanded(
+                                    child: Text(
+                                      errorMessage,
+                                      style: TextStyle(color: colorScheme.error),
+                                    ),
+                                  ),
+                                  IconButton(
+                                    icon: Icon(Icons.close, color: colorScheme.error, size: 18),
+                                    onPressed: () => ref.read(authProvider.notifier).clearError(),
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            AppSpacing.gapMd,
+                          ],
+
+                          // Email field
+                          AppTextField(
+                            controller: _emailController,
+                            label: 'Email',
+                            hint: 'Enter your email',
+                            keyboardType: TextInputType.emailAddress,
+                            textInputAction: TextInputAction.next,
+                            prefixIcon: const Icon(Icons.email_outlined),
+                            validator: _validateEmail,
+                            enabled: !authState.isLoading,
+                          ),
+                          AppSpacing.gapMd,
+
+                          // Password field with strength indicator
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              AppTextField(
+                                controller: _passwordController,
+                                label: 'Password',
+                                hint: 'Enter your password',
+                                obscureText: _obscurePassword,
+                                textInputAction: TextInputAction.next,
+                                prefixIcon: const Icon(Icons.lock_outline),
+                                suffixIcon: IconButton(
+                                  icon: Icon(
+                                    _obscurePassword
+                                        ? Icons.visibility_outlined
+                                        : Icons.visibility_off_outlined,
+                                  ),
+                                  onPressed: () {
+                                    setState(() {
+                                      _obscurePassword = !_obscurePassword;
+                                    });
+                                  },
+                                ),
+                                validator: _validatePassword,
+                                enabled: !authState.isLoading,
+                              ),
+                              _buildPasswordStrengthIndicator(colorScheme),
+                            ],
+                          ),
+                          AppSpacing.gapMd,
+
+                          // Confirm password field
+                          AppTextField(
+                            controller: _confirmPasswordController,
+                            label: 'Confirm Password',
+                            hint: 'Confirm your password',
+                            obscureText: _obscureConfirmPassword,
+                            textInputAction: TextInputAction.done,
+                            prefixIcon: const Icon(Icons.lock_outline),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscureConfirmPassword
+                                    ? Icons.visibility_outlined
+                                    : Icons.visibility_off_outlined,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _obscureConfirmPassword = !_obscureConfirmPassword;
+                                });
+                              },
+                            ),
+                            validator: _validateConfirmPassword,
+                            enabled: !authState.isLoading,
+                            onSubmitted: (_) => _handleRegister(),
+                          ),
+                          AppSpacing.gapLg,
+
+                          // Register button
+                          AppButton(
+                            label: 'Create Account',
+                            onPressed: authState.isLoading ? null : _handleRegister,
+                            isLoading: authState.isLoading,
+                            isFullWidth: true,
+                          ),
+                        ],
+                      ),
+                    ),
+                    AppSpacing.gapLg,
+
+                    // Login link
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Already have an account? ',
+                          style: TextStyle(color: colorScheme.onSurfaceVariant),
                         ),
-                        IconButton(
-                          icon: const Icon(Icons.close, color: AppColors.error, size: 18),
-                          onPressed: () => ref.read(authProvider.notifier).clearError(),
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
+                        TextButton(
+                          onPressed: authState.isLoading
+                              ? null
+                              : () => context.go(Routes.login),
+                          child: Text(
+                            'Sign In',
+                            style: TextStyle(
+                              color: colorScheme.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ),
                       ],
                     ),
-                  ),
-                  AppSpacing.gapMd,
-                ],
-
-                // Email field
-                AppTextField(
-                  controller: _emailController,
-                  label: 'Email',
-                  hint: 'Enter your email',
-                  keyboardType: TextInputType.emailAddress,
-                  textInputAction: TextInputAction.next,
-                  prefixIcon: const Icon(Icons.email_outlined),
-                  validator: _validateEmail,
-                  enabled: !authState.isLoading,
-                ),
-                AppSpacing.gapMd,
-
-                // Password field with strength indicator
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    AppTextField(
-                      controller: _passwordController,
-                      label: 'Password',
-                      hint: 'Enter your password',
-                      obscureText: _obscurePassword,
-                      textInputAction: TextInputAction.next,
-                      prefixIcon: const Icon(Icons.lock_outline),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscurePassword
-                              ? Icons.visibility_outlined
-                              : Icons.visibility_off_outlined,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _obscurePassword = !_obscurePassword;
-                          });
-                        },
-                      ),
-                      validator: _validatePassword,
-                      enabled: !authState.isLoading,
-                    ),
-                    _buildPasswordStrengthIndicator(),
                   ],
                 ),
-                AppSpacing.gapMd,
-
-                // Confirm password field
-                AppTextField(
-                  controller: _confirmPasswordController,
-                  label: 'Confirm Password',
-                  hint: 'Confirm your password',
-                  obscureText: _obscureConfirmPassword,
-                  textInputAction: TextInputAction.done,
-                  prefixIcon: const Icon(Icons.lock_outline),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscureConfirmPassword
-                          ? Icons.visibility_outlined
-                          : Icons.visibility_off_outlined,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _obscureConfirmPassword = !_obscureConfirmPassword;
-                      });
-                    },
-                  ),
-                  validator: _validateConfirmPassword,
-                  enabled: !authState.isLoading,
-                  onSubmitted: (_) => _handleRegister(),
-                ),
-                AppSpacing.gapLg,
-
-                // Register button
-                AppButton(
-                  label: 'Create Account',
-                  onPressed: authState.isLoading ? null : _handleRegister,
-                  isLoading: authState.isLoading,
-                  isFullWidth: true,
-                ),
-                AppSpacing.gapMd,
-
-                // Login link
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text(
-                      'Already have an account? ',
-                      style: TextStyle(color: AppColors.textSecondary),
-                    ),
-                    TextButton(
-                      onPressed: authState.isLoading
-                          ? null
-                          : () => context.go(Routes.login),
-                      child: const Text(
-                        'Sign In',
-                        style: TextStyle(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+              ),
             ),
           ),
         ),

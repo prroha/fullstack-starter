@@ -15,8 +15,54 @@ import {
   FormMessage,
   useZodForm,
 } from "@/components/forms";
-import { Input, Button } from "@/components/ui";
+import { Input, Button, AuthLayout } from "@/components/ui";
 import { FormErrorBoundary } from "@/components/shared";
+
+// Auth Logo Component - Key icon for password reset
+function AuthLogo() {
+  return (
+    <div className="flex items-center justify-center">
+      <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
+        <svg
+          className="h-7 w-7 text-primary"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
+          />
+        </svg>
+      </div>
+    </div>
+  );
+}
+
+// Email Sent Icon
+function EmailSentLogo() {
+  return (
+    <div className="flex items-center justify-center">
+      <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
+        <svg
+          className="h-7 w-7 text-primary"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+          />
+        </svg>
+      </div>
+    </div>
+  );
+}
 
 export default function ForgotPasswordPage() {
   const [submitted, setSubmitted] = useState(false);
@@ -58,110 +104,87 @@ export default function ForgotPasswordPage() {
 
   if (submitted) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-background">
-        <div className="w-full max-w-md space-y-8">
-          <div className="text-center">
-            <div className="mx-auto mb-4 w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-              <svg
-                className="w-6 h-6 text-primary"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                />
-              </svg>
-            </div>
-            <h1 className="text-2xl font-bold tracking-tight">Check your email</h1>
-            <p className="text-muted-foreground mt-2">
-              If an account exists for {form.getValues("email")}, we've sent a password reset link.
-            </p>
-          </div>
-
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground text-center">
-              Didn't receive the email? Check your spam folder or{" "}
-              <button
-                type="button"
-                onClick={() => {
-                  setSubmitted(false);
-                  form.reset();
-                }}
-                className="text-primary hover:underline font-medium"
-              >
-                try again
-              </button>
-            </p>
-
-            <div className="text-center">
-              <Link href="/login" className="text-sm text-primary hover:underline font-medium">
-                Back to sign in
-              </Link>
-            </div>
-          </div>
+      <AuthLayout
+        title="Check Your Email"
+        subtitle={`If an account exists for ${form.getValues("email")}, we've sent a password reset link.`}
+        logo={<EmailSentLogo />}
+        maxWidth="sm"
+        showBackgroundPattern
+        footer={
+          <p>
+            <Link href="/login">Back to sign in</Link>
+          </p>
+        }
+      >
+        <div className="space-y-4 text-center">
+          <p className="text-sm text-muted-foreground">
+            Didn't receive the email? Check your spam folder or{" "}
+            <button
+              type="button"
+              onClick={() => {
+                setSubmitted(false);
+                form.reset();
+              }}
+              className="text-foreground underline-offset-4 hover:underline font-medium"
+            >
+              try again
+            </button>
+          </p>
         </div>
-      </div>
+      </AuthLayout>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-background">
-      <div className="w-full max-w-md space-y-8">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold tracking-tight">Forgot your password?</h1>
-          <p className="text-muted-foreground mt-2">
-            Enter your email address and we'll send you a link to reset your password.
-          </p>
-        </div>
-
-        <FormErrorBoundary>
-          <Form form={form} onSubmit={onSubmit} className="space-y-6">
-            {error && (
-              <div className="p-3 rounded-md bg-destructive/10 border border-destructive/50">
-                <p className="text-sm text-destructive">{error}</p>
-              </div>
-            )}
-
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel required>Email</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="email"
-                      placeholder="you@example.com"
-                      autoComplete="email"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <Button
-              type="submit"
-              className="w-full"
-              isLoading={form.formState.isSubmitting}
-            >
-              Send reset link
-            </Button>
-          </Form>
-        </FormErrorBoundary>
-
-        <p className="text-center text-sm text-muted-foreground">
+    <AuthLayout
+      title="Reset Password"
+      subtitle="Enter your email address and we'll send you a link to reset your password."
+      logo={<AuthLogo />}
+      maxWidth="sm"
+      showBackgroundPattern
+      footer={
+        <p>
           Remember your password?{" "}
-          <Link href="/login" className="text-primary hover:underline font-medium">
-            Sign in
-          </Link>
+          <Link href="/login">Sign in</Link>
         </p>
-      </div>
-    </div>
+      }
+    >
+      <FormErrorBoundary>
+        <Form form={form} onSubmit={onSubmit} className="space-y-4">
+          {error && (
+            <div className="p-3 rounded-md bg-destructive/10 border border-destructive/50">
+              <p className="text-sm text-destructive">{error}</p>
+            </div>
+          )}
+
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel required>Email</FormLabel>
+                <FormControl>
+                  <Input
+                    type="email"
+                    placeholder="you@example.com"
+                    autoComplete="email"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <Button
+            type="submit"
+            className="w-full"
+            isLoading={form.formState.isSubmitting}
+          >
+            Send reset link
+          </Button>
+        </Form>
+      </FormErrorBoundary>
+    </AuthLayout>
   );
 }

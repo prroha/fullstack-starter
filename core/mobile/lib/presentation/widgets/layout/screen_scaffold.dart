@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_colors.dart';
 import '../organisms/app_header.dart';
 
 /// A scaffold wrapper with optional header, body, FAB, and bottom navigation.
@@ -159,7 +158,7 @@ class ScreenScaffold extends StatelessWidget {
     }
 
     return Scaffold(
-      backgroundColor: backgroundColor ?? AppColors.background,
+      backgroundColor: backgroundColor ?? Theme.of(context).colorScheme.surface,
       appBar: appBar ??
           (showAppBar
               ? AppHeader(

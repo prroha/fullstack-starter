@@ -204,3 +204,17 @@ export type {
   AlignItems,
   JustifyItems,
 } from "./layouts/grid";
+
+// DashboardLayout
+export {
+  DashboardLayout,
+  DashboardSidebar,
+  DashboardNavItem,
+  DashboardHeader,
+} from "./layouts/dashboard-layout";
+export type {
+  DashboardLayoutProps,
+  DashboardSidebarProps,
+  DashboardNavItemProps,
+  DashboardHeaderProps,
+} from "./layouts/dashboard-layout";

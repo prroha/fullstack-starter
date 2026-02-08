@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../data/repositories/admin_repository.dart';
 import '../../providers/admin_provider.dart';
@@ -10,28 +9,28 @@ import '../../widgets/empty_states/empty_list.dart';
 import '../../widgets/empty_states/empty_search.dart';
 import '../../widgets/layout/error_state.dart';
 
-/// Action badge colors
-Color _getActionColor(AuditAction action) {
+/// Action badge colors - uses theme-aware colors
+Color _getActionColor(AuditAction action, ColorScheme colorScheme) {
   switch (action) {
     case AuditAction.create:
     case AuditAction.login:
     case AuditAction.emailVerify:
     case AuditAction.adminAction:
-      return AppColors.primary;
+      return colorScheme.primary;
     case AuditAction.read:
     case AuditAction.logout:
-      return AppColors.secondary;
+      return colorScheme.secondary;
     case AuditAction.update:
     case AuditAction.passwordChange:
     case AuditAction.passwordReset:
-      return AppColors.warning;
+      return Colors.orange;
     case AuditAction.delete:
     case AuditAction.loginFailed:
-      return AppColors.error;
+      return colorScheme.error;
   }
 }
 
-/// Action Badge Widget
+/// Action Badge Widget - uses theme system colors
 class ActionBadge extends StatelessWidget {
   final AuditAction action;
 
@@ -39,7 +38,8 @@ class ActionBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = _getActionColor(action);
+    final colorScheme = Theme.of(context).colorScheme;
+    final color = _getActionColor(action, colorScheme);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
@@ -58,7 +58,7 @@ class ActionBadge extends StatelessWidget {
   }
 }
 
-/// Audit Log List Item Widget
+/// Audit Log List Item Widget - uses theme system colors
 class AuditLogListItem extends StatelessWidget {
   final AuditLog log;
   final bool isExpanded;
@@ -73,17 +73,19 @@ class AuditLogListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final dateFormat = DateFormat('MMM d, yyyy');
     final timeFormat = DateFormat('HH:mm');
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: colorScheme.surfaceContainerHighest,
         borderRadius: AppSpacing.borderRadiusMd,
         boxShadow: [
           BoxShadow(
-            color: AppColors.black.withAlpha(10),
+            color: colorScheme.shadow.withAlpha(10),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -107,7 +109,7 @@ class AuditLogListItem extends StatelessWidget {
                       isExpanded
                           ? Icons.keyboard_arrow_up
                           : Icons.keyboard_arrow_down,
-                      color: AppColors.textSecondary,
+                      color: colorScheme.onSurfaceVariant,
                       size: 20,
                     ),
                     AppSpacing.gapHSm,
@@ -117,17 +119,15 @@ class AuditLogListItem extends StatelessWidget {
                       children: [
                         Text(
                           dateFormat.format(log.createdAt),
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: AppColors.textSecondary,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
                           ),
                         ),
                         Text(
                           timeFormat.format(log.createdAt),
-                          style: const TextStyle(
-                            fontSize: 14,
+                          style: theme.textTheme.bodyMedium?.copyWith(
                             fontWeight: FontWeight.w500,
-                            color: AppColors.textPrimary,
+                            color: colorScheme.onSurface,
                           ),
                         ),
                       ],
@@ -142,18 +142,16 @@ class AuditLogListItem extends StatelessWidget {
                       children: [
                         Text(
                           log.entity,
-                          style: const TextStyle(
-                            fontSize: 14,
+                          style: theme.textTheme.bodyMedium?.copyWith(
                             fontWeight: FontWeight.w500,
-                            color: AppColors.textPrimary,
+                            color: colorScheme.onSurface,
                           ),
                         ),
                         if (log.entityId != null)
                           Text(
                             _truncateId(log.entityId!),
-                            style: const TextStyle(
-                              fontSize: 11,
-                              color: AppColors.textSecondary,
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
                             ),
                           ),
                       ],
@@ -164,10 +162,10 @@ class AuditLogListItem extends StatelessWidget {
                 AppSpacing.gapSm,
                 Row(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.person_outline,
                       size: 14,
-                      color: AppColors.textSecondary,
+                      color: colorScheme.onSurfaceVariant,
                     ),
                     AppSpacing.gapHXs,
                     Expanded(
@@ -175,25 +173,23 @@ class AuditLogListItem extends StatelessWidget {
                         log.user != null
                             ? (log.user!.name ?? log.user!.email)
                             : 'System / Anonymous',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textSecondary,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     if (log.ipAddress != null) ...[
-                      const Icon(
+                      Icon(
                         Icons.language,
                         size: 14,
-                        color: AppColors.textSecondary,
+                        color: colorScheme.onSurfaceVariant,
                       ),
                       AppSpacing.gapHXs,
                       Text(
                         log.ipAddress!,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textSecondary,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ],
@@ -204,7 +200,7 @@ class AuditLogListItem extends StatelessWidget {
                   AppSpacing.gapMd,
                   const Divider(height: 1),
                   AppSpacing.gapMd,
-                  _buildExpandedDetails(),
+                  _buildExpandedDetails(context),
                 ],
               ],
             ),
@@ -214,49 +210,53 @@ class AuditLogListItem extends StatelessWidget {
     );
   }
 
-  Widget _buildExpandedDetails() {
+  Widget _buildExpandedDetails(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // User details
         if (log.user != null) ...[
           _buildDetailSection(
+            context,
             'User Information',
             Icons.person_outline,
             [
-              _buildDetailRow('ID', log.userId ?? 'N/A'),
-              _buildDetailRow('Email', log.user!.email),
-              _buildDetailRow('Name', log.user!.name ?? 'N/A'),
+              _buildDetailRow(context, 'ID', log.userId ?? 'N/A'),
+              _buildDetailRow(context, 'Email', log.user!.email),
+              _buildDetailRow(context, 'Name', log.user!.name ?? 'N/A'),
             ],
           ),
           AppSpacing.gapMd,
         ],
         // Request info
         _buildDetailSection(
+          context,
           'Request Information',
           Icons.language,
           [
-            _buildDetailRow('IP Address', log.ipAddress ?? 'N/A'),
+            _buildDetailRow(context, 'IP Address', log.ipAddress ?? 'N/A'),
             if (log.userAgent != null)
-              _buildDetailRow('User Agent', log.userAgent!, wrap: true),
+              _buildDetailRow(context, 'User Agent', log.userAgent!, wrap: true),
           ],
         ),
         // Changes
         if (log.changes != null && log.changes!.isNotEmpty) ...[
           AppSpacing.gapMd,
           _buildDetailSection(
+            context,
             'Changes',
             Icons.edit_note,
-            [_buildJsonBlock(log.changes!)],
+            [_buildJsonBlock(context, log.changes!)],
           ),
         ],
         // Metadata
         if (log.metadata != null && log.metadata!.isNotEmpty) ...[
           AppSpacing.gapMd,
           _buildDetailSection(
+            context,
             'Metadata',
             Icons.info_outline,
-            [_buildJsonBlock(log.metadata!)],
+            [_buildJsonBlock(context, log.metadata!)],
           ),
         ],
       ],
@@ -264,23 +264,26 @@ class AuditLogListItem extends StatelessWidget {
   }
 
   Widget _buildDetailSection(
+    BuildContext context,
     String title,
     IconData icon,
     List<Widget> children,
   ) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Icon(icon, size: 16, color: AppColors.textSecondary),
+            Icon(icon, size: 16, color: colorScheme.onSurfaceVariant),
             AppSpacing.gapHSm,
             Text(
               title,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: AppColors.textSecondary,
+                color: colorScheme.onSurfaceVariant,
               ),
             ),
           ],
@@ -297,7 +300,9 @@ class AuditLogListItem extends StatelessWidget {
     );
   }
 
-  Widget _buildDetailRow(String label, String value, {bool wrap = false}) {
+  Widget _buildDetailRow(BuildContext context, String label, String value, {bool wrap = false}) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
       child: wrap
@@ -306,16 +311,16 @@ class AuditLogListItem extends StatelessWidget {
               children: [
                 Text(
                   '$label:',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: AppColors.textSecondary,
+                    color: colorScheme.onSurfaceVariant,
                   ),
                 ),
                 Text(
                   value,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: AppColors.textPrimary,
+                    color: colorScheme.onSurface,
                   ),
                 ),
               ],
@@ -325,17 +330,17 @@ class AuditLogListItem extends StatelessWidget {
               children: [
                 Text(
                   '$label: ',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: AppColors.textSecondary,
+                    color: colorScheme.onSurfaceVariant,
                   ),
                 ),
                 Expanded(
                   child: Text(
                     value,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: AppColors.textPrimary,
+                      color: colorScheme.onSurface,
                     ),
                   ),
                 ),
@@ -344,12 +349,13 @@ class AuditLogListItem extends StatelessWidget {
     );
   }
 
-  Widget _buildJsonBlock(Map<String, dynamic> json) {
+  Widget _buildJsonBlock(BuildContext context, Map<String, dynamic> json) {
+    final colorScheme = Theme.of(context).colorScheme;
     final entries = json.entries.toList();
     return Container(
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: AppColors.background,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(6),
       ),
       child: Column(
@@ -357,10 +363,10 @@ class AuditLogListItem extends StatelessWidget {
         children: entries.map((e) {
           return Text(
             '${e.key}: ${e.value}',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
               fontFamily: 'monospace',
-              color: AppColors.textPrimary,
+              color: colorScheme.onSurface,
             ),
           );
         }).toList(),
@@ -374,7 +380,7 @@ class AuditLogListItem extends StatelessWidget {
   }
 }
 
-/// Filter Bottom Sheet
+/// Filter Bottom Sheet - uses theme system colors
 class FilterBottomSheet extends ConsumerStatefulWidget {
   final AdminAuditLogsState state;
   final AdminAuditLogsNotifier notifier;
@@ -406,6 +412,9 @@ class _FilterBottomSheetState extends ConsumerState<FilterBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Container(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -416,10 +425,9 @@ class _FilterBottomSheetState extends ConsumerState<FilterBottomSheet> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'Filters',
-                style: TextStyle(
-                  fontSize: 18,
+                style: theme.textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -438,10 +446,9 @@ class _FilterBottomSheetState extends ConsumerState<FilterBottomSheet> {
           ),
           AppSpacing.gapMd,
           // Action filter
-          const Text(
+          Text(
             'Action',
-            style: TextStyle(
-              fontSize: 14,
+            style: theme.textTheme.bodyMedium?.copyWith(
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -474,10 +481,9 @@ class _FilterBottomSheetState extends ConsumerState<FilterBottomSheet> {
           ),
           AppSpacing.gapMd,
           // Entity filter
-          const Text(
+          Text(
             'Entity',
-            style: TextStyle(
-              fontSize: 14,
+            style: theme.textTheme.bodyMedium?.copyWith(
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -510,10 +516,9 @@ class _FilterBottomSheetState extends ConsumerState<FilterBottomSheet> {
           ),
           AppSpacing.gapMd,
           // Date range
-          const Text(
+          Text(
             'Date Range',
-            style: TextStyle(
-              fontSize: 14,
+            style: theme.textTheme.bodyMedium?.copyWith(
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -540,8 +545,8 @@ class _FilterBottomSheetState extends ConsumerState<FilterBottomSheet> {
                           : 'Select',
                       style: TextStyle(
                         color: _startDate != null
-                            ? AppColors.textPrimary
-                            : AppColors.textSecondary,
+                            ? colorScheme.onSurface
+                            : colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ),
@@ -568,8 +573,8 @@ class _FilterBottomSheetState extends ConsumerState<FilterBottomSheet> {
                           : 'Select',
                       style: TextStyle(
                         color: _endDate != null
-                            ? AppColors.textPrimary
-                            : AppColors.textSecondary,
+                            ? colorScheme.onSurface
+                            : colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ),
@@ -680,13 +685,14 @@ class _AdminAuditLogsScreenState extends ConsumerState<AdminAuditLogsScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(adminAuditLogsProvider);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: colorScheme.surface,
       appBar: AppBar(
         title: const Text('Audit Logs'),
         centerTitle: true,
-        backgroundColor: AppColors.surface,
         elevation: 0,
         actions: [
           IconButton(
@@ -710,7 +716,7 @@ class _AdminAuditLogsScreenState extends ConsumerState<AdminAuditLogsScreen> {
         children: [
           // Search - with proper keyboard action and clear button visibility
           Container(
-            color: AppColors.surface,
+            color: colorScheme.surfaceContainerHighest,
             padding: const EdgeInsets.all(16),
             child: TextField(
               controller: _searchController,
@@ -750,21 +756,21 @@ class _AdminAuditLogsScreenState extends ConsumerState<AdminAuditLogsScreen> {
           // Active filters indicator
           if (state.hasActiveFilters)
             Container(
-              color: AppColors.surface,
+              color: colorScheme.surfaceContainerHighest,
               padding: const EdgeInsets.only(left: 16, right: 16, bottom: 12),
               child: Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.filter_alt,
                     size: 16,
-                    color: AppColors.primary,
+                    color: colorScheme.primary,
                   ),
                   AppSpacing.gapHSm,
                   Text(
                     'Filters active',
                     style: TextStyle(
                       fontSize: 12,
-                      color: AppColors.primary,
+                      color: colorScheme.primary,
                     ),
                   ),
                   const Spacer(),
@@ -845,6 +851,8 @@ class _AdminAuditLogsScreenState extends ConsumerState<AdminAuditLogsScreen> {
   }
 
   Widget _buildPagination(AdminAuditLogsState state) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     if (state.totalPages <= 1) return AppSpacing.gapMd;
 
     return Padding(
@@ -853,9 +861,9 @@ class _AdminAuditLogsScreenState extends ConsumerState<AdminAuditLogsScreen> {
         children: [
           Text(
             'Showing ${state.logs.length} of ${state.total} logs',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
-              color: AppColors.textSecondary,
+              color: colorScheme.onSurfaceVariant,
             ),
           ),
           AppSpacing.gapSm,
@@ -872,9 +880,9 @@ class _AdminAuditLogsScreenState extends ConsumerState<AdminAuditLogsScreen> {
               AppSpacing.gapHMd,
               Text(
                 'Page ${state.page} of ${state.totalPages}',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
-                  color: AppColors.textSecondary,
+                  color: colorScheme.onSurfaceVariant,
                 ),
               ),
               AppSpacing.gapHMd,
