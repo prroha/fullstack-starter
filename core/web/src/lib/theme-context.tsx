@@ -88,8 +88,29 @@ function getStoredAppTheme(): AppThemeType | null {
   return null;
 }
 
-function applyColorMode(resolvedMode: ResolvedColorMode) {
+/**
+ * Enable smooth transitions temporarily during theme changes.
+ * This prevents "flash" effects on hover states by only applying
+ * transitions when actively switching themes.
+ */
+function enableThemeTransition() {
   if (typeof document === "undefined") return;
+
+  const root = document.documentElement;
+  root.classList.add("theme-transitioning");
+
+  // Remove the class after the transition completes
+  setTimeout(() => {
+    root.classList.remove("theme-transitioning");
+  }, 250); // Slightly longer than the 200ms transition to ensure completion
+}
+
+function applyColorMode(resolvedMode: ResolvedColorMode, withTransition = false) {
+  if (typeof document === "undefined") return;
+
+  if (withTransition) {
+    enableThemeTransition();
+  }
 
   const root = document.documentElement;
   root.classList.remove("light", "dark");
@@ -215,7 +236,7 @@ export function ThemeProvider({
       if (colorMode === "system") {
         const newResolved = getSystemColorMode();
         setResolvedColorMode(newResolved);
-        applyColorMode(newResolved);
+        applyColorMode(newResolved, true); // Enable transition for system theme change
         applyThemeColors(currentTheme, newResolved);
       }
     };
@@ -238,7 +259,7 @@ export function ThemeProvider({
     setColorModeState(newMode);
     setResolvedColorMode(resolved);
     localStorage.setItem(COLOR_MODE_STORAGE_KEY, newMode);
-    applyColorMode(resolved);
+    applyColorMode(resolved, true); // Enable transition for user-initiated theme change
     applyThemeColors(currentTheme, resolved);
   }, [resolveColorMode, currentTheme]);
 
@@ -252,6 +273,7 @@ export function ThemeProvider({
   const setTheme = useCallback((themeId: AppThemeType) => {
     if (!isValidThemeType(themeId)) return;
 
+    enableThemeTransition(); // Enable transition for user-initiated theme change
     setCurrentThemeState(themeId);
     localStorage.setItem(APP_THEME_STORAGE_KEY, themeId);
     applyThemeColors(themeId, resolvedColorMode);

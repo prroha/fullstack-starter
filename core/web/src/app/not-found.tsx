@@ -1,8 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button, Text, Input } from "@/components/ui";
+import { AppLink } from "@/components/ui/link";
+import { Icon } from "@/components/ui/icon";
 
 export default function NotFound() {
   const router = useRouter();
@@ -77,110 +79,54 @@ export default function NotFound() {
         </h2>
 
         {/* Description */}
-        <p className="mt-3 text-muted-foreground max-w-sm mx-auto">
+        <Text color="muted" className="mt-3 max-w-sm mx-auto">
           Sorry, we couldn&apos;t find the page you&apos;re looking for. It may
           have been moved, deleted, or perhaps never existed.
-        </p>
+        </Text>
 
         {/* Search suggestion */}
         <form onSubmit={handleSearch} className="mt-6 max-w-sm mx-auto">
           <div className="flex gap-2">
-            <input
+            <Input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Try searching..."
-              className="flex-1 px-4 py-2.5 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
               aria-label="Search"
             />
-            <button
-              type="submit"
-              className="px-4 py-2.5 bg-muted text-foreground rounded-lg hover:bg-muted/80 transition-colors"
-              aria-label="Search"
-            >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
-            </button>
+            <Button type="submit" variant="secondary" size="icon" aria-label="Search">
+              <Icon name="Search" size="sm" />
+            </Button>
           </div>
         </form>
 
         {/* Action buttons */}
         <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
-          <Link
-            href="/"
-            className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity font-medium"
-          >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-              />
-            </svg>
+          <Button size="lg" onClick={() => router.push("/")}>
+            <Icon name="House" size="sm" className="mr-2" />
             Go Home
-          </Link>
-          <button
-            onClick={() => window.history.back()}
-            className="inline-flex items-center justify-center gap-2 px-6 py-3 border border-border text-foreground rounded-lg hover:bg-muted transition-colors font-medium"
-          >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M10 19l-7-7m0 0l7-7m-7 7h18"
-              />
-            </svg>
+          </Button>
+          <Button variant="outline" size="lg" onClick={() => window.history.back()}>
+            <Icon name="ArrowLeft" size="sm" className="mr-2" />
             Go Back
-          </button>
+          </Button>
         </div>
 
         {/* Helpful links */}
         <div className="mt-10 pt-6 border-t border-border">
-          <p className="text-sm text-muted-foreground mb-3">
+          <Text variant="caption" color="muted" className="mb-3">
             Here are some helpful links:
-          </p>
-          <div className="flex flex-wrap gap-4 justify-center text-sm">
-            <Link
-              href="/"
-              className="text-primary hover:underline underline-offset-2"
-            >
+          </Text>
+          <div className="flex flex-wrap gap-4 justify-center">
+            <AppLink href="/" variant="primary" size="sm">
               Home
-            </Link>
-            <Link
-              href="/profile"
-              className="text-primary hover:underline underline-offset-2"
-            >
+            </AppLink>
+            <AppLink href="/profile" variant="primary" size="sm">
               Profile
-            </Link>
-            <Link
-              href="/settings"
-              className="text-primary hover:underline underline-offset-2"
-            >
+            </AppLink>
+            <AppLink href="/settings" variant="primary" size="sm">
               Settings
-            </Link>
+            </AppLink>
           </div>
         </div>
       </div>

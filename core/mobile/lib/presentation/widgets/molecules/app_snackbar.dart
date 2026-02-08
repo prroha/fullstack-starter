@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 
 // =====================================================
@@ -68,8 +67,9 @@ class AppSnackbar {
     // Clear any existing snackbar
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
 
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final colors = _getVariantColors(variant, isDark);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final colors = _getVariantColors(variant, isDark, theme.colorScheme);
     final icon = _getVariantIcon(variant);
 
     final snackBar = SnackBar(
@@ -190,27 +190,27 @@ class AppSnackbar {
   }
 
   /// Gets colors for each variant
-  static _SnackbarColors _getVariantColors(SnackbarVariant variant, bool isDark) {
+  static _SnackbarColors _getVariantColors(SnackbarVariant variant, bool isDark, ColorScheme colorScheme) {
     switch (variant) {
       case SnackbarVariant.success:
         return _SnackbarColors(
-          background: isDark ? const Color(0xFF166534) : AppColors.success,
-          foreground: AppColors.white,
+          background: isDark ? const Color(0xFF166534) : const Color(0xFF16A34A),
+          foreground: Colors.white,
         );
       case SnackbarVariant.error:
         return _SnackbarColors(
-          background: isDark ? const Color(0xFF991B1B) : AppColors.error,
-          foreground: AppColors.white,
+          background: isDark ? const Color(0xFF991B1B) : colorScheme.error,
+          foreground: Colors.white,
         );
       case SnackbarVariant.warning:
         return _SnackbarColors(
-          background: isDark ? const Color(0xFFB45309) : AppColors.warning,
-          foreground: AppColors.white,
+          background: isDark ? const Color(0xFFB45309) : const Color(0xFFD97706),
+          foreground: Colors.white,
         );
       case SnackbarVariant.info:
         return _SnackbarColors(
-          background: isDark ? const Color(0xFF1D4ED8) : AppColors.info,
-          foreground: AppColors.white,
+          background: isDark ? const Color(0xFF1D4ED8) : const Color(0xFF0284C7),
+          foreground: Colors.white,
         );
     }
   }

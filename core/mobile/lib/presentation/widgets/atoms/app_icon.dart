@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_colors.dart';
 
 /// Icon size presets.
 enum AppIconSize {
@@ -52,7 +51,7 @@ enum AppIconColor {
 /// A styled icon wrapper with size and color presets.
 ///
 /// This is an atom-level widget that provides consistent icon styling
-/// across the application.
+/// across the application. Uses Theme.of(context) for theme-aware colors.
 ///
 /// Example:
 /// ```dart
@@ -128,7 +127,7 @@ class AppIcon extends StatelessWidget {
     return Icon(
       icon,
       size: _getSize(),
-      color: _getColor(),
+      color: _getColor(context),
       semanticLabel: semanticLabel,
     );
   }
@@ -148,29 +147,33 @@ class AppIcon extends StatelessWidget {
     }
   }
 
-  Color? _getColor() {
+  Color? _getColor(BuildContext context) {
     if (customColor != null) return customColor;
     if (colorPreset == null) return null;
 
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     switch (colorPreset!) {
       case AppIconColor.primary:
-        return AppColors.primary;
+        return colorScheme.primary;
       case AppIconColor.secondary:
-        return AppColors.secondary;
+        return colorScheme.secondary;
       case AppIconColor.success:
-        return AppColors.success;
+        // Use a theme-aware success color
+        return isDark ? const Color(0xFF22C55E) : const Color(0xFF16A34A);
       case AppIconColor.warning:
-        return AppColors.warning;
+        return isDark ? const Color(0xFFF59E0B) : const Color(0xFFD97706);
       case AppIconColor.error:
-        return AppColors.error;
+        return colorScheme.error;
       case AppIconColor.info:
-        return AppColors.info;
+        return isDark ? const Color(0xFF38BDF8) : const Color(0xFF0284C7);
       case AppIconColor.textPrimary:
-        return AppColors.textPrimary;
+        return colorScheme.onSurface;
       case AppIconColor.textSecondary:
-        return AppColors.textSecondary;
+        return colorScheme.onSurfaceVariant;
       case AppIconColor.white:
-        return AppColors.white;
+        return Colors.white;
     }
   }
 }

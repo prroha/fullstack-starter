@@ -25,6 +25,7 @@ Use these to quickly find what you need:
 <!-- Add new entries at the top -->
 | Date | Change | Files |
 |------|--------|-------|
+| 2026-02-08 | Organized components with atomic design pattern | `components/ui/index.ts`, `CLAUDE.md` |
 | 2026-02-08 | Added comprehensive UI components documentation | CLAUDE.md |
 | 2026-02-06 | Initial documentation | CLAUDE.md |
 
@@ -66,11 +67,29 @@ src/
 │   ├── layout.tsx          # Root layout (AuthProvider, fonts)
 │   ├── globals.css         # Tailwind + global styles
 │   ├── page.tsx            # Homepage
-│   ├── login/              # Login page (create as needed)
-│   └── register/           # Register page (create as needed)
+│   ├── login/              # Login page
+│   └── register/           # Register page
 │
-├── components/
-│   └── ui/                 # Custom UI component library (see UI Components section)
+├── components/             # Atomic Design Component Library
+│   ├── ui/                 # Core UI components (atoms, molecules, organisms)
+│   │   ├── button.tsx      # Atom: Primary action element
+│   │   ├── input.tsx       # Atom: Text input
+│   │   ├── avatar.tsx      # Molecule: User avatar with fallback
+│   │   ├── nav-link.tsx    # Molecule: Navigation link with active state
+│   │   ├── dialog.tsx      # Organism: Modal dialog
+│   │   ├── tabs.tsx        # Organism: Tabbed content
+│   │   ├── layouts/        # Layout components
+│   │   │   ├── container.tsx
+│   │   │   ├── stack.tsx
+│   │   │   ├── grid.tsx
+│   │   │   └── dashboard-layout.tsx
+│   │   └── index.ts        # Barrel export organized by category
+│   ├── forms/              # Form-related molecules
+│   ├── feedback/           # Alerts, toasts, loading states
+│   ├── layout/             # Page layout organisms (Header, Footer)
+│   ├── shared/             # Cross-cutting (ErrorBoundary, SEO)
+│   ├── providers/          # Context providers
+│   └── index.ts            # Main component entry point
 │
 └── lib/
     ├── api.ts              # API client + types
@@ -274,88 +293,180 @@ import { cn } from "@/lib/utils";
 
 ---
 
-## UI Components Library
+## UI Components Library - Atomic Design
 
 > **Note**: This is a **custom component library** built specifically for this project. It is **NOT shadcn/ui** - all components are implemented from scratch with full control over styling and behavior. The design system uses **CSS variables with Tailwind CSS** for theming.
 
-### Import Pattern
-```typescript
-// Import from the barrel file
-import { Button, Input, Dialog, Tabs } from "@/components/ui";
+### Atomic Design Overview
 
-// Or import individual components
-import { Button } from "@/components/ui/button";
+Components are organized following **Atomic Design** principles:
+
+```
+components/
+├── ui/                         # Core UI components
+│   ├── button.tsx              # ATOM
+│   ├── input.tsx               # ATOM
+│   ├── avatar.tsx              # MOLECULE
+│   ├── nav-link.tsx            # MOLECULE
+│   ├── dialog.tsx              # ORGANISM
+│   ├── tabs.tsx                # ORGANISM
+│   ├── layouts/                # LAYOUTS
+│   │   ├── container.tsx
+│   │   ├── stack.tsx
+│   │   ├── grid.tsx
+│   │   └── dashboard-layout.tsx
+│   └── index.ts                # Barrel export with categories
+├── forms/                      # Form-specific molecules
+├── feedback/                   # Alerts, toasts, loading
+├── layout/                     # Page layout organisms
+├── shared/                     # Cross-cutting concerns
+└── index.ts                    # Main entry point
 ```
 
-### Form Components
+### Component Categories
+
+#### ATOMS - Basic Building Blocks
+Smallest components - single HTML elements with consistent styling. No dependencies on other components.
 
 | Component | File | Description |
 |-----------|------|-------------|
-| `Button` | `button.tsx` | Versatile button with variants (default, destructive, outline, secondary, ghost, link), sizes (sm, md, lg, icon), and loading state |
-| `Input` | `input.tsx` | Text input with focus ring, disabled state, and error styling via `aria-invalid` |
-| `Textarea` | `textarea.tsx` | Multi-line text input with auto-resize support and consistent styling |
-| `Checkbox` | `checkbox.tsx` | Checkbox with label support, indeterminate state, and size variants (sm, md, lg) |
-| `Radio` / `RadioGroup` | `radio.tsx` | Radio button and group with keyboard navigation, horizontal/vertical orientation |
-| `Select` | `select.tsx` | Dropdown select with options, placeholder, label, error message, and size variants |
-| `Switch` | `switch.tsx` | Toggle switch with label support, size variants, and configurable label position |
+| `Button` | `button.tsx` | Action button with variants (default, destructive, outline, secondary, ghost, link), sizes, loading state |
+| `Input` | `input.tsx` | Text input with focus ring, disabled state, error styling via `aria-invalid` |
+| `Textarea` | `textarea.tsx` | Multi-line text input with auto-resize support |
+| `Checkbox` | `checkbox.tsx` | Boolean toggle with label, indeterminate state, size variants |
+| `Radio` / `RadioGroup` | `radio.tsx` | Radio selection with keyboard navigation |
+| `Select` | `select.tsx` | Dropdown with options, placeholder, error message |
+| `Switch` | `switch.tsx` | Toggle switch with label position options |
+| `Badge` | `badge.tsx` | Status indicator with color variants |
+| `Spinner` | `spinner.tsx` | Loading indicator in multiple sizes |
+| `Skeleton` | `skeleton.tsx` | Loading placeholders (14+ variants) |
+| `Label` | `label.tsx` | Form field label with required indicator |
+| `Icon` | `icon.tsx` | Lucide icon wrapper with size/color variants |
+| `AppLink` | `link.tsx` | Internal/external link with auto-detection |
+| `Text` | `text.tsx` | Typography component with variants |
+| `Divider` | `divider.tsx` | Visual separator (horizontal/vertical) |
+| `Kbd` | `kbd.tsx` | Keyboard key indicator |
+| `VisuallyHidden` | `visually-hidden.tsx` | Screen reader only content |
 
-### Display Components
-
-| Component | File | Description |
-|-----------|------|-------------|
-| `Badge` | `badge.tsx` | Status indicator with variants (default, secondary, destructive, outline, success, warning) and sizes |
-| `Spinner` / `SpinnerOverlay` | `spinner.tsx` | Loading spinner in three sizes; overlay version for full-page loading states |
-| `Skeleton` | `skeleton.tsx` | Loading placeholder with pulse/shimmer animations and many variants (see below) |
-
-### Skeleton Variants
-
-The skeleton system includes specialized components for common UI patterns:
-
-| Component | Description |
-|-----------|-------------|
-| `Skeleton` | Base skeleton with pulse or shimmer animation |
-| `SkeletonText` | Multi-line text placeholder with configurable line count |
-| `SkeletonCircle` | Circle placeholder for avatars |
-| `SkeletonAvatar` | Avatar with optional text placeholders |
-| `SkeletonButton` | Button placeholder in various sizes |
-| `SkeletonImage` | Image placeholder with aspect ratio support (square, video, portrait, wide) |
-| `SkeletonCard` | Card layout skeleton (default, horizontal, compact variants) |
-| `SkeletonTable` | Table skeleton with configurable rows/columns |
-| `SkeletonList` | List skeleton (default, simple, detailed variants) |
-| `SkeletonPage` | Full page loading skeleton |
-| `SkeletonDashboard` | Dashboard layout skeleton with nav, sidebar, stats, and charts |
-| `SkeletonForm` | Form layout skeleton |
-| `SkeletonProfile` | Profile page skeleton |
-| `SkeletonAuth` | Authentication page skeleton |
-
-### Layout Components
+#### MOLECULES - Functional Combinations
+Groups of atoms forming a functional unit with a single purpose.
 
 | Component | File | Description |
 |-----------|------|-------------|
-| `Dialog` | `dialog.tsx` | Modal dialog with focus trap, escape to close, and size variants (sm, md, lg, xl, full) |
-| `DialogHeader` | `dialog.tsx` | Dialog header with optional close button |
-| `DialogBody` | `dialog.tsx` | Scrollable dialog content area |
-| `DialogFooter` | `dialog.tsx` | Dialog footer for action buttons |
-| `Tabs` | `tabs.tsx` | Tab container with controlled/uncontrolled modes |
-| `TabList` / `Tab` | `tabs.tsx` | Tab navigation with keyboard support and variants (line, enclosed, soft-rounded) |
-| `TabPanels` / `TabPanel` | `tabs.tsx` | Tab content panels with auto-indexing |
-| `Accordion` | `accordion.tsx` | Expandable sections with single/multiple mode support |
-| `AccordionItem` | `accordion.tsx` | Individual accordion section |
-| `AccordionTrigger` | `accordion.tsx` | Clickable accordion header |
-| `AccordionContent` | `accordion.tsx` | Animated accordion content |
+| `Avatar` | `avatar.tsx` | User avatar with image/initials fallback, status indicator |
+| `NavLink` | `nav-link.tsx` | Navigation link with active state (sidebar, topnav, mobile variants) |
+| `IconButton` | `icon-button.tsx` | Icon-only button with accessibility label |
+| `MenuItem` | `menu-item.tsx` | Menu action item with icon and keyboard shortcut |
+| `FieldWrapper` | `field-wrapper.tsx` | Form field with label, hint, error message |
+| `StatusBadge` | `status-badge.tsx` | Status indicator (active, pending, error, etc.) |
+| `ThemeToggle` | `theme-toggle.tsx` | Dark/light mode switch |
+| `ThemeSelector` | `theme-selector.tsx` | Theme dropdown selector |
+| `PasswordStrengthMeter` | `password-strength.tsx` | Password validation indicator |
+| `ConfirmButton` | `confirm-button.tsx` | Button with confirmation dialog |
+| `ExportButton` | `export-button.tsx` | Download/export actions |
+| `Autocomplete` | `autocomplete.tsx` | Search input with suggestions |
+| `TagInput` | `tag-input.tsx` | Multi-value tag input |
+| `QRCode` | `qr-code.tsx` | QR code generator with download |
+| `AvatarUpload` | `avatar-upload.tsx` | Avatar with upload/remove capability |
 
-### Utility Components
+#### ORGANISMS - Complex UI Patterns
+Composed of molecules and atoms, forming distinct interface sections.
 
 | Component | File | Description |
 |-----------|------|-------------|
-| `ThemeToggle` | `theme-toggle.tsx` | Dark/light mode toggle with variants (icon, button, dropdown) |
-| `ExportButton` | `export-button.tsx` | File download button with format selection and loading state |
-| `ExportCsvButton` | `export-button.tsx` | Simplified CSV export button |
-| `ExportMyDataButton` | `export-button.tsx` | User data export button for GDPR compliance |
+| `Dialog` | `dialog.tsx` | Modal with `DialogHeader`, `DialogBody`, `DialogFooter` |
+| `Tabs` | `tabs.tsx` | Tab navigation with `TabList`, `Tab`, `TabPanels`, `TabPanel` |
+| `Accordion` | `accordion.tsx` | Expandable sections with `AccordionItem`, `AccordionTrigger`, `AccordionContent` |
+
+#### LAYOUTS - Page Structure
+Structural components defining arrangement and responsive behavior.
+
+| Component | File | Description |
+|-----------|------|-------------|
+| `Container` | `layouts/container.tsx` | Centered content wrapper with max-width |
+| `Stack` | `layouts/stack.tsx` | Vertical/horizontal flex container |
+| `Grid` | `layouts/grid.tsx` | Responsive grid with `GridItem` |
+| `AuthLayout` | `layouts/auth-layout.tsx` | Authentication page layout |
+| `PageLayout` | `layouts/page-layout.tsx` | Standard page with optional sidebar |
+| `DashboardLayout` | `layouts/dashboard-layout.tsx` | Admin dashboard layout |
+| `SplitLayout` | `layouts/split-layout.tsx` | Two-panel layout |
+
+### Import Patterns
+
+```typescript
+// Import from barrel file (recommended)
+import { Button, Input, Dialog, Avatar, Stack } from "@/components/ui";
+
+// Import individual components
+import { Button } from "@/components/ui/button";
+
+// Import from category folders
+import { Form, FormField } from "@/components/forms";
+import { Alert, Toaster } from "@/components/feedback";
+import { Header, Footer } from "@/components/layout";
+```
+
+### When to Use Each Category
+
+| Category | Use When | Examples |
+|----------|----------|----------|
+| **Atoms** | Need a basic, styled HTML element | Button, Input, Badge |
+| **Molecules** | Combining 2-3 atoms for a specific function | Avatar, NavLink, FieldWrapper |
+| **Organisms** | Building a complete UI section | Dialog, Tabs, Accordion |
+| **Layouts** | Structuring page content | Container, Stack, DashboardLayout |
+
+### How to Add New Components
+
+1. **Determine the category** based on complexity:
+   - Single styled element = Atom
+   - Combines 2-3 atoms = Molecule
+   - Complex with state/behavior = Organism
+   - Page structure = Layout
+
+2. **Create the component file** in the appropriate location:
+```tsx
+// src/components/ui/my-component.tsx
+import * as React from "react";
+import { cn } from "@/lib/utils";
+
+export interface MyComponentProps extends React.HTMLAttributes<HTMLDivElement> {
+  variant?: "default" | "primary";
+}
+
+const MyComponent = React.forwardRef<HTMLDivElement, MyComponentProps>(
+  ({ className, variant = "default", ...props }, ref) => {
+    return (
+      <div
+        ref={ref}
+        className={cn(
+          "base-styles",
+          variant === "primary" && "primary-styles",
+          className
+        )}
+        {...props}
+      />
+    );
+  }
+);
+MyComponent.displayName = "MyComponent";
+
+export { MyComponent };
+```
+
+3. **Add to the barrel export** in `ui/index.ts` under the correct category section:
+```typescript
+// =============================================================================
+// MOLECULES - Simple Combinations of Atoms
+// =============================================================================
+
+// MyComponent - Brief description
+export { MyComponent } from "./my-component";
+export type { MyComponentProps } from "./my-component";
+```
 
 ### Usage Examples
 
-#### Button with Loading State
+#### Atoms - Button with Loading State
 ```tsx
 import { Button } from "@/components/ui";
 
@@ -364,7 +475,19 @@ import { Button } from "@/components/ui";
 </Button>
 ```
 
-#### Dialog Modal
+#### Molecules - Avatar with Status
+```tsx
+import { Avatar } from "@/components/ui";
+
+<Avatar
+  src="/user.jpg"
+  name="John Doe"
+  size="lg"
+  status="online"
+/>
+```
+
+#### Organisms - Dialog Modal
 ```tsx
 import { Dialog, DialogHeader, DialogBody, DialogFooter, Button } from "@/components/ui";
 
@@ -378,58 +501,44 @@ import { Dialog, DialogHeader, DialogBody, DialogFooter, Button } from "@/compon
 </Dialog>
 ```
 
-#### Tabs with Variants
+#### Layouts - Dashboard Page
 ```tsx
-import { Tabs, TabList, Tab, TabPanels, TabPanel } from "@/components/ui";
+import { DashboardLayout, DashboardSidebar, DashboardNavItem } from "@/components/ui";
 
-<Tabs variant="enclosed" defaultIndex={0}>
-  <TabList>
-    <Tab>Profile</Tab>
-    <Tab>Settings</Tab>
-    <Tab disabled>Disabled</Tab>
-  </TabList>
-  <TabPanels>
-    <TabPanel>Profile content</TabPanel>
-    <TabPanel>Settings content</TabPanel>
-    <TabPanel>Disabled content</TabPanel>
-  </TabPanels>
-</Tabs>
+<DashboardLayout
+  sidebar={
+    <DashboardSidebar>
+      <DashboardNavItem href="/dashboard" icon={<HomeIcon />} label="Home" />
+      <DashboardNavItem href="/settings" icon={<SettingsIcon />} label="Settings" />
+    </DashboardSidebar>
+  }
+>
+  <main>{children}</main>
+</DashboardLayout>
 ```
 
-#### Form with Validation
-```tsx
-import { Input, Select, Checkbox, Button } from "@/components/ui";
+### Skeleton Variants
 
-<form>
-  <Input placeholder="Email" aria-invalid={!!errors.email} />
-  <Select
-    options={[{ value: "us", label: "United States" }]}
-    error={errors.country}
-    label="Country"
-  />
-  <Checkbox label="I agree to terms" />
-  <Button type="submit">Submit</Button>
-</form>
-```
+Loading placeholders for common UI patterns:
 
-#### Skeleton Loading State
-```tsx
-import { SkeletonCard, SkeletonTable } from "@/components/ui";
-
-{isLoading ? (
-  <div className="grid grid-cols-3 gap-4">
-    <SkeletonCard />
-    <SkeletonCard />
-    <SkeletonCard />
-  </div>
-) : (
-  <CardGrid items={items} />
-)}
-```
+| Component | Description |
+|-----------|-------------|
+| `Skeleton` | Base skeleton with pulse/shimmer animation |
+| `SkeletonText` | Multi-line text placeholder |
+| `SkeletonCircle` | Circle for avatars |
+| `SkeletonAvatar` | Avatar with text placeholders |
+| `SkeletonButton` | Button placeholder |
+| `SkeletonImage` | Image with aspect ratio support |
+| `SkeletonCard` | Card layout (default, horizontal, compact) |
+| `SkeletonTable` | Table with configurable rows/columns |
+| `SkeletonList` | List (default, simple, detailed) |
+| `SkeletonPage` | Full page loading |
+| `SkeletonDashboard` | Dashboard with nav, sidebar, stats |
+| `SkeletonForm` | Form layout |
+| `SkeletonProfile` | Profile page |
+| `SkeletonAuth` | Authentication page |
 
 ### Design System CSS Variables
-
-The component library uses CSS variables for theming. Key variables include:
 
 ```css
 /* Colors (defined in globals.css) */

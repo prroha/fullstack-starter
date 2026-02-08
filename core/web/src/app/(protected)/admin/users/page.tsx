@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { api, ApiError, AdminUser } from "@/lib/api";
-import { Button, Input, Badge, SkeletonTable, ExportCsvButton } from "@/components/ui";
+import { Button, Input, Badge, SkeletonTable, ExportCsvButton, Text, Select } from "@/components/ui";
 import { Alert } from "@/components/feedback";
 import { EmptyUsers, EmptySearch } from "@/components/shared";
 import { cn } from "@/lib/utils";
@@ -33,15 +33,15 @@ function UserRow({
   isUpdating: boolean;
 }) {
   return (
-    <tr className="border-b transition-colors hover:bg-muted/50">
+    <tr className="border-b hover:bg-muted/50">
       <td className="px-4 py-3">
         <div className="flex items-center gap-3">
           <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium text-sm">
             {user.name?.charAt(0).toUpperCase() || user.email.charAt(0).toUpperCase()}
           </div>
           <div>
-            <p className="font-medium">{user.name || "No name"}</p>
-            <p className="text-sm text-muted-foreground">{user.email}</p>
+            <Text as="p" className="font-medium">{user.name || "No name"}</Text>
+            <Text variant="caption" color="muted">{user.email}</Text>
           </div>
         </div>
       </td>
@@ -55,8 +55,10 @@ function UserRow({
           {user.isActive ? "Active" : "Inactive"}
         </Badge>
       </td>
-      <td className="px-4 py-3 text-sm text-muted-foreground">
-        {new Date(user.createdAt).toLocaleDateString()}
+      <td className="px-4 py-3">
+        <Text variant="caption" color="muted">
+          {new Date(user.createdAt).toLocaleDateString()}
+        </Text>
       </td>
       <td className="px-4 py-3">
         <div className="flex items-center gap-2">
@@ -107,11 +109,11 @@ function Pagination({
 
   return (
     <div className="flex items-center justify-between px-2">
-      <p className="text-sm text-muted-foreground">
+      <Text variant="caption" color="muted">
         Showing {(pagination.page - 1) * pagination.limit + 1} to{" "}
         {Math.min(pagination.page * pagination.limit, pagination.total)} of{" "}
         {pagination.total} users
-      </p>
+      </Text>
       <div className="flex items-center gap-1">
         <Button
           variant="outline"
@@ -347,9 +349,9 @@ export default function AdminUsersPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Users</h1>
-          <p className="text-muted-foreground">
+          <Text color="muted">
             Manage all users in your application
-          </p>
+          </Text>
         </div>
         <ExportCsvButton
           label="Export Users"

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 
 /// Validation mode for the text field.
@@ -238,21 +237,25 @@ class _AppTextFieldState extends State<AppTextField> {
   }
 
   /// Calculate the counter color based on percentage of maxLength used.
-  Color _getCounterColor() {
+  Color _getCounterColor(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     if (widget.maxLength == null || widget.maxLength == 0) {
-      return AppColors.textMuted;
+      return colorScheme.outline;
     }
     final percentage = (_charCount / widget.maxLength!) * 100;
     if (percentage >= 100) {
-      return AppColors.error;
+      return colorScheme.error;
     } else if (percentage >= 80) {
-      return AppColors.warning;
+      return isDark ? const Color(0xFFF59E0B) : const Color(0xFFD97706);
     }
-    return AppColors.textMuted;
+    return colorScheme.outline;
   }
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final showCounter = widget.showCharacterCount && widget.maxLength != null;
     // Use external errorText if provided, otherwise use validation error for onBlur/onChange modes
     final displayError = widget.errorText ??
@@ -266,8 +269,8 @@ class _AppTextFieldState extends State<AppTextField> {
         if (widget.label != null) ...[
           Text(
             widget.label!,
-            style: const TextStyle(
-              color: AppColors.textPrimary,
+            style: TextStyle(
+              color: colorScheme.onSurface,
               fontWeight: FontWeight.w500,
               fontSize: 13, // Tighter label
             ),
@@ -294,26 +297,28 @@ class _AppTextFieldState extends State<AppTextField> {
           buildCounter: showCounter
               ? (context, {required currentLength, required isFocused, maxLength}) => null
               : null,
-          style: const TextStyle(
-            color: AppColors.textPrimary,
+          style: TextStyle(
+            color: colorScheme.onSurface,
             fontSize: 15, // Slightly tighter text
           ),
           decoration: InputDecoration(
             hintText: widget.hint,
-            hintStyle: const TextStyle(
-              color: AppColors.textMuted,
+            hintStyle: TextStyle(
+              color: colorScheme.outline,
               fontSize: 15,
             ),
             errorText: displayError,
             helperText: widget.helperText,
-            helperStyle: const TextStyle(
-              color: AppColors.textMuted,
+            helperStyle: TextStyle(
+              color: colorScheme.outline,
               fontSize: 11,
             ),
             prefixIcon: widget.prefixIcon,
             suffixIcon: widget.suffixIcon,
             filled: true,
-            fillColor: widget.enabled ? AppColors.surface : AppColors.border.withAlpha(50),
+            fillColor: widget.enabled
+                ? colorScheme.surface
+                : colorScheme.outlineVariant.withAlpha(50),
             // Tighter content padding: 12h x 10v for compact inputs
             contentPadding: const EdgeInsets.symmetric(
               horizontal: AppSpacing.md, // 12dp
@@ -322,27 +327,27 @@ class _AppTextFieldState extends State<AppTextField> {
             isDense: true, // Enable dense mode for tighter layout
             border: OutlineInputBorder(
               borderRadius: AppSpacing.borderRadiusSm, // Tighter radius
-              borderSide: const BorderSide(color: AppColors.border),
+              borderSide: BorderSide(color: colorScheme.outlineVariant),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: AppSpacing.borderRadiusSm,
-              borderSide: const BorderSide(color: AppColors.border),
+              borderSide: BorderSide(color: colorScheme.outlineVariant),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: AppSpacing.borderRadiusSm,
-              borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+              borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: AppSpacing.borderRadiusSm,
-              borderSide: const BorderSide(color: AppColors.error),
+              borderSide: BorderSide(color: colorScheme.error),
             ),
             focusedErrorBorder: OutlineInputBorder(
               borderRadius: AppSpacing.borderRadiusSm,
-              borderSide: const BorderSide(color: AppColors.error, width: 1.5),
+              borderSide: BorderSide(color: colorScheme.error, width: 1.5),
             ),
             disabledBorder: OutlineInputBorder(
               borderRadius: AppSpacing.borderRadiusSm,
-              borderSide: const BorderSide(color: AppColors.border),
+              borderSide: BorderSide(color: colorScheme.outlineVariant),
             ),
           ),
         ),
@@ -353,7 +358,7 @@ class _AppTextFieldState extends State<AppTextField> {
             child: AnimatedDefaultTextStyle(
               duration: const Duration(milliseconds: 200),
               style: TextStyle(
-                color: _getCounterColor(),
+                color: _getCounterColor(context),
                 fontSize: 11,
                 fontWeight: _charCount >= (widget.maxLength ?? 0) * 0.8
                     ? FontWeight.w500

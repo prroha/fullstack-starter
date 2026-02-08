@@ -1,21 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
 import { forgotPasswordSchema, type ForgotPasswordFormData } from "@/lib/validations";
 import { logger } from "@/lib/logger";
 import { toast } from "@/lib/toast";
 import {
   Form,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormControl,
-  FormMessage,
+  FormFieldInput,
+  FormStatusMessage,
   useZodForm,
 } from "@/components/forms";
-import { Input, Button, AuthLayout } from "@/components/ui";
+import { Button, AuthLayout, AppLink, Text, Icon } from "@/components/ui";
 import { FormErrorBoundary } from "@/components/shared";
 
 // Auth Logo Component - Key icon for password reset
@@ -23,19 +19,7 @@ function AuthLogo() {
   return (
     <div className="flex items-center justify-center">
       <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
-        <svg
-          className="h-7 w-7 text-primary"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
-          />
-        </svg>
+        <Icon name="KeyRound" size="lg" color="primary" />
       </div>
     </div>
   );
@@ -46,19 +30,7 @@ function EmailSentLogo() {
   return (
     <div className="flex items-center justify-center">
       <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
-        <svg
-          className="h-7 w-7 text-primary"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-          />
-        </svg>
+        <Icon name="Mail" size="lg" color="primary" />
       </div>
     </div>
   );
@@ -111,14 +83,16 @@ export default function ForgotPasswordPage() {
         maxWidth="sm"
         showBackgroundPattern
         footer={
-          <p>
-            <Link href="/login">Back to sign in</Link>
-          </p>
+          <Text as="p" size="sm" color="muted">
+            <AppLink href="/login" variant="primary" size="sm">
+              Back to sign in
+            </AppLink>
+          </Text>
         }
       >
         <div className="space-y-4 text-center">
-          <p className="text-sm text-muted-foreground">
-            Didn't receive the email? Check your spam folder or{" "}
+          <Text as="p" size="sm" color="muted">
+            Didn&apos;t receive the email? Check your spam folder or{" "}
             <button
               type="button"
               onClick={() => {
@@ -129,7 +103,7 @@ export default function ForgotPasswordPage() {
             >
               try again
             </button>
-          </p>
+          </Text>
         </div>
       </AuthLayout>
     );
@@ -143,37 +117,26 @@ export default function ForgotPasswordPage() {
       maxWidth="sm"
       showBackgroundPattern
       footer={
-        <p>
+        <Text as="p" size="sm" color="muted">
           Remember your password?{" "}
-          <Link href="/login">Sign in</Link>
-        </p>
+          <AppLink href="/login" variant="primary" size="sm">
+            Sign in
+          </AppLink>
+        </Text>
       }
     >
       <FormErrorBoundary>
         <Form form={form} onSubmit={onSubmit} className="space-y-4">
-          {error && (
-            <div className="p-3 rounded-md bg-destructive/10 border border-destructive/50">
-              <p className="text-sm text-destructive">{error}</p>
-            </div>
-          )}
+          <FormStatusMessage variant="error" message={error} />
 
-          <FormField
+          <FormFieldInput
             control={form.control}
             name="email"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel required>Email</FormLabel>
-                <FormControl>
-                  <Input
-                    type="email"
-                    placeholder="you@example.com"
-                    autoComplete="email"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            label="Email"
+            required
+            type="email"
+            placeholder="you@example.com"
+            inputProps={{ autoComplete: "email" }}
           />
 
           <Button

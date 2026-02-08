@@ -69,7 +69,7 @@ function UserSearchResultItem({
       href={`/admin/users?search=${encodeURIComponent(result.email)}`}
       onClick={onClick}
       className={cn(
-        "flex items-center gap-3 p-3 rounded-lg transition-colors",
+        "flex items-center gap-3 p-3 rounded-lg",
         "hover:bg-accent focus:bg-accent focus:outline-none",
         "cursor-pointer",
         className

@@ -82,7 +82,7 @@ export function HeaderSearch({ className }: HeaderSearchProps) {
         className={cn(
           "inline-flex items-center gap-2 rounded-lg px-3 py-2",
           "text-sm text-muted-foreground",
-          "bg-muted/50 hover:bg-muted transition-colors",
+          "bg-muted/50 hover:bg-muted",
           "border border-border",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
           className
@@ -133,7 +133,7 @@ export function HeaderSearchIcon({ className }: HeaderSearchIconProps) {
           "inline-flex items-center justify-center rounded-md",
           "h-9 w-9",
           "text-muted-foreground hover:text-foreground",
-          "hover:bg-accent transition-colors",
+          "hover:bg-accent",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
           className
         )}

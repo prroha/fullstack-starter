@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../atoms/app_button.dart';
 
@@ -111,10 +110,9 @@ class ErrorState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final titleColor = isDark ? Colors.white : AppColors.textPrimary;
-    final messageColor = isDark ? Colors.grey.shade400 : AppColors.textSecondary;
-    final iconBackgroundColor = isDark ? AppColors.error.withAlpha(26) : AppColors.error.withAlpha(13);
+    final iconBackgroundColor = colorScheme.error.withAlpha(isDark ? 26 : 13);
 
     return Center(
       child: Padding(
@@ -136,7 +134,7 @@ class ErrorState extends StatelessWidget {
                 child: Icon(
                   icon,
                   size: iconSize * 0.6,
-                  color: AppColors.error,
+                  color: colorScheme.error,
                 ),
               ),
             AppSpacing.gapLg,
@@ -149,7 +147,7 @@ class ErrorState extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w600,
-                  color: titleColor,
+                  color: colorScheme.onSurface,
                 ),
               ),
               AppSpacing.gapSm,
@@ -162,7 +160,7 @@ class ErrorState extends StatelessWidget {
                 message,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: messageColor,
+                  color: colorScheme.onSurfaceVariant,
                   fontSize: 16,
                   height: 1.5,
                 ),
@@ -236,10 +234,10 @@ class ErrorScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: backgroundColor ?? (isDark ? Colors.grey.shade900 : AppColors.background),
+      backgroundColor: backgroundColor ?? colorScheme.surface,
       body: ErrorState(
         message: message,
         onRetry: onRetry,

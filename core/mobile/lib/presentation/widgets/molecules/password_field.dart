@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import 'password_strength.dart';
 
@@ -156,14 +155,16 @@ class _PasswordFieldState extends State<PasswordField> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (widget.label != null) ...[
           Text(
             widget.label!,
-            style: const TextStyle(
-              color: AppColors.textPrimary,
+            style: TextStyle(
+              color: colorScheme.onSurface,
               fontWeight: FontWeight.w500,
               fontSize: 13, // Tighter label
             ),
@@ -181,20 +182,20 @@ class _PasswordFieldState extends State<PasswordField> {
           enabled: widget.enabled,
           autofocus: widget.autofocus,
           focusNode: widget.focusNode,
-          style: const TextStyle(
-            color: AppColors.textPrimary,
+          style: TextStyle(
+            color: colorScheme.onSurface,
             fontSize: 15, // Tighter text
           ),
           decoration: InputDecoration(
             hintText: widget.hint,
-            hintStyle: const TextStyle(
-              color: AppColors.textMuted,
+            hintStyle: TextStyle(
+              color: colorScheme.outline,
               fontSize: 15,
             ),
             errorText: widget.errorText,
             helperText: widget.showStrength ? null : widget.helperText,
-            helperStyle: const TextStyle(
-              color: AppColors.textMuted,
+            helperStyle: TextStyle(
+              color: colorScheme.outline,
               fontSize: 11,
             ),
             prefixIcon: widget.prefixIcon != null
@@ -205,15 +206,15 @@ class _PasswordFieldState extends State<PasswordField> {
                 _obscureText
                     ? Icons.visibility_outlined
                     : Icons.visibility_off_outlined,
-                color: AppColors.textMuted,
+                color: colorScheme.outline,
                 size: 20,
               ),
               onPressed: _toggleVisibility,
             ),
             filled: true,
             fillColor: widget.enabled
-                ? AppColors.surface
-                : AppColors.border.withAlpha(50),
+                ? colorScheme.surface
+                : colorScheme.outlineVariant.withAlpha(50),
             // Tighter content padding: 12h x 10v
             contentPadding: const EdgeInsets.symmetric(
               horizontal: AppSpacing.md, // 12dp
@@ -222,27 +223,27 @@ class _PasswordFieldState extends State<PasswordField> {
             isDense: true,
             border: OutlineInputBorder(
               borderRadius: AppSpacing.borderRadiusSm,
-              borderSide: const BorderSide(color: AppColors.border),
+              borderSide: BorderSide(color: colorScheme.outlineVariant),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: AppSpacing.borderRadiusSm,
-              borderSide: const BorderSide(color: AppColors.border),
+              borderSide: BorderSide(color: colorScheme.outlineVariant),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: AppSpacing.borderRadiusSm,
-              borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+              borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: AppSpacing.borderRadiusSm,
-              borderSide: const BorderSide(color: AppColors.error),
+              borderSide: BorderSide(color: colorScheme.error),
             ),
             focusedErrorBorder: OutlineInputBorder(
               borderRadius: AppSpacing.borderRadiusSm,
-              borderSide: const BorderSide(color: AppColors.error, width: 1.5),
+              borderSide: BorderSide(color: colorScheme.error, width: 1.5),
             ),
             disabledBorder: OutlineInputBorder(
               borderRadius: AppSpacing.borderRadiusSm,
-              borderSide: const BorderSide(color: AppColors.border),
+              borderSide: BorderSide(color: colorScheme.outlineVariant),
             ),
           ),
         ),

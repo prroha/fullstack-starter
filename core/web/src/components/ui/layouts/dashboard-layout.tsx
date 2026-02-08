@@ -2,6 +2,9 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
+import { IconButton } from "../icon-button";
+import { Icon } from "../icon";
+import { AppLink } from "../link";
 
 // =====================================================
 // Types
@@ -28,90 +31,6 @@ interface DashboardLayoutProps {
   showMobileMenu?: boolean;
   /** Callback for mobile menu toggle */
   onMobileMenuToggle?: () => void;
-}
-
-// =====================================================
-// Icons
-// =====================================================
-
-function MenuIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      fill="none"
-      viewBox="0 0 24 24"
-      strokeWidth={1.5}
-      stroke="currentColor"
-      className={className}
-      aria-hidden="true"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
-      />
-    </svg>
-  );
-}
-
-function CloseIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      fill="none"
-      viewBox="0 0 24 24"
-      strokeWidth={1.5}
-      stroke="currentColor"
-      className={className}
-      aria-hidden="true"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M6 18L18 6M6 6l12 12"
-      />
-    </svg>
-  );
-}
-
-function ChevronLeftIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      fill="none"
-      viewBox="0 0 24 24"
-      strokeWidth={1.5}
-      stroke="currentColor"
-      className={className}
-      aria-hidden="true"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M15.75 19.5L8.25 12l7.5-7.5"
-      />
-    </svg>
-  );
-}
-
-function ChevronRightIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      fill="none"
-      viewBox="0 0 24 24"
-      strokeWidth={1.5}
-      stroke="currentColor"
-      className={className}
-      aria-hidden="true"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M8.25 4.5l7.5 7.5-7.5 7.5"
-      />
-    </svg>
-  );
 }
 
 // =====================================================
@@ -161,8 +80,9 @@ function DashboardLayout({
   return (
     <div className={cn("min-h-screen bg-background", className)}>
       {/* Skip to main content link for accessibility */}
-      <a
+      <AppLink
         href="#dashboard-main-content"
+        underline="none"
         className={cn(
           "sr-only focus:not-sr-only",
           "fixed top-2 left-1/2 -translate-x-1/2 z-[60]",
@@ -172,30 +92,19 @@ function DashboardLayout({
         )}
       >
         Skip to main content
-      </a>
+      </AppLink>
 
       {/* Mobile Menu Button - Only visible on mobile */}
-      <button
-        type="button"
+      <IconButton
+        icon={<Icon name={showMobileMenu ? "X" : "Menu"} size="sm" />}
         onClick={onMobileMenuToggle}
-        className={cn(
-          "fixed top-4 left-4 z-50 md:hidden",
-          "p-2 rounded-md",
-          "bg-background border border-border shadow-sm",
-          "text-foreground hover:bg-accent",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-          "transition-colors"
-        )}
+        variant="outline"
+        size="sm"
+        className="fixed top-4 left-4 z-50 md:hidden shadow-sm"
         aria-label={showMobileMenu ? "Close navigation menu" : "Open navigation menu"}
         aria-expanded={showMobileMenu}
         aria-controls="dashboard-mobile-sidebar"
-      >
-        {showMobileMenu ? (
-          <CloseIcon className="h-5 w-5" />
-        ) : (
-          <MenuIcon className="h-5 w-5" />
-        )}
-      </button>
+      />
 
       {/* Mobile Overlay */}
       {showMobileMenu && (
@@ -225,28 +134,19 @@ function DashboardLayout({
 
         {/* Collapse Toggle Button - Enhanced visibility */}
         {onSidebarToggle && (
-          <button
-            type="button"
+          <IconButton
+            icon={<Icon name={sidebarCollapsed ? "ChevronRight" : "ChevronLeft"} size="xs" />}
             onClick={onSidebarToggle}
+            variant="outline"
+            size="xs"
             className={cn(
               "absolute -right-3 top-1/2 -translate-y-1/2",
-              "p-1.5 rounded-full",
-              "bg-card border border-border",
-              "text-muted-foreground hover:text-foreground hover:bg-accent",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              "transition-all shadow-md hover:shadow-lg",
-              // Improved discoverability: slightly larger hit area and more visible
-              "hover:scale-110"
+              "rounded-full shadow-md hover:shadow-lg hover:scale-110",
+              "transition-all"
             )}
             aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-          >
-            {sidebarCollapsed ? (
-              <ChevronRightIcon className="h-4 w-4" />
-            ) : (
-              <ChevronLeftIcon className="h-4 w-4" />
-            )}
-          </button>
+          />
         )}
       </aside>
 
@@ -265,19 +165,13 @@ function DashboardLayout({
       >
         {/* Mobile Sidebar Header with Close Button */}
         <div className="flex items-center justify-end p-4 border-b border-border">
-          <button
-            type="button"
+          <IconButton
+            icon={<Icon name="X" size="sm" />}
             onClick={onMobileMenuToggle}
-            className={cn(
-              "p-1.5 rounded-md",
-              "text-muted-foreground hover:text-foreground hover:bg-accent",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              "transition-colors"
-            )}
+            variant="ghost"
+            size="sm"
             aria-label="Close menu"
-          >
-            <CloseIcon className="h-5 w-5" />
-          </button>
+          />
         </div>
 
         {/* Sidebar Content */}
@@ -382,7 +276,6 @@ function DashboardNavItem({
   const baseClasses = cn(
     "w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md",
     "text-sm font-medium",
-    "transition-colors",
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
     active
       ? "bg-primary text-primary-foreground"
@@ -406,14 +299,15 @@ function DashboardNavItem({
 
   if (href) {
     return (
-      <a
+      <AppLink
         href={href}
+        underline="none"
         className={baseClasses}
         aria-current={active ? "page" : undefined}
         {...tooltipProps}
       >
         {content}
-      </a>
+      </AppLink>
     );
   }
 

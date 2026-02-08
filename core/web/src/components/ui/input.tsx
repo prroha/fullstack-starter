@@ -53,7 +53,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
         {showCounter && (
           <div
             className={cn(
-              "mt-1 text-right text-xs transition-colors duration-200",
+              "mt-1 text-right text-xs ",
               isError
                 ? "text-destructive font-medium animate-pulse"
                 : isWarning

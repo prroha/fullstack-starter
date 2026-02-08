@@ -140,7 +140,7 @@ export const SearchInput = React.forwardRef<HTMLInputElement, SearchInputProps>(
             <button
               type="button"
               onClick={onClear}
-              className="p-1 rounded-md hover:bg-accent transition-colors"
+              className="p-1 rounded-md hover:bg-accent"
               aria-label="Clear search"
             >
               <XIcon className="h-4 w-4 text-muted-foreground" />

@@ -299,7 +299,7 @@ const TagInput = React.forwardRef<HTMLInputElement, TagInputProps>(
         tabIndex={-1}
         onClick={(e) => handleTagClick(e, index)}
         className={cn(
-          "inline-flex items-center rounded-full font-medium transition-all",
+          "inline-flex items-center rounded-full font-medium",
           "bg-primary text-primary-foreground",
           "select-none cursor-pointer",
           tagSizes[size],
@@ -318,7 +318,7 @@ const TagInput = React.forwardRef<HTMLInputElement, TagInputProps>(
             }}
             className={cn(
               "inline-flex items-center justify-center rounded-full",
-              "hover:bg-primary-foreground/20 transition-colors",
+              "hover:bg-primary-foreground/20",
               "focus:outline-none focus:ring-1 focus:ring-primary-foreground/50",
               removeButtonSizes[size]
             )}

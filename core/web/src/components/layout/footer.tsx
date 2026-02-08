@@ -1,6 +1,6 @@
 import * as React from "react";
-import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { AppLink, Text } from "@/components/ui";
 
 // =====================================================
 // Footer Component
@@ -47,28 +47,29 @@ function Footer({
           {/* Logo and description */}
           <div className="space-y-4">
             {logo ?? (
-              <span className="text-xl font-bold text-foreground">Logo</span>
+              <Text className="text-xl font-bold">Logo</Text>
             )}
             {children && (
-              <p className="text-sm text-muted-foreground">{children}</p>
+              <Text size="sm" color="muted">{children}</Text>
             )}
           </div>
 
           {/* Link groups */}
           {links?.map((group, index) => (
             <div key={index} className="space-y-4">
-              <h4 className="text-sm font-semibold text-foreground">
+              <Text size="sm" className="font-semibold">
                 {group.title}
-              </h4>
+              </Text>
               <ul className="space-y-2">
                 {group.links.map((link, linkIndex) => (
                   <li key={linkIndex}>
-                    <Link
+                    <AppLink
                       href={link.href}
-                      className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                      variant="muted"
+                      size="sm"
                     >
                       {link.label}
-                    </Link>
+                    </AppLink>
                   </li>
                 ))}
               </ul>
@@ -78,24 +79,23 @@ function Footer({
 
         {/* Bottom bar */}
         <div className="mt-12 pt-8 border-t border-border flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-sm text-muted-foreground">
+          <Text size="sm" color="muted">
             {copyright ?? defaultCopyright}
-          </p>
+          </Text>
 
           {/* Social links */}
           {socials && socials.length > 0 && (
             <div className="flex items-center gap-4">
               {socials.map((social, index) => (
-                <a
+                <AppLink
                   key={index}
                   href={social.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-muted-foreground hover:text-foreground transition-colors"
+                  variant="muted"
+                  external
                   aria-label={social.label}
                 >
                   {social.icon}
-                </a>
+                </AppLink>
               ))}
             </div>
           )}
@@ -141,19 +141,20 @@ function SimpleFooter({
     >
       <div className="container mx-auto px-4">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-sm text-muted-foreground">
+          <Text size="sm" color="muted">
             {copyright ?? defaultCopyright}
-          </p>
+          </Text>
           {showLegalLinks && (
             <nav className="flex items-center gap-4" aria-label="Legal links">
               {legalLinks.map((link) => (
-                <Link
+                <AppLink
                   key={link.href}
                   href={link.href}
-                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  variant="muted"
+                  size="sm"
                 >
                   {link.label}
-                </Link>
+                </AppLink>
               ))}
             </nav>
           )}

@@ -121,7 +121,6 @@ function SettingsItem({
 
   const baseClasses = cn(
     "flex items-center gap-4 px-4 py-3",
-    "transition-colors duration-200",
     !disabled && (href || onClick) && "hover:bg-accent cursor-pointer",
     disabled && "opacity-50 cursor-not-allowed",
     "border-b last:border-b-0 border-border",

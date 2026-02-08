@@ -230,6 +230,135 @@ function useZodForm<T extends z.ZodType>({
 }
 
 // =====================================================
+// Form Status Message Component (for success/error messages)
+// =====================================================
+
+type FormStatusVariant = "error" | "success" | "info" | "warning";
+
+interface FormStatusMessageProps extends React.HTMLAttributes<HTMLDivElement> {
+  variant: FormStatusVariant;
+  message?: string | null;
+  title?: string;
+}
+
+const statusVariants: Record<FormStatusVariant, string> = {
+  error: "bg-destructive/10 border-destructive/50 text-destructive",
+  success: "bg-green-500/10 border-green-500/50 text-green-600 dark:text-green-400",
+  info: "bg-blue-500/10 border-blue-500/50 text-blue-600 dark:text-blue-400",
+  warning: "bg-yellow-500/10 border-yellow-500/50 text-yellow-600 dark:text-yellow-400",
+};
+
+function FormStatusMessage({
+  variant,
+  message,
+  title,
+  className,
+  children,
+  ...props
+}: FormStatusMessageProps) {
+  const content = message ?? children;
+
+  if (!content) {
+    return null;
+  }
+
+  return (
+    <div
+      role={variant === "error" ? "alert" : "status"}
+      className={cn(
+        "p-3 rounded-md border",
+        statusVariants[variant],
+        className
+      )}
+      {...props}
+    >
+      {title && <p className="text-sm font-medium mb-1">{title}</p>}
+      <p className="text-sm">{content}</p>
+    </div>
+  );
+}
+
+// =====================================================
+// Form Actions Component (submit + optional cancel)
+// =====================================================
+
+interface FormActionsProps extends React.HTMLAttributes<HTMLDivElement> {
+  submitLabel?: string;
+  cancelLabel?: string;
+  isSubmitting?: boolean;
+  onCancel?: () => void;
+  fullWidth?: boolean;
+  align?: "left" | "center" | "right" | "between";
+}
+
+function FormActions({
+  submitLabel = "Submit",
+  cancelLabel = "Cancel",
+  isSubmitting = false,
+  onCancel,
+  fullWidth = false,
+  align = "left",
+  className,
+  children,
+  ...props
+}: FormActionsProps) {
+  const alignmentClasses = {
+    left: "justify-start",
+    center: "justify-center",
+    right: "justify-end",
+    between: "justify-between",
+  };
+
+  // If children are provided, render them instead of default buttons
+  if (children) {
+    return (
+      <div
+        className={cn(
+          "flex items-center gap-4 pt-4",
+          alignmentClasses[align],
+          className
+        )}
+        {...props}
+      >
+        {children}
+      </div>
+    );
+  }
+
+  // Use dynamic import to avoid circular dependency
+  const Button = require("@/components/ui/button").Button;
+
+  return (
+    <div
+      className={cn(
+        "flex items-center gap-4 pt-4",
+        alignmentClasses[align],
+        className
+      )}
+      {...props}
+    >
+      <Button
+        type="submit"
+        className={fullWidth ? "w-full" : undefined}
+        isLoading={isSubmitting}
+      >
+        {submitLabel}
+      </Button>
+      {onCancel && (
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onCancel}
+          disabled={isSubmitting}
+        >
+          {cancelLabel}
+        </Button>
+      )}
+    </div>
+  );
+}
+
+// =====================================================
 // Exports
 // =====================================================
 
@@ -241,8 +370,18 @@ export {
   FormControl,
   FormDescription,
   FormMessage,
+  FormStatusMessage,
+  FormActions,
   useZodForm,
   useFormField,
 };
 
-export type { FormProps, FormLabelProps, FormDescriptionProps, FormMessageProps, UseZodFormProps };
+export type {
+  FormProps,
+  FormLabelProps,
+  FormDescriptionProps,
+  FormMessageProps,
+  FormStatusMessageProps,
+  FormActionsProps,
+  UseZodFormProps,
+};

@@ -4,10 +4,11 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { api, Notification } from "@/lib/api";
+import { useClickOutside, useEscapeKey, useAsync } from "@/lib/hooks";
 import { NotificationItem } from "./notification-item";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
-import { Bell, CheckCheck, Trash2 } from "lucide-react";
+import { Bell, CheckCheck } from "lucide-react";
 
 // =====================================================
 // NotificationDropdown Component
@@ -26,68 +27,38 @@ function NotificationDropdown({
 }: NotificationDropdownProps) {
   const router = useRouter();
   const [notifications, setNotifications] = React.useState<Notification[]>([]);
-  const [isLoading, setIsLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
-  const dropdownRef = React.useRef<HTMLDivElement>(null);
+
+  // Use reusable hooks for click outside and escape key
+  const dropdownRef = useClickOutside<HTMLDivElement>(onClose, { enabled: isOpen });
+  useEscapeKey(onClose, isOpen);
+
+  // Use async hook for fetching notifications
+  const {
+    execute: fetchNotifications,
+    isLoading,
+    error,
+  } = useAsync(
+    async () => {
+      const response = await api.getNotifications({ limit: 10 });
+      if (response.success && response.data) {
+        setNotifications(response.data.items);
+        return response.data.items;
+      }
+      throw new Error("Failed to load notifications");
+    },
+    {
+      onError: () => {
+        // Error is already handled by the hook
+      },
+    }
+  );
 
   // Fetch notifications when dropdown opens
   React.useEffect(() => {
     if (isOpen) {
       fetchNotifications();
     }
-  }, [isOpen]);
-
-  // Close dropdown when clicking outside
-  React.useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        onClose();
-      }
-    }
-
-    if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [isOpen, onClose]);
-
-  // Close on escape key
-  React.useEffect(() => {
-    function handleEscape(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        onClose();
-      }
-    }
-
-    if (isOpen) {
-      document.addEventListener("keydown", handleEscape);
-    }
-
-    return () => {
-      document.removeEventListener("keydown", handleEscape);
-    };
-  }, [isOpen, onClose]);
-
-  async function fetchNotifications() {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const response = await api.getNotifications({ limit: 10 });
-      if (response.success && response.data) {
-        setNotifications(response.data.items);
-      }
-    } catch (err) {
-      setError("Failed to load notifications");
-    } finally {
-      setIsLoading(false);
-    }
-  }
+  }, [isOpen, fetchNotifications]);
 
   async function handleMarkAsRead(id: string) {
     try {
@@ -174,11 +145,11 @@ function NotificationDropdown({
           </div>
         ) : error ? (
           <div className="p-4 text-center text-sm text-destructive">
-            {error}
+            {error.message}
             <Button
               variant="link"
               size="sm"
-              onClick={fetchNotifications}
+              onClick={() => fetchNotifications()}
               className="block mx-auto mt-2"
             >
               Try again

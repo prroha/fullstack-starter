@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
+import { Text } from "../text";
 
 // =====================================================
 // Types
@@ -94,9 +95,9 @@ function AuthLayout({
               {title}
             </h1>
             {subtitle && (
-              <p className="mt-1 text-sm text-muted-foreground">
+              <Text size="sm" color="muted" className="mt-1">
                 {subtitle}
-              </p>
+              </Text>
             )}
           </div>
 

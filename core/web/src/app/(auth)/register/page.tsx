@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { registerSchema, type RegisterFormData } from "@/lib/validations";
@@ -9,15 +8,11 @@ import { logger } from "@/lib/logger";
 import { toast } from "@/lib/toast";
 import {
   Form,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormControl,
-  FormDescription,
-  FormMessage,
+  FormFieldInput,
+  FormStatusMessage,
   useZodForm,
 } from "@/components/forms";
-import { Input, Button, AuthLayout } from "@/components/ui";
+import { Button, AuthLayout, AppLink, Text, Icon } from "@/components/ui";
 import { FormErrorBoundary } from "@/components/shared";
 
 // Auth Logo Component
@@ -25,19 +20,7 @@ function AuthLogo() {
   return (
     <div className="flex items-center justify-center">
       <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
-        <svg
-          className="h-7 w-7 text-primary"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
-          />
-        </svg>
+        <Icon name="UserPlus" size="lg" color="primary" />
       </div>
     </div>
   );
@@ -92,100 +75,56 @@ export default function RegisterPage() {
       maxWidth="sm"
       showBackgroundPattern
       footer={
-        <p>
+        <Text as="p" size="sm" color="muted">
           Already have an account?{" "}
-          <Link href="/login">Sign in</Link>
-        </p>
+          <AppLink href="/login" variant="primary" size="sm">
+            Sign in
+          </AppLink>
+        </Text>
       }
     >
       <FormErrorBoundary>
         <Form form={form} onSubmit={onSubmit} className="space-y-4">
-          {error && (
-            <div className="p-3 rounded-md bg-destructive/10 border border-destructive/50">
-              <p className="text-sm text-destructive">{error}</p>
-            </div>
-          )}
+          <FormStatusMessage variant="error" message={error} />
 
-          <FormField
+          <FormFieldInput
             control={form.control}
             name="name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Name</FormLabel>
-                <FormControl>
-                  <Input
-                    type="text"
-                    placeholder="John Doe"
-                    autoComplete="name"
-                    {...field}
-                  />
-                </FormControl>
-                <FormDescription>
-                  This is optional but helps personalize your experience.
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
+            label="Name"
+            placeholder="John Doe"
+            description="This is optional but helps personalize your experience."
+            inputProps={{ autoComplete: "name" }}
           />
 
-          <FormField
+          <FormFieldInput
             control={form.control}
             name="email"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel required>Email</FormLabel>
-                <FormControl>
-                  <Input
-                    type="email"
-                    placeholder="you@example.com"
-                    autoComplete="email"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            label="Email"
+            required
+            type="email"
+            placeholder="you@example.com"
+            inputProps={{ autoComplete: "email" }}
           />
 
-          <FormField
+          <FormFieldInput
             control={form.control}
             name="password"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel required>Password</FormLabel>
-                <FormControl>
-                  <Input
-                    type="password"
-                    placeholder="Create a strong password"
-                    autoComplete="new-password"
-                    {...field}
-                  />
-                </FormControl>
-                <FormDescription>
-                  Must be at least 8 characters with uppercase, lowercase, and a number.
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
+            label="Password"
+            required
+            type="password"
+            placeholder="Create a strong password"
+            description="Must be at least 8 characters with uppercase, lowercase, and a number."
+            inputProps={{ autoComplete: "new-password" }}
           />
 
-          <FormField
+          <FormFieldInput
             control={form.control}
             name="confirmPassword"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel required>Confirm Password</FormLabel>
-                <FormControl>
-                  <Input
-                    type="password"
-                    placeholder="Confirm your password"
-                    autoComplete="new-password"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            label="Confirm Password"
+            required
+            type="password"
+            placeholder="Confirm your password"
+            inputProps={{ autoComplete: "new-password" }}
           />
 
           <Button

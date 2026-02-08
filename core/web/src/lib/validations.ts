@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { VALIDATION, ERROR_MESSAGES } from "./constants";
 
 // =====================================================
 // Common validation patterns
@@ -6,24 +7,24 @@ import { z } from "zod";
 
 const emailSchema = z
   .string()
-  .min(1, "Email is required")
-  .email("Please enter a valid email address");
+  .min(1, ERROR_MESSAGES.EMAIL_REQUIRED)
+  .email(ERROR_MESSAGES.EMAIL_INVALID);
 
 const passwordSchema = z
   .string()
-  .min(1, "Password is required")
-  .min(8, "Password must be at least 8 characters")
+  .min(1, ERROR_MESSAGES.PASSWORD_REQUIRED)
+  .min(VALIDATION.PASSWORD_MIN_LENGTH, ERROR_MESSAGES.PASSWORD_MIN_LENGTH)
   .regex(
-    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-    "Password must contain at least one uppercase letter, one lowercase letter, and one number"
+    VALIDATION.PASSWORD_COMPLEXITY_PATTERN,
+    ERROR_MESSAGES.PASSWORD_COMPLEXITY
   );
 
 const nameSchema = z
   .string()
-  .min(1, "Name is required")
-  .min(2, "Name must be at least 2 characters")
-  .max(100, "Name must be less than 100 characters")
-  .regex(/^[a-zA-Z\s'-]+$/, "Name can only contain letters, spaces, hyphens, and apostrophes");
+  .min(1, ERROR_MESSAGES.NAME_REQUIRED)
+  .min(VALIDATION.NAME_MIN_LENGTH, ERROR_MESSAGES.NAME_MIN_LENGTH)
+  .max(VALIDATION.NAME_MAX_LENGTH, ERROR_MESSAGES.NAME_MAX_LENGTH)
+  .regex(VALIDATION.NAME_PATTERN, ERROR_MESSAGES.NAME_INVALID_CHARS);
 
 // =====================================================
 // Login Schema
@@ -31,7 +32,7 @@ const nameSchema = z
 
 export const loginSchema = z.object({
   email: emailSchema,
-  password: z.string().min(1, "Password is required"),
+  password: z.string().min(1, ERROR_MESSAGES.PASSWORD_REQUIRED),
 });
 
 export type LoginFormData = z.infer<typeof loginSchema>;
@@ -45,10 +46,10 @@ export const registerSchema = z
     name: nameSchema.optional().or(z.literal("")),
     email: emailSchema,
     password: passwordSchema,
-    confirmPassword: z.string().min(1, "Please confirm your password"),
+    confirmPassword: z.string().min(1, ERROR_MESSAGES.CONFIRM_PASSWORD_REQUIRED),
   })
   .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords do not match",
+    message: ERROR_MESSAGES.PASSWORD_MISMATCH,
     path: ["confirmPassword"],
   });
 
@@ -63,12 +64,12 @@ export const profileSchema = z.object({
   email: emailSchema,
   bio: z
     .string()
-    .max(500, "Bio must be less than 500 characters")
+    .max(VALIDATION.BIO_MAX_LENGTH, `Bio must be less than ${VALIDATION.BIO_MAX_LENGTH} characters`)
     .optional()
     .or(z.literal("")),
   phone: z
     .string()
-    .regex(/^[+]?[(]?[0-9]{1,4}[)]?[-\s./0-9]*$/, "Please enter a valid phone number")
+    .regex(VALIDATION.PHONE_PATTERN, "Please enter a valid phone number")
     .optional()
     .or(z.literal("")),
   website: z
@@ -85,12 +86,7 @@ export type ProfileFormData = z.infer<typeof profileSchema>;
 // =====================================================
 
 export const updateProfileSchema = z.object({
-  name: z
-    .string()
-    .min(1, "Name is required")
-    .min(2, "Name must be at least 2 characters")
-    .max(100, "Name must be less than 100 characters")
-    .regex(/^[a-zA-Z\s'-]+$/, "Name can only contain letters, spaces, hyphens, and apostrophes"),
+  name: nameSchema,
   email: emailSchema,
 });
 
@@ -102,16 +98,16 @@ export type UpdateProfileFormData = z.infer<typeof updateProfileSchema>;
 
 export const changePasswordSchema = z
   .object({
-    currentPassword: z.string().min(1, "Current password is required"),
+    currentPassword: z.string().min(1, ERROR_MESSAGES.CURRENT_PASSWORD_REQUIRED),
     newPassword: passwordSchema,
-    confirmNewPassword: z.string().min(1, "Please confirm your new password"),
+    confirmNewPassword: z.string().min(1, ERROR_MESSAGES.CONFIRM_NEW_PASSWORD_REQUIRED),
   })
   .refine((data) => data.newPassword === data.confirmNewPassword, {
-    message: "Passwords do not match",
+    message: ERROR_MESSAGES.PASSWORD_MISMATCH,
     path: ["confirmNewPassword"],
   })
   .refine((data) => data.currentPassword !== data.newPassword, {
-    message: "New password must be different from current password",
+    message: ERROR_MESSAGES.PASSWORD_SAME_AS_CURRENT,
     path: ["newPassword"],
   });
 
@@ -134,14 +130,37 @@ export type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
 export const resetPasswordSchema = z
   .object({
     password: passwordSchema,
-    confirmPassword: z.string().min(1, "Please confirm your password"),
+    confirmPassword: z.string().min(1, ERROR_MESSAGES.CONFIRM_PASSWORD_REQUIRED),
   })
   .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords do not match",
+    message: ERROR_MESSAGES.PASSWORD_MISMATCH,
     path: ["confirmPassword"],
   });
 
 export type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
+
+// =====================================================
+// Contact Form Schema
+// =====================================================
+
+export const contactSchema = z.object({
+  name: z
+    .string()
+    .min(1, "Name is required")
+    .min(2, "Name must be at least 2 characters"),
+  email: emailSchema,
+  subject: z
+    .string()
+    .min(1, "Subject is required")
+    .min(3, "Subject must be at least 3 characters"),
+  message: z
+    .string()
+    .min(1, "Message is required")
+    .min(10, "Message must be at least 10 characters")
+    .max(5000, "Message must be less than 5000 characters"),
+});
+
+export type ContactFormData = z.infer<typeof contactSchema>;
 
 // =====================================================
 // Utility functions

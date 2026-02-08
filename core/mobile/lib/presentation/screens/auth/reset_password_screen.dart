@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../data/repositories/auth_repository.dart';
 import '../../router/routes.dart';
 import '../../widgets/atoms/app_button.dart';
+import '../../widgets/layout/auth_scaffold.dart';
+import '../../widgets/layout/status_screen.dart';
 import '../../widgets/molecules/app_text_field.dart';
 
 /// Reset password screen for setting a new password with a reset token
@@ -146,372 +147,137 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
   Widget build(BuildContext context) {
     // Loading state
     if (_isVerifying) {
-      return _buildLoadingView();
+      return const StatusScreen.loading(
+        title: 'Verifying Reset Link...',
+        message: 'Please wait while we verify your request.',
+      );
     }
 
     // Invalid or missing token
     if (!_isValidToken) {
-      return _buildInvalidTokenView();
+      return StatusScreen.error(
+        title: 'Invalid or Expired Link',
+        message: 'This password reset link is invalid or has expired. Please request a new one.',
+        primaryActionLabel: 'Request New Reset Link',
+        onPrimaryAction: () => context.go(Routes.forgotPassword),
+        secondaryActionLabel: 'Back to Sign In',
+        onSecondaryAction: () => context.go(Routes.login),
+      );
     }
 
     // Success state
     if (_success) {
-      return _buildSuccessView();
+      return StatusScreen.success(
+        title: 'Password Reset Successful!',
+        message: 'Your password has been reset. Redirecting you to sign in...',
+        secondaryActionLabel: "Click here if you're not redirected",
+        onSecondaryAction: () => context.go(Routes.login),
+      );
     }
 
     // Reset form
     return _buildResetForm();
   }
 
-  Widget _buildLoadingView() {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: AppColors.neutral200,
-                  shape: BoxShape.circle,
-                ),
-                child: const Center(
-                  child: CircularProgressIndicator(
-                    strokeWidth: 3,
-                    valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
-                  ),
-                ),
-              ),
-              AppSpacing.gapLg,
-              const Text(
-                'Verifying Reset Link...',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              AppSpacing.gapSm,
-              const Text(
-                'Please wait while we verify your request.',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: AppColors.textSecondary,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
+  Widget _buildResetForm() {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return AuthScaffold(
+      showBackButton: true,
+      onBack: () => context.go(Routes.login),
+      bottomWidget: AuthNavLink(
+        prompt: 'Remember your password?',
+        actionLabel: 'Sign In',
+        onAction: () => context.go(Routes.login),
+        isLoading: _isLoading,
       ),
-    );
-  }
-
-  Widget _buildInvalidTokenView() {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Padding(
-          padding: AppSpacing.screenPadding,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Error icon
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: AppColors.error.withAlpha(25),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.warning_amber_rounded,
-                  size: 40,
-                  color: AppColors.error,
-                ),
-              ),
-              AppSpacing.gapLg,
-
-              // Error message
-              const Text(
-                'Invalid or Expired Link',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              AppSpacing.gapSm,
-              const Text(
-                'This password reset link is invalid or has expired. Please request a new one.',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: AppColors.textSecondary,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              AppSpacing.gapXl,
-
-              // Request new link button
-              AppButton(
-                label: 'Request New Reset Link',
-                onPressed: () => context.go(Routes.forgotPassword),
-                isFullWidth: true,
+      child: AuthCard(
+        title: 'Reset Your Password',
+        subtitle: _tokenEmail != null
+            ? 'Enter a new password for $_tokenEmail'
+            : 'Enter your new password below',
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Error message
+            if (_error != null && _error!.isNotEmpty) ...[
+              ErrorBanner(
+                message: _error!,
+                onDismiss: () => setState(() => _error = null),
               ),
               AppSpacing.gapMd,
-
-              // Back to login button
-              AppButton(
-                label: 'Back to Sign In',
-                onPressed: () => context.go(Routes.login),
-                variant: ButtonVariant.outline,
-                isFullWidth: true,
-              ),
             ],
-          ),
-        ),
-      ),
-    );
-  }
 
-  Widget _buildSuccessView() {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Padding(
-          padding: AppSpacing.screenPadding,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Success icon
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: AppColors.success.withAlpha(25),
-                  shape: BoxShape.circle,
+            // Password field
+            AppTextField(
+              controller: _passwordController,
+              label: 'New Password',
+              hint: 'Enter your new password',
+              obscureText: _obscurePassword,
+              textInputAction: TextInputAction.next,
+              prefixIcon: const Icon(Icons.lock_outline),
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _obscurePassword
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined,
                 ),
-                child: const Icon(
-                  Icons.check_circle_outline,
-                  size: 40,
-                  color: AppColors.success,
-                ),
+                onPressed: () {
+                  setState(() {
+                    _obscurePassword = !_obscurePassword;
+                  });
+                },
               ),
-              AppSpacing.gapLg,
-
-              // Success message
-              const Text(
-                'Password Reset Successful!',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              AppSpacing.gapSm,
-              const Text(
-                'Your password has been reset. Redirecting you to sign in...',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: AppColors.textSecondary,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              AppSpacing.gapXl,
-
-              // Manual redirect link
-              TextButton(
-                onPressed: () => context.go(Routes.login),
-                child: const Text(
-                  'Click here if you\'re not redirected',
-                  style: TextStyle(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildResetForm() {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
-          onPressed: () => context.go(Routes.login),
-        ),
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: AppSpacing.screenPadding,
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                AppSpacing.gapMd,
-                // Header
-                const Text(
-                  'Reset Your Password',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                AppSpacing.gapSm,
-                Text(
-                  _tokenEmail != null
-                      ? 'Enter a new password for $_tokenEmail'
-                      : 'Enter your new password below',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    color: AppColors.textSecondary,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                AppSpacing.gapXl,
-                AppSpacing.gapMd,
-
-                // Error message
-                if (_error != null && _error!.isNotEmpty) ...[
-                  Container(
-                    padding: AppSpacing.cardContentPadding,
-                    decoration: BoxDecoration(
-                      color: AppColors.error.withAlpha(25),
-                      borderRadius: AppSpacing.borderRadiusMd,
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.error_outline, color: AppColors.error),
-                        AppSpacing.gapHSm,
-                        Expanded(
-                          child: Text(
-                            _error!,
-                            style: const TextStyle(color: AppColors.error),
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.close, color: AppColors.error, size: 18),
-                          onPressed: () => setState(() => _error = null),
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                        ),
-                      ],
-                    ),
-                  ),
-                  AppSpacing.gapMd,
-                ],
-
-                // Password field
-                AppTextField(
-                  controller: _passwordController,
-                  label: 'New Password',
-                  hint: 'Enter your new password',
-                  obscureText: _obscurePassword,
-                  textInputAction: TextInputAction.next,
-                  prefixIcon: const Icon(Icons.lock_outline),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscurePassword
-                          ? Icons.visibility_outlined
-                          : Icons.visibility_off_outlined,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _obscurePassword = !_obscurePassword;
-                      });
-                    },
-                  ),
-                  validator: _validatePassword,
-                  enabled: !_isLoading,
-                ),
-                AppSpacing.gapSm,
-                const Padding(
-                  padding: EdgeInsets.only(left: 12),
-                  child: Text(
-                    'Must be at least 8 characters with uppercase, lowercase, and a number.',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ),
-                AppSpacing.gapMd,
-
-                // Confirm Password field
-                AppTextField(
-                  controller: _confirmPasswordController,
-                  label: 'Confirm Password',
-                  hint: 'Confirm your new password',
-                  obscureText: _obscureConfirmPassword,
-                  textInputAction: TextInputAction.done,
-                  prefixIcon: const Icon(Icons.lock_outline),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscureConfirmPassword
-                          ? Icons.visibility_outlined
-                          : Icons.visibility_off_outlined,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _obscureConfirmPassword = !_obscureConfirmPassword;
-                      });
-                    },
-                  ),
-                  validator: _validateConfirmPassword,
-                  enabled: !_isLoading,
-                  onSubmitted: (_) => _handleSubmit(),
-                ),
-                AppSpacing.gapLg,
-
-                // Submit button
-                AppButton(
-                  label: 'Reset Password',
-                  onPressed: _isLoading ? null : _handleSubmit,
-                  isLoading: _isLoading,
-                  isFullWidth: true,
-                ),
-                AppSpacing.gapMd,
-
-                // Back to login link
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text(
-                      'Remember your password? ',
-                      style: TextStyle(color: AppColors.textSecondary),
-                    ),
-                    TextButton(
-                      onPressed: _isLoading ? null : () => context.go(Routes.login),
-                      child: const Text(
-                        'Sign In',
-                        style: TextStyle(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+              validator: _validatePassword,
+              enabled: !_isLoading,
             ),
-          ),
+            AppSpacing.gapSm,
+            Padding(
+              padding: const EdgeInsets.only(left: 12),
+              child: Text(
+                'Must be at least 8 characters with uppercase, lowercase, and a number.',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+            AppSpacing.gapMd,
+
+            // Confirm Password field
+            AppTextField(
+              controller: _confirmPasswordController,
+              label: 'Confirm Password',
+              hint: 'Confirm your new password',
+              obscureText: _obscureConfirmPassword,
+              textInputAction: TextInputAction.done,
+              prefixIcon: const Icon(Icons.lock_outline),
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _obscureConfirmPassword
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined,
+                ),
+                onPressed: () {
+                  setState(() {
+                    _obscureConfirmPassword = !_obscureConfirmPassword;
+                  });
+                },
+              ),
+              validator: _validateConfirmPassword,
+              enabled: !_isLoading,
+              onSubmitted: (_) => _handleSubmit(),
+            ),
+            AppSpacing.gapLg,
+
+            // Submit button
+            AppButton(
+              label: 'Reset Password',
+              onPressed: _isLoading ? null : _handleSubmit,
+              isLoading: _isLoading,
+              isFullWidth: true,
+            ),
+          ],
         ),
       ),
     );

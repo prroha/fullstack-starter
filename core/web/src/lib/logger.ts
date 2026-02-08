@@ -1,5 +1,7 @@
 "use client";
 
+import { DURATIONS } from "./constants";
+
 // =====================================================
 // Log Levels
 // =====================================================
@@ -72,7 +74,7 @@ class Logger {
   private logBuffer: LogEntry[] = [];
   private flushTimeout: NodeJS.Timeout | null = null;
   private readonly BUFFER_SIZE = 10;
-  private readonly FLUSH_INTERVAL = 5000;
+  private readonly FLUSH_INTERVAL = DURATIONS.LOGGER_FLUSH_INTERVAL;
 
   constructor(config: Partial<LoggerConfig> = {}) {
     this.config = { ...defaultConfig, ...config };

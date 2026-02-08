@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 
 /// A search bar with search icon and optional clear button.
@@ -103,6 +102,8 @@ class _AppSearchBarState extends State<AppSearchBar> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return TextField(
       controller: _controller,
       enabled: widget.enabled,
@@ -111,26 +112,26 @@ class _AppSearchBarState extends State<AppSearchBar> {
       textInputAction: TextInputAction.search,
       onChanged: widget.onChanged,
       onSubmitted: widget.onSubmitted,
-      style: const TextStyle(
-        color: AppColors.textPrimary,
+      style: TextStyle(
+        color: colorScheme.onSurface,
         fontSize: 15, // Slightly tighter
       ),
       decoration: InputDecoration(
         hintText: widget.hint,
-        hintStyle: const TextStyle(
-          color: AppColors.textMuted,
+        hintStyle: TextStyle(
+          color: colorScheme.outline,
           fontSize: 15,
         ),
-        prefixIcon: const Icon(
+        prefixIcon: Icon(
           Icons.search,
-          color: AppColors.textMuted,
+          color: colorScheme.outline,
           size: 20, // Tighter icon
         ),
         suffixIcon: widget.showClearButton && _hasText
             ? IconButton(
-                icon: const Icon(
+                icon: Icon(
                   Icons.clear,
-                  color: AppColors.textMuted,
+                  color: colorScheme.outline,
                   size: 18, // Smaller clear icon
                 ),
                 onPressed: _handleClear,
@@ -142,7 +143,7 @@ class _AppSearchBarState extends State<AppSearchBar> {
               )
             : null,
         filled: true,
-        fillColor: widget.backgroundColor ?? AppColors.surface,
+        fillColor: widget.backgroundColor ?? colorScheme.surface,
         isDense: true,
         // Tighter content padding
         contentPadding: const EdgeInsets.symmetric(
@@ -151,19 +152,19 @@ class _AppSearchBarState extends State<AppSearchBar> {
         ),
         border: OutlineInputBorder(
           borderRadius: AppSpacing.borderRadiusFull,
-          borderSide: const BorderSide(color: AppColors.border),
+          borderSide: BorderSide(color: colorScheme.outlineVariant),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: AppSpacing.borderRadiusFull,
-          borderSide: const BorderSide(color: AppColors.border),
+          borderSide: BorderSide(color: colorScheme.outlineVariant),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: AppSpacing.borderRadiusFull,
-          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+          borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
         ),
         disabledBorder: OutlineInputBorder(
           borderRadius: AppSpacing.borderRadiusFull,
-          borderSide: const BorderSide(color: AppColors.border),
+          borderSide: BorderSide(color: colorScheme.outlineVariant),
         ),
       ),
     );

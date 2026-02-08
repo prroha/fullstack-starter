@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../atoms/app_button.dart';
 
@@ -163,40 +162,42 @@ class EmptyState extends StatelessWidget {
   Color _getIconColor(BuildContext context) {
     if (iconColor != null) return iconColor!;
 
+    final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     switch (variant) {
       case EmptyStateVariant.error:
-        return AppColors.error;
+        return colorScheme.error;
       case EmptyStateVariant.offline:
-        return isDark ? Colors.amber : AppColors.warning;
+        return isDark ? Colors.amber : const Color(0xFFD97706);
       case EmptyStateVariant.noData:
       case EmptyStateVariant.noResults:
       case EmptyStateVariant.noNotifications:
-        return isDark ? Colors.grey.shade400 : AppColors.textMuted;
+        return colorScheme.outline;
     }
   }
 
   Color _getBackgroundColor(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     switch (variant) {
       case EmptyStateVariant.error:
-        return isDark ? AppColors.error.withAlpha(26) : AppColors.error.withAlpha(13);
+        return colorScheme.error.withAlpha(isDark ? 26 : 13);
       case EmptyStateVariant.offline:
-        return isDark ? Colors.amber.withAlpha(26) : AppColors.warning.withAlpha(13);
+        return isDark ? Colors.amber.withAlpha(26) : const Color(0xFFD97706).withAlpha(13);
       case EmptyStateVariant.noData:
       case EmptyStateVariant.noResults:
       case EmptyStateVariant.noNotifications:
-        return isDark ? Colors.grey.shade800 : AppColors.border.withAlpha(77);
+        return colorScheme.outlineVariant.withAlpha(isDark ? 128 : 77);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final titleColor = isDark ? Colors.white : AppColors.textPrimary;
-    final messageColor = isDark ? Colors.grey.shade400 : AppColors.textSecondary;
+    final colorScheme = Theme.of(context).colorScheme;
+    final titleColor = colorScheme.onSurface;
+    final messageColor = colorScheme.onSurfaceVariant;
 
     return Center(
       child: Padding(

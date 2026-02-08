@@ -260,7 +260,7 @@ export function AvatarUpload({
           onClick={handleClick}
           disabled={disabled || isUploading}
           className={cn(
-            "px-3 py-1.5 text-sm font-medium rounded-md transition-colors",
+            "px-3 py-1.5 text-sm font-medium rounded-md ",
             "bg-primary text-primary-foreground hover:bg-primary/90",
             "disabled:opacity-50 disabled:cursor-not-allowed"
           )}
@@ -273,7 +273,7 @@ export function AvatarUpload({
             onClick={handleRemove}
             disabled={disabled || isUploading}
             className={cn(
-              "px-3 py-1.5 text-sm font-medium rounded-md transition-colors",
+              "px-3 py-1.5 text-sm font-medium rounded-md ",
               "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
               "disabled:opacity-50 disabled:cursor-not-allowed"
             )}

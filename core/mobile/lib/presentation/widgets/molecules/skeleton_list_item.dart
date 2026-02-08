@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../atoms/skeleton.dart';
 
@@ -370,7 +369,7 @@ class SkeletonMessageItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Padding(
       padding: EdgeInsets.only(
@@ -392,9 +391,9 @@ class SkeletonMessageItem extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.all(AppSpacing.md),
               decoration: BoxDecoration(
-                color: isDark
-                    ? const Color(0xFF2A2A2A)
-                    : (isOutgoing ? AppColors.primary : AppColors.border),
+                color: isOutgoing
+                    ? colorScheme.primary
+                    : colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.only(
                   topLeft: const Radius.circular(16),
                   topRight: const Radius.circular(16),

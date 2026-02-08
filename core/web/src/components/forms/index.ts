@@ -11,6 +11,8 @@ export {
   FormControl,
   FormDescription,
   FormMessage,
+  FormStatusMessage,
+  FormActions,
   useZodForm,
   useFormField,
 } from "./form";
@@ -19,6 +21,8 @@ export type {
   FormLabelProps,
   FormDescriptionProps,
   FormMessageProps,
+  FormStatusMessageProps,
+  FormActionsProps,
   UseZodFormProps,
 } from "./form";
 
@@ -32,6 +36,7 @@ export {
   FormFieldTextarea,
   FormFieldSelect,
   FormFieldCheckbox,
+  FormFieldPassword,
 } from "./form-field";
 export type {
   FormFieldInputProps,
@@ -39,4 +44,5 @@ export type {
   FormFieldSelectProps,
   FormFieldSelectOption,
   FormFieldCheckboxProps,
+  FormFieldPasswordProps,
 } from "./form-field";

@@ -194,7 +194,7 @@ function AccordionTrigger({
         // Content-first spacing: tighter padding (was py-4 px-4)
         "flex w-full items-center justify-between py-3 px-3 text-left",
         "font-medium text-foreground",
-        "hover:bg-muted/50 transition-colors duration-200",
+        "hover:bg-muted/50",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         className
       )}

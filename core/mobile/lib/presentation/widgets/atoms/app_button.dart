@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 
 /// Button variants for different visual styles.
@@ -7,6 +6,48 @@ enum AppButtonVariant { primary, secondary, outline, text }
 
 /// Button sizes for different use cases.
 enum AppButtonSize { small, medium, large }
+
+/// Centralized button sizing calculations for DRY principle.
+/// Used by AppButton and ConfirmButton.
+class AppButtonSizing {
+  AppButtonSizing._();
+
+  /// Get padding for a button size.
+  static EdgeInsets getPadding(AppButtonSize size) {
+    switch (size) {
+      case AppButtonSize.small:
+        return const EdgeInsets.symmetric(horizontal: 10, vertical: 4);
+      case AppButtonSize.medium:
+        return const EdgeInsets.symmetric(horizontal: 14, vertical: 10);
+      case AppButtonSize.large:
+        return const EdgeInsets.symmetric(horizontal: 18, vertical: 12);
+    }
+  }
+
+  /// Get font size for a button size.
+  static double getFontSize(AppButtonSize size) {
+    switch (size) {
+      case AppButtonSize.small:
+        return 12;
+      case AppButtonSize.medium:
+        return 14;
+      case AppButtonSize.large:
+        return 16;
+    }
+  }
+
+  /// Get icon size for a button size.
+  static double getIconSize(AppButtonSize size) {
+    switch (size) {
+      case AppButtonSize.small:
+        return 14;
+      case AppButtonSize.medium:
+        return 18;
+      case AppButtonSize.large:
+        return 20;
+    }
+  }
+}
 
 /// A styled button with multiple variants and states.
 ///
@@ -60,7 +101,7 @@ class AppButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final button = _buildButton();
+    final button = _buildButton(context);
 
     if (isFullWidth) {
       return SizedBox(width: double.infinity, child: button);
@@ -68,50 +109,20 @@ class AppButton extends StatelessWidget {
     return button;
   }
 
-  EdgeInsets get _padding {
-    switch (size) {
-      case AppButtonSize.small:
-        // Compact padding for small buttons, maintains 36dp height minimum
-        return const EdgeInsets.symmetric(horizontal: 10, vertical: 4);
-      case AppButtonSize.medium:
-        // Tighter padding: 14h x 10v gives ~44dp height with 14px text
-        return const EdgeInsets.symmetric(horizontal: 14, vertical: 10);
-      case AppButtonSize.large:
-        // Slightly tighter large button padding
-        return const EdgeInsets.symmetric(horizontal: 18, vertical: 12);
-    }
-  }
+  EdgeInsets get _padding => AppButtonSizing.getPadding(size);
+  double get _fontSize => AppButtonSizing.getFontSize(size);
+  double get _iconSize => AppButtonSizing.getIconSize(size);
 
-  double get _fontSize {
-    switch (size) {
-      case AppButtonSize.small:
-        return 12;
-      case AppButtonSize.medium:
-        return 14;
-      case AppButtonSize.large:
-        return 16;
-    }
-  }
+  Widget _buildButton(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
 
-  double get _iconSize {
-    switch (size) {
-      case AppButtonSize.small:
-        return 14;
-      case AppButtonSize.medium:
-        return 18;
-      case AppButtonSize.large:
-        return 20;
-    }
-  }
-
-  Widget _buildButton() {
     switch (variant) {
       case AppButtonVariant.primary:
         return ElevatedButton(
           onPressed: isLoading ? null : onPressed,
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primary,
-            foregroundColor: AppColors.textOnPrimary,
+            backgroundColor: colorScheme.primary,
+            foregroundColor: colorScheme.onPrimary,
             padding: _padding,
             textStyle: TextStyle(fontSize: _fontSize),
             shape: RoundedRectangleBorder(
@@ -124,8 +135,8 @@ class AppButton extends StatelessWidget {
         return ElevatedButton(
           onPressed: isLoading ? null : onPressed,
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.secondary,
-            foregroundColor: AppColors.textOnPrimary,
+            backgroundColor: colorScheme.secondary,
+            foregroundColor: colorScheme.onSecondary,
             padding: _padding,
             textStyle: TextStyle(fontSize: _fontSize),
             shape: RoundedRectangleBorder(
@@ -138,8 +149,8 @@ class AppButton extends StatelessWidget {
         return OutlinedButton(
           onPressed: isLoading ? null : onPressed,
           style: OutlinedButton.styleFrom(
-            foregroundColor: AppColors.primary,
-            side: const BorderSide(color: AppColors.primary),
+            foregroundColor: colorScheme.primary,
+            side: BorderSide(color: colorScheme.primary),
             padding: _padding,
             textStyle: TextStyle(fontSize: _fontSize),
             shape: RoundedRectangleBorder(
@@ -152,7 +163,7 @@ class AppButton extends StatelessWidget {
         return TextButton(
           onPressed: isLoading ? null : onPressed,
           style: TextButton.styleFrom(
-            foregroundColor: AppColors.primary,
+            foregroundColor: colorScheme.primary,
             padding: _padding,
             textStyle: TextStyle(fontSize: _fontSize),
           ),

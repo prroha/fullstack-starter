@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { resetPasswordSchema, type ResetPasswordFormData } from "@/lib/validations";
@@ -9,15 +8,11 @@ import { logger } from "@/lib/logger";
 import { toast } from "@/lib/toast";
 import {
   Form,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormControl,
-  FormDescription,
-  FormMessage,
+  FormFieldInput,
+  FormStatusMessage,
   useZodForm,
 } from "@/components/forms";
-import { Input, Button, SkeletonAuth, AuthLayout } from "@/components/ui";
+import { Button, SkeletonAuth, AuthLayout, AppLink, Text, Icon } from "@/components/ui";
 import { FormErrorBoundary } from "@/components/shared";
 
 // Auth Logo Component - Lock icon for reset password
@@ -25,19 +20,7 @@ function AuthLogo() {
   return (
     <div className="flex items-center justify-center">
       <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
-        <svg
-          className="h-7 w-7 text-primary"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-          />
-        </svg>
+        <Icon name="Lock" size="lg" color="primary" />
       </div>
     </div>
   );
@@ -48,25 +31,7 @@ function LoadingLogo() {
   return (
     <div className="flex items-center justify-center">
       <div className="h-12 w-12 rounded-xl bg-muted flex items-center justify-center animate-pulse">
-        <svg
-          className="h-7 w-7 text-muted-foreground animate-spin"
-          fill="none"
-          viewBox="0 0 24 24"
-        >
-          <circle
-            className="opacity-25"
-            cx="12"
-            cy="12"
-            r="10"
-            stroke="currentColor"
-            strokeWidth="4"
-          />
-          <path
-            className="opacity-75"
-            fill="currentColor"
-            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-          />
-        </svg>
+        <Icon name="LoaderCircle" size="lg" color="muted" className="animate-spin" />
       </div>
     </div>
   );
@@ -77,19 +42,7 @@ function ErrorLogo() {
   return (
     <div className="flex items-center justify-center">
       <div className="h-12 w-12 rounded-xl bg-destructive/10 flex items-center justify-center">
-        <svg
-          className="h-7 w-7 text-destructive"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-          />
-        </svg>
+        <Icon name="TriangleAlert" size="lg" color="destructive" />
       </div>
     </div>
   );
@@ -100,19 +53,7 @@ function SuccessLogo() {
   return (
     <div className="flex items-center justify-center">
       <div className="h-12 w-12 rounded-xl bg-green-500/10 flex items-center justify-center">
-        <svg
-          className="h-7 w-7 text-green-500"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M5 13l4 4L19 7"
-          />
-        </svg>
+        <Icon name="Check" size="lg" color="success" />
       </div>
     </div>
   );
@@ -223,14 +164,16 @@ function ResetPasswordContent() {
         maxWidth="sm"
         showBackgroundPattern
         footer={
-          <p>
-            <Link href="/login">Back to sign in</Link>
-          </p>
+          <Text as="p" size="sm" color="muted">
+            <AppLink href="/login" variant="primary" size="sm">
+              Back to sign in
+            </AppLink>
+          </Text>
         }
       >
-        <Link href="/forgot-password" className="block">
+        <AppLink href="/forgot-password" className="block" underline="none">
           <Button className="w-full">Request new reset link</Button>
-        </Link>
+        </AppLink>
       </AuthLayout>
     );
   }
@@ -245,9 +188,11 @@ function ResetPasswordContent() {
         maxWidth="sm"
         showBackgroundPattern
         footer={
-          <p>
-            <Link href="/login">Click here if you're not redirected</Link>
-          </p>
+          <Text as="p" size="sm" color="muted">
+            <AppLink href="/login" variant="primary" size="sm">
+              Click here if you&apos;re not redirected
+            </AppLink>
+          </Text>
         }
       >
         <div className="py-4" />
@@ -268,59 +213,37 @@ function ResetPasswordContent() {
       maxWidth="sm"
       showBackgroundPattern
       footer={
-        <p>
+        <Text as="p" size="sm" color="muted">
           Remember your password?{" "}
-          <Link href="/login">Sign in</Link>
-        </p>
+          <AppLink href="/login" variant="primary" size="sm">
+            Sign in
+          </AppLink>
+        </Text>
       }
     >
       <FormErrorBoundary>
         <Form form={form} onSubmit={onSubmit} className="space-y-4">
-          {error && (
-            <div className="p-3 rounded-md bg-destructive/10 border border-destructive/50">
-              <p className="text-sm text-destructive">{error}</p>
-            </div>
-          )}
+          <FormStatusMessage variant="error" message={error} />
 
-          <FormField
+          <FormFieldInput
             control={form.control}
             name="password"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel required>New Password</FormLabel>
-                <FormControl>
-                  <Input
-                    type="password"
-                    placeholder="Enter your new password"
-                    autoComplete="new-password"
-                    {...field}
-                  />
-                </FormControl>
-                <FormDescription>
-                  Must be at least 8 characters with uppercase, lowercase, and a number.
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
+            label="New Password"
+            required
+            type="password"
+            placeholder="Enter your new password"
+            description="Must be at least 8 characters with uppercase, lowercase, and a number."
+            inputProps={{ autoComplete: "new-password" }}
           />
 
-          <FormField
+          <FormFieldInput
             control={form.control}
             name="confirmPassword"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel required>Confirm Password</FormLabel>
-                <FormControl>
-                  <Input
-                    type="password"
-                    placeholder="Confirm your new password"
-                    autoComplete="new-password"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            label="Confirm Password"
+            required
+            type="password"
+            placeholder="Confirm your new password"
+            inputProps={{ autoComplete: "new-password" }}
           />
 
           <Button

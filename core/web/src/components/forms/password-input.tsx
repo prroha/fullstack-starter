@@ -80,7 +80,7 @@ const PasswordInput = React.forwardRef<HTMLInputElement, PasswordInputProps>(
               "absolute right-0 top-0 h-full px-3",
               "text-muted-foreground hover:text-foreground",
               "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-              "rounded-r-md transition-colors"
+              "rounded-r-md"
             )}
             aria-label={showPassword ? hidePasswordLabel : showPasswordLabel}
           >

@@ -265,7 +265,7 @@ const DialogHeader = React.forwardRef<HTMLDivElement, DialogHeaderProps>(
             className={cn(
               "flex-shrink-0 p-1.5 rounded-md",
               "text-muted-foreground hover:text-foreground",
-              "hover:bg-accent transition-colors",
+              "hover:bg-accent",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             )}
             aria-label="Close dialog"

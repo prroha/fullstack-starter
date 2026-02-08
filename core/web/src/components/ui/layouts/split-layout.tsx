@@ -379,7 +379,7 @@ function ResizableSplitLayout({
             stackOnMobile
               ? `hidden ${mobileBreakpoint}:flex items-center justify-center w-2`
               : "flex items-center justify-center w-2",
-            "cursor-col-resize hover:bg-primary/10 transition-colors",
+            "cursor-col-resize hover:bg-primary/10 ",
             isDragging && "bg-primary/20"
           )}
           onMouseDown={handleMouseDown}
@@ -415,7 +415,7 @@ function ResizableSplitLayout({
           <div
             className={cn(
               "absolute inset-y-0 w-px bg-border",
-              "group-hover:bg-primary/50 transition-colors",
+              "group-hover:bg-primary/50 ",
               isDragging && "bg-primary"
             )}
           />
@@ -430,17 +430,17 @@ function ResizableSplitLayout({
             {/* Grip dots for better discoverability */}
             <div className={cn(
               "w-1 h-1 rounded-full bg-muted-foreground",
-              "group-hover:bg-primary transition-colors",
+              "group-hover:bg-primary ",
               isDragging && "bg-primary"
             )} />
             <div className={cn(
               "w-1 h-1 rounded-full bg-muted-foreground",
-              "group-hover:bg-primary transition-colors",
+              "group-hover:bg-primary ",
               isDragging && "bg-primary"
             )} />
             <div className={cn(
               "w-1 h-1 rounded-full bg-muted-foreground",
-              "group-hover:bg-primary transition-colors",
+              "group-hover:bg-primary ",
               isDragging && "bg-primary"
             )} />
           </div>

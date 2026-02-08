@@ -5,16 +5,52 @@ import { cn } from "@/lib/utils";
 import { Spinner } from "@/components/ui/spinner";
 
 // =====================================================
+// Loading Components
+// =====================================================
+//
+// A collection of loading state components for different use cases:
+//
+// - Loading: Basic inline loading indicator with optional message
+// - LoadingOverlay: Full-screen blocking overlay
+// - LoadingCard: Loading state for card/widget placeholders
+// - LoadingPage: Full-page loading state
+// - LoadingButtonContent: Helper for button loading states
+//
+// For async content wrapping, see LoadingWrapper in ./loading-wrapper.tsx
+// For skeleton placeholders, see Skeleton in @/components/ui/skeleton
+//
+// Usage:
+//   import { Loading, LoadingOverlay, LoadingCard } from "@/components/feedback";
+//
+//   <Loading message="Loading data..." />
+//   <LoadingOverlay message="Processing..." transparent />
+//   <LoadingCard message="Loading statistics..." />
+// =====================================================
+
+// =====================================================
 // Loading Component - Inline Loading Indicator
 // =====================================================
 
 interface LoadingProps {
+  /** Spinner size */
   size?: "sm" | "md" | "lg";
+  /** Additional CSS classes */
   className?: string;
+  /** Message to display next to spinner */
   message?: string;
+  /** Whether to take full width */
   fullWidth?: boolean;
 }
 
+/**
+ * Basic inline loading indicator with optional message.
+ * Use for inline loading states within content areas.
+ *
+ * @example
+ * ```tsx
+ * <Loading size="md" message="Loading users..." />
+ * ```
+ */
 function Loading({
   size = "md",
   className,

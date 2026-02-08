@@ -4,11 +4,40 @@ import { cn } from "@/lib/utils";
 // =====================================================
 // Alert Component
 // =====================================================
+//
+// Block-level alert component for displaying important messages.
+// Use for prominent notifications that need user attention.
+//
+// Variants:
+// - default: Neutral/muted styling
+// - info: Blue - informational messages
+// - success: Green - successful operations
+// - warning: Yellow/amber - warnings
+// - destructive: Red - errors or critical issues
+//
+// For lightweight inline feedback, use InlineFeedback or ErrorMessage/SuccessMessage
+// For toast notifications, use the toast utility from @/lib/toast
+//
+// Usage:
+//   import { Alert } from "@/components/feedback";
+//
+//   <Alert variant="success" title="Success!">
+//     Your changes have been saved.
+//   </Alert>
+//
+//   <Alert variant="destructive" onDismiss={() => setError(null)}>
+//     {errorMessage}
+//   </Alert>
+// =====================================================
 
 interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
+  /** Alert variant determines styling */
   variant?: "default" | "info" | "success" | "warning" | "destructive";
+  /** Optional title for the alert */
   title?: string;
+  /** Custom icon (overrides default variant icon) */
   icon?: React.ReactNode;
+  /** Callback when dismiss button is clicked */
   onDismiss?: () => void;
 }
 

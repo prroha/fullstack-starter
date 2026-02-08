@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Button, ButtonProps } from "./button";
 import { downloadFile, ExportFormat } from "@/lib/export";
 import { cn } from "@/lib/utils";
+import { useClickOutside, useAsync } from "@/lib/hooks";
 
 // =====================================================
 // Icons
@@ -138,31 +139,19 @@ export function ExportButton({
   disabled,
   ...props
 }: ExportButtonProps) {
-  const [isLoading, setIsLoading] = useState(false);
   const [selectedFormat, setSelectedFormat] = useState<ExportFormat>(defaultFormat);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  const dropdownRef = React.useRef<HTMLDivElement>(null);
 
-  // Close dropdown when clicking outside
-  React.useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsDropdownOpen(false);
-      }
-    }
+  // Use click outside hook to close dropdown
+  const dropdownRef = useClickOutside<HTMLDivElement>(
+    () => setIsDropdownOpen(false),
+    { enabled: isDropdownOpen }
+  );
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const handleExport = async (format: ExportFormat = selectedFormat) => {
-    if (isLoading || disabled) return;
-
-    setIsLoading(true);
-    setShowSuccess(false);
-
-    try {
+  // Use async hook for export operation
+  const { execute: performExport, isLoading } = useAsync(
+    async (format: ExportFormat) => {
       if (onExport) {
         await onExport(format);
       } else if (url) {
@@ -178,19 +167,27 @@ export function ExportButton({
       } else {
         throw new Error("Either url or onExport must be provided");
       }
-
-      setShowSuccess(true);
-      onSuccess?.();
-
-      // Reset success state after 2 seconds
-      setTimeout(() => setShowSuccess(false), 2000);
-    } catch (error) {
-      const err = error instanceof Error ? error : new Error("Export failed");
-      onError?.(err);
-    } finally {
-      setIsLoading(false);
-      setIsDropdownOpen(false);
+      return true;
+    },
+    {
+      onSuccess: () => {
+        setShowSuccess(true);
+        onSuccess?.();
+        // Reset success state after 2 seconds
+        setTimeout(() => setShowSuccess(false), 2000);
+        setIsDropdownOpen(false);
+      },
+      onError: (err) => {
+        onError?.(err);
+        setIsDropdownOpen(false);
+      },
     }
+  );
+
+  const handleExport = async (format: ExportFormat = selectedFormat) => {
+    if (isLoading || disabled) return;
+    setShowSuccess(false);
+    await performExport(format);
   };
 
   // Simple button without format selector
@@ -271,7 +268,7 @@ export function ExportButton({
               role="option"
               aria-selected={format === selectedFormat}
               className={cn(
-                "flex w-full items-center justify-between rounded-sm px-3 py-2 text-sm transition-colors",
+                "flex w-full items-center justify-between rounded-sm px-3 py-2 text-sm",
                 "hover:bg-accent hover:text-accent-foreground",
                 format === selectedFormat && "bg-accent"
               )}

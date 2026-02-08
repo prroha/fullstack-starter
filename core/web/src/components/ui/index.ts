@@ -1,40 +1,77 @@
 // =====================================================
-// UI Components (Atoms)
+// UI Component Library - Atomic Design Structure
+// =====================================================
+//
+// This file exports all UI components organized by atomic design principles:
+//
+// ATOMS (Basic building blocks - single HTML elements with styling)
+//   - Button, Input, Textarea, Checkbox, Radio, Select, Switch
+//   - Badge, Spinner, Skeleton, Label, Icon, AppLink, Kbd, Text, Divider
+//   - VisuallyHidden
+//
+// MOLECULES (Combinations of atoms forming simple functional units)
+//   - Avatar, NavLink, IconButton, MenuItem, FieldWrapper, StatusBadge
+//   - ThemeToggle, ThemeSelector, PasswordStrengthMeter
+//   - ConfirmButton, ExportButton, Autocomplete, TagInput, QRCode, AvatarUpload
+//
+// ORGANISMS (Complex components with multiple molecules/atoms)
+//   - Dialog (with Header, Body, Footer)
+//   - Tabs (with TabList, Tab, TabPanels, TabPanel)
+//   - Accordion (with Item, Trigger, Content)
+//
+// LAYOUTS (Structural components for page composition)
+//   - Container, Stack, Grid, PageLayout, AuthLayout
+//   - DashboardLayout, SplitLayout
+//
+// Import examples:
+//   import { Button, Input, Dialog } from "@/components/ui";
+//   import { Button } from "@/components/ui/button";
+//
 // =====================================================
 
-// Button
+// =============================================================================
+// ATOMS - Basic Building Blocks
+// =============================================================================
+// Atoms are the smallest components - single HTML elements with consistent
+// styling. They have no dependencies on other components.
+
+// Button - Primary action element
 export { Button } from "./button";
 export type { ButtonProps } from "./button";
 
-// ConfirmButton
-export { ConfirmButton } from "./confirm-button";
-export type { ConfirmButtonProps, ConfirmMode } from "./confirm-button";
-
-// Checkbox
-export { Checkbox } from "./checkbox";
-export type { CheckboxProps } from "./checkbox";
-
-// Input
+// Input - Text input field
 export { Input } from "./input";
 export type { InputProps } from "./input";
 
-// Textarea
+// Textarea - Multi-line text input
 export { Textarea } from "./textarea";
 export type { TextareaProps } from "./textarea";
 
-// Select
+// Checkbox - Boolean toggle with label
+export { Checkbox } from "./checkbox";
+export type { CheckboxProps } from "./checkbox";
+
+// Radio - Single selection from options
+export { Radio, RadioGroup } from "./radio";
+export type { RadioProps, RadioGroupProps, RadioOption } from "./radio";
+
+// Select - Dropdown selection
 export { Select } from "./select";
 export type { SelectProps, SelectOption } from "./select";
 
-// Badge
+// Switch - Toggle switch
+export { Switch } from "./switch";
+export type { SwitchProps } from "./switch";
+
+// Badge - Status/label indicator
 export { Badge } from "./badge";
 export type { BadgeProps } from "./badge";
 
-// Spinner
+// Spinner - Loading indicator
 export { Spinner, SpinnerOverlay } from "./spinner";
 export type { SpinnerProps, SpinnerOverlayProps } from "./spinner";
 
-// Skeleton
+// Skeleton - Loading placeholders
 export {
   Skeleton,
   SkeletonText,
@@ -52,7 +89,75 @@ export {
   SkeletonAuth,
 } from "./skeleton";
 
-// Theme Toggle
+// Label - Form field label
+export { Label } from "./label";
+export type { LabelProps } from "./label";
+
+// Icon - Lucide icon wrapper
+export { Icon } from "./icon";
+export type { IconProps, IconName, IconSize, IconColor } from "./icon";
+
+// AppLink - Internal/external link
+export { AppLink } from "./link";
+export type { AppLinkProps } from "./link";
+
+// Text - Typography component
+export { Text } from "./text";
+export type {
+  TextProps,
+  TextVariant,
+  TextSize,
+  TextColor,
+  TextElement,
+} from "./text";
+
+// Divider - Visual separator
+export { Divider } from "./divider";
+export type {
+  DividerProps,
+  DividerOrientation,
+  DividerVariant,
+} from "./divider";
+
+// Kbd - Keyboard key indicator
+export { Kbd } from "./kbd";
+export type { KbdProps } from "./kbd";
+
+// VisuallyHidden - Screen reader only content
+export { VisuallyHidden } from "./visually-hidden";
+export type { VisuallyHiddenProps } from "./visually-hidden";
+
+// =============================================================================
+// MOLECULES - Simple Combinations of Atoms
+// =============================================================================
+// Molecules are groups of atoms bonded together to form a functional unit.
+// They have a single purpose and are relatively simple.
+
+// Avatar - User avatar with fallback (Image + Initials)
+export { Avatar } from "./avatar";
+export type { AvatarProps, AvatarSize, AvatarStatus } from "./avatar";
+
+// NavLink - Navigation link with active state (AppLink + Icon)
+export { NavLink } from "./nav-link";
+export type { NavLinkProps, NavLinkVariant } from "./nav-link";
+
+// IconButton - Button with icon only (Button + Icon)
+export { IconButton } from "./icon-button";
+export type { IconButtonProps, IconButtonVariant, IconButtonSize } from "./icon-button";
+
+// MenuItem - Menu action item (Button + Icon + Kbd)
+export { MenuItem } from "./menu-item";
+export type { MenuItemProps } from "./menu-item";
+
+// FieldWrapper - Form field with label and error (Label + Input wrapper)
+export { FieldWrapper } from "./field-wrapper";
+export type { FieldWrapperProps } from "./field-wrapper";
+
+// StatusBadge - Status indicator badge (Badge + Dot)
+export { StatusBadge } from "./status-badge";
+export type { StatusBadgeProps, StatusType } from "./status-badge";
+
+// ThemeToggle - Dark/light mode switch (Icon + Button)
 export { ThemeToggle } from "./theme-toggle";
 export type {
   ThemeToggleProps,
@@ -60,7 +165,7 @@ export type {
   ThemeToggleSize,
 } from "./theme-toggle";
 
-// Theme Selector
+// ThemeSelector - Theme dropdown selector
 export { ThemeSelector } from "./theme-selector";
 export type {
   ThemeSelectorProps,
@@ -68,21 +173,19 @@ export type {
   ThemeSelectorSize,
 } from "./theme-selector";
 
-// Accordion
-export {
-  Accordion,
-  AccordionItem,
-  AccordionTrigger,
-  AccordionContent,
-} from "./accordion";
+// PasswordStrengthMeter - Password validation indicator
+export { PasswordStrengthMeter } from "./password-strength";
 export type {
-  AccordionProps,
-  AccordionItemProps,
-  AccordionTriggerProps,
-  AccordionContentProps,
-} from "./accordion";
+  PasswordStrengthMeterProps,
+  PasswordStrength,
+  PasswordRequirement,
+} from "./password-strength";
 
-// Export Button
+// ConfirmButton - Button with confirmation dialog
+export { ConfirmButton } from "./confirm-button";
+export type { ConfirmButtonProps, ConfirmMode } from "./confirm-button";
+
+// ExportButton - Download/export actions
 export {
   ExportButton,
   ExportCsvButton,
@@ -94,15 +197,28 @@ export type {
   ExportMyDataButtonProps,
 } from "./export-button";
 
-// Radio
-export { Radio, RadioGroup } from "./radio";
-export type { RadioProps, RadioGroupProps, RadioOption } from "./radio";
+// Autocomplete - Search input with suggestions
+export { Autocomplete } from "./autocomplete";
+export type { AutocompleteProps, AutocompleteOption } from "./autocomplete";
 
-// Switch
-export { Switch } from "./switch";
-export type { SwitchProps } from "./switch";
+// TagInput - Multi-value tag input
+export { TagInput } from "./tag-input";
+export type { TagInputProps } from "./tag-input";
 
-// Dialog
+// QRCode - QR code generator
+export { QRCode } from "./qr-code";
+export type { QRCodeProps, ErrorCorrectionLevel, DownloadFormat } from "./qr-code";
+
+// AvatarUpload - Avatar with upload capability
+export { AvatarUpload } from "./avatar-upload";
+
+// =============================================================================
+// ORGANISMS - Complex UI Patterns
+// =============================================================================
+// Organisms are complex UI patterns composed of groups of molecules and/or atoms.
+// They form distinct sections of an interface with their own behavior.
+
+// Dialog - Modal dialog with sections
 export {
   Dialog,
   DialogHeader,
@@ -117,7 +233,7 @@ export type {
   DialogSize,
 } from "./dialog";
 
-// Tabs
+// Tabs - Tabbed content navigation
 export { Tabs, TabList, Tab, TabPanels, TabPanel } from "./tabs";
 export type {
   TabsProps,
@@ -127,35 +243,27 @@ export type {
   TabPanelProps,
 } from "./tabs";
 
-// Autocomplete
-export { Autocomplete } from "./autocomplete";
-export type { AutocompleteProps, AutocompleteOption } from "./autocomplete";
-
-// TagInput
-export { TagInput } from "./tag-input";
-export type { TagInputProps } from "./tag-input";
-
-// QRCode
-export { QRCode } from "./qr-code";
-export type { QRCodeProps, ErrorCorrectionLevel, DownloadFormat } from "./qr-code";
-
-// Password Strength
-export { PasswordStrengthMeter } from "./password-strength";
+// Accordion - Expandable content sections
+export {
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
+} from "./accordion";
 export type {
-  PasswordStrengthMeterProps,
-  PasswordStrength,
-  PasswordRequirement,
-} from "./password-strength";
+  AccordionProps,
+  AccordionItemProps,
+  AccordionTriggerProps,
+  AccordionContentProps,
+} from "./accordion";
 
-// Kbd (Keyboard Key)
-export { Kbd } from "./kbd";
-export type { KbdProps } from "./kbd";
+// =============================================================================
+// LAYOUTS - Page Structure Components
+// =============================================================================
+// Layouts are structural components that define the arrangement of other
+// components on a page. They handle spacing, alignment, and responsive behavior.
 
-// =====================================================
-// Layout Components
-// =====================================================
-
-// Container
+// Container - Centered content wrapper
 export { Container } from "./layouts/container";
 export type {
   ContainerProps,
@@ -164,7 +272,7 @@ export type {
   ContainerElement,
 } from "./layouts/container";
 
-// Stack
+// Stack - Vertical/horizontal flex container
 export { Stack } from "./layouts/stack";
 export type {
   StackProps,
@@ -174,14 +282,25 @@ export type {
   JustifyValue,
 } from "./layouts/stack";
 
-// AuthLayout
+// Grid - Responsive grid layout
+export { Grid, GridItem } from "./layouts/grid";
+export type {
+  GridProps,
+  GridItemProps,
+  ResponsiveValue,
+  GapSize,
+  AlignItems,
+  JustifyItems,
+} from "./layouts/grid";
+
+// AuthLayout - Authentication page layout
 export { AuthLayout, BackgroundPattern } from "./layouts/auth-layout";
 export type {
   AuthLayoutProps,
   MaxWidth as AuthLayoutMaxWidth,
 } from "./layouts/auth-layout";
 
-// PageLayout
+// PageLayout - Standard page with optional sidebar
 export {
   PageLayout,
   SidebarToggle,
@@ -194,18 +313,7 @@ export type {
   PageLayoutContextValue,
 } from "./layouts/page-layout";
 
-// Grid
-export { Grid, GridItem } from "./layouts/grid";
-export type {
-  GridProps,
-  GridItemProps,
-  ResponsiveValue,
-  GapSize,
-  AlignItems,
-  JustifyItems,
-} from "./layouts/grid";
-
-// DashboardLayout
+// DashboardLayout - Admin/dashboard layout
 export {
   DashboardLayout,
   DashboardSidebar,
@@ -218,3 +326,6 @@ export type {
   DashboardNavItemProps,
   DashboardHeaderProps,
 } from "./layouts/dashboard-layout";
+
+// SplitLayout - Two-panel layout
+export { SplitLayout } from "./layouts/split-layout";

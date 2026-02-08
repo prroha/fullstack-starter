@@ -1,12 +1,11 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth-context";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { Button } from "@/components/ui/button";
+import { Button, AppLink, Text } from "@/components/ui";
 import { NotificationBell } from "@/components/notifications";
 
 // =====================================================
@@ -44,12 +43,13 @@ function AppHeader({
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between gap-4">
           {/* Logo */}
-          <Link
+          <AppLink
             href="/"
-            className="text-xl font-semibold hover:text-primary transition-colors"
+            underline="none"
+            className="text-xl font-semibold hover:text-primary"
           >
             My App
-          </Link>
+          </AppLink>
 
           {/* Actions */}
           <div className="flex items-center gap-2">
@@ -59,9 +59,9 @@ function AppHeader({
 
             {isAuthenticated && (
               <>
-                <span className="text-sm text-muted-foreground hidden sm:inline">
+                <Text size="sm" color="muted" className="hidden sm:inline">
                   {user?.email}
-                </span>
+                </Text>
                 {showLogout && (
                   <Button variant="ghost" size="sm" onClick={handleLogout}>
                     Logout

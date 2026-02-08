@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 
 /// Badge variants for different visual styles.
@@ -108,12 +107,15 @@ class AppBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     if (isDot) {
       return Container(
         width: 8,
         height: 8,
         decoration: BoxDecoration(
-          color: _getBackgroundColor(),
+          color: _getBackgroundColor(colorScheme, isDark),
           shape: BoxShape.circle,
         ),
       );
@@ -122,7 +124,7 @@ class AppBadge extends StatelessWidget {
     return Container(
       padding: _getPadding(),
       decoration: BoxDecoration(
-        color: _getBackgroundColor(),
+        color: _getBackgroundColor(colorScheme, isDark),
         borderRadius: AppSpacing.borderRadiusFull,
       ),
       child: Row(
@@ -132,7 +134,7 @@ class AppBadge extends StatelessWidget {
             Icon(
               icon,
               size: _getIconSize(),
-              color: _getTextColor(),
+              color: _getTextColor(colorScheme),
             ),
             if (label != null) SizedBox(width: size == AppBadgeSize.small ? 2 : 4),
           ],
@@ -142,7 +144,7 @@ class AppBadge extends StatelessWidget {
               style: TextStyle(
                 fontSize: _getFontSize(),
                 fontWeight: FontWeight.w500,
-                color: _getTextColor(),
+                color: _getTextColor(colorScheme),
                 height: 1,
               ),
             ),
@@ -178,31 +180,31 @@ class AppBadge extends StatelessWidget {
     }
   }
 
-  Color _getBackgroundColor() {
+  Color _getBackgroundColor(ColorScheme colorScheme, bool isDark) {
     switch (variant) {
       case AppBadgeVariant.primary:
-        return AppColors.primary;
+        return colorScheme.primary;
       case AppBadgeVariant.secondary:
-        return AppColors.secondary;
+        return colorScheme.secondary;
       case AppBadgeVariant.success:
-        return AppColors.success;
+        return isDark ? const Color(0xFF22C55E) : const Color(0xFF16A34A);
       case AppBadgeVariant.warning:
-        return AppColors.warning;
+        return isDark ? const Color(0xFFF59E0B) : const Color(0xFFD97706);
       case AppBadgeVariant.error:
-        return AppColors.error;
+        return colorScheme.error;
       case AppBadgeVariant.info:
-        return AppColors.info;
+        return isDark ? const Color(0xFF38BDF8) : const Color(0xFF0284C7);
       case AppBadgeVariant.neutral:
-        return AppColors.border;
+        return colorScheme.outlineVariant;
     }
   }
 
-  Color _getTextColor() {
+  Color _getTextColor(ColorScheme colorScheme) {
     switch (variant) {
       case AppBadgeVariant.neutral:
-        return AppColors.textSecondary;
+        return colorScheme.onSurfaceVariant;
       default:
-        return AppColors.white;
+        return Colors.white;
     }
   }
 }

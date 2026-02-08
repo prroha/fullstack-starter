@@ -2,6 +2,8 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
+import { IconButton } from "../icon-button";
+import { Icon } from "../icon";
 
 // =====================================================
 // Types
@@ -73,30 +75,22 @@ function SidebarToggle({
 
   if (!sidebarCollapsible) return null;
 
+  const defaultIcon = isSidebarOpen
+    ? closeIcon || <Icon name="X" size="md" />
+    : openIcon || <Icon name="Menu" size="md" />;
+
   return (
-    <button
-      type="button"
+    <IconButton
+      icon={defaultIcon}
       onClick={() => setIsSidebarOpen((prev) => !prev)}
-      className={cn(
-        "lg:hidden p-2 rounded-md",
-        "text-muted-foreground hover:text-foreground",
-        "hover:bg-accent transition-colors",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-        // Visual hint: subtle indicator when sidebar has content
-        "relative",
-        className
-      )}
+      variant="ghost"
+      size="md"
+      className={cn("lg:hidden", className)}
       aria-label={isSidebarOpen ? "Close navigation menu" : "Open navigation menu"}
       aria-expanded={isSidebarOpen}
       aria-controls="page-layout-sidebar"
       {...props}
-    >
-      {isSidebarOpen ? (
-        closeIcon || <CloseIcon className="h-6 w-6" />
-      ) : (
-        openIcon || <MenuIcon className="h-6 w-6" />
-      )}
-    </button>
+    />
   );
 }
 SidebarToggle.displayName = "SidebarToggle";
@@ -243,50 +237,6 @@ function PageLayout({
   );
 }
 PageLayout.displayName = "PageLayout";
-
-// =====================================================
-// Icons
-// =====================================================
-
-function MenuIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      fill="none"
-      viewBox="0 0 24 24"
-      strokeWidth={1.5}
-      stroke="currentColor"
-      className={className}
-      aria-hidden="true"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
-      />
-    </svg>
-  );
-}
-
-function CloseIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      fill="none"
-      viewBox="0 0 24 24"
-      strokeWidth={1.5}
-      stroke="currentColor"
-      className={className}
-      aria-hidden="true"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M6 18L18 6M6 6l12 12"
-      />
-    </svg>
-  );
-}
 
 // =====================================================
 // Exports

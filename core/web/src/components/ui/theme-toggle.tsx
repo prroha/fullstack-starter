@@ -175,7 +175,6 @@ function ThemeToggle({
           "text-muted-foreground hover:text-foreground",
           "hover:bg-accent focus-visible:bg-accent",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-          "transition-colors duration-200",
           config.button,
           className
         )}
@@ -223,7 +222,6 @@ function ThemeToggle({
           "text-muted-foreground hover:text-foreground",
           "hover:bg-accent focus-visible:bg-accent",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-          "transition-colors duration-200",
           showLabel ? "px-3 py-2" : config.button,
           className
         )}
@@ -251,7 +249,7 @@ function ThemeToggle({
           onClick={() => handleSetMode("light")}
           className={cn(
             "inline-flex items-center justify-center rounded-md px-3 py-1.5",
-            "text-sm font-medium transition-all duration-200",
+            "text-sm font-medium ",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             colorMode === "light"
               ? "bg-background text-foreground shadow-sm"
@@ -268,7 +266,7 @@ function ThemeToggle({
           onClick={() => handleSetMode("system")}
           className={cn(
             "inline-flex items-center justify-center rounded-md px-3 py-1.5",
-            "text-sm font-medium transition-all duration-200",
+            "text-sm font-medium ",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             colorMode === "system"
               ? "bg-background text-foreground shadow-sm"
@@ -285,7 +283,7 @@ function ThemeToggle({
           onClick={() => handleSetMode("dark")}
           className={cn(
             "inline-flex items-center justify-center rounded-md px-3 py-1.5",
-            "text-sm font-medium transition-all duration-200",
+            "text-sm font-medium ",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             colorMode === "dark"
               ? "bg-background text-foreground shadow-sm"
@@ -314,7 +312,6 @@ function ThemeToggle({
             "text-muted-foreground hover:text-foreground",
             "hover:bg-accent focus-visible:bg-accent",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-            "transition-colors duration-200",
             showLabel ? "px-3 py-2" : config.button
           )}
           aria-label="Select color mode"

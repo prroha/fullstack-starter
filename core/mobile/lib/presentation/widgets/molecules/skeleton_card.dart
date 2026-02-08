@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../atoms/skeleton.dart';
 
@@ -89,7 +88,7 @@ class SkeletonCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
 
     Widget content;
     switch (variant) {
@@ -107,20 +106,16 @@ class SkeletonCard extends StatelessWidget {
     return Container(
       margin: margin,
       decoration: BoxDecoration(
-        color: isDark ? AppColors.black : AppColors.surface,
+        color: colorScheme.surface,
         borderRadius: AppSpacing.borderRadiusMd,
         border: showBorder
-            ? Border.all(
-                color: isDark
-                    ? const Color(0xFF2A2A2A)
-                    : AppColors.border,
-              )
+            ? Border.all(color: colorScheme.outlineVariant)
             : null,
         boxShadow: showBorder
             ? null
             : [
                 BoxShadow(
-                  color: AppColors.black.withAlpha(13),
+                  color: colorScheme.shadow.withAlpha(13),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -270,7 +265,7 @@ class SkeletonUserCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
 
     Widget content;
     switch (variant) {
@@ -288,11 +283,9 @@ class SkeletonUserCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.black : AppColors.surface,
+        color: colorScheme.surface,
         borderRadius: AppSpacing.borderRadiusMd,
-        border: Border.all(
-          color: isDark ? const Color(0xFF2A2A2A) : AppColors.border,
-        ),
+        border: Border.all(color: colorScheme.outlineVariant),
       ),
       child: content,
     );
@@ -423,15 +416,13 @@ class SkeletonProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? AppColors.black : AppColors.surface,
+        color: colorScheme.surface,
         borderRadius: AppSpacing.borderRadiusMd,
-        border: Border.all(
-          color: isDark ? const Color(0xFF2A2A2A) : AppColors.border,
-        ),
+        border: Border.all(color: colorScheme.outlineVariant),
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(

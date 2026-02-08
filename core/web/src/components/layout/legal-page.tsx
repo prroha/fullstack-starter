@@ -78,7 +78,7 @@ function LegalPage({
                       <a
                         href={`#${item.id}`}
                         className={cn(
-                          "block text-sm text-muted-foreground hover:text-foreground transition-colors",
+                          "block text-sm text-muted-foreground hover:text-foreground",
                           item.level === 2 && "pl-4"
                         )}
                       >

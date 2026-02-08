@@ -6,6 +6,7 @@ library atoms;
 
 export 'app_badge.dart';
 export 'app_button.dart';
+export 'app_divider.dart';
 export 'app_icon.dart';
 export 'app_text.dart';
 export 'confirm_button.dart';

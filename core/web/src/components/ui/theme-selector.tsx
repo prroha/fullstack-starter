@@ -170,7 +170,7 @@ function ThemeOption({
       type="button"
       onClick={onSelect}
       className={cn(
-        "relative flex rounded-lg border transition-all duration-200",
+        "relative flex rounded-lg border",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
         config.padding,
         isGrid
@@ -355,7 +355,6 @@ function ThemeSelector({
           "flex w-full items-center justify-between rounded-lg border",
           "text-foreground",
           "hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-          "transition-colors duration-200",
           config.padding,
           "border-border bg-card"
         )}
@@ -382,7 +381,7 @@ function ThemeSelector({
         </div>
         <ChevronDownIcon
           className={cn(
-            "h-4 w-4 text-muted-foreground transition-transform duration-200",
+            "h-4 w-4 text-muted-foreground",
             isOpen && "rotate-180"
           )}
         />

@@ -96,7 +96,7 @@ abstract class SearchRepository {
   Future<Either<Failure, SearchResults>> search({
     required String query,
     SearchType type = SearchType.all,
-    int limit = 5,
+    int limit = PaginationConfig.searchLimit,
   });
 }
 
@@ -110,7 +110,7 @@ class SearchRepositoryImpl with BaseRepository implements SearchRepository {
   Future<Either<Failure, SearchResults>> search({
     required String query,
     SearchType type = SearchType.all,
-    int limit = 5,
+    int limit = PaginationConfig.searchLimit,
   }) async {
     return safeCall(() async {
       final response = await _dio.get(

@@ -313,7 +313,7 @@ function DownloadButton({ format, onClick, disabled }: DownloadButtonProps) {
       className={cn(
         "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium",
         "bg-secondary text-secondary-foreground",
-        "hover:bg-secondary/80 transition-colors",
+        "hover:bg-secondary/80",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
         "disabled:pointer-events-none disabled:opacity-50"
       )}

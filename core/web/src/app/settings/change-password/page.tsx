@@ -10,13 +10,9 @@ import { logger } from "@/lib/logger";
 import { toast } from "@/lib/toast";
 import {
   Form,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormControl,
-  FormMessage,
+  FormFieldPassword,
+  FormStatusMessage,
   useZodForm,
-  PasswordInput,
 } from "@/components/forms";
 import { Button } from "@/components/ui";
 import { FormErrorBoundary } from "@/components/shared";
@@ -89,70 +85,34 @@ export default function ChangePasswordPage() {
 
         <FormErrorBoundary>
           <Form form={form} onSubmit={onSubmit} className="space-y-6">
-            {error && (
-              <div className="p-3 rounded-md bg-destructive/10 border border-destructive/50">
-                <p className="text-sm text-destructive">{error}</p>
-              </div>
-            )}
+            <FormStatusMessage variant="error" message={error} />
+            <FormStatusMessage variant="success" message={success} />
 
-            {success && (
-              <div className="p-3 rounded-md bg-green-500/10 border border-green-500/50">
-                <p className="text-sm text-green-600 dark:text-green-400">{success}</p>
-              </div>
-            )}
-
-            <FormField
+            <FormFieldPassword
               control={form.control}
               name="currentPassword"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel required>Current Password</FormLabel>
-                  <FormControl>
-                    <PasswordInput
-                      placeholder="Enter your current password"
-                      autoComplete="current-password"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              label="Current Password"
+              required
+              placeholder="Enter your current password"
+              autoComplete="current-password"
             />
 
-            <FormField
+            <FormFieldPassword
               control={form.control}
               name="newPassword"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel required>New Password</FormLabel>
-                  <FormControl>
-                    <PasswordInput
-                      placeholder="Enter your new password"
-                      autoComplete="new-password"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              label="New Password"
+              required
+              placeholder="Enter your new password"
+              autoComplete="new-password"
             />
 
-            <FormField
+            <FormFieldPassword
               control={form.control}
               name="confirmNewPassword"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel required>Confirm New Password</FormLabel>
-                  <FormControl>
-                    <PasswordInput
-                      placeholder="Confirm your new password"
-                      autoComplete="new-password"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              label="Confirm New Password"
+              required
+              placeholder="Confirm your new password"
+              autoComplete="new-password"
             />
 
             <div className="flex flex-col gap-3">
@@ -166,7 +126,7 @@ export default function ChangePasswordPage() {
 
               <Link
                 href="/"
-                className="text-center text-sm text-muted-foreground hover:text-foreground transition-colors"
+                className="text-center text-sm text-muted-foreground hover:text-foreground "
               >
                 Back to Home
               </Link>

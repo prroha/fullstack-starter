@@ -2,20 +2,13 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { api, ApiError, AuditLog, AuditAction } from "@/lib/api";
-import { Button, Input, Badge, SkeletonTable, ExportCsvButton } from "@/components/ui";
+import { Button, Input, Badge, SkeletonTable, ExportCsvButton, Text } from "@/components/ui";
 import { Alert } from "@/components/feedback";
 import { EmptySearch, EmptyList } from "@/components/shared";
+import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { downloadFile } from "@/lib/export";
-import {
-  ChevronDown,
-  ChevronUp,
-  User,
-  Calendar,
-  Globe,
-  Monitor,
-} from "lucide-react";
 
 interface PaginationInfo {
   page: number;
@@ -64,24 +57,24 @@ function LogDetails({ log }: { log: AuditLog }) {
           {/* User Info */}
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-muted-foreground">
-              <User className="w-4 h-4" />
-              <span className="font-medium">User Information</span>
+              <Icon name="User" size="sm" />
+              <Text as="span" className="font-medium">User Information</Text>
             </div>
             <div className="pl-6 space-y-1">
-              <p>
-                <span className="text-muted-foreground">ID:</span>{" "}
+              <Text as="p" size="sm">
+                <Text as="span" color="muted">ID:</Text>{" "}
                 {log.userId || "N/A"}
-              </p>
+              </Text>
               {log.user && (
                 <>
-                  <p>
-                    <span className="text-muted-foreground">Email:</span>{" "}
+                  <Text as="p" size="sm">
+                    <Text as="span" color="muted">Email:</Text>{" "}
                     {log.user.email}
-                  </p>
-                  <p>
-                    <span className="text-muted-foreground">Name:</span>{" "}
+                  </Text>
+                  <Text as="p" size="sm">
+                    <Text as="span" color="muted">Name:</Text>{" "}
                     {log.user.name || "N/A"}
-                  </p>
+                  </Text>
                 </>
               )}
             </div>
@@ -90,18 +83,18 @@ function LogDetails({ log }: { log: AuditLog }) {
           {/* Request Info */}
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-muted-foreground">
-              <Globe className="w-4 h-4" />
-              <span className="font-medium">Request Information</span>
+              <Icon name="Globe" size="sm" />
+              <Text as="span" className="font-medium">Request Information</Text>
             </div>
             <div className="pl-6 space-y-1">
-              <p>
-                <span className="text-muted-foreground">IP Address:</span>{" "}
+              <Text as="p" size="sm">
+                <Text as="span" color="muted">IP Address:</Text>{" "}
                 {log.ipAddress || "N/A"}
-              </p>
-              <p className="break-all">
-                <span className="text-muted-foreground">User Agent:</span>{" "}
+              </Text>
+              <Text as="p" size="sm" className="break-all">
+                <Text as="span" color="muted">User Agent:</Text>{" "}
                 {log.userAgent || "N/A"}
-              </p>
+              </Text>
             </div>
           </div>
 
@@ -109,8 +102,8 @@ function LogDetails({ log }: { log: AuditLog }) {
           {log.changes && Object.keys(log.changes).length > 0 && (
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-muted-foreground">
-                <Monitor className="w-4 h-4" />
-                <span className="font-medium">Changes</span>
+                <Icon name="Monitor" size="sm" />
+                <Text as="span" className="font-medium">Changes</Text>
               </div>
               <div className="pl-6">
                 <pre className="text-xs bg-muted p-2 rounded-md overflow-x-auto max-h-32">
@@ -124,8 +117,8 @@ function LogDetails({ log }: { log: AuditLog }) {
           {log.metadata && Object.keys(log.metadata).length > 0 && (
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-muted-foreground">
-                <Calendar className="w-4 h-4" />
-                <span className="font-medium">Metadata</span>
+                <Icon name="Calendar" size="sm" />
+                <Text as="span" className="font-medium">Metadata</Text>
               </div>
               <div className="pl-6">
                 <pre className="text-xs bg-muted p-2 rounded-md overflow-x-auto max-h-32">
@@ -157,7 +150,7 @@ function LogRow({
     <>
       <tr
         className={cn(
-          "border-b transition-colors hover:bg-muted/50 cursor-pointer",
+          "border-b hover:bg-muted/50 cursor-pointer",
           isExpanded && "bg-muted/30"
         )}
         onClick={onToggle}
@@ -173,44 +166,48 @@ function LogRow({
             }}
           >
             {isExpanded ? (
-              <ChevronUp className="h-4 w-4" />
+              <Icon name="ChevronUp" size="sm" />
             ) : (
-              <ChevronDown className="h-4 w-4" />
+              <Icon name="ChevronDown" size="sm" />
             )}
           </Button>
         </td>
-        <td className="px-4 py-3 text-sm text-muted-foreground">
-          {new Date(log.createdAt).toLocaleDateString()}{" "}
-          {new Date(log.createdAt).toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-          })}
+        <td className="px-4 py-3">
+          <Text variant="caption" color="muted">
+            {new Date(log.createdAt).toLocaleDateString()}{" "}
+            {new Date(log.createdAt).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </Text>
         </td>
         <td className="px-4 py-3">
           <ActionBadge action={log.action} />
         </td>
         <td className="px-4 py-3">
           <div>
-            <p className="font-medium">{log.entity}</p>
+            <Text as="p" className="font-medium">{log.entity}</Text>
             {log.entityId && (
-              <p className="text-xs text-muted-foreground truncate max-w-[200px]">
+              <Text variant="caption" color="muted" size="xs" className="truncate max-w-[200px]">
                 {log.entityId}
-              </p>
+              </Text>
             )}
           </div>
         </td>
         <td className="px-4 py-3">
           {log.user ? (
             <div>
-              <p className="font-medium">{log.user.name || "No name"}</p>
-              <p className="text-sm text-muted-foreground">{log.user.email}</p>
+              <Text as="p" className="font-medium">{log.user.name || "No name"}</Text>
+              <Text variant="caption" color="muted">{log.user.email}</Text>
             </div>
           ) : (
-            <span className="text-muted-foreground">System / Anonymous</span>
+            <Text color="muted">System / Anonymous</Text>
           )}
         </td>
-        <td className="px-4 py-3 text-sm text-muted-foreground">
-          {log.ipAddress || "N/A"}
+        <td className="px-4 py-3">
+          <Text variant="caption" color="muted">
+            {log.ipAddress || "N/A"}
+          </Text>
         </td>
       </tr>
       {isExpanded && <LogDetails log={log} />}
@@ -239,11 +236,11 @@ function Pagination({
 
   return (
     <div className="flex items-center justify-between px-2">
-      <p className="text-sm text-muted-foreground">
+      <Text variant="caption" color="muted">
         Showing {(pagination.page - 1) * pagination.limit + 1} to{" "}
         {Math.min(pagination.page * pagination.limit, pagination.total)} of{" "}
         {pagination.total} logs
-      </p>
+      </Text>
       <div className="flex items-center gap-1">
         <Button
           variant="outline"
@@ -408,9 +405,9 @@ export default function AdminAuditLogsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Audit Logs</h1>
-          <p className="text-muted-foreground">
+          <Text color="muted">
             View all system activity and user actions
-          </p>
+          </Text>
         </div>
         <ExportCsvButton
           label="Export Logs"

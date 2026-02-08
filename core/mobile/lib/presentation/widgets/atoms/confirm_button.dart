@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import 'app_button.dart';
 
@@ -154,6 +153,8 @@ class _ConfirmButtonState extends State<ConfirmButton> {
   }
 
   Future<void> _showConfirmDialog() async {
+    final colorScheme = Theme.of(context).colorScheme;
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -170,8 +171,8 @@ class _ConfirmButtonState extends State<ConfirmButton> {
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-              foregroundColor: AppColors.textOnPrimary,
+              backgroundColor: colorScheme.error,
+              foregroundColor: colorScheme.onError,
             ),
             child: Text(widget.confirmLabel),
           ),
@@ -218,15 +219,16 @@ class _ConfirmButtonState extends State<ConfirmButton> {
   }
 
   Widget _buildDestructiveButton(String label) {
-    final padding = _getPadding();
-    final fontSize = _getFontSize();
-    final iconSize = _getIconSize();
+    final colorScheme = Theme.of(context).colorScheme;
+    final padding = AppButtonSizing.getPadding(widget.size);
+    final fontSize = AppButtonSizing.getFontSize(widget.size);
+    final iconSize = AppButtonSizing.getIconSize(widget.size);
 
     return ElevatedButton(
       onPressed: widget.isDisabled ? null : _handleTap,
       style: ElevatedButton.styleFrom(
-        backgroundColor: AppColors.error,
-        foregroundColor: AppColors.textOnPrimary,
+        backgroundColor: colorScheme.error,
+        foregroundColor: colorScheme.onError,
         padding: padding,
         textStyle: TextStyle(fontSize: fontSize),
         shape: RoundedRectangleBorder(
@@ -244,38 +246,5 @@ class _ConfirmButtonState extends State<ConfirmButton> {
         ],
       ),
     );
-  }
-
-  EdgeInsets _getPadding() {
-    switch (widget.size) {
-      case AppButtonSize.small:
-        return const EdgeInsets.symmetric(horizontal: 10, vertical: 4);
-      case AppButtonSize.medium:
-        return const EdgeInsets.symmetric(horizontal: 14, vertical: 10);
-      case AppButtonSize.large:
-        return const EdgeInsets.symmetric(horizontal: 18, vertical: 12);
-    }
-  }
-
-  double _getFontSize() {
-    switch (widget.size) {
-      case AppButtonSize.small:
-        return 12;
-      case AppButtonSize.medium:
-        return 14;
-      case AppButtonSize.large:
-        return 16;
-    }
-  }
-
-  double _getIconSize() {
-    switch (widget.size) {
-      case AppButtonSize.small:
-        return 14;
-      case AppButtonSize.medium:
-        return 18;
-      case AppButtonSize.large:
-        return 20;
-    }
   }
 }

@@ -9,16 +9,15 @@ import { updateProfileSchema, type UpdateProfileFormData } from "@/lib/validatio
 import { logger } from "@/lib/logger";
 import {
   Form,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormControl,
-  FormMessage,
+  FormFieldInput,
+  FormStatusMessage,
+  FormActions,
   useZodForm,
 } from "@/components/forms";
-import { Input, Button, Spinner, Badge } from "@/components/ui";
+import { Button, Spinner, Badge, Text } from "@/components/ui";
 import { AvatarUpload } from "@/components/ui/avatar-upload";
 import { FormErrorBoundary } from "@/components/shared";
+import { CardSection } from "@/components/layout";
 
 // =====================================================
 // Types
@@ -183,7 +182,7 @@ export default function ProfilePage() {
     return (
       <div className="flex flex-col items-center justify-center py-12 gap-4">
         <Spinner size="lg" />
-        <p className="text-muted-foreground">Loading profile...</p>
+        <Text color="muted">Loading profile...</Text>
       </div>
     );
   }
@@ -193,14 +192,13 @@ export default function ProfilePage() {
       {/* Page Title */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Profile Settings</h1>
-        <p className="text-muted-foreground mt-1">
+        <Text color="muted" className="mt-1">
           Manage your account information
-        </p>
+        </Text>
       </div>
 
       {/* Avatar Section */}
-      <div className="p-6 rounded-lg border bg-card">
-        <h2 className="text-lg font-semibold mb-6">Profile Picture</h2>
+      <CardSection title="Profile Picture">
         <div className="flex flex-col sm:flex-row items-center gap-6">
           <AvatarUpload
             currentAvatarUrl={avatar?.url}
@@ -213,7 +211,7 @@ export default function ProfilePage() {
           />
           <div className="flex-1 text-center sm:text-left">
             <h3 className="font-medium">{profile?.name || "No name set"}</h3>
-            <p className="text-sm text-muted-foreground">{profile?.email}</p>
+            <Text variant="caption" color="muted">{profile?.email}</Text>
             <div className="flex items-center justify-center sm:justify-start gap-2 mt-2">
               <Badge variant={profile?.role === "ADMIN" ? "default" : "secondary"}>
                 {profile?.role}
@@ -226,116 +224,80 @@ export default function ProfilePage() {
             </div>
           </div>
         </div>
-      </div>
+      </CardSection>
 
       {/* Profile Form */}
-      <div className="p-6 rounded-lg border bg-card">
-        <h2 className="text-lg font-semibold mb-6">Edit Profile</h2>
-
+      <CardSection title="Edit Profile">
         <FormErrorBoundary>
           <Form form={form} onSubmit={onSubmit} className="space-y-6">
-            {error && (
-              <div className="p-3 rounded-md bg-destructive/10 border border-destructive/50">
-                <p className="text-sm text-destructive">{error}</p>
-              </div>
-            )}
+            <FormStatusMessage variant="error" message={error} />
 
-            <FormField
+            <FormFieldInput
               control={form.control}
               name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel required>Name</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Enter your name"
-                      autoComplete="name"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              label="Name"
+              required
+              placeholder="Enter your name"
+              inputProps={{ autoComplete: "name" }}
             />
 
-            <FormField
+            <FormFieldInput
               control={form.control}
               name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel required>Email</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="email"
-                      placeholder="you@example.com"
-                      autoComplete="email"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              label="Email"
+              required
+              type="email"
+              placeholder="you@example.com"
+              inputProps={{ autoComplete: "email" }}
             />
 
-            <div className="flex items-center gap-4 pt-4">
-              <Button
-                type="submit"
-                isLoading={form.formState.isSubmitting}
-              >
-                Save Changes
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  if (profile) {
-                    form.reset({
-                      name: profile.name || "",
-                      email: profile.email,
-                    });
-                  }
-                }}
-                disabled={form.formState.isSubmitting}
-              >
-                Cancel
-              </Button>
-            </div>
+            <FormActions
+              submitLabel="Save Changes"
+              isSubmitting={form.formState.isSubmitting}
+              onCancel={() => {
+                if (profile) {
+                  form.reset({
+                    name: profile.name || "",
+                    email: profile.email,
+                  });
+                }
+              }}
+            />
           </Form>
         </FormErrorBoundary>
-      </div>
+      </CardSection>
 
       {/* Account Info */}
-      <div className="p-6 rounded-lg border bg-card">
-        <h2 className="text-lg font-semibold mb-4">Account Information</h2>
+      <CardSection title="Account Information">
         <dl className="space-y-4">
           <div className="flex justify-between">
-            <dt className="text-muted-foreground">User ID</dt>
-            <dd className="font-mono text-sm">{profile?.id}</dd>
+            <Text as="span" color="muted">User ID</Text>
+            <Text as="span" variant="code" size="sm">{profile?.id}</Text>
           </div>
           <div className="flex justify-between">
-            <dt className="text-muted-foreground">Member Since</dt>
-            <dd>
+            <Text as="span" color="muted">Member Since</Text>
+            <Text as="span">
               {profile?.createdAt &&
                 new Date(profile.createdAt).toLocaleDateString("en-US", {
                   year: "numeric",
                   month: "long",
                   day: "numeric",
                 })}
-            </dd>
+            </Text>
           </div>
           <div className="flex justify-between">
-            <dt className="text-muted-foreground">Last Updated</dt>
-            <dd>
+            <Text as="span" color="muted">Last Updated</Text>
+            <Text as="span">
               {profile?.updatedAt &&
                 new Date(profile.updatedAt).toLocaleDateString("en-US", {
                   year: "numeric",
                   month: "long",
                   day: "numeric",
                 })}
-            </dd>
+            </Text>
           </div>
         </dl>
-      </div>
+      </CardSection>
     </div>
   );
 }

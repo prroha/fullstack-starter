@@ -13,6 +13,7 @@ import {
   FormDescription,
   FormMessage,
 } from "./form";
+import { PasswordInput, type PasswordInputProps } from "./password-input";
 
 // =====================================================
 // Pre-composed Form Field Component
@@ -231,11 +232,64 @@ function FormFieldCheckbox<
   );
 }
 
+// =====================================================
+// Pre-composed Form Field Password Component
+// =====================================================
+
+interface FormFieldPasswordProps<
+  TFieldValues extends FieldValues = FieldValues,
+  TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
+> extends Omit<ControllerProps<TFieldValues, TName>, "render"> {
+  label: string;
+  description?: string;
+  required?: boolean;
+  placeholder?: string;
+  className?: string;
+  autoComplete?: string;
+  passwordProps?: Omit<PasswordInputProps, "placeholder">;
+}
+
+function FormFieldPassword<
+  TFieldValues extends FieldValues = FieldValues,
+  TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
+>({
+  label,
+  description,
+  required,
+  placeholder,
+  className,
+  autoComplete,
+  passwordProps,
+  ...controllerProps
+}: FormFieldPasswordProps<TFieldValues, TName>) {
+  return (
+    <FormField
+      {...controllerProps}
+      render={({ field }) => (
+        <FormItem className={className}>
+          <FormLabel required={required}>{label}</FormLabel>
+          <FormControl>
+            <PasswordInput
+              placeholder={placeholder}
+              autoComplete={autoComplete}
+              {...passwordProps}
+              {...field}
+            />
+          </FormControl>
+          {description && <FormDescription>{description}</FormDescription>}
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+  );
+}
+
 export {
   FormFieldInput,
   FormFieldTextarea,
   FormFieldSelect,
   FormFieldCheckbox,
+  FormFieldPassword,
 };
 export type {
   FormFieldInputProps,
@@ -243,4 +297,5 @@ export type {
   FormFieldSelectProps,
   FormFieldSelectOption,
   FormFieldCheckboxProps,
+  FormFieldPasswordProps,
 };

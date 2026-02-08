@@ -8,7 +8,11 @@ import {
   AccordionTrigger,
   AccordionContent,
   Input,
+  Button,
+  Text,
 } from "@/components/ui";
+import { AppLink } from "@/components/ui/link";
+import { Icon } from "@/components/ui/icon";
 
 // Note: Metadata must be exported from a server component or use generateMetadata
 // For client components, set it in the head or use a layout
@@ -230,27 +234,20 @@ export default function FAQPage() {
           <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-6">
             Frequently Asked Questions
           </h1>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
+          <Text size="lg" color="muted" className="max-w-2xl mx-auto mb-8">
             Find answers to common questions about Fullstack Starter. Can not find
             what you are looking for? Contact our support team.
-          </p>
+          </Text>
 
           {/* Search */}
           <div className="max-w-md mx-auto">
             <div className="relative">
-              <svg
-                className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={1.5}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
-                />
-              </svg>
+              <Icon
+                name="Search"
+                size="sm"
+                color="muted"
+                className="absolute left-3 top-1/2 -translate-y-1/2"
+              />
               <Input
                 type="search"
                 placeholder="Search questions..."
@@ -260,9 +257,9 @@ export default function FAQPage() {
               />
             </div>
             {searchQuery && (
-              <p className="mt-2 text-sm text-muted-foreground">
+              <Text variant="caption" color="muted" className="mt-2">
                 Showing {filteredQuestions} of {totalQuestions} questions
-              </p>
+              </Text>
             )}
           </div>
         </div>
@@ -272,29 +269,25 @@ export default function FAQPage() {
       <section className="border-b border-border bg-muted/30">
         <div className="container mx-auto px-4 py-4">
           <div className="flex flex-wrap gap-2 justify-center">
-            <button
+            <Button
+              variant={selectedCategory === null ? "default" : "outline"}
+              size="sm"
               onClick={() => setSelectedCategory(null)}
-              className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                selectedCategory === null
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-background border border-border hover:bg-muted"
-              }`}
+              className="rounded-full"
             >
               All Categories
-            </button>
+            </Button>
             {faqData.map((category) => (
-              <button
+              <Button
                 key={category.category}
+                variant={selectedCategory === category.category ? "default" : "outline"}
+                size="sm"
                 onClick={() => setSelectedCategory(category.category)}
-                className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                  selectedCategory === category.category
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-background border border-border hover:bg-muted"
-                }`}
+                className="rounded-full"
               >
                 {category.icon}
                 {category.category}
-              </button>
+              </Button>
             ))}
           </div>
         </div>
@@ -306,26 +299,19 @@ export default function FAQPage() {
           <div className="max-w-3xl mx-auto space-y-12">
             {filteredData.length === 0 ? (
               <div className="text-center py-12">
-                <svg
-                  className="h-16 w-16 text-muted-foreground mx-auto mb-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={1}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z"
-                  />
-                </svg>
+                <Icon
+                  name="CircleQuestionMark"
+                  size="xl"
+                  color="muted"
+                  className="mx-auto mb-4 h-16 w-16"
+                />
                 <h3 className="text-lg font-semibold text-foreground mb-2">
                   No questions found
                 </h3>
-                <p className="text-muted-foreground">
+                <Text color="muted">
                   Try adjusting your search or filter to find what you are looking
                   for.
-                </p>
+                </Text>
               </div>
             ) : (
               filteredData.map((category) => (
@@ -362,16 +348,13 @@ export default function FAQPage() {
           <h2 className="text-2xl font-bold text-foreground mb-4">
             Still have questions?
           </h2>
-          <p className="text-muted-foreground mb-6 max-w-xl mx-auto">
+          <Text color="muted" className="mb-6 max-w-xl mx-auto">
             Can not find the answer you are looking for? Our support team is here
             to help.
-          </p>
-          <a
-            href="/contact"
-            className="inline-flex items-center justify-center rounded-md text-sm font-medium h-11 px-8 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-          >
-            Contact Support
-          </a>
+          </Text>
+          <AppLink href="/contact">
+            <Button size="lg">Contact Support</Button>
+          </AppLink>
         </div>
       </section>
     </div>

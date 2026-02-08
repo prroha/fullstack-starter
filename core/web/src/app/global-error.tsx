@@ -90,7 +90,6 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
             padding: "1rem",
             fontFamily: "system-ui, -apple-system, sans-serif",
             backgroundColor: colors.background,
-            transition: "background-color 0.2s",
           }}
         >
           <div style={{ textAlign: "center", maxWidth: "28rem" }}>

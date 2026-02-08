@@ -192,9 +192,7 @@
   }
 
   /*
-   * Smooth theme transitions
-   * Using 200ms duration for perceptible but not sluggish transitions
-   * Targeting specific properties to avoid layout shift
+   * Color scheme declarations
    */
   :root {
     color-scheme: light;
@@ -204,46 +202,8 @@
     color-scheme: dark;
   }
 
-  html {
-    /* Smooth color transitions when switching themes */
-    transition-property: background-color;
-    transition-duration: 200ms;
-    transition-timing-function: ease-out;
-  }
-
   body {
     @apply bg-background text-foreground;
-    /* Transition colors smoothly during theme switch */
-    transition-property: color, background-color;
-    transition-duration: 200ms;
-    transition-timing-function: ease-out;
-  }
-
-  /*
-   * Component-level transitions for theme switching
-   * Applied to common interactive elements
-   */
-  a,
-  button,
-  input,
-  textarea,
-  select,
-  [role="button"] {
-    transition-property: color, background-color, border-color, box-shadow;
-    transition-duration: 150ms;
-    transition-timing-function: ease-out;
-  }
-
-  /*
-   * Card and surface transitions
-   */
-  [class*="card"],
-  [class*="popover"],
-  [class*="dialog"],
-  [class*="dropdown"] {
-    transition-property: color, background-color, border-color, box-shadow;
-    transition-duration: 200ms;
-    transition-timing-function: ease-out;
   }
 }
 
@@ -257,18 +217,21 @@
   }
 }
 
-/* Theme transitions - enabled after initial load to prevent flash */
-.theme-transitions-enabled {
-  --theme-transition-duration: 200ms;
-}
-
-.theme-transitions-enabled,
-.theme-transitions-enabled *,
-.theme-transitions-enabled *::before,
-.theme-transitions-enabled *::after {
-  transition-property: color, background-color, border-color, box-shadow, fill, stroke;
-  transition-duration: var(--theme-transition-duration, 0ms);
-  transition-timing-function: ease-out;
+/*
+ * Theme Transition System
+ * =======================
+ * Transitions are ONLY active during theme changes to prevent
+ * "flash" effects on hover states. The .theme-transitioning class
+ * is temporarily added when switching themes and removed after
+ * the transition completes.
+ */
+.theme-transitioning,
+.theme-transitioning *,
+.theme-transitioning *::before,
+.theme-transitioning *::after {
+  transition-property: color, background-color, border-color, box-shadow, fill, stroke !important;
+  transition-duration: 200ms !important;
+  transition-timing-function: ease-out !important;
 }
 
 /* App theme data attribute for custom styling */

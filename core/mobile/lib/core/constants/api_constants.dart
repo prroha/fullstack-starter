@@ -56,7 +56,176 @@ class ApiConstants {
   // Admin users export: /admin/users/export
   // Admin audit logs export: /admin/audit-logs/export
 
-  // Add your endpoints here
-  // static const String posts = '/posts';
-  // static String postById(String id) => '/posts/$id';
+  // Prevent instantiation
+  ApiConstants._();
+}
+
+/// Application configuration constants
+class AppConfig {
+  /// Request timeout in seconds
+  static const int requestTimeout = 30;
+
+  /// Receive timeout in seconds
+  static const int receiveTimeout = 30;
+
+  /// Number of retry attempts for failed requests
+  static const int retryAttempts = 3;
+
+  /// Initial retry delay in milliseconds
+  static const int retryDelay = 1000;
+
+  /// Multiplier for exponential backoff
+  static const int retryBackoffMultiplier = 2;
+
+  // Prevent instantiation
+  AppConfig._();
+}
+
+/// Pagination constants
+class PaginationConfig {
+  /// Default page size
+  static const int defaultPageSize = 10;
+
+  /// Page size for notifications
+  static const int notificationsPageSize = 20;
+
+  /// Page size for admin users list
+  static const int adminUsersPageSize = 10;
+
+  /// Page size for audit logs
+  static const int auditLogsPageSize = 20;
+
+  /// Limit for search results
+  static const int searchLimit = 5;
+
+  // Prevent instantiation
+  PaginationConfig._();
+}
+
+/// Validation constants
+class ValidationConfig {
+  /// Minimum password length
+  static const int passwordMinLength = 8;
+
+  /// Maximum password length
+  static const int passwordMaxLength = 128;
+
+  /// Minimum name length
+  static const int nameMinLength = 2;
+
+  /// Maximum name length
+  static const int nameMaxLength = 100;
+
+  /// Maximum bio length
+  static const int bioMaxLength = 500;
+
+  /// Email regex pattern
+  static final RegExp emailPattern = RegExp(
+    r'^[a-zA-Z0-9.!#$%&*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,253}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,253}[a-zA-Z0-9])?)+$',
+  );
+
+  /// Password complexity pattern (at least one letter and one number)
+  static final RegExp passwordComplexityPattern = RegExp(r'^(?=.*[a-zA-Z])(?=.*[0-9])');
+
+  /// Name allowed characters pattern
+  static final RegExp namePattern = RegExp(r'^[a-zA-Z\s\'-]+$');
+
+  // Prevent instantiation
+  ValidationConfig._();
+}
+
+/// File upload constants
+class FileUploadConfig {
+  /// Maximum avatar file size in bytes (5 MB)
+  static const int maxAvatarSize = 5 * 1024 * 1024;
+
+  /// Maximum general file size in bytes (10 MB)
+  static const int maxFileSize = 10 * 1024 * 1024;
+
+  /// Allowed image MIME types for avatars
+  static const List<String> allowedAvatarTypes = [
+    'image/jpeg',
+    'image/png',
+    'image/gif',
+    'image/webp',
+  ];
+
+  /// Allowed image extensions
+  static const List<String> allowedImageExtensions = [
+    '.jpg',
+    '.jpeg',
+    '.png',
+    '.gif',
+    '.webp',
+  ];
+
+  // Prevent instantiation
+  FileUploadConfig._();
+}
+
+/// Duration constants (in milliseconds)
+class DurationConfig {
+  /// Default toast duration
+  static const int toastDefault = 4000;
+
+  /// Error toast duration
+  static const int toastError = 6000;
+
+  /// Success indicator display time
+  static const int successIndicator = 2000;
+
+  /// Debounce delay for search input
+  static const int searchDebounce = 300;
+
+  // Prevent instantiation
+  DurationConfig._();
+}
+
+/// User roles
+class UserRoles {
+  static const String user = 'USER';
+  static const String admin = 'ADMIN';
+
+  // Prevent instantiation
+  UserRoles._();
+}
+
+/// Notification types
+class NotificationTypes {
+  static const String info = 'INFO';
+  static const String success = 'SUCCESS';
+  static const String warning = 'WARNING';
+  static const String error = 'ERROR';
+  static const String system = 'SYSTEM';
+
+  // Prevent instantiation
+  NotificationTypes._();
+}
+
+/// Audit action types
+class AuditActions {
+  static const String create = 'CREATE';
+  static const String read = 'READ';
+  static const String update = 'UPDATE';
+  static const String delete = 'DELETE';
+  static const String login = 'LOGIN';
+  static const String logout = 'LOGOUT';
+  static const String loginFailed = 'LOGIN_FAILED';
+  static const String passwordChange = 'PASSWORD_CHANGE';
+  static const String passwordReset = 'PASSWORD_RESET';
+  static const String emailVerify = 'EMAIL_VERIFY';
+  static const String adminAction = 'ADMIN_ACTION';
+
+  // Prevent instantiation
+  AuditActions._();
+}
+
+/// Contact message status
+class ContactMessageStatus {
+  static const String pending = 'PENDING';
+  static const String read = 'READ';
+  static const String replied = 'REPLIED';
+
+  // Prevent instantiation
+  ContactMessageStatus._();
 }

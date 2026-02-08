@@ -10,14 +10,12 @@ import { updateProfileSchema, type UpdateProfileFormData } from "@/lib/validatio
 import { logger } from "@/lib/logger";
 import {
   Form,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormControl,
-  FormMessage,
+  FormFieldInput,
+  FormStatusMessage,
+  FormActions,
   useZodForm,
 } from "@/components/forms";
-import { Input, Button, Spinner, Badge } from "@/components/ui";
+import { Button, Spinner, Badge } from "@/components/ui";
 import { AvatarUpload } from "@/components/ui/avatar-upload";
 import { FormErrorBoundary } from "@/components/shared";
 
@@ -252,72 +250,39 @@ export default function ProfilePage() {
 
             <FormErrorBoundary>
               <Form form={form} onSubmit={onSubmit} className="space-y-6">
-                {error && (
-                  <div className="p-3 rounded-md bg-destructive/10 border border-destructive/50">
-                    <p className="text-sm text-destructive">{error}</p>
-                  </div>
-                )}
+                <FormStatusMessage variant="error" message={error} />
 
-                <FormField
+                <FormFieldInput
                   control={form.control}
                   name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel required>Name</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Enter your name"
-                          autoComplete="name"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  label="Name"
+                  required
+                  placeholder="Enter your name"
+                  inputProps={{ autoComplete: "name" }}
                 />
 
-                <FormField
+                <FormFieldInput
                   control={form.control}
                   name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel required>Email</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="email"
-                          placeholder="you@example.com"
-                          autoComplete="email"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  label="Email"
+                  required
+                  type="email"
+                  placeholder="you@example.com"
+                  inputProps={{ autoComplete: "email" }}
                 />
 
-                <div className="flex items-center gap-4 pt-4">
-                  <Button
-                    type="submit"
-                    isLoading={form.formState.isSubmitting}
-                  >
-                    Save Changes
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      if (profile) {
-                        form.reset({
-                          name: profile.name || "",
-                          email: profile.email,
-                        });
-                      }
-                    }}
-                    disabled={form.formState.isSubmitting}
-                  >
-                    Cancel
-                  </Button>
-                </div>
+                <FormActions
+                  submitLabel="Save Changes"
+                  isSubmitting={form.formState.isSubmitting}
+                  onCancel={() => {
+                    if (profile) {
+                      form.reset({
+                        name: profile.name || "",
+                        email: profile.email,
+                      });
+                    }
+                  }}
+                />
               </Form>
             </FormErrorBoundary>
           </div>

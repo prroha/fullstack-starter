@@ -199,7 +199,7 @@ const PasswordStrengthMeter = React.forwardRef<
             <span className="text-muted-foreground">Password strength</span>
             <span
               className={cn(
-                "font-medium transition-colors duration-300",
+                "font-medium ",
                 strength === "weak" && "text-red-600 dark:text-red-400",
                 strength === "fair" && "text-orange-600 dark:text-orange-400",
                 strength === "good" && "text-yellow-600 dark:text-yellow-400",
@@ -211,7 +211,7 @@ const PasswordStrengthMeter = React.forwardRef<
           </div>
           <div
             className={cn(
-              "h-2 w-full rounded-full transition-colors duration-300",
+              "h-2 w-full rounded-full ",
               password ? config.bgColor : "bg-muted"
             )}
           >
@@ -232,7 +232,7 @@ const PasswordStrengthMeter = React.forwardRef<
               <li
                 key={index}
                 className={cn(
-                  "flex items-center gap-2 transition-colors duration-200",
+                  "flex items-center gap-2 ",
                   req.passed
                     ? "text-green-600 dark:text-green-400"
                     : "text-muted-foreground"

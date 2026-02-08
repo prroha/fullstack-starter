@@ -1,11 +1,29 @@
 "use client";
 
 import { logger } from "./logger";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
-
-// Request ID header for correlation
-const REQUEST_ID_HEADER = "x-request-id";
+import { API_CONFIG, DURATIONS, HTTP_STATUS } from "./constants";
+import type {
+  User,
+  UserRole,
+  AdminUser,
+  UserProfile,
+  Avatar,
+} from "@/types/user";
+import type {
+  ApiResponse,
+  PaginatedResponse,
+  AuthResponse as AuthResponseType,
+  AdminStats,
+} from "@/types/api";
+import type { Notification, NotificationType, GetNotificationsParams } from "@/types/notification";
+import type { AuditLog, AuditAction, GetAuditLogsParams } from "@/types/audit";
+import type {
+  ContactMessage,
+  ContactMessageStatus,
+  ContactFormData,
+  GetContactMessagesParams,
+} from "@/types/contact";
+import type { Session } from "@/types/session";
 
 /**
  * Generate a UUID v4 for request correlation
@@ -27,7 +45,7 @@ function generateRequestId(): string {
 // Configuration
 // =====================================================
 
-interface ApiConfig {
+interface ApiClientConfig {
   baseUrl: string;
   timeout: number;
   retries: number;
@@ -35,12 +53,12 @@ interface ApiConfig {
   retryBackoffMultiplier: number;
 }
 
-const defaultConfig: ApiConfig = {
-  baseUrl: API_BASE_URL,
-  timeout: 30000, // 30 seconds
-  retries: 3,
-  retryDelay: 1000, // 1 second
-  retryBackoffMultiplier: 2,
+const defaultConfig: ApiClientConfig = {
+  baseUrl: API_CONFIG.BASE_URL,
+  timeout: API_CONFIG.TIMEOUT,
+  retries: API_CONFIG.RETRIES,
+  retryDelay: API_CONFIG.RETRY_DELAY,
+  retryBackoffMultiplier: API_CONFIG.RETRY_BACKOFF_MULTIPLIER,
 };
 
 // =====================================================
@@ -67,7 +85,7 @@ export class ApiError extends Error {
       (error?.message as string) || "Request failed",
       error?.code as string | undefined,
       error?.details,
-      status >= 500 || status === 429,
+      status >= HTTP_STATUS.INTERNAL_SERVER_ERROR || status === HTTP_STATUS.TOO_MANY_REQUESTS,
       requestId || (error?.requestId as string | undefined)
     );
   }
@@ -86,112 +104,14 @@ export class ApiError extends Error {
 }
 
 // =====================================================
-// User types
+// Re-export types from @/types for backward compatibility
 // =====================================================
 
-export type UserRole = "USER" | "ADMIN";
-
-export interface User {
-  id: string;
-  email: string;
-  name: string | null;
-  role: UserRole;
-  emailVerified?: boolean;
-}
-
-export interface AdminUser {
-  id: string;
-  email: string;
-  name: string | null;
-  role: UserRole;
-  isActive: boolean;
-  emailVerified: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export type NotificationType = "INFO" | "SUCCESS" | "WARNING" | "ERROR" | "SYSTEM";
-
-export interface Notification {
-  id: string;
-  userId: string;
-  type: NotificationType;
-  title: string;
-  message: string;
-  data?: Record<string, unknown>;
-  read: boolean;
-  createdAt: string;
-}
-
-export type ContactMessageStatus = "PENDING" | "READ" | "REPLIED";
-
-export type AuditAction =
-  | "CREATE"
-  | "READ"
-  | "UPDATE"
-  | "DELETE"
-  | "LOGIN"
-  | "LOGOUT"
-  | "LOGIN_FAILED"
-  | "PASSWORD_CHANGE"
-  | "PASSWORD_RESET"
-  | "EMAIL_VERIFY"
-  | "ADMIN_ACTION";
-
-export interface AuditLog {
-  id: string;
-  userId: string | null;
-  action: AuditAction;
-  entity: string;
-  entityId: string | null;
-  changes: Record<string, unknown> | null;
-  ipAddress: string | null;
-  userAgent: string | null;
-  metadata: Record<string, unknown> | null;
-  createdAt: string;
-  user: {
-    id: string;
-    email: string;
-    name: string | null;
-  } | null;
-}
-
-export interface ContactMessage {
-  id: string;
-  name: string;
-  email: string;
-  subject: string;
-  message: string;
-  status: ContactMessageStatus;
-  createdAt: string;
-  updatedAt: string;
-}
-
-// =====================================================
-// API Response types
-// =====================================================
-
-export interface ApiResponse<T> {
-  success: boolean;
-  data?: T;
-  error?: {
-    code: string;
-    message: string;
-    details?: unknown;
-  };
-}
-
-export interface PaginatedResponse<T> {
-  items: T[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-    hasNext: boolean;
-    hasPrev: boolean;
-  };
-}
+export type { UserRole, User, AdminUser } from "@/types/user";
+export type { NotificationType, Notification } from "@/types/notification";
+export type { AuditAction, AuditLog } from "@/types/audit";
+export type { ContactMessageStatus, ContactMessage } from "@/types/contact";
+export type { ApiResponse, PaginatedResponse } from "@/types/api";
 
 // =====================================================
 // Interceptor Types
@@ -261,12 +181,12 @@ function fetchWithTimeout(
 // =====================================================
 
 class ApiClient {
-  private config: ApiConfig;
+  private config: ApiClientConfig;
   private requestInterceptors: RequestInterceptor[] = [];
   private responseInterceptors: ResponseInterceptor[] = [];
   private errorInterceptors: ErrorInterceptor[] = [];
 
-  constructor(config: Partial<ApiConfig> = {}) {
+  constructor(config: Partial<ApiClientConfig> = {}) {
     this.config = { ...defaultConfig, ...config };
   }
 
@@ -322,7 +242,7 @@ class ApiClient {
       ...options,
       headers: {
         "Content-Type": "application/json",
-        [REQUEST_ID_HEADER]: correlationId,
+        [API_CONFIG.REQUEST_ID_HEADER]: correlationId,
         ...options.headers,
       },
       credentials: "include",

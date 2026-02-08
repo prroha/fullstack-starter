@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { ApiError } from "@/lib/api";
@@ -10,14 +9,11 @@ import { logger } from "@/lib/logger";
 import { toast } from "@/lib/toast";
 import {
   Form,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormControl,
-  FormMessage,
+  FormFieldInput,
+  FormStatusMessage,
   useZodForm,
 } from "@/components/forms";
-import { Input, Button, AuthLayout } from "@/components/ui";
+import { Button, AuthLayout, AppLink, Text, Icon } from "@/components/ui";
 import { FormErrorBoundary } from "@/components/shared";
 
 // Auth Logo Component
@@ -25,19 +21,7 @@ function AuthLogo() {
   return (
     <div className="flex items-center justify-center">
       <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
-        <svg
-          className="h-7 w-7 text-primary"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-          />
-        </svg>
+        <Icon name="Lock" size="lg" color="primary" />
       </div>
     </div>
   );
@@ -92,60 +76,42 @@ export default function LoginPage() {
       showBackgroundPattern
       footer={
         <div className="space-y-2">
-          <p>
-            Don't have an account?{" "}
-            <Link href="/register">Create account</Link>
-          </p>
-          <p>
-            <Link href="/forgot-password">Forgot your password?</Link>
-          </p>
+          <Text as="p" size="sm" color="muted">
+            Don&apos;t have an account?{" "}
+            <AppLink href="/register" variant="primary" size="sm">
+              Create account
+            </AppLink>
+          </Text>
+          <Text as="p" size="sm" color="muted">
+            <AppLink href="/forgot-password" variant="primary" size="sm">
+              Forgot your password?
+            </AppLink>
+          </Text>
         </div>
       }
     >
       <FormErrorBoundary>
         <Form form={form} onSubmit={onSubmit} className="space-y-4">
-          {error && (
-            <div className="p-3 rounded-md bg-destructive/10 border border-destructive/50">
-              <p className="text-sm text-destructive">{error}</p>
-            </div>
-          )}
+          <FormStatusMessage variant="error" message={error} />
 
-          <FormField
+          <FormFieldInput
             control={form.control}
             name="email"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel required>Email</FormLabel>
-                <FormControl>
-                  <Input
-                    type="email"
-                    placeholder="you@example.com"
-                    autoComplete="email"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            label="Email"
+            required
+            type="email"
+            placeholder="you@example.com"
+            inputProps={{ autoComplete: "email" }}
           />
 
-          <FormField
+          <FormFieldInput
             control={form.control}
             name="password"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel required>Password</FormLabel>
-                <FormControl>
-                  <Input
-                    type="password"
-                    placeholder="Enter your password"
-                    autoComplete="current-password"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            label="Password"
+            required
+            type="password"
+            placeholder="Enter your password"
+            inputProps={{ autoComplete: "current-password" }}
           />
 
           <Button

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/constants/api_constants.dart';
 import '../../data/repositories/notification_repository.dart';
 
 /// Notification state class
@@ -69,7 +70,7 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
     }
 
     final result = await _repository.getNotifications(
-      const GetNotificationsParams(page: 1, limit: 20),
+      const GetNotificationsParams(page: 1, limit: PaginationConfig.notificationsPageSize),
     );
 
     result.fold(
@@ -103,7 +104,7 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
     state = state.copyWith(isLoadingMore: true);
 
     final result = await _repository.getNotifications(
-      GetNotificationsParams(page: state.page + 1, limit: 20),
+      GetNotificationsParams(page: state.page + 1, limit: PaginationConfig.notificationsPageSize),
     );
 
     result.fold(

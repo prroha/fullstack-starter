@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers/theme_provider.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 
 /// Theme toggle variant
@@ -217,10 +216,11 @@ class ThemeToggleButton extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final themeNotifier = ref.read(themeProvider.notifier);
+    final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Material(
-      color: backgroundColor ?? Theme.of(context).colorScheme.surfaceContainerHighest,
+      color: backgroundColor ?? colorScheme.surfaceContainerHighest,
       borderRadius: BorderRadius.circular(size / 2),
       child: InkWell(
         borderRadius: BorderRadius.circular(size / 2),
@@ -241,7 +241,9 @@ class ThemeToggleButton extends ConsumerWidget {
                 isDark ? Icons.light_mode : Icons.dark_mode,
                 key: ValueKey(isDark),
                 size: size * 0.5,
-                color: isDark ? AppColors.warning : AppColors.primary,
+                color: isDark
+                    ? const Color(0xFFF59E0B) // Warning color for light mode icon
+                    : colorScheme.primary,
               ),
             ),
           ),

@@ -3,8 +3,10 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import Link from "next/link";
-import { Spinner, ThemeToggle } from "@/components/ui";
+import { Spinner, ThemeToggle, Button, Text } from "@/components/ui";
+import { AppLink } from "@/components/ui/link";
+import { Icon } from "@/components/ui/icon";
+import { CardSection } from "@/components/layout";
 
 export default function Home() {
   const router = useRouter();
@@ -21,7 +23,7 @@ export default function Home() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-background">
         <Spinner size="lg" />
-        <p className="text-muted-foreground">Loading...</p>
+        <Text color="muted">Loading...</Text>
       </div>
     );
   }
@@ -31,7 +33,7 @@ export default function Home() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-background">
         <Spinner size="lg" />
-        <p className="text-muted-foreground">Redirecting to dashboard...</p>
+        <Text color="muted">Redirecting to dashboard...</Text>
       </div>
     );
   }
@@ -48,20 +50,7 @@ export default function Home() {
         <div className="max-w-3xl mx-auto space-y-8">
           {/* Logo */}
           <div className="flex justify-center">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="h-16 w-16 text-primary"
-            >
-              <path d="M12 2L2 7l10 5 10-5-10-5Z" />
-              <path d="M2 17l10 5 10-5" />
-              <path d="M2 12l10 5 10-5" />
-            </svg>
+            <Icon name="Layers" size="xl" color="primary" className="h-16 w-16" />
           </div>
 
           {/* Heading */}
@@ -70,64 +59,55 @@ export default function Home() {
               Welcome to{" "}
               <span className="text-primary">Starter Template</span>
             </h1>
-            <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto">
+            <Text size="lg" color="muted" className="max-w-2xl mx-auto">
               A full-stack starter template with authentication, theming, and everything you need to get started quickly.
-            </p>
+            </Text>
           </div>
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              href="/login"
-              className="px-8 py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors"
-            >
+            <Button size="lg" onClick={() => router.push("/login")}>
               Sign In
-            </Link>
-            <Link
-              href="/register"
-              className="px-8 py-3 border border-border text-foreground rounded-lg font-medium hover:bg-accent transition-colors"
-            >
+            </Button>
+            <Button variant="outline" size="lg" onClick={() => router.push("/register")}>
               Create Account
-            </Link>
+            </Button>
           </div>
 
           {/* Features */}
           <div className="grid sm:grid-cols-3 gap-6 pt-12 text-left">
-            <div className="p-6 rounded-lg border bg-card">
-              <h3 className="font-semibold text-foreground mb-2">Authentication</h3>
-              <p className="text-sm text-muted-foreground">
+            <CardSection title="Authentication">
+              <Text variant="caption" color="muted">
                 Secure login, registration, and session management out of the box.
-              </p>
-            </div>
-            <div className="p-6 rounded-lg border bg-card">
-              <h3 className="font-semibold text-foreground mb-2">Theming</h3>
-              <p className="text-sm text-muted-foreground">
+              </Text>
+            </CardSection>
+            <CardSection title="Theming">
+              <Text variant="caption" color="muted">
                 Multiple color themes with light/dark mode support.
-              </p>
-            </div>
-            <div className="p-6 rounded-lg border bg-card">
-              <h3 className="font-semibold text-foreground mb-2">Dashboard</h3>
-              <p className="text-sm text-muted-foreground">
+              </Text>
+            </CardSection>
+            <CardSection title="Dashboard">
+              <Text variant="caption" color="muted">
                 User dashboard with profile, settings, and notifications.
-              </p>
-            </div>
+              </Text>
+            </CardSection>
           </div>
         </div>
 
         {/* Footer Links */}
-        <div className="absolute bottom-8 flex items-center gap-6 text-sm text-muted-foreground">
-          <Link href="/about" className="hover:text-foreground transition-colors">
+        <div className="absolute bottom-8 flex items-center gap-6">
+          <AppLink href="/about" variant="muted" size="sm">
             About
-          </Link>
-          <Link href="/terms" className="hover:text-foreground transition-colors">
+          </AppLink>
+          <AppLink href="/terms" variant="muted" size="sm">
             Terms
-          </Link>
-          <Link href="/privacy" className="hover:text-foreground transition-colors">
+          </AppLink>
+          <AppLink href="/privacy" variant="muted" size="sm">
             Privacy
-          </Link>
-          <Link href="/contact" className="hover:text-foreground transition-colors">
+          </AppLink>
+          <AppLink href="/contact" variant="muted" size="sm">
             Contact
-          </Link>
+          </AppLink>
         </div>
       </div>
     </div>

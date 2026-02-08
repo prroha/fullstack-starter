@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../atoms/app_text.dart';
 
 /// A styled card with optional header, content, and footer sections.
 ///
@@ -80,13 +80,10 @@ class AppCard extends StatelessWidget {
       header: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
+          // Use AppText atom for consistent typography
+          AppText(
             title,
-            style: const TextStyle(
-              fontSize: 16, // Tighter: reduced from 18
-              fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
-            ),
+            variant: AppTextVariant.heading4,
           ),
           if (trailing != null) trailing,
         ],
@@ -131,18 +128,20 @@ class AppCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     Widget card = Container(
       margin: margin,
       decoration: BoxDecoration(
-        color: backgroundColor ?? AppColors.surface,
+        color: backgroundColor ?? colorScheme.surface,
         borderRadius: borderRadius ?? AppSpacing.borderRadiusMd,
         border: hasBorder
-            ? Border.all(color: AppColors.border)
+            ? Border.all(color: colorScheme.outlineVariant)
             : null,
         boxShadow: hasShadow
             ? [
                 BoxShadow(
-                  color: AppColors.black.withAlpha(13),
+                  color: colorScheme.shadow.withAlpha(13),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -159,13 +158,13 @@ class AppCard extends StatelessWidget {
               child: header,
             ),
           if (header != null && (hasBorder || hasShadow))
-            const Divider(height: 1, color: AppColors.border),
+            Divider(height: 1, color: colorScheme.outlineVariant),
           Padding(
             padding: padding ?? AppSpacing.cardContentPadding,
             child: child,
           ),
           if (footer != null && (hasBorder || hasShadow))
-            const Divider(height: 1, color: AppColors.border),
+            Divider(height: 1, color: colorScheme.outlineVariant),
           if (footer != null)
             Padding(
               padding: padding ?? AppSpacing.cardContentPadding,

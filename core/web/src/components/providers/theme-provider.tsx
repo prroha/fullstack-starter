@@ -55,25 +55,10 @@ export function ThemeProvider({
   children,
   defaultColorMode = "system",
   defaultTheme = "edu",
-  enableTransitions = true,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  enableTransitions = true, // Kept for API compatibility; transitions now handled in theme-context.tsx
   syncAcrossTabs = true,
 }: ThemeProviderProps) {
-  // Enable smooth transitions after mount
-  React.useEffect(() => {
-    if (!enableTransitions) return;
-
-    // Add transition styles after initial render to prevent flash
-    const timeout = setTimeout(() => {
-      document.documentElement.style.setProperty(
-        "--theme-transition-duration",
-        "0.2s"
-      );
-      document.documentElement.classList.add("theme-transitions-enabled");
-    }, 100);
-
-    return () => clearTimeout(timeout);
-  }, [enableTransitions]);
-
   // Sync theme across tabs
   React.useEffect(() => {
     if (!syncAcrossTabs) return;

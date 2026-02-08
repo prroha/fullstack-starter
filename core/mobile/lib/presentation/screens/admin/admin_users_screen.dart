@@ -364,7 +364,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
   void _showEditDialog(AdminUser user) {
     showDialog(
       context: context,
-      builder: (context) => EditUserDialog(
+      builder: (dialogContext) => EditUserDialog(
         user: user,
         onSave: (role) async {
           final success = await ref
@@ -372,12 +372,13 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
               .updateUserRole(user.id, role);
 
           if (mounted) {
+            final colorScheme = Theme.of(context).colorScheme;
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(
                   success ? 'User updated successfully' : 'Failed to update user',
                 ),
-                backgroundColor: success ? AppColors.success : AppColors.error,
+                backgroundColor: success ? Colors.green : colorScheme.error,
               ),
             );
           }

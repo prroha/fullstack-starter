@@ -365,7 +365,7 @@ export default function SessionsPage() {
           <div className="flex items-center gap-4">
             <Link
               href="/settings"
-              className="p-2 -ml-2 text-muted-foreground hover:text-foreground transition-colors"
+              className="p-2 -ml-2 text-muted-foreground hover:text-foreground "
             >
               <ArrowLeftIcon size={20} />
             </Link>

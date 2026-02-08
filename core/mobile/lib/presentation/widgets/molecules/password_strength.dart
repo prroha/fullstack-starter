@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 
 /// Password strength levels.
@@ -224,6 +223,7 @@ class _PasswordStrengthMeterState extends State<PasswordStrengthMeter>
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final strength = _calculateStrength();
 
     return Column(
@@ -236,7 +236,7 @@ class _PasswordStrengthMeterState extends State<PasswordStrengthMeter>
             Text(
               'Password strength',
               style: TextStyle(
-                color: AppColors.textMuted,
+                color: colorScheme.outline,
                 fontSize: 13,
               ),
             ),
@@ -267,7 +267,7 @@ class _PasswordStrengthMeterState extends State<PasswordStrengthMeter>
               decoration: BoxDecoration(
                 color: widget.password.isNotEmpty
                     ? _getStrengthBackgroundColor(strength)
-                    : AppColors.muted,
+                    : colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(4),
               ),
               child: FractionallySizedBox(
@@ -309,7 +309,7 @@ class _PasswordStrengthMeterState extends State<PasswordStrengthMeter>
                       size: 16,
                       color: passed
                           ? Colors.green.shade600
-                          : AppColors.textMuted,
+                          : colorScheme.outline,
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -317,7 +317,7 @@ class _PasswordStrengthMeterState extends State<PasswordStrengthMeter>
                     duration: const Duration(milliseconds: 200),
                     style: TextStyle(
                       color:
-                          passed ? Colors.green.shade600 : AppColors.textMuted,
+                          passed ? Colors.green.shade600 : colorScheme.outline,
                       fontSize: 13,
                     ),
                     child: Text(requirement.label),

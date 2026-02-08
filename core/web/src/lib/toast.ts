@@ -1,4 +1,5 @@
 import { toast as sonnerToast, type ExternalToast } from "sonner";
+import { DURATIONS } from "./constants";
 
 // =====================================================
 // Toast Utility
@@ -66,7 +67,7 @@ function success(message: string, options?: ToastOptions): string | number {
 function error(message: string, options?: ToastOptions): string | number {
   return sonnerToast.error(message, {
     ...formatOptions(options),
-    duration: options?.duration ?? 6000, // Longer duration for errors
+    duration: options?.duration ?? DURATIONS.TOAST_ERROR,
   });
 }
 

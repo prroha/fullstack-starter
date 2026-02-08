@@ -160,8 +160,8 @@ class AuthInterceptor extends Interceptor {
       // Create a fresh Dio instance for refresh to avoid interceptor loops
       final refreshDio = Dio(BaseOptions(
         baseUrl: ApiConstants.baseUrl,
-        connectTimeout: const Duration(seconds: 30),
-        receiveTimeout: const Duration(seconds: 30),
+        connectTimeout: Duration(seconds: AppConfig.requestTimeout),
+        receiveTimeout: Duration(seconds: AppConfig.receiveTimeout),
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
@@ -192,8 +192,8 @@ class AuthInterceptor extends Interceptor {
         // Create a Dio instance for retrying
         final retryDio = Dio(BaseOptions(
           baseUrl: ApiConstants.baseUrl,
-          connectTimeout: const Duration(seconds: 30),
-          receiveTimeout: const Duration(seconds: 30),
+          connectTimeout: Duration(seconds: AppConfig.requestTimeout),
+          receiveTimeout: Duration(seconds: AppConfig.receiveTimeout),
         ));
 
         final retryResponse = await retryDio.request(
@@ -251,8 +251,8 @@ class AuthInterceptor extends Interceptor {
 
       final retryDio = Dio(BaseOptions(
         baseUrl: ApiConstants.baseUrl,
-        connectTimeout: const Duration(seconds: 30),
-        receiveTimeout: const Duration(seconds: 30),
+        connectTimeout: Duration(seconds: AppConfig.requestTimeout),
+        receiveTimeout: Duration(seconds: AppConfig.receiveTimeout),
       ));
 
       final response = await retryDio.request(

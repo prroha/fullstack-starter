@@ -43,7 +43,7 @@ function RecentSearches({
         <button
           type="button"
           onClick={onClear}
-          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+          className="text-xs text-muted-foreground hover:text-foreground"
         >
           Clear all
         </button>
@@ -79,7 +79,7 @@ function RecentSearches({
               }}
               className={cn(
                 "min-h-[44px] min-w-[44px] flex items-center justify-center",
-                "rounded transition-all",
+                "rounded",
                 "opacity-50 hover:opacity-100 hover:bg-background",
                 "sm:opacity-0 sm:group-hover:opacity-100",
                 "focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"

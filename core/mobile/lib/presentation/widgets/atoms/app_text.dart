@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_colors.dart';
 
 /// Text variants for different typographic styles.
 enum AppTextVariant {
@@ -34,7 +33,7 @@ enum AppTextVariant {
 /// A styled text widget with predefined variants.
 ///
 /// This is an atom-level widget that provides consistent typography
-/// across the application.
+/// across the application. Uses Theme.of(context) for theme-aware colors.
 ///
 /// Example:
 /// ```dart
@@ -51,7 +50,7 @@ class AppText extends StatelessWidget {
   /// The typographic variant of the text.
   final AppTextVariant variant;
 
-  /// Optional color override. Defaults based on variant.
+  /// Optional color override. Defaults based on variant and theme.
   final Color? color;
 
   /// How the text should be aligned horizontally.
@@ -157,14 +156,22 @@ class AppText extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       variant == AppTextVariant.overline ? text.toUpperCase() : text,
-      style: _getTextStyle(),
+      style: _getTextStyle(context),
       textAlign: textAlign,
       maxLines: maxLines,
       overflow: overflow,
     );
   }
 
-  TextStyle _getTextStyle() {
+  TextStyle _getTextStyle(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    // Theme-aware default colors
+    final primaryTextColor = colorScheme.onSurface;
+    final secondaryTextColor = colorScheme.onSurfaceVariant;
+    final mutedTextColor = colorScheme.outline;
+
     final TextDecoration? decoration;
     if (strikethrough && underline) {
       decoration = TextDecoration.combine([
@@ -184,7 +191,7 @@ class AppText extends StatelessWidget {
         return TextStyle(
           fontSize: 28,
           fontWeight: FontWeight.bold,
-          color: color ?? AppColors.textPrimary,
+          color: color ?? primaryTextColor,
           decoration: decoration,
           height: 1.2,
         );
@@ -192,7 +199,7 @@ class AppText extends StatelessWidget {
         return TextStyle(
           fontSize: 24,
           fontWeight: FontWeight.bold,
-          color: color ?? AppColors.textPrimary,
+          color: color ?? primaryTextColor,
           decoration: decoration,
           height: 1.25,
         );
@@ -200,7 +207,7 @@ class AppText extends StatelessWidget {
         return TextStyle(
           fontSize: 20,
           fontWeight: FontWeight.w600,
-          color: color ?? AppColors.textPrimary,
+          color: color ?? primaryTextColor,
           decoration: decoration,
           height: 1.3,
         );
@@ -208,7 +215,7 @@ class AppText extends StatelessWidget {
         return TextStyle(
           fontSize: 18,
           fontWeight: FontWeight.w600,
-          color: color ?? AppColors.textPrimary,
+          color: color ?? primaryTextColor,
           decoration: decoration,
           height: 1.35,
         );
@@ -216,7 +223,7 @@ class AppText extends StatelessWidget {
         return TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.normal,
-          color: color ?? AppColors.textPrimary,
+          color: color ?? primaryTextColor,
           decoration: decoration,
           height: 1.5,
         );
@@ -224,7 +231,7 @@ class AppText extends StatelessWidget {
         return TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.normal,
-          color: color ?? AppColors.textSecondary,
+          color: color ?? secondaryTextColor,
           decoration: decoration,
           height: 1.5,
         );
@@ -232,7 +239,7 @@ class AppText extends StatelessWidget {
         return TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.normal,
-          color: color ?? AppColors.textMuted,
+          color: color ?? mutedTextColor,
           decoration: decoration,
           height: 1.4,
         );
@@ -240,7 +247,7 @@ class AppText extends StatelessWidget {
         return TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w500,
-          color: color ?? AppColors.textPrimary,
+          color: color ?? primaryTextColor,
           decoration: decoration,
           height: 1.4,
         );
@@ -248,7 +255,7 @@ class AppText extends StatelessWidget {
         return TextStyle(
           fontSize: 10,
           fontWeight: FontWeight.w500,
-          color: color ?? AppColors.textMuted,
+          color: color ?? mutedTextColor,
           letterSpacing: 1.5,
           decoration: decoration,
           height: 1.6,

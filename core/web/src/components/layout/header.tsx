@@ -1,10 +1,10 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { HeaderSearch } from "@/components/search";
+import { AppLink, Avatar, Button, Text } from "@/components/ui";
 
 // =====================================================
 // Header Component
@@ -48,16 +48,17 @@ function Header({
           {/* Logo */}
           <div className="flex-shrink-0">
             {logo ? (
-              <Link href={logoHref} className="flex items-center">
+              <AppLink href={logoHref} underline="none" className="flex items-center">
                 {logo}
-              </Link>
+              </AppLink>
             ) : (
-              <Link
+              <AppLink
                 href={logoHref}
-                className="text-xl font-bold text-foreground hover:text-foreground/80 transition-colors"
+                underline="none"
+                className="text-xl font-bold"
               >
                 Logo
-              </Link>
+              </AppLink>
             )}
           </div>
 
@@ -100,19 +101,15 @@ function HeaderNavLink({
   className,
 }: HeaderNavLinkProps) {
   return (
-    <Link
+    <AppLink
       href={href}
-      className={cn(
-        "text-sm font-medium transition-colors",
-        "hover:text-foreground",
-        active
-          ? "text-foreground"
-          : "text-muted-foreground",
-        className
-      )}
+      variant={active ? "default" : "muted"}
+      size="sm"
+      underline="none"
+      className={cn("font-medium", className)}
     >
       {children}
-    </Link>
+    </AppLink>
   );
 }
 
@@ -137,48 +134,39 @@ function HeaderUserMenu({
 }: HeaderUserMenuProps) {
   if (!user) {
     return (
-      <Link
+      <AppLink
         href="/login"
+        underline="none"
         className={cn(
           "inline-flex items-center justify-center rounded-md text-sm font-medium",
-          "h-9 px-4 py-2",
+          "h-8 px-3",
           "bg-primary text-primary-foreground hover:bg-primary/90",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
           className
         )}
       >
         Sign In
-      </Link>
+      </AppLink>
     );
   }
 
   return (
     <div className={cn("flex items-center gap-3", className)}>
       <div className="flex items-center gap-2">
-        {user.avatar ? (
-          <img
-            src={user.avatar}
-            alt={user.name || "User avatar"}
-            className="h-8 w-8 rounded-full object-cover"
-          />
-        ) : (
-          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-            <span className="text-xs font-medium text-primary">
-              {user.name?.charAt(0) || user.email?.charAt(0) || "U"}
-            </span>
-          </div>
-        )}
-        <span className="text-sm font-medium hidden sm:inline">
+        <Avatar
+          src={user.avatar}
+          name={user.name || user.email || "User"}
+          alt={user.name || "User avatar"}
+          size="sm"
+        />
+        <Text size="sm" className="font-medium hidden sm:inline">
           {user.name || user.email}
-        </span>
+        </Text>
       </div>
       {onSignOut && (
-        <button
-          onClick={onSignOut}
-          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
+        <Button variant="ghost" size="sm" onClick={onSignOut}>
           Sign Out
-        </button>
+        </Button>
       )}
     </div>
   );

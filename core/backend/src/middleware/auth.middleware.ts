@@ -23,8 +23,11 @@ export const AuthErrorCodes = {
 } as const;
 
 interface AuthErrorResponse {
-  error: string;
-  code: keyof typeof AuthErrorCodes;
+  success: false;
+  error: {
+    code: keyof typeof AuthErrorCodes;
+    message: string;
+  };
 }
 
 function sendAuthError(
@@ -33,7 +36,13 @@ function sendAuthError(
   message: string,
   code: keyof typeof AuthErrorCodes
 ): void {
-  const response: AuthErrorResponse = { error: message, code };
+  const response: AuthErrorResponse = {
+    success: false,
+    error: {
+      code,
+      message,
+    },
+  };
   res.status(status).json(response);
 }
 

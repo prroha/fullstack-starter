@@ -105,7 +105,7 @@ function NotificationItem({
   return (
     <div
       className={cn(
-        "group relative flex items-start gap-3 p-3 border-l-4 transition-colors cursor-pointer",
+        "group relative flex items-start gap-3 p-3 border-l-4 cursor-pointer",
         "hover:bg-accent/50",
         typeColors[notification.type],
         !notification.read && "bg-accent/30",

@@ -2,8 +2,9 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { api, ApiError, ContactMessage, ContactMessageStatus } from "@/lib/api";
-import { Button, Input, Badge, SkeletonTable } from "@/components/ui";
+import { Button, Input, Badge, SkeletonTable, Text } from "@/components/ui";
 import { Alert } from "@/components/feedback";
+import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -52,28 +53,30 @@ function MessageRow({
   isUpdating: boolean;
 }) {
   return (
-    <tr className="border-b transition-colors hover:bg-muted/50">
+    <tr className="border-b hover:bg-muted/50">
       <td className="px-4 py-3">
         <div>
-          <p className="font-medium">{message.name}</p>
-          <p className="text-sm text-muted-foreground">{message.email}</p>
+          <Text as="p" className="font-medium">{message.name}</Text>
+          <Text variant="caption" color="muted">{message.email}</Text>
         </div>
       </td>
       <td className="px-4 py-3">
-        <p className="font-medium line-clamp-1">{message.subject}</p>
-        <p className="text-sm text-muted-foreground line-clamp-1">
+        <Text as="p" className="font-medium line-clamp-1">{message.subject}</Text>
+        <Text variant="caption" color="muted" className="line-clamp-1">
           {message.message}
-        </p>
+        </Text>
       </td>
       <td className="px-4 py-3">
         <StatusBadge status={message.status} />
       </td>
-      <td className="px-4 py-3 text-sm text-muted-foreground">
-        {new Date(message.createdAt).toLocaleDateString()}{" "}
-        {new Date(message.createdAt).toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        })}
+      <td className="px-4 py-3">
+        <Text variant="caption" color="muted">
+          {new Date(message.createdAt).toLocaleDateString()}{" "}
+          {new Date(message.createdAt).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+        </Text>
       </td>
       <td className="px-4 py-3">
         <div className="flex items-center gap-2">
@@ -141,11 +144,11 @@ function Pagination({
 
   return (
     <div className="flex items-center justify-between px-2">
-      <p className="text-sm text-muted-foreground">
+      <Text variant="caption" color="muted">
         Showing {(pagination.page - 1) * pagination.limit + 1} to{" "}
         {Math.min(pagination.page * pagination.limit, pagination.total)} of{" "}
         {pagination.total} messages
-      </p>
+      </Text>
       <div className="flex items-center gap-1">
         <Button
           variant="outline"
@@ -216,18 +219,18 @@ function ViewMessageModal({
         <div className="flex items-start justify-between mb-4">
           <div>
             <h2 className="text-lg font-semibold">{message.subject}</h2>
-            <p className="text-sm text-muted-foreground">
+            <Text variant="caption" color="muted">
               From: {message.name} ({message.email})
-            </p>
-            <p className="text-sm text-muted-foreground">
+            </Text>
+            <Text variant="caption" color="muted">
               Received: {new Date(message.createdAt).toLocaleString()}
-            </p>
+            </Text>
           </div>
           <StatusBadge status={message.status} />
         </div>
 
         <div className="border-t border-b py-4 my-4">
-          <p className="whitespace-pre-wrap text-foreground">{message.message}</p>
+          <Text className="whitespace-pre-wrap">{message.message}</Text>
         </div>
 
         <div className="flex items-center justify-between">
@@ -302,10 +305,10 @@ function DeleteConfirmModal({
       />
       <div className="relative z-10 w-full max-w-md rounded-lg border bg-background p-6 shadow-lg">
         <h2 className="text-lg font-semibold mb-2">Delete Message</h2>
-        <p className="text-muted-foreground mb-6">
+        <Text color="muted" className="mb-6">
           Are you sure you want to delete this message? This action cannot be
           undone.
-        </p>
+        </Text>
         <div className="flex justify-end gap-2">
           <Button variant="outline" onClick={onCancel} disabled={isDeleting}>
             Cancel
@@ -331,24 +334,12 @@ function EmptyMessages() {
   return (
     <div className="text-center py-12">
       <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted mb-4">
-        <svg
-          className="w-8 h-8 text-muted-foreground"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={1.5}
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"
-          />
-        </svg>
+        <Icon name="Mail" size="lg" color="muted" />
       </div>
       <h3 className="text-lg font-medium text-foreground mb-2">No messages</h3>
-      <p className="text-muted-foreground">
+      <Text color="muted">
         Contact form submissions will appear here.
-      </p>
+      </Text>
     </div>
   );
 }
@@ -498,9 +489,9 @@ export default function AdminMessagesPage() {
               </Badge>
             )}
           </h1>
-          <p className="text-muted-foreground">
+          <Text color="muted">
             View and manage contact form submissions
-          </p>
+          </Text>
         </div>
       </div>
 
