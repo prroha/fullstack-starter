@@ -71,11 +71,14 @@ class AppButton extends StatelessWidget {
   EdgeInsets get _padding {
     switch (size) {
       case AppButtonSize.small:
-        return const EdgeInsets.symmetric(horizontal: 12, vertical: 6);
+        // Compact padding for small buttons, maintains 36dp height minimum
+        return const EdgeInsets.symmetric(horizontal: 10, vertical: 4);
       case AppButtonSize.medium:
-        return AppSpacing.buttonPadding;
+        // Tighter padding: 14h x 10v gives ~44dp height with 14px text
+        return const EdgeInsets.symmetric(horizontal: 14, vertical: 10);
       case AppButtonSize.large:
-        return const EdgeInsets.symmetric(horizontal: 24, vertical: 16);
+        // Slightly tighter large button padding
+        return const EdgeInsets.symmetric(horizontal: 18, vertical: 12);
     }
   }
 
@@ -179,11 +182,11 @@ class AppButton extends StatelessWidget {
       children: [
         if (hasLeadingIcon) ...[
           Icon(icon, size: _iconSize),
-          AppSpacing.gapHSm,
+          AppSpacing.gapHXs, // Tighter gap between icon and text
         ],
         Text(label),
         if (hasTrailingIcon) ...[
-          AppSpacing.gapHSm,
+          AppSpacing.gapHXs, // Tighter gap between text and icon
           Icon(trailingIcon, size: _iconSize),
         ],
       ],

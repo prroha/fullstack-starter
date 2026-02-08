@@ -95,7 +95,7 @@ class AuditLogListItem extends StatelessWidget {
           onTap: onToggle,
           borderRadius: AppSpacing.borderRadiusMd,
           child: Padding(
-            padding: AppSpacing.cardPadding,
+            padding: AppSpacing.cardContentPadding,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

@@ -60,11 +60,12 @@ const ratioClasses: Record<SplitRatio, { left: string; right: string }> = {
   auto: { left: "flex-shrink-0", right: "flex-1" },
 };
 
+// Content-first spacing: tighter gaps
 const gapClasses: Record<GapSize, string> = {
   none: "gap-0",
-  sm: "gap-2",
-  md: "gap-4",
-  lg: "gap-8",
+  sm: "gap-2",   // 8px (unchanged)
+  md: "gap-3",   // 12px (was 16px)
+  lg: "gap-6",   // 24px (was 32px)
 };
 
 const mobileBreakpointClasses: Record<MobileBreakpoint, { stack: string; row: string }> = {
@@ -88,7 +89,7 @@ function SplitLayout({
   left,
   right,
   ratio = "50/50",
-  gap = "md",
+  gap = "sm", // Content-first: tighter default gap
   divider = false,
   reverseOnMobile = false,
   stackOnMobile = true,

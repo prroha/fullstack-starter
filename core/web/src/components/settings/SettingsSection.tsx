@@ -29,11 +29,12 @@ function SettingsSection({
   className,
 }: SettingsSectionProps) {
   return (
-    <div className={cn("space-y-4", className)}>
+    // Content-first spacing: tighter vertical spacing
+    <div className={cn("space-y-3", className)}>
       <div>
         <h2 className="text-lg font-semibold text-foreground">{title}</h2>
         {description && (
-          <p className="text-sm text-muted-foreground mt-1">{description}</p>
+          <p className="text-sm text-muted-foreground mt-0.5">{description}</p>
         )}
       </div>
       <div className="rounded-lg border bg-card">{children}</div>

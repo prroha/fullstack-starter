@@ -12,6 +12,7 @@ import '../../providers/theme_provider.dart';
 import '../../router/routes.dart';
 import '../../widgets/molecules/app_snackbar.dart';
 import '../../widgets/settings/settings.dart';
+import '../../widgets/theme_selector.dart';
 
 /// Settings screen with organized sections for app configuration
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -397,10 +398,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             children: [
               SettingsItem(
                 icon: themeState.themeMode.icon,
-                label: 'Theme',
-                description: 'Choose your preferred theme',
+                label: 'Color Mode',
+                description: 'Light, dark, or system theme',
                 value: themeState.themeMode.label,
                 onTap: () => _showThemeDialog(context),
+              ),
+              SettingsItem(
+                icon: Icons.palette_outlined,
+                label: 'App Theme',
+                description: 'Choose your color scheme',
+                value: themeState.appTheme.displayName,
+                onTap: () => ThemeSelectorDialog.show(context),
               ),
             ],
           ),

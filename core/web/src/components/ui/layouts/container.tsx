@@ -35,11 +35,12 @@ function Container({
     full: "", // no max-width
   };
 
+  // Content-first spacing: tighter horizontal padding
   const paddings: Record<ContainerPadding, string> = {
     none: "",
-    sm: "px-4 sm:px-6",
-    md: "px-4 sm:px-6 lg:px-8",
-    lg: "px-4 sm:px-8 lg:px-12",
+    sm: "px-3 sm:px-4",        // 12px / 16px (was 16px / 24px)
+    md: "px-3 sm:px-4 lg:px-6", // 12px / 16px / 24px (was 16px / 24px / 32px)
+    lg: "px-4 sm:px-6 lg:px-8", // 16px / 24px / 32px (was 16px / 32px / 48px)
   };
 
   return (

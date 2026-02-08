@@ -270,7 +270,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 // Error message - using safe null access
                 if (errorMessage != null && errorMessage.isNotEmpty) ...[
                   Container(
-                    padding: AppSpacing.cardPadding,
+                    padding: AppSpacing.cardContentPadding,
                     decoration: BoxDecoration(
                       color: AppColors.error.withAlpha(25),
                       borderRadius: AppSpacing.borderRadiusMd,

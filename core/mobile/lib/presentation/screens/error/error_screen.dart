@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
-import '../../../core/theme/app_theme.dart';
 import '../../widgets/atoms/app_button.dart';
 import '../../widgets/layout/error_page.dart';
 import '../../router/routes.dart';
@@ -76,13 +75,11 @@ class _AppErrorScreenState extends State<AppErrorScreen> {
   }
 
   Widget _buildDebugErrorScreen(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final textColor = isDark ? AppColorsDark.textPrimary : AppColors.textPrimary;
-    final secondaryTextColor =
-        isDark ? AppColorsDark.textSecondary : AppColors.textSecondary;
-    final backgroundColor = isDark ? AppColorsDark.background : AppColors.background;
-    final surfaceColor = isDark ? AppColorsDark.surface : AppColors.surface;
+    final colors = context.appColors;
+    final textColor = colors.foreground;
+    final secondaryTextColor = colors.mutedForeground;
+    final backgroundColor = colors.background;
+    final surfaceColor = colors.card;
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -153,12 +150,12 @@ class _AppErrorScreenState extends State<AppErrorScreen> {
                 AppSpacing.gapMd,
                 Container(
                   width: double.infinity,
-                  padding: AppSpacing.cardPadding,
+                  padding: AppSpacing.cardContentPadding,
                   decoration: BoxDecoration(
                     color: surfaceColor,
                     borderRadius: AppSpacing.borderRadiusMd,
                     border: Border.all(
-                      color: isDark ? AppColorsDark.border : AppColors.border,
+                      color: colors.border,
                     ),
                   ),
                   child: Column(
@@ -220,9 +217,7 @@ class _AppErrorScreenState extends State<AppErrorScreen> {
                           width: double.infinity,
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: isDark
-                                ? Colors.black.withOpacity(0.3)
-                                : Colors.grey.shade100,
+                            color: colors.muted,
                             borderRadius: AppSpacing.borderRadiusSm,
                           ),
                           child: SingleChildScrollView(
@@ -320,16 +315,15 @@ class CompactErrorWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final colors = context.appColors;
 
     return Container(
-      padding: AppSpacing.cardPadding,
+      padding: AppSpacing.cardContentPadding,
       decoration: BoxDecoration(
-        color: AppColors.error.withOpacity(0.1),
+        color: colors.error.withValues(alpha: 0.1),
         borderRadius: AppSpacing.borderRadiusMd,
         border: Border.all(
-          color: AppColors.error.withOpacity(0.3),
+          color: colors.error.withValues(alpha: 0.3),
         ),
       ),
       child: Column(
@@ -338,7 +332,7 @@ class CompactErrorWidget extends StatelessWidget {
           Icon(
             Icons.error_outline_rounded,
             size: 32,
-            color: AppColors.error,
+            color: colors.error,
           ),
           AppSpacing.gapSm,
           Text(
@@ -346,7 +340,7 @@ class CompactErrorWidget extends StatelessWidget {
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 14,
-              color: isDark ? AppColorsDark.textPrimary : AppColors.textPrimary,
+              color: colors.foreground,
             ),
           ),
           if (onRetry != null) ...[

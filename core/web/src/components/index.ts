@@ -36,3 +36,6 @@ export * from "./layout";
 
 // Shared Components (Cross-cutting)
 export * from "./shared";
+
+// Provider Components
+export * from "./providers";

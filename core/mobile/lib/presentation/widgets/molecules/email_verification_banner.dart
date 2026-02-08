@@ -77,7 +77,8 @@ class _EmailVerificationBannerState extends ConsumerState<EmailVerificationBanne
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      // Tighter padding
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.amber.shade50,
         border: Border(
@@ -92,9 +93,9 @@ class _EmailVerificationBannerState extends ConsumerState<EmailVerificationBanne
           Icon(
             Icons.email_outlined,
             color: Colors.amber.shade700,
-            size: 20,
+            size: 18, // Smaller
           ),
-          AppSpacing.gapHSm,
+          AppSpacing.gapHXs, // Tighter gap
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -103,7 +104,7 @@ class _EmailVerificationBannerState extends ConsumerState<EmailVerificationBanne
                 Text(
                   'Verify your email address',
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: 13, // Smaller
                     fontWeight: FontWeight.w600,
                     color: Colors.amber.shade900,
                   ),
@@ -112,16 +113,16 @@ class _EmailVerificationBannerState extends ConsumerState<EmailVerificationBanne
                   Text(
                     'Sent to ${widget.email}',
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: 11, // Smaller
                       color: Colors.amber.shade700,
                     ),
                   ),
               ],
             ),
           ),
-          AppSpacing.gapHSm,
+          AppSpacing.gapHXs, // Tighter gap
           SizedBox(
-            height: 32,
+            height: 28, // Smaller button
             child: AppButton(
               label: 'Resend',
               onPressed: _isSending ? null : _handleResendVerification,
@@ -130,12 +131,12 @@ class _EmailVerificationBannerState extends ConsumerState<EmailVerificationBanne
               size: AppButtonSize.small,
             ),
           ),
-          AppSpacing.gapHXs,
+          const SizedBox(width: 2),
           IconButton(
             onPressed: _handleDismiss,
             icon: Icon(
               Icons.close,
-              size: 18,
+              size: 16, // Smaller
               color: Colors.amber.shade700,
             ),
             padding: EdgeInsets.zero,

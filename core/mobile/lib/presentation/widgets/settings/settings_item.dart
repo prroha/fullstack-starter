@@ -86,28 +86,29 @@ class SettingsItem extends StatelessWidget {
         child: InkWell(
           onTap: isInteractive ? onTap : null,
           child: Padding(
+            // Tighter padding: 12h x 10v
             padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.md,
-              vertical: AppSpacing.md,
+              horizontal: AppSpacing.md, // 12dp
+              vertical: 10,
             ),
             child: Row(
               children: [
-                // Icon
+                // Icon - tighter size
                 if (icon != null) ...[
                   Container(
-                    width: 40,
-                    height: 40,
+                    width: 36, // Reduced from 40
+                    height: 36, // Reduced from 40
                     decoration: BoxDecoration(
                       color: iconBgColor,
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(8), // Tighter radius
                     ),
                     child: Icon(
                       icon,
-                      size: 20,
+                      size: 18, // Reduced from 20
                       color: iconColor,
                     ),
                   ),
-                  const SizedBox(width: AppSpacing.md),
+                  const SizedBox(width: AppSpacing.sm), // Tighter gap
                 ],
 
                 // Label and description
@@ -139,25 +140,25 @@ class SettingsItem extends StatelessWidget {
 
                 // Value or trailing widget
                 if (value != null && trailing == null) ...[
-                  const SizedBox(width: AppSpacing.sm),
+                  const SizedBox(width: AppSpacing.xs), // Tighter gap
                   Text(
                     value!,
-                    style: theme.textTheme.bodyMedium?.copyWith(
+                    style: theme.textTheme.bodySmall?.copyWith(
                       color: colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ],
                 if (trailing != null) ...[
-                  const SizedBox(width: AppSpacing.sm),
+                  const SizedBox(width: AppSpacing.xs), // Tighter gap
                   trailing!,
                 ],
 
                 // Chevron
                 if (showChevron && onTap != null && trailing == null) ...[
-                  const SizedBox(width: AppSpacing.sm),
+                  const SizedBox(width: AppSpacing.xs), // Tighter gap
                   Icon(
                     Icons.chevron_right,
-                    size: 20,
+                    size: 18, // Smaller chevron
                     color: colorScheme.onSurfaceVariant,
                   ),
                 ],

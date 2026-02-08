@@ -113,10 +113,10 @@ class AppDrawer extends ConsumerWidget {
             else if (headerTitle != null || headerAvatar != null)
               _buildHeader(context),
 
-            // Main items
+            // Main items - tighter padding
             Expanded(
               child: ListView.builder(
-                padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
                 itemCount: items.length,
                 itemBuilder: (context, index) =>
                     _buildMenuItem(context, items[index]),
@@ -129,11 +129,11 @@ class AppDrawer extends ConsumerWidget {
               _buildThemeToggle(context, themeState, themeNotifier),
             ],
 
-            // Footer items
+            // Footer items - tighter padding
             if (footerItems != null && footerItems!.isNotEmpty) ...[
               Divider(height: 1, color: colorScheme.outlineVariant),
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
                 child: Column(
                   children: footerItems!
                       .map((item) => _buildMenuItem(context, item))
@@ -156,21 +156,22 @@ class AppDrawer extends ConsumerWidget {
     final colorScheme = theme.colorScheme;
 
     return Padding(
+      // Tighter padding
       padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.sm,
+        horizontal: AppSpacing.md, // 12dp
+        vertical: 6,
       ),
       child: Row(
         children: [
           Icon(
             state.themeMode.icon,
             color: colorScheme.primary,
-            size: 20,
+            size: 18, // Smaller icon
           ),
-          AppSpacing.gapSm,
+          AppSpacing.gapXs, // Tighter gap
           Text(
             'Theme',
-            style: theme.textTheme.bodyMedium,
+            style: theme.textTheme.bodySmall,
           ),
           const Spacer(),
           SegmentedButton<AppThemeMode>(
@@ -204,7 +205,8 @@ class AppDrawer extends ConsumerWidget {
 
     return Container(
       width: double.infinity,
-      padding: AppSpacing.cardPadding,
+      // Tighter padding
+      padding: const EdgeInsets.all(AppSpacing.md), // 12dp
       decoration: BoxDecoration(
         border: Border(
           bottom: BorderSide(color: colorScheme.outlineVariant),
@@ -215,20 +217,20 @@ class AppDrawer extends ConsumerWidget {
         children: [
           if (headerAvatar != null) ...[
             headerAvatar!,
-            AppSpacing.gapMd,
+            AppSpacing.gapSm, // Tighter gap
           ],
           if (headerTitle != null)
             Text(
               headerTitle!,
-              style: theme.textTheme.titleMedium?.copyWith(
+              style: theme.textTheme.titleSmall?.copyWith( // Smaller title
                 fontWeight: FontWeight.w600,
               ),
             ),
           if (headerSubtitle != null) ...[
-            AppSpacing.gapXs,
+            const SizedBox(height: 2), // Tighter gap
             Text(
               headerSubtitle!,
-              style: theme.textTheme.bodyMedium?.copyWith(
+              style: theme.textTheme.bodySmall?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
             ),
@@ -243,42 +245,46 @@ class AppDrawer extends ConsumerWidget {
     final colorScheme = theme.colorScheme;
 
     return ListTile(
+      dense: true, // Enable dense mode for tighter layout
+      visualDensity: VisualDensity.compact,
       leading: Icon(
         item.icon,
+        size: 20, // Slightly smaller icon
         color: item.isSelected ? colorScheme.primary : colorScheme.onSurfaceVariant,
       ),
       title: Text(
         item.label,
-        style: theme.textTheme.bodyLarge?.copyWith(
+        style: theme.textTheme.bodyMedium?.copyWith(
           color: item.isSelected ? colorScheme.primary : colorScheme.onSurface,
           fontWeight: item.isSelected ? FontWeight.w600 : FontWeight.normal,
         ),
       ),
       trailing: item.badgeCount != null && item.badgeCount! > 0
           ? Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
               decoration: BoxDecoration(
                 color: colorScheme.error,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
                 item.badgeCount! > 99 ? '99+' : '${item.badgeCount}',
                 style: TextStyle(
                   color: colorScheme.onError,
-                  fontSize: 12,
+                  fontSize: 11,
                   fontWeight: FontWeight.w500,
                 ),
               ),
             )
           : null,
       selected: item.isSelected,
-      selectedTileColor: colorScheme.primary.withAlpha(25),
+      selectedTileColor: colorScheme.primary.withAlpha(20),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(6),
       ),
+      // Tighter content padding
       contentPadding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.xs,
+        horizontal: AppSpacing.md, // 12dp
+        vertical: 2,
       ),
       onTap: () {
         item.onTap?.call();

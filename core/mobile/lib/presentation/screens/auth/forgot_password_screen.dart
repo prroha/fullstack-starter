@@ -126,7 +126,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                 // Error message
                 if (_error != null && _error!.isNotEmpty) ...[
                   Container(
-                    padding: AppSpacing.cardPadding,
+                    padding: AppSpacing.cardContentPadding,
                     decoration: BoxDecoration(
                       color: AppColors.error.withAlpha(25),
                       borderRadius: AppSpacing.borderRadiusMd,

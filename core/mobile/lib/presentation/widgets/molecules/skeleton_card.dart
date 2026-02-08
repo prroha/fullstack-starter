@@ -127,6 +127,7 @@ class SkeletonCard extends StatelessWidget {
               ],
       ),
       child: Padding(
+        // Tighter padding: 12dp (md is now 12)
         padding: padding ?? const EdgeInsets.all(AppSpacing.md),
         child: content,
       ),

@@ -24,11 +24,12 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       link: "text-primary underline-offset-4 hover:underline",
     };
 
+    // Content-first sizing: slightly tighter padding while maintaining touch-friendliness
     const sizes = {
-      default: "h-10 px-4 py-2",
-      sm: "h-9 rounded-md px-3",
-      lg: "h-11 rounded-md px-8",
-      icon: "h-10 w-10",
+      default: "h-9 px-3 py-1.5",  // 36px height (was 40px), 12px horizontal (was 16px)
+      sm: "h-8 rounded-md px-2.5", // 32px height (was 36px), 10px horizontal (was 12px)
+      lg: "h-10 rounded-md px-6",  // 40px height (was 44px), 24px horizontal (was 32px)
+      icon: "h-9 w-9",             // 36px (was 40px)
     };
 
     return (

@@ -110,10 +110,10 @@ class AppTextField extends StatelessWidget {
             style: const TextStyle(
               color: AppColors.textPrimary,
               fontWeight: FontWeight.w500,
-              fontSize: 14,
+              fontSize: 13, // Tighter label
             ),
           ),
-          AppSpacing.gapXs,
+          const SizedBox(height: 4), // Tighter label-to-field spacing
         ],
         TextFormField(
           controller: controller,
@@ -131,49 +131,52 @@ class AppTextField extends StatelessWidget {
           focusNode: focusNode,
           style: const TextStyle(
             color: AppColors.textPrimary,
-            fontSize: 16,
+            fontSize: 15, // Slightly tighter text
           ),
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: const TextStyle(
               color: AppColors.textMuted,
+              fontSize: 15,
             ),
             errorText: errorText,
             helperText: helperText,
             helperStyle: const TextStyle(
               color: AppColors.textMuted,
-              fontSize: 12,
+              fontSize: 11,
             ),
             prefixIcon: prefixIcon,
             suffixIcon: suffixIcon,
             filled: true,
             fillColor: enabled ? AppColors.surface : AppColors.border.withAlpha(50),
+            // Tighter content padding: 12h x 10v for compact inputs
             contentPadding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.md,
-              vertical: AppSpacing.md,
+              horizontal: AppSpacing.md, // 12dp
+              vertical: 10,
             ),
+            isDense: true, // Enable dense mode for tighter layout
             border: OutlineInputBorder(
-              borderRadius: AppSpacing.borderRadiusMd,
+              borderRadius: AppSpacing.borderRadiusSm, // Tighter radius
               borderSide: const BorderSide(color: AppColors.border),
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: AppSpacing.borderRadiusMd,
+              borderRadius: AppSpacing.borderRadiusSm,
               borderSide: const BorderSide(color: AppColors.border),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: AppSpacing.borderRadiusMd,
-              borderSide: const BorderSide(color: AppColors.primary, width: 2),
+              borderRadius: AppSpacing.borderRadiusSm,
+              borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
             ),
             errorBorder: OutlineInputBorder(
-              borderRadius: AppSpacing.borderRadiusMd,
+              borderRadius: AppSpacing.borderRadiusSm,
               borderSide: const BorderSide(color: AppColors.error),
             ),
             focusedErrorBorder: OutlineInputBorder(
-              borderRadius: AppSpacing.borderRadiusMd,
-              borderSide: const BorderSide(color: AppColors.error, width: 2),
+              borderRadius: AppSpacing.borderRadiusSm,
+              borderSide: const BorderSide(color: AppColors.error, width: 1.5),
             ),
             disabledBorder: OutlineInputBorder(
-              borderRadius: AppSpacing.borderRadiusMd,
+              borderRadius: AppSpacing.borderRadiusSm,
               borderSide: const BorderSide(color: AppColors.border),
             ),
           ),

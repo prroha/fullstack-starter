@@ -89,9 +89,10 @@ class SkeletonListItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
+      // Tighter padding
       padding: padding ?? const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.sm,
+        horizontal: AppSpacing.md, // 12dp
+        vertical: 6,
       ),
       child: Row(
         crossAxisAlignment: variant == SkeletonListItemVariant.detailed
@@ -100,11 +101,11 @@ class SkeletonListItem extends StatelessWidget {
         children: [
           if (showLeading) ...[
             _buildLeading(),
-            const SizedBox(width: AppSpacing.md),
+            const SizedBox(width: AppSpacing.sm), // Tighter gap
           ],
           Expanded(child: _buildContent()),
           if (showTrailing) ...[
-            const SizedBox(width: AppSpacing.md),
+            const SizedBox(width: AppSpacing.sm), // Tighter gap
             _buildTrailing(),
           ],
         ],

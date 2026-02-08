@@ -37,7 +37,7 @@ const Stack = React.forwardRef<HTMLElement, StackProps>(
       className,
       children,
       direction = "vertical",
-      spacing = "md",
+      spacing = "sm",
       align = "stretch",
       justify,
       wrap = false,
@@ -52,13 +52,14 @@ const Stack = React.forwardRef<HTMLElement, StackProps>(
       horizontal: "flex-row",
     };
 
+    // Content-first spacing: tighter gaps for maximized screen real estate
     const spacingClasses = {
       none: "gap-0",
-      xs: "gap-2", // 0.5rem
-      sm: "gap-3", // 0.75rem
-      md: "gap-4", // 1rem
-      lg: "gap-6", // 1.5rem
-      xl: "gap-8", // 2rem
+      xs: "gap-1", // 4px (was 8px/0.5rem)
+      sm: "gap-2", // 8px (was 12px/0.75rem)
+      md: "gap-3", // 12px (was 16px/1rem)
+      lg: "gap-4", // 16px (was 24px/1.5rem)
+      xl: "gap-6", // 24px (was 32px/2rem)
     };
 
     const alignClasses = {

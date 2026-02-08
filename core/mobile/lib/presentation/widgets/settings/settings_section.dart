@@ -34,28 +34,28 @@ class SettingsSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Section header
+          // Section header - tighter padding
           Padding(
             padding: const EdgeInsets.only(
-              left: AppSpacing.md,
+              left: AppSpacing.md, // Tighter: 12dp
               right: AppSpacing.md,
-              bottom: AppSpacing.sm,
+              bottom: 6, // Tighter gap to content
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   title,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
+                  style: theme.textTheme.titleSmall?.copyWith( // Smaller title
+                    fontWeight: FontWeight.w600,
                     color: colorScheme.onSurface,
                   ),
                 ),
                 if (description != null) ...[
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 2), // Tighter gap
                   Text(
                     description!,
-                    style: theme.textTheme.bodySmall?.copyWith(
+                    style: theme.textTheme.labelSmall?.copyWith(
                       color: colorScheme.onSurfaceVariant,
                     ),
                   ),
@@ -64,21 +64,21 @@ class SettingsSection extends StatelessWidget {
             ),
           ),
 
-          // Section content
+          // Section content - tighter shadow
           Container(
             decoration: BoxDecoration(
               color: colorScheme.surface,
-              borderRadius: AppSpacing.borderRadiusMd,
+              borderRadius: AppSpacing.borderRadiusSm, // Tighter radius
               boxShadow: [
                 BoxShadow(
-                  color: colorScheme.shadow.withAlpha(15),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
+                  color: colorScheme.shadow.withAlpha(10), // Subtle shadow
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
                 ),
               ],
             ),
             child: ClipRRect(
-              borderRadius: AppSpacing.borderRadiusMd,
+              borderRadius: AppSpacing.borderRadiusSm,
               child: Column(
                 children: _buildChildrenWithDividers(context),
               ),
@@ -99,10 +99,10 @@ class SettingsSection extends StatelessWidget {
         result.add(
           Divider(
             height: 1,
-            thickness: 1,
-            indent: AppSpacing.md,
+            thickness: 0.5, // Thinner divider
+            indent: AppSpacing.md, // Tighter indent
             endIndent: AppSpacing.md,
-            color: colorScheme.outlineVariant.withAlpha(100),
+            color: colorScheme.outlineVariant.withAlpha(80),
           ),
         );
       }

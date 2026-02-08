@@ -29,7 +29,7 @@ class StatsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: AppSpacing.cardPadding,
+      padding: AppSpacing.cardContentPadding,
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: AppSpacing.borderRadiusMd,
@@ -97,7 +97,7 @@ class SignupsChart extends StatelessWidget {
     final effectiveMax = maxCount > 0 ? maxCount : 1;
 
     return Container(
-      padding: AppSpacing.cardPadding,
+      padding: AppSpacing.cardContentPadding,
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: AppSpacing.borderRadiusMd,

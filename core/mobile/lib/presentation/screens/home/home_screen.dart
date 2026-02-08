@@ -99,7 +99,7 @@ class HomeScreen extends ConsumerWidget {
                     AppSpacing.gapLg,
                     // Welcome card
                     Container(
-                      padding: AppSpacing.cardPadding,
+                      padding: AppSpacing.cardContentPadding,
                       decoration: BoxDecoration(
                         color: colorScheme.surface,
                         borderRadius: AppSpacing.borderRadiusMd,

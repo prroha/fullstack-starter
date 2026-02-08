@@ -291,7 +291,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final avatar = state.avatar;
 
     return Container(
-      padding: AppSpacing.cardPadding,
+      padding: AppSpacing.cardContentPadding,
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: AppSpacing.borderRadiusMd,
@@ -376,7 +376,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   Widget _buildProfileForm(ProfileState state) {
     return Container(
-      padding: AppSpacing.cardPadding,
+      padding: AppSpacing.cardContentPadding,
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: AppSpacing.borderRadiusMd,
@@ -407,7 +407,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             if (state.error != null && state.profile != null)
               Container(
                 margin: const EdgeInsets.only(bottom: AppSpacing.md),
-                padding: AppSpacing.cardPadding,
+                padding: AppSpacing.cardContentPadding,
                 decoration: BoxDecoration(
                   color: AppColors.error.withAlpha(25),
                   borderRadius: AppSpacing.borderRadiusMd,
@@ -499,7 +499,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final profile = state.profile!;
 
     return Container(
-      padding: AppSpacing.cardPadding,
+      padding: AppSpacing.cardContentPadding,
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: AppSpacing.borderRadiusMd,

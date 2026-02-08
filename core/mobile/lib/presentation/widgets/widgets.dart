@@ -40,3 +40,4 @@ export 'layout/layout.dart';
 export 'molecules/molecules.dart';
 export 'organisms/organisms.dart';
 export 'settings/settings.dart';
+export 'theme_selector.dart';

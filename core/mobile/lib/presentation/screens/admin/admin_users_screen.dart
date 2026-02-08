@@ -43,7 +43,7 @@ class UserListItem extends StatelessWidget {
         ],
       ),
       child: Padding(
-        padding: AppSpacing.cardPadding,
+        padding: AppSpacing.cardContentPadding,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

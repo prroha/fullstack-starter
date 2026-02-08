@@ -9,7 +9,7 @@ import { api, ApiError } from "@/lib/api";
 import { logger } from "@/lib/logger";
 import { toast } from "@/lib/toast";
 import { downloadFile } from "@/lib/export";
-import { Button, ExportMyDataButton } from "@/components/ui";
+import { Button, ExportMyDataButton, ThemeSelector } from "@/components/ui";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import {
   SettingsSection,
@@ -325,7 +325,7 @@ function DeleteAccountModal({
 export default function SettingsPage() {
   const router = useRouter();
   const { user, logout } = useAuth();
-  const { theme, resolvedTheme } = useTheme();
+  const { colorMode, resolvedColorMode, currentTheme, currentThemeConfig } = useTheme();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -362,9 +362,9 @@ export default function SettingsPage() {
     }
   };
 
-  const getThemeLabel = () => {
-    if (theme === "system") return "System";
-    return resolvedTheme === "dark" ? "Dark" : "Light";
+  const getColorModeLabel = () => {
+    if (colorMode === "system") return "System";
+    return resolvedColorMode === "dark" ? "Dark" : "Light";
   };
 
   const appVersion = process.env.NEXT_PUBLIC_APP_VERSION || "1.0.0";
@@ -439,12 +439,29 @@ export default function SettingsPage() {
             description="Customize how the app looks"
           >
             <SettingsItem
-              icon={<PaletteIcon />}
-              label="Theme"
-              description="Choose your preferred theme"
-              value={getThemeLabel()}
+              icon={<MonitorIcon />}
+              label="Color Mode"
+              description="Choose light, dark, or system mode"
+              value={getColorModeLabel()}
               action={<ThemeToggle variant="dropdown" size="sm" />}
             />
+            <div className="px-4 py-3 border-t">
+              <div className="flex items-start gap-3 mb-3">
+                <div className="mt-0.5 text-muted-foreground">
+                  <PaletteIcon />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-foreground">App Theme</p>
+                  <p className="text-sm text-muted-foreground">
+                    Choose a color theme that suits your app type
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1 italic">
+                    Current: {currentThemeConfig.name} - {currentThemeConfig.psychology}
+                  </p>
+                </div>
+              </div>
+              <ThemeSelector variant="grid" size="sm" showDescription={false} />
+            </div>
           </SettingsSection>
 
           {/* Notifications Section */}

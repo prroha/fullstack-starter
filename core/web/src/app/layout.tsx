@@ -25,7 +25,7 @@ export default function RootLayout({
         <ThemeScript />
       </head>
       <body className={inter.className}>
-        <ThemeProvider defaultTheme="system">
+        <ThemeProvider defaultColorMode="system" defaultTheme="edu">
           <AuthProvider>
             <Suspense fallback={<SkeletonPage />}>
               {children}

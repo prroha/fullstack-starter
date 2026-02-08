@@ -251,7 +251,8 @@ const DialogHeader = React.forwardRef<HTMLDivElement, DialogHeaderProps>(
       <div
         ref={ref}
         className={cn(
-          "flex items-center justify-between gap-4 px-6 py-4 border-b border-border",
+          // Content-first spacing: tighter padding (was px-6 py-4)
+          "flex items-center justify-between gap-3 px-4 py-3 border-b border-border",
           className
         )}
         {...props}
@@ -288,7 +289,8 @@ const DialogBody = React.forwardRef<HTMLDivElement, DialogBodyProps>(
       <div
         ref={ref}
         className={cn(
-          "px-6 py-4 overflow-y-auto flex-1",
+          // Content-first spacing: tighter padding (was px-6 py-4)
+          "px-4 py-3 overflow-y-auto flex-1",
           "text-foreground",
           className
         )}
@@ -309,7 +311,8 @@ const DialogFooter = React.forwardRef<HTMLDivElement, DialogFooterProps>(
       <div
         ref={ref}
         className={cn(
-          "flex items-center justify-end gap-3 px-6 py-4 border-t border-border bg-muted/50",
+          // Content-first spacing: tighter padding (was px-6 py-4)
+          "flex items-center justify-end gap-2 px-4 py-3 border-t border-border bg-muted/50",
           className
         )}
         {...props}

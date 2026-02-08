@@ -24,11 +24,12 @@ function Section({
   bordered = false,
   ...props
 }: SectionProps) {
+  // Content-first spacing: tighter vertical padding
   const paddings = {
     none: "",
-    sm: "py-4",
-    md: "py-8",
-    lg: "py-12",
+    sm: "py-3",  // 12px (was 16px)
+    md: "py-6",  // 24px (was 32px)
+    lg: "py-8",  // 32px (was 48px)
   };
 
   return (
@@ -41,8 +42,8 @@ function Section({
       {...props}
     >
       {(title || description || action) && (
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-          <div className="space-y-1">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+          <div className="space-y-0.5">
             {title && (
               <h2 className="text-2xl font-bold tracking-tight text-foreground">
                 {title}
@@ -80,12 +81,13 @@ function SectionHeader({
   return (
     <div
       className={cn(
-        "flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6",
+        // Content-first spacing: tighter gap and margin
+        "flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4",
         className
       )}
       {...props}
     >
-      <div className="space-y-1">
+      <div className="space-y-0.5">
         <h2 className="text-2xl font-bold tracking-tight text-foreground">
           {title}
         </h2>
@@ -120,14 +122,15 @@ function CardSection({
   return (
     <div
       className={cn(
-        "rounded-lg border border-border bg-card p-6",
+        // Content-first spacing: tighter padding (was p-6)
+        "rounded-lg border border-border bg-card p-4",
         className
       )}
       {...props}
     >
       {(title || description || action) && (
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
-          <div className="space-y-1">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">
+          <div className="space-y-0.5">
             {title && (
               <h3 className="text-lg font-semibold text-card-foreground">
                 {title}
@@ -167,21 +170,22 @@ function EmptySection({
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center py-12 px-4 text-center",
+        // Content-first spacing: tighter vertical padding (was py-12)
+        "flex flex-col items-center justify-center py-8 px-3 text-center",
         className
       )}
       {...props}
     >
       {icon && (
-        <div className="mb-4 text-muted-foreground">{icon}</div>
+        <div className="mb-3 text-muted-foreground">{icon}</div>
       )}
       <h3 className="text-lg font-semibold text-foreground">{title}</h3>
       {description && (
-        <p className="mt-1 text-sm text-muted-foreground max-w-sm">
+        <p className="mt-0.5 text-sm text-muted-foreground max-w-sm">
           {description}
         </p>
       )}
-      {action && <div className="mt-4">{action}</div>}
+      {action && <div className="mt-3">{action}</div>}
     </div>
   );
 }

@@ -200,35 +200,36 @@ class EmptyState extends StatelessWidget {
 
     return Center(
       child: Padding(
-        padding: AppSpacing.screenPadding,
+        // Tighter padding
+        padding: const EdgeInsets.all(AppSpacing.md), // 12dp
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Illustration or icon with background
+            // Illustration or icon with background - tighter size
             if (illustration != null)
               illustration!
             else
               Container(
-                width: 80,
-                height: 80,
+                width: 64, // Reduced from 80
+                height: 64,
                 decoration: BoxDecoration(
                   color: _getBackgroundColor(context),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   icon,
-                  size: iconSize * 0.6,
+                  size: 32, // Reduced
                   color: _getIconColor(context),
                 ),
               ),
-            AppSpacing.gapLg,
+            AppSpacing.gapMd, // Tighter gap
 
-            // Title
+            // Title - tighter
             Text(
               title,
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 20,
+                fontSize: 18, // Reduced from 20
                 fontWeight: FontWeight.w600,
                 color: titleColor,
               ),
@@ -236,16 +237,16 @@ class EmptyState extends StatelessWidget {
 
             // Message
             if (message != null) ...[
-              AppSpacing.gapSm,
+              AppSpacing.gapXs, // Tighter gap
               ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 300),
+                constraints: const BoxConstraints(maxWidth: 280), // Slightly narrower
                 child: Text(
                   message!,
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: 13, // Slightly smaller
                     color: messageColor,
-                    height: 1.5,
+                    height: 1.4,
                   ),
                 ),
               ),
@@ -253,10 +254,11 @@ class EmptyState extends StatelessWidget {
 
             // Actions
             if (actionLabel != null && onAction != null) ...[
-              AppSpacing.gapLg,
+              AppSpacing.gapMd, // Tighter gap
               AppButton(
                 label: actionLabel!,
                 onPressed: onAction,
+                size: AppButtonSize.small, // Smaller button
                 variant: variant == EmptyStateVariant.error ||
                         variant == EmptyStateVariant.offline
                     ? AppButtonVariant.outline
@@ -265,10 +267,11 @@ class EmptyState extends StatelessWidget {
             ],
 
             if (secondaryActionLabel != null && onSecondaryAction != null) ...[
-              AppSpacing.gapSm,
+              AppSpacing.gapXs, // Tighter gap
               AppButton(
                 label: secondaryActionLabel!,
                 onPressed: onSecondaryAction,
+                size: AppButtonSize.small,
                 variant: AppButtonVariant.text,
               ),
             ],

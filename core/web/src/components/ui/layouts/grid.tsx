@@ -38,28 +38,29 @@ interface GridProps extends React.HTMLAttributes<HTMLElement> {
   className?: string;
 }
 
+// Content-first spacing: tighter gaps for maximized screen real estate
 const gapClasses: Record<GapSize, string> = {
   none: "gap-0",
-  sm: "gap-2",
-  md: "gap-4",
-  lg: "gap-6",
-  xl: "gap-8",
+  sm: "gap-2",   // 8px (unchanged)
+  md: "gap-3",   // 12px (was 16px)
+  lg: "gap-4",   // 16px (was 24px)
+  xl: "gap-6",   // 24px (was 32px)
 };
 
 const rowGapClasses: Record<GapSize, string> = {
   none: "gap-y-0",
-  sm: "gap-y-2",
-  md: "gap-y-4",
-  lg: "gap-y-6",
-  xl: "gap-y-8",
+  sm: "gap-y-2",   // 8px
+  md: "gap-y-3",   // 12px (was 16px)
+  lg: "gap-y-4",   // 16px (was 24px)
+  xl: "gap-y-6",   // 24px (was 32px)
 };
 
 const colGapClasses: Record<GapSize, string> = {
   none: "gap-x-0",
-  sm: "gap-x-2",
-  md: "gap-x-4",
-  lg: "gap-x-6",
-  xl: "gap-x-8",
+  sm: "gap-x-2",   // 8px
+  md: "gap-x-3",   // 12px (was 16px)
+  lg: "gap-x-4",   // 16px (was 24px)
+  xl: "gap-x-6",   // 24px (was 32px)
 };
 
 const alignItemsClasses: Record<AlignItems, string> = {
@@ -189,7 +190,7 @@ const Grid = React.forwardRef<HTMLElement, GridProps>(
     {
       children,
       cols = { sm: 1, md: 2, lg: 3 },
-      gap = "md",
+      gap = "sm",
       rowGap,
       colGap,
       alignItems,

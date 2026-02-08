@@ -83,7 +83,7 @@ class AppCard extends StatelessWidget {
           Text(
             title,
             style: const TextStyle(
-              fontSize: 18,
+              fontSize: 16, // Tighter: reduced from 18
               fontWeight: FontWeight.w600,
               color: AppColors.textPrimary,
             ),
@@ -98,6 +98,21 @@ class AppCard extends StatelessWidget {
       child: child,
     );
   }
+
+  /// Creates a compact card with tighter padding.
+  const AppCard.compact({
+    super.key,
+    required this.child,
+    this.header,
+    this.footer,
+    this.margin,
+    this.backgroundColor,
+    this.borderRadius,
+    this.hasShadow = true,
+    this.hasBorder = false,
+    this.onTap,
+    this.onLongPress,
+  }) : padding = const EdgeInsets.all(AppSpacing.sm);
 
   /// Creates a flat card without shadow.
   const AppCard.flat({
@@ -140,20 +155,20 @@ class AppCard extends StatelessWidget {
         children: [
           if (header != null)
             Padding(
-              padding: padding ?? AppSpacing.cardPadding,
+              padding: padding ?? AppSpacing.cardContentPadding,
               child: header,
             ),
           if (header != null && (hasBorder || hasShadow))
             const Divider(height: 1, color: AppColors.border),
           Padding(
-            padding: padding ?? AppSpacing.cardPadding,
+            padding: padding ?? AppSpacing.cardContentPadding,
             child: child,
           ),
           if (footer != null && (hasBorder || hasShadow))
             const Divider(height: 1, color: AppColors.border),
           if (footer != null)
             Padding(
-              padding: padding ?? AppSpacing.cardPadding,
+              padding: padding ?? AppSpacing.cardContentPadding,
               child: footer,
             ),
         ],

@@ -391,7 +391,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                 // Error message
                 if (_error != null && _error!.isNotEmpty) ...[
                   Container(
-                    padding: AppSpacing.cardPadding,
+                    padding: AppSpacing.cardContentPadding,
                     decoration: BoxDecoration(
                       color: AppColors.error.withAlpha(25),
                       borderRadius: AppSpacing.borderRadiusMd,

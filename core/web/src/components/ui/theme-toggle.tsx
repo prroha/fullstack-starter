@@ -2,13 +2,13 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { useTheme } from "@/lib/theme-context";
+import { useTheme, type ColorMode } from "@/lib/theme-context";
 
 // =====================================================
 // Theme Toggle Types
 // =====================================================
 
-type ThemeToggleVariant = "icon" | "button" | "dropdown";
+type ThemeToggleVariant = "icon" | "button" | "dropdown" | "segmented";
 type ThemeToggleSize = "sm" | "md" | "lg";
 
 interface ThemeToggleProps {
@@ -16,6 +16,7 @@ interface ThemeToggleProps {
   size?: ThemeToggleSize;
   showLabel?: boolean;
   className?: string;
+  onModeChange?: (mode: ColorMode) => void;
 }
 
 // =====================================================
@@ -115,12 +116,22 @@ function ThemeToggle({
   size = "md",
   showLabel = false,
   className,
+  onModeChange,
 }: ThemeToggleProps) {
-  const { theme, resolvedTheme, setTheme, toggleTheme } = useTheme();
+  const { colorMode, resolvedColorMode, setColorMode, toggleColorMode } = useTheme();
   const [isOpen, setIsOpen] = React.useState(false);
   const dropdownRef = React.useRef<HTMLDivElement>(null);
 
   const config = sizeConfig[size];
+
+  // Handle mode change
+  const handleSetMode = React.useCallback(
+    (mode: ColorMode) => {
+      setColorMode(mode);
+      onModeChange?.(mode);
+    },
+    [setColorMode, onModeChange]
+  );
 
   // Close dropdown when clicking outside
   React.useEffect(() => {
@@ -139,17 +150,17 @@ function ThemeToggle({
 
   // Get current icon based on theme
   const CurrentIcon =
-    theme === "system"
+    colorMode === "system"
       ? MonitorIcon
-      : resolvedTheme === "dark"
+      : resolvedColorMode === "dark"
         ? MoonIcon
         : SunIcon;
 
   // Get theme label
   const themeLabel =
-    theme === "system"
+    colorMode === "system"
       ? "System"
-      : resolvedTheme === "dark"
+      : resolvedColorMode === "dark"
         ? "Dark"
         : "Light";
 
@@ -158,7 +169,7 @@ function ThemeToggle({
     return (
       <button
         type="button"
-        onClick={toggleTheme}
+        onClick={toggleColorMode}
         className={cn(
           "relative inline-flex items-center justify-center rounded-md",
           "text-muted-foreground hover:text-foreground",
@@ -168,35 +179,33 @@ function ThemeToggle({
           config.button,
           className
         )}
-        aria-label={`Switch to ${resolvedTheme === "dark" ? "light" : "dark"} mode`}
-        title={`Switch to ${resolvedTheme === "dark" ? "light" : "dark"} mode`}
+        aria-label={`Switch to ${resolvedColorMode === "dark" ? "light" : "dark"} mode`}
+        title={`Switch to ${resolvedColorMode === "dark" ? "light" : "dark"} mode`}
       >
         <span className="sr-only">
-          {resolvedTheme === "dark"
+          {resolvedColorMode === "dark"
             ? "Switch to light mode"
             : "Switch to dark mode"}
         </span>
         {/* Sun icon - visible in dark mode */}
-        <SunIcon size={config.icon} />
-        {/* Overlay moon icon - visible in light mode */}
         <span
           className={cn(
             "absolute inset-0 flex items-center justify-center",
             "transition-opacity duration-300",
-            resolvedTheme === "dark" ? "opacity-0" : "opacity-100"
-          )}
-        >
-          <MoonIcon size={config.icon} />
-        </span>
-        {/* Sun visible in dark mode */}
-        <span
-          className={cn(
-            "absolute inset-0 flex items-center justify-center",
-            "transition-opacity duration-300",
-            resolvedTheme === "dark" ? "opacity-100" : "opacity-0"
+            resolvedColorMode === "dark" ? "opacity-100" : "opacity-0"
           )}
         >
           <SunIcon size={config.icon} />
+        </span>
+        {/* Moon icon - visible in light mode */}
+        <span
+          className={cn(
+            "absolute inset-0 flex items-center justify-center",
+            "transition-opacity duration-300",
+            resolvedColorMode === "dark" ? "opacity-0" : "opacity-100"
+          )}
+        >
+          <MoonIcon size={config.icon} />
         </span>
       </button>
     );
@@ -207,7 +216,7 @@ function ThemeToggle({
     return (
       <button
         type="button"
-        onClick={toggleTheme}
+        onClick={toggleColorMode}
         className={cn(
           "inline-flex items-center justify-center gap-2 rounded-md",
           "text-sm font-medium",
@@ -218,11 +227,77 @@ function ThemeToggle({
           showLabel ? "px-3 py-2" : config.button,
           className
         )}
-        aria-label={`Switch to ${resolvedTheme === "dark" ? "light" : "dark"} mode`}
+        aria-label={`Switch to ${resolvedColorMode === "dark" ? "light" : "dark"} mode`}
       >
         <CurrentIcon size={config.icon} />
         {showLabel && <span>{themeLabel}</span>}
       </button>
+    );
+  }
+
+  // Segmented control for light/dark/system
+  if (variant === "segmented") {
+    return (
+      <div
+        className={cn(
+          "inline-flex rounded-lg border border-border bg-muted p-1",
+          className
+        )}
+        role="radiogroup"
+        aria-label="Color mode"
+      >
+        <button
+          type="button"
+          onClick={() => handleSetMode("light")}
+          className={cn(
+            "inline-flex items-center justify-center rounded-md px-3 py-1.5",
+            "text-sm font-medium transition-all duration-200",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            colorMode === "light"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          )}
+          role="radio"
+          aria-checked={colorMode === "light"}
+        >
+          <SunIcon size={config.icon} />
+          {showLabel && <span className="ml-2">Light</span>}
+        </button>
+        <button
+          type="button"
+          onClick={() => handleSetMode("system")}
+          className={cn(
+            "inline-flex items-center justify-center rounded-md px-3 py-1.5",
+            "text-sm font-medium transition-all duration-200",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            colorMode === "system"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          )}
+          role="radio"
+          aria-checked={colorMode === "system"}
+        >
+          <MonitorIcon size={config.icon} />
+          {showLabel && <span className="ml-2">System</span>}
+        </button>
+        <button
+          type="button"
+          onClick={() => handleSetMode("dark")}
+          className={cn(
+            "inline-flex items-center justify-center rounded-md px-3 py-1.5",
+            "text-sm font-medium transition-all duration-200",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            colorMode === "dark"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          )}
+          role="radio"
+          aria-checked={colorMode === "dark"}
+        >
+          <MoonIcon size={config.icon} />
+          {showLabel && <span className="ml-2">Dark</span>}
+        </button>
+      </div>
     );
   }
 
@@ -242,7 +317,7 @@ function ThemeToggle({
             "transition-colors duration-200",
             showLabel ? "px-3 py-2" : config.button
           )}
-          aria-label="Select theme"
+          aria-label="Select color mode"
           aria-expanded={isOpen}
           aria-haspopup="listbox"
         >
@@ -259,55 +334,55 @@ function ThemeToggle({
               "z-50"
             )}
             role="listbox"
-            aria-label="Theme options"
+            aria-label="Color mode options"
           >
             <button
               onClick={() => {
-                setTheme("light");
+                handleSetMode("light");
                 setIsOpen(false);
               }}
               className={cn(
                 "flex w-full items-center gap-2 rounded-sm px-2 py-1.5",
                 "text-sm text-foreground",
                 "hover:bg-accent focus:bg-accent focus:outline-none",
-                theme === "light" && "bg-accent"
+                colorMode === "light" && "bg-accent"
               )}
               role="option"
-              aria-selected={theme === "light"}
+              aria-selected={colorMode === "light"}
             >
               <SunIcon size={16} />
               <span>Light</span>
             </button>
             <button
               onClick={() => {
-                setTheme("dark");
+                handleSetMode("dark");
                 setIsOpen(false);
               }}
               className={cn(
                 "flex w-full items-center gap-2 rounded-sm px-2 py-1.5",
                 "text-sm text-foreground",
                 "hover:bg-accent focus:bg-accent focus:outline-none",
-                theme === "dark" && "bg-accent"
+                colorMode === "dark" && "bg-accent"
               )}
               role="option"
-              aria-selected={theme === "dark"}
+              aria-selected={colorMode === "dark"}
             >
               <MoonIcon size={16} />
               <span>Dark</span>
             </button>
             <button
               onClick={() => {
-                setTheme("system");
+                handleSetMode("system");
                 setIsOpen(false);
               }}
               className={cn(
                 "flex w-full items-center gap-2 rounded-sm px-2 py-1.5",
                 "text-sm text-foreground",
                 "hover:bg-accent focus:bg-accent focus:outline-none",
-                theme === "system" && "bg-accent"
+                colorMode === "system" && "bg-accent"
               )}
               role="option"
-              aria-selected={theme === "system"}
+              aria-selected={colorMode === "system"}
             >
               <MonitorIcon size={16} />
               <span>System</span>

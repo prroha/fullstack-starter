@@ -71,39 +71,40 @@ class NotificationItemWidget extends StatelessWidget {
           onTap?.call();
         },
         child: Container(
+          // Tighter padding
           padding: compact
-              ? const EdgeInsets.symmetric(horizontal: 16, vertical: 12)
-              : const EdgeInsets.all(16),
+              ? const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 8)
+              : const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 10),
           decoration: BoxDecoration(
             color: notification.read
                 ? null
                 : (theme.brightness == Brightness.dark
-                    ? colorScheme.primary.withAlpha(26)
-                    : colorScheme.primary.withAlpha(13)),
+                    ? colorScheme.primary.withAlpha(20)
+                    : colorScheme.primary.withAlpha(10)),
             border: Border(
               left: BorderSide(
                 color: _getTypeColor(notification.type),
-                width: 4,
+                width: 3, // Slightly thinner
               ),
             ),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Icon
+              // Icon - tighter
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(6), // Tighter
                 decoration: BoxDecoration(
-                  color: _getTypeColor(notification.type).withAlpha(26),
+                  color: _getTypeColor(notification.type).withAlpha(20),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   _getTypeIcon(notification.type),
-                  size: compact ? 18 : 20,
+                  size: compact ? 16 : 18, // Smaller
                   color: _getTypeColor(notification.type),
                 ),
               ),
-              AppSpacing.gapMd,
+              AppSpacing.gapSm, // Tighter gap
 
               // Content
               Expanded(
@@ -119,17 +120,17 @@ class NotificationItemWidget extends StatelessWidget {
                               fontWeight: notification.read
                                   ? FontWeight.w500
                                   : FontWeight.w600,
-                              fontSize: compact ? 14 : 15,
+                              fontSize: compact ? 13 : 14, // Smaller
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         if (!notification.read) ...[
-                          AppSpacing.gapSm,
+                          AppSpacing.gapXs, // Tighter gap
                           Container(
-                            width: 8,
-                            height: 8,
+                            width: 6, // Smaller dot
+                            height: 6,
                             decoration: BoxDecoration(
                               color: colorScheme.primary,
                               shape: BoxShape.circle,
@@ -139,24 +140,24 @@ class NotificationItemWidget extends StatelessWidget {
                       ],
                     ),
                     if (!compact) ...[
-                      AppSpacing.gapXs,
+                      const SizedBox(height: 2), // Tighter
                       Text(
                         notification.message,
                         style: TextStyle(
                           color: colorScheme.onSurfaceVariant,
-                          fontSize: 14,
-                          height: 1.4,
+                          fontSize: 13, // Smaller
+                          height: 1.3,
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ],
-                    AppSpacing.gapXs,
+                    const SizedBox(height: 2), // Tighter
                     Text(
                       _formatTimeAgo(notification.createdAt),
                       style: TextStyle(
-                        color: colorScheme.onSurfaceVariant.withAlpha(178),
-                        fontSize: 12,
+                        color: colorScheme.onSurfaceVariant.withAlpha(150),
+                        fontSize: 11, // Smaller
                       ),
                     ),
                   ],
@@ -168,9 +169,10 @@ class NotificationItemWidget extends StatelessWidget {
                 PopupMenuButton<String>(
                   icon: Icon(
                     Icons.more_vert,
-                    size: 20,
+                    size: 18, // Smaller
                     color: colorScheme.onSurfaceVariant,
                   ),
+                  padding: EdgeInsets.zero,
                   onSelected: (value) {
                     if (value == 'read' && onMarkAsRead != null) {
                       onMarkAsRead!();

@@ -45,10 +45,11 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
   ) => {
     const selectId = id || React.useId();
 
+    // Content-first sizing: tighter heights and padding
     const sizes = {
-      sm: "h-9 px-2 py-1 text-xs",
-      md: "h-10 px-3 py-2 text-sm",
-      lg: "h-11 px-4 py-2 text-base",
+      sm: "h-8 px-2 py-1 text-xs",     // 32px (was 36px)
+      md: "h-9 px-2.5 py-1.5 text-sm", // 36px (was 40px)
+      lg: "h-10 px-3 py-1.5 text-base", // 40px (was 44px)
     };
 
     const handleChange = (event: React.ChangeEvent<HTMLSelectElement>) => {

@@ -97,10 +97,10 @@ class _PasswordFieldState extends State<PasswordField> {
             style: const TextStyle(
               color: AppColors.textPrimary,
               fontWeight: FontWeight.w500,
-              fontSize: 14,
+              fontSize: 13, // Tighter label
             ),
           ),
-          AppSpacing.gapXs,
+          const SizedBox(height: 4), // Tighter label-to-field spacing
         ],
         TextFormField(
           controller: widget.controller,
@@ -115,21 +115,22 @@ class _PasswordFieldState extends State<PasswordField> {
           focusNode: widget.focusNode,
           style: const TextStyle(
             color: AppColors.textPrimary,
-            fontSize: 16,
+            fontSize: 15, // Tighter text
           ),
           decoration: InputDecoration(
             hintText: widget.hint,
             hintStyle: const TextStyle(
               color: AppColors.textMuted,
+              fontSize: 15,
             ),
             errorText: widget.errorText,
             helperText: widget.helperText,
             helperStyle: const TextStyle(
               color: AppColors.textMuted,
-              fontSize: 12,
+              fontSize: 11,
             ),
             prefixIcon: widget.prefixIcon != null
-                ? Icon(widget.prefixIcon)
+                ? Icon(widget.prefixIcon, size: 20)
                 : null,
             suffixIcon: IconButton(
               icon: Icon(
@@ -137,6 +138,7 @@ class _PasswordFieldState extends State<PasswordField> {
                     ? Icons.visibility_outlined
                     : Icons.visibility_off_outlined,
                 color: AppColors.textMuted,
+                size: 20,
               ),
               onPressed: _toggleVisibility,
             ),
@@ -144,32 +146,34 @@ class _PasswordFieldState extends State<PasswordField> {
             fillColor: widget.enabled
                 ? AppColors.surface
                 : AppColors.border.withAlpha(50),
+            // Tighter content padding: 12h x 10v
             contentPadding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.md,
-              vertical: AppSpacing.md,
+              horizontal: AppSpacing.md, // 12dp
+              vertical: 10,
             ),
+            isDense: true,
             border: OutlineInputBorder(
-              borderRadius: AppSpacing.borderRadiusMd,
+              borderRadius: AppSpacing.borderRadiusSm,
               borderSide: const BorderSide(color: AppColors.border),
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: AppSpacing.borderRadiusMd,
+              borderRadius: AppSpacing.borderRadiusSm,
               borderSide: const BorderSide(color: AppColors.border),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: AppSpacing.borderRadiusMd,
-              borderSide: const BorderSide(color: AppColors.primary, width: 2),
+              borderRadius: AppSpacing.borderRadiusSm,
+              borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
             ),
             errorBorder: OutlineInputBorder(
-              borderRadius: AppSpacing.borderRadiusMd,
+              borderRadius: AppSpacing.borderRadiusSm,
               borderSide: const BorderSide(color: AppColors.error),
             ),
             focusedErrorBorder: OutlineInputBorder(
-              borderRadius: AppSpacing.borderRadiusMd,
-              borderSide: const BorderSide(color: AppColors.error, width: 2),
+              borderRadius: AppSpacing.borderRadiusSm,
+              borderSide: const BorderSide(color: AppColors.error, width: 1.5),
             ),
             disabledBorder: OutlineInputBorder(
-              borderRadius: AppSpacing.borderRadiusMd,
+              borderRadius: AppSpacing.borderRadiusSm,
               borderSide: const BorderSide(color: AppColors.border),
             ),
           ),

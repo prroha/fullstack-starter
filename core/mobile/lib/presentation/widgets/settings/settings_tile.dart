@@ -44,28 +44,29 @@ class SettingsTile extends StatelessWidget {
         child: InkWell(
           onTap: disabled ? null : () => onChanged?.call(!value),
           child: Padding(
+            // Tighter padding: 12h x 10v
             padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.md,
-              vertical: AppSpacing.md,
+              horizontal: AppSpacing.md, // 12dp
+              vertical: 10,
             ),
             child: Row(
               children: [
-                // Icon
+                // Icon - tighter size
                 if (icon != null) ...[
                   Container(
-                    width: 40,
-                    height: 40,
+                    width: 36, // Reduced from 40
+                    height: 36,
                     decoration: BoxDecoration(
                       color: colorScheme.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(8), // Tighter radius
                     ),
                     child: Icon(
                       icon,
-                      size: 20,
+                      size: 18, // Reduced from 20
                       color: colorScheme.onSurfaceVariant,
                     ),
                   ),
-                  const SizedBox(width: AppSpacing.md),
+                  const SizedBox(width: AppSpacing.sm), // Tighter gap
                 ],
 
                 // Label and description
@@ -75,16 +76,16 @@ class SettingsTile extends StatelessWidget {
                     children: [
                       Text(
                         label,
-                        style: theme.textTheme.bodyLarge?.copyWith(
+                        style: theme.textTheme.bodyMedium?.copyWith(
                           fontWeight: FontWeight.w500,
                           color: colorScheme.onSurface,
                         ),
                       ),
                       if (description != null) ...[
-                        const SizedBox(height: 2),
+                        const SizedBox(height: 1), // Tighter gap
                         Text(
                           description!,
-                          style: theme.textTheme.bodySmall?.copyWith(
+                          style: theme.textTheme.labelSmall?.copyWith(
                             color: colorScheme.onSurfaceVariant,
                           ),
                           maxLines: 1,
@@ -96,7 +97,7 @@ class SettingsTile extends StatelessWidget {
                 ),
 
                 // Switch
-                const SizedBox(width: AppSpacing.sm),
+                const SizedBox(width: AppSpacing.xs), // Tighter gap
                 Switch(
                   value: value,
                   onChanged: disabled ? null : onChanged,

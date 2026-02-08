@@ -56,6 +56,14 @@ export type {
   ThemeToggleSize,
 } from "./theme-toggle";
 
+// Theme Selector
+export { ThemeSelector } from "./theme-selector";
+export type {
+  ThemeSelectorProps,
+  ThemeSelectorVariant,
+  ThemeSelectorSize,
+} from "./theme-selector";
+
 // Accordion
 export {
   Accordion,

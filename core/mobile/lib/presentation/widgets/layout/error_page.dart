@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
-import '../../../core/theme/app_theme.dart';
 import '../atoms/app_button.dart';
 
 /// Enum representing different error page variants.
@@ -182,25 +181,25 @@ class ErrorPage extends StatelessWidget {
   }
 
   Color _getIconColor(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colors = context.appColors;
     switch (variant) {
       case ErrorPageVariant.notFound:
-        return AppColors.primary;
+        return colors.primary;
       case ErrorPageVariant.serverError:
       case ErrorPageVariant.generic:
-        return AppColors.error;
+        return colors.error;
       case ErrorPageVariant.networkError:
-        return AppColors.warning;
+        return colors.warning;
       case ErrorPageVariant.accessDenied:
-        return AppColors.error;
+        return colors.error;
       case ErrorPageVariant.sessionExpired:
-        return isDark ? AppColors.primaryLight : AppColors.primary;
+        return colors.primary;
     }
   }
 
   Color _getIconBackgroundColor(BuildContext context) {
     final color = _getIconColor(context);
-    return color.withOpacity(0.1);
+    return color.withValues(alpha: 0.1);
   }
 
   String get _errorCode {
@@ -219,13 +218,12 @@ class ErrorPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final colors = context.appColors;
     final iconColor = _getIconColor(context);
     final iconBgColor = _getIconBackgroundColor(context);
 
     return Scaffold(
-      backgroundColor: isDark ? AppColorsDark.background : AppColors.background,
+      backgroundColor: colors.background,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -238,7 +236,7 @@ class ErrorPage extends StatelessWidget {
                   if (customIllustration != null)
                     customIllustration!
                   else
-                    _buildIllustration(context, isDark),
+                    _buildIllustration(context, colors),
                   AppSpacing.gapLg,
                 ],
 
@@ -279,9 +277,7 @@ class ErrorPage extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    color: isDark
-                        ? AppColorsDark.textPrimary
-                        : AppColors.textPrimary,
+                    color: colors.foreground,
                   ),
                 ),
                 AppSpacing.gapSm,
@@ -295,9 +291,7 @@ class ErrorPage extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 16,
                       height: 1.5,
-                      color: isDark
-                          ? AppColorsDark.textSecondary
-                          : AppColors.textSecondary,
+                      color: colors.mutedForeground,
                     ),
                   ),
                 ),
@@ -313,11 +307,9 @@ class ErrorPage extends StatelessWidget {
     );
   }
 
-  Widget _buildIllustration(BuildContext context, bool isDark) {
-    final mutedColor = isDark
-        ? AppColorsDark.textMuted.withOpacity(0.3)
-        : AppColors.textMuted.withOpacity(0.3);
-    final accentColor = _getIconColor(context).withOpacity(0.2);
+  Widget _buildIllustration(BuildContext context, AppColorScheme colors) {
+    final mutedColor = colors.mutedForeground.withValues(alpha: 0.3);
+    final accentColor = _getIconColor(context).withValues(alpha: 0.2);
 
     return SizedBox(
       width: 180,

@@ -82,12 +82,13 @@ class AppSnackbar {
       backgroundColor: colors.background,
       behavior: SnackBarBehavior.floating,
       shape: RoundedRectangleBorder(
-        borderRadius: AppSpacing.borderRadiusMd,
+        borderRadius: AppSpacing.borderRadiusSm, // Tighter radius
       ),
-      margin: const EdgeInsets.all(AppSpacing.md),
+      margin: const EdgeInsets.all(AppSpacing.md), // 12dp
+      // Tighter padding
       padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.sm + 4,
+        horizontal: AppSpacing.md, // 12dp
+        vertical: 10,
       ),
       duration: duration,
       action: action != null

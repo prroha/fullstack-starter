@@ -122,7 +122,7 @@ function DashboardLayout({
   children,
   sidebar,
   header,
-  sidebarWidth = "260px",
+  sidebarWidth = "240px", // Content-first: tighter sidebar (was 260px)
   sidebarCollapsed = false,
   onSidebarToggle,
   collapsedWidth = "64px",
@@ -310,19 +310,19 @@ function DashboardSidebar({
 }: DashboardSidebarProps) {
   return (
     <div className={cn("flex flex-col h-full", className)} {...props}>
-      {/* Logo/Branding */}
+      {/* Logo/Branding - Content-first: tighter padding */}
       {logo && (
-        <div className="flex-shrink-0 px-4 py-4 border-b border-border">
+        <div className="flex-shrink-0 px-3 py-3 border-b border-border">
           {logo}
         </div>
       )}
 
-      {/* Navigation Content */}
-      <nav className="flex-1 px-2 py-4 overflow-y-auto">{children}</nav>
+      {/* Navigation Content - Content-first: tighter padding */}
+      <nav className="flex-1 px-2 py-3 overflow-y-auto">{children}</nav>
 
-      {/* Footer */}
+      {/* Footer - Content-first: tighter padding */}
       {footer && (
-        <div className="flex-shrink-0 px-4 py-4 border-t border-border">
+        <div className="flex-shrink-0 px-3 py-3 border-t border-border">
           {footer}
         </div>
       )}
@@ -355,8 +355,9 @@ function DashboardNavItem({
   href,
   ...props
 }: DashboardNavItemProps) {
+  // Content-first: tighter nav item spacing
   const baseClasses = cn(
-    "w-full flex items-center gap-3 px-3 py-2 rounded-md",
+    "w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md",
     "text-sm font-medium",
     "transition-colors",
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
@@ -411,14 +412,15 @@ function DashboardHeader({
   return (
     <div
       className={cn(
-        "flex items-center justify-between h-16 px-4 md:px-6",
+        // Content-first: tighter header height and padding (was h-16 px-4 md:px-6)
+        "flex items-center justify-between h-14 px-3 md:px-4",
         className
       )}
       {...props}
     >
-      {left && <div className="flex items-center gap-4">{left}</div>}
+      {left && <div className="flex items-center gap-3">{left}</div>}
       <div className="flex-1">{children}</div>
-      {right && <div className="flex items-center gap-4">{right}</div>}
+      {right && <div className="flex items-center gap-3">{right}</div>}
     </div>
   );
 }

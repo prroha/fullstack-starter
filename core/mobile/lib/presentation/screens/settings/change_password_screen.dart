@@ -151,7 +151,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                 // Error message
                 if (errorMessage != null && errorMessage.isNotEmpty) ...[
                   Container(
-                    padding: AppSpacing.cardPadding,
+                    padding: AppSpacing.cardContentPadding,
                     decoration: BoxDecoration(
                       color: AppColors.error.withAlpha(25),
                       borderRadius: AppSpacing.borderRadiusMd,
@@ -181,7 +181,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                 // Success message
                 if (_showSuccess) ...[
                   Container(
-                    padding: AppSpacing.cardPadding,
+                    padding: AppSpacing.cardContentPadding,
                     decoration: BoxDecoration(
                       color: AppColors.success.withAlpha(25),
                       borderRadius: AppSpacing.borderRadiusMd,

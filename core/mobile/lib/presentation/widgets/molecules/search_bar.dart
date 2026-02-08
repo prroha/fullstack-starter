@@ -113,32 +113,41 @@ class _AppSearchBarState extends State<AppSearchBar> {
       onSubmitted: widget.onSubmitted,
       style: const TextStyle(
         color: AppColors.textPrimary,
-        fontSize: 16,
+        fontSize: 15, // Slightly tighter
       ),
       decoration: InputDecoration(
         hintText: widget.hint,
         hintStyle: const TextStyle(
           color: AppColors.textMuted,
+          fontSize: 15,
         ),
         prefixIcon: const Icon(
           Icons.search,
           color: AppColors.textMuted,
+          size: 20, // Tighter icon
         ),
         suffixIcon: widget.showClearButton && _hasText
             ? IconButton(
                 icon: const Icon(
                   Icons.clear,
                   color: AppColors.textMuted,
-                  size: 20,
+                  size: 18, // Smaller clear icon
                 ),
                 onPressed: _handleClear,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(
+                  minWidth: 36,
+                  minHeight: 36,
+                ),
               )
             : null,
         filled: true,
         fillColor: widget.backgroundColor ?? AppColors.surface,
+        isDense: true,
+        // Tighter content padding
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.md,
-          vertical: AppSpacing.sm,
+          horizontal: AppSpacing.md, // 12dp
+          vertical: 8,
         ),
         border: OutlineInputBorder(
           borderRadius: AppSpacing.borderRadiusFull,
@@ -150,7 +159,7 @@ class _AppSearchBarState extends State<AppSearchBar> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: AppSpacing.borderRadiusFull,
-          borderSide: const BorderSide(color: AppColors.primary, width: 2),
+          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
         ),
         disabledBorder: OutlineInputBorder(
           borderRadius: AppSpacing.borderRadiusFull,

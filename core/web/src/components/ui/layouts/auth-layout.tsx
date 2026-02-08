@@ -52,7 +52,8 @@ function AuthLayout({
       className={cn(
         "relative min-h-screen w-full flex items-center justify-center",
         "bg-background",
-        "px-4 py-8 sm:px-6 md:px-8",
+        // Content-first spacing: tighter padding
+        "px-3 py-6 sm:px-4 md:px-6",
         className
       )}
       {...props}
@@ -69,40 +70,40 @@ function AuthLayout({
       >
         {/* Logo */}
         {logo && (
-          <div className="flex justify-center mb-8">
+          <div className="flex justify-center mb-6">
             {logo}
           </div>
         )}
 
-        {/* Card */}
+        {/* Card - Content-first spacing: tighter padding */}
         <div
           className={cn(
             "w-full bg-card rounded-xl border border-border",
             "shadow-lg shadow-black/5 dark:shadow-black/20",
-            "p-6 sm:p-8"
+            "p-4 sm:p-6"
           )}
         >
           {/* Header */}
-          <div className="text-center mb-6">
+          <div className="text-center mb-4">
             <h1 className="text-2xl font-bold tracking-tight text-card-foreground">
               {title}
             </h1>
             {subtitle && (
-              <p className="mt-2 text-sm text-muted-foreground">
+              <p className="mt-1 text-sm text-muted-foreground">
                 {subtitle}
               </p>
             )}
           </div>
 
           {/* Form Content */}
-          <div className="space-y-4">
+          <div className="space-y-3">
             {children}
           </div>
         </div>
 
         {/* Footer */}
         {footer && (
-          <div className="mt-6 text-center text-sm text-muted-foreground">
+          <div className="mt-4 text-center text-sm text-muted-foreground">
             {footer}
           </div>
         )}

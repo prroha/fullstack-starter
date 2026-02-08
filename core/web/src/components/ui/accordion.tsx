@@ -191,7 +191,8 @@ function AccordionTrigger({
       aria-controls={contentId}
       onClick={() => toggleItem(value)}
       className={cn(
-        "flex w-full items-center justify-between py-4 px-4 text-left",
+        // Content-first spacing: tighter padding (was py-4 px-4)
+        "flex w-full items-center justify-between py-3 px-3 text-left",
         "font-medium text-foreground",
         "hover:bg-muted/50 transition-colors duration-200",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
@@ -256,7 +257,8 @@ function AccordionContent({
     >
       <div
         ref={contentRef}
-        className={cn("px-4 pb-4 pt-0 text-muted-foreground", className)}
+        // Content-first spacing: tighter padding (was px-4 pb-4)
+        className={cn("px-3 pb-3 pt-0 text-muted-foreground", className)}
         {...props}
       >
         {children}
