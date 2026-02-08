@@ -70,6 +70,7 @@ model User {
   sessions    Session[]
   auditLogs   AuditLog[]
   notifications Notification[]
+  orders      Order[]
   // posts        Post[]
   // comments     Comment[]
 
@@ -345,4 +346,76 @@ model ContentPage {
   @@index([slug])
   @@index([isPublished])
   @@map("content_pages")
+}
+
+// ============================================================================
+// COUPONS
+// ============================================================================
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED
+}
+
+/// Coupon model for discount codes
+model Coupon {
+  id            String       @id @default(uuid())
+  code          String       @unique
+  discountType  DiscountType @map("discount_type")
+  discountValue Float        @map("discount_value")
+  minPurchase   Float?       @map("min_purchase")
+  maxUses       Int?         @map("max_uses")
+  usedCount     Int          @default(0) @map("used_count")
+  validFrom     DateTime?    @map("valid_from")
+  validUntil    DateTime?    @map("valid_until")
+  isActive      Boolean      @default(true) @map("is_active")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+
+  @@index([code])
+  @@index([isActive])
+  @@map("coupons")
+}
+
+// ============================================================================
+// ORDERS & REVENUE
+// ============================================================================
+
+enum OrderStatus {
+  PENDING
+  COMPLETED
+  REFUNDED
+  FAILED
+}
+
+enum PaymentMethod {
+  STRIPE
+  PAYPAL
+  MANUAL
+}
+
+/// Order model for tracking purchases and revenue
+model Order {
+  id              String        @id @default(uuid())
+  userId          String?       @map("user_id")
+  email           String
+  status          OrderStatus   @default(PENDING)
+  paymentMethod   PaymentMethod @default(STRIPE) @map("payment_method")
+  paymentId       String?       @map("payment_id")
+  subtotal        Float
+  discount        Float         @default(0)
+  total           Float
+  couponCode      String?       @map("coupon_code")
+  items           Json          // Array of {productId, productName, price, quantity}
+  metadata        Json?
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  user            User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([email])
+  @@index([status])
+  @@index([createdAt])
+  @@map("orders")
 }

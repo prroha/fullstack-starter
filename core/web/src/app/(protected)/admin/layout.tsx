@@ -30,6 +30,11 @@ const adminNavItems = [
     exact: true,
   },
   {
+    href: "/admin/orders",
+    label: "Orders",
+    iconName: "ShoppingCart" as const,
+  },
+  {
     href: "/admin/users",
     label: "Users",
     iconName: "Users" as const,
@@ -48,6 +53,11 @@ const adminNavItems = [
     href: "/admin/announcements",
     label: "Announcements",
     iconName: "Bell" as const,
+  },
+  {
+    href: "/admin/coupons",
+    label: "Coupons",
+    iconName: "Ticket" as const,
   },
   {
     href: "/admin/content",

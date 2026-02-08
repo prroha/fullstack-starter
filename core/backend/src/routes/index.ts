@@ -9,6 +9,8 @@ import faqRoutes from "./faq.routes";
 import announcementRoutes from "./announcement.routes";
 import settingRoutes from "./setting.routes";
 import contentRoutes from "./content.routes";
+import couponRoutes from "./coupon.routes";
+import { orderRoutes, adminOrderRoutes } from "./order.routes";
 
 const router = Router();
 
@@ -24,6 +26,9 @@ v1Router.use("/faqs", faqRoutes);
 v1Router.use("/announcements", announcementRoutes);
 v1Router.use("/settings", settingRoutes);
 v1Router.use("/content", contentRoutes);
+v1Router.use("/coupons", couponRoutes);
+v1Router.use("/orders", orderRoutes);
+v1Router.use("/admin/orders", adminOrderRoutes);
 
 router.use("/v1", v1Router);
 
