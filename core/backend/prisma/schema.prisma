@@ -230,20 +230,119 @@ model Notification {
 }
 
 // ============================================================================
-// EXAMPLE: Add your own models below
+// FAQ
 // ============================================================================
 
-/// Example Post model - remove or customize
-// model Post {
-//   id          String   @id @default(uuid())
-//   title       String
-//   content     String?
-//   published   Boolean  @default(false)
-//   authorId    String   @map("author_id")
-//   author      User     @relation(fields: [authorId], references: [id])
-//   createdAt   DateTime @default(now()) @map("created_at")
-//   updatedAt   DateTime @updatedAt @map("updated_at")
-//
-//   @@index([authorId])
-//   @@map("posts")
-// }
+/// FAQ category for organizing questions
+model FaqCategory {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  order     Int      @default(0)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  faqs      Faq[]
+
+  @@index([slug])
+  @@index([isActive])
+  @@map("faq_categories")
+}
+
+/// Frequently asked questions
+model Faq {
+  id         String       @id @default(uuid())
+  categoryId String?      @map("category_id")
+  question   String
+  answer     String       @db.Text
+  order      Int          @default(0)
+  isActive   Boolean      @default(true) @map("is_active")
+  createdAt  DateTime     @default(now()) @map("created_at")
+  updatedAt  DateTime     @updatedAt @map("updated_at")
+
+  category   FaqCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@index([categoryId])
+  @@index([isActive])
+  @@index([order])
+  @@map("faqs")
+}
+
+// ============================================================================
+// ANNOUNCEMENTS
+// ============================================================================
+
+enum AnnouncementType {
+  INFO
+  WARNING
+  SUCCESS
+  PROMO
+}
+
+/// System announcements and banners
+model Announcement {
+  id        String           @id @default(uuid())
+  title     String
+  content   String           @db.Text
+  type      AnnouncementType @default(INFO)
+  startDate DateTime?        @map("start_date")
+  endDate   DateTime?        @map("end_date")
+  isActive  Boolean          @default(true) @map("is_active")
+  isPinned  Boolean          @default(false) @map("is_pinned")
+  createdAt DateTime         @default(now()) @map("created_at")
+  updatedAt DateTime         @updatedAt @map("updated_at")
+
+  @@index([isActive])
+  @@index([startDate])
+  @@index([endDate])
+  @@map("announcements")
+}
+
+// ============================================================================
+// SETTINGS
+// ============================================================================
+
+enum SettingType {
+  STRING
+  NUMBER
+  BOOLEAN
+  JSON
+}
+
+/// Application settings (key-value store)
+model Setting {
+  id          String      @id @default(uuid())
+  key         String      @unique
+  value       String      @db.Text
+  type        SettingType @default(STRING)
+  description String?
+  isPublic    Boolean     @default(false) @map("is_public")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  @@index([key])
+  @@index([isPublic])
+  @@map("settings")
+}
+
+// ============================================================================
+// CMS / CONTENT PAGES
+// ============================================================================
+
+/// Static content pages managed via CMS
+model ContentPage {
+  id          String   @id @default(uuid())
+  slug        String   @unique
+  title       String
+  content     String   @db.Text
+  metaTitle   String?  @map("meta_title")
+  metaDesc    String?  @map("meta_description")
+  isPublished Boolean  @default(false) @map("is_published")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([slug])
+  @@index([isPublished])
+  @@map("content_pages")
+}

@@ -7,7 +7,8 @@
 // ATOMS (Basic building blocks - single HTML elements with styling)
 //   - Button, Input, Textarea, Checkbox, Radio, Select, Switch
 //   - Badge, Spinner, Skeleton, Label, Icon, AppLink, Kbd, Text, Divider
-//   - VisuallyHidden
+//   - VisuallyHidden, Card (with Header, Title, Description, Content, Footer)
+//   - Table (with Header, Body, Footer, Row, Head, Cell, Caption)
 //
 // MOLECULES (Combinations of atoms forming simple functional units)
 //   - Avatar, NavLink, IconButton, MenuItem, FieldWrapper, StatusBadge
@@ -15,7 +16,7 @@
 //   - ConfirmButton, ExportButton, Autocomplete, TagInput, QRCode, AvatarUpload
 //
 // ORGANISMS (Complex components with multiple molecules/atoms)
-//   - Dialog (with Header, Body, Footer)
+//   - Dialog (with Header, Body, Footer), Modal (simplified Dialog wrapper)
 //   - Tabs (with TabList, Tab, TabPanels, TabPanel)
 //   - Accordion (with Item, Trigger, Content)
 //
@@ -127,6 +128,47 @@ export type { KbdProps } from "./kbd";
 export { VisuallyHidden } from "./visually-hidden";
 export type { VisuallyHiddenProps } from "./visually-hidden";
 
+// Card - Container with border, shadow, and rounded corners
+export {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+} from "./card";
+export type {
+  CardProps,
+  CardVariant,
+  CardHeaderProps,
+  CardTitleProps,
+  CardDescriptionProps,
+  CardContentProps,
+  CardFooterProps,
+} from "./card";
+
+// Table - Data table components
+export {
+  Table,
+  TableHeader,
+  TableBody,
+  TableFooter,
+  TableRow,
+  TableHead,
+  TableCell,
+  TableCaption,
+} from "./table";
+export type {
+  TableProps,
+  TableHeaderProps,
+  TableBodyProps,
+  TableFooterProps,
+  TableRowProps,
+  TableHeadProps,
+  TableCellProps,
+  TableCaptionProps,
+} from "./table";
+
 // =============================================================================
 // MOLECULES - Simple Combinations of Atoms
 // =============================================================================
@@ -232,6 +274,10 @@ export type {
   DialogFooterProps,
   DialogSize,
 } from "./dialog";
+
+// Modal - Simplified dialog wrapper for common modal use cases
+export { Modal } from "./modal";
+export type { ModalProps, ModalSize } from "./modal";
 
 // Tabs - Tabbed content navigation
 export { Tabs, TabList, Tab, TabPanels, TabPanel } from "./tabs";

@@ -40,6 +40,26 @@ const adminNavItems = [
     iconName: "Mail" as const,
   },
   {
+    href: "/admin/faqs",
+    label: "FAQs",
+    iconName: "Info" as const,
+  },
+  {
+    href: "/admin/announcements",
+    label: "Announcements",
+    iconName: "Bell" as const,
+  },
+  {
+    href: "/admin/content",
+    label: "Content Pages",
+    iconName: "FileText" as const,
+  },
+  {
+    href: "/admin/settings",
+    label: "Settings",
+    iconName: "Settings" as const,
+  },
+  {
     href: "/admin/audit-logs",
     label: "Audit Logs",
     iconName: "ClipboardList" as const,
