@@ -191,13 +191,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
                 AppSpacing.gapSm,
 
-                // Forgot password link
+                // Forgot password link - increased tap target for better accessibility
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
                     onPressed: authState.isLoading
                         ? null
                         : () => context.go(Routes.forgotPassword),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      minimumSize: const Size(48, 44), // Minimum 44px touch target
+                    ),
                     child: const Text(
                       'Forgot password?',
                       style: TextStyle(

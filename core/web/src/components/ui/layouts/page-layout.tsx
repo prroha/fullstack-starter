@@ -82,10 +82,13 @@ function SidebarToggle({
         "text-muted-foreground hover:text-foreground",
         "hover:bg-accent transition-colors",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+        // Visual hint: subtle indicator when sidebar has content
+        "relative",
         className
       )}
-      aria-label={isSidebarOpen ? "Close sidebar" : "Open sidebar"}
+      aria-label={isSidebarOpen ? "Close navigation menu" : "Open navigation menu"}
       aria-expanded={isSidebarOpen}
+      aria-controls="page-layout-sidebar"
       {...props}
     >
       {isSidebarOpen ? (
@@ -184,6 +187,9 @@ function PageLayout({
 
               {/* Sidebar container */}
               <aside
+                id="page-layout-sidebar"
+                role="navigation"
+                aria-label="Main navigation"
                 className={cn(
                   "bg-background border-border flex-shrink-0",
                   // Desktop: static sidebar

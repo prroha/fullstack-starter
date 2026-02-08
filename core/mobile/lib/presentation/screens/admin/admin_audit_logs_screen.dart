@@ -708,7 +708,7 @@ class _AdminAuditLogsScreenState extends ConsumerState<AdminAuditLogsScreen> {
       ),
       body: Column(
         children: [
-          // Search
+          // Search - with proper keyboard action and clear button visibility
           Container(
             color: AppColors.surface,
             padding: const EdgeInsets.all(16),
@@ -727,6 +727,7 @@ class _AdminAuditLogsScreenState extends ConsumerState<AdminAuditLogsScreen> {
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
                         icon: const Icon(Icons.clear),
+                        tooltip: 'Clear search',
                         onPressed: () {
                           _searchController.clear();
                           ref
@@ -736,9 +737,14 @@ class _AdminAuditLogsScreenState extends ConsumerState<AdminAuditLogsScreen> {
                       )
                     : null,
               ),
+              onChanged: (value) {
+                // Update UI to show/hide clear button
+                setState(() {});
+              },
               onSubmitted: (value) {
                 ref.read(adminAuditLogsProvider.notifier).setSearch(value);
               },
+              textInputAction: TextInputAction.search,
             ),
           ),
           // Active filters indicator

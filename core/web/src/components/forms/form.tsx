@@ -207,17 +207,25 @@ interface UseZodFormProps<T extends z.ZodType> {
   schema: T;
   defaultValues?: Partial<z.infer<T>>;
   mode?: "onSubmit" | "onChange" | "onBlur" | "onTouched" | "all";
+  reValidateMode?: "onChange" | "onBlur" | "onSubmit";
 }
 
 function useZodForm<T extends z.ZodType>({
   schema,
   defaultValues,
-  mode = "onSubmit",
+  // "onBlur" provides immediate feedback when user leaves a field, which is better UX
+  // than waiting for form submission. Users see validation errors right away while
+  // the context of what they entered is still fresh in their mind.
+  mode = "onBlur",
+  // "onChange" for reValidateMode clears errors as the user types corrections,
+  // providing responsive feedback that their fix is working.
+  reValidateMode = "onChange",
 }: UseZodFormProps<T>) {
   return useForm<z.infer<T>>({
     resolver: zodResolver(schema),
     defaultValues: defaultValues as z.infer<T>,
     mode,
+    reValidateMode,
   });
 }
 

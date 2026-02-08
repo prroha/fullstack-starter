@@ -584,31 +584,120 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Widget _buildChangePasswordLink() {
-    return Column(
-      children: [
-        TextButton(
-          onPressed: () => context.go(Routes.changePassword),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.lock_outline, size: 20),
-              AppSpacing.gapHSm,
-              const Text('Change Password'),
-            ],
+    return Container(
+      padding: AppSpacing.cardContentPadding,
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: AppSpacing.borderRadiusMd,
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.black.withAlpha(13),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
-        ),
-        TextButton(
-          onPressed: () => context.go(Routes.settings),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.settings_outlined, size: 20),
-              AppSpacing.gapHSm,
-              const Text('Settings'),
-            ],
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Quick Actions',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
           ),
-        ),
-      ],
+          AppSpacing.gapMd,
+          // Change password - full width list tile style for better discoverability
+          InkWell(
+            onTap: () => context.go(Routes.changePassword),
+            borderRadius: AppSpacing.borderRadiusSm,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withAlpha(25),
+                      borderRadius: AppSpacing.borderRadiusSm,
+                    ),
+                    child: const Icon(Icons.lock_outline, size: 20, color: AppColors.primary),
+                  ),
+                  AppSpacing.gapHMd,
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Change Password',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        Text(
+                          'Update your account password',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+                ],
+              ),
+            ),
+          ),
+          const Divider(height: 1),
+          // Settings - full width list tile style
+          InkWell(
+            onTap: () => context.go(Routes.settings),
+            borderRadius: AppSpacing.borderRadiusSm,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.secondary.withAlpha(25),
+                      borderRadius: AppSpacing.borderRadiusSm,
+                    ),
+                    child: const Icon(Icons.settings_outlined, size: 20, color: AppColors.secondary),
+                  ),
+                  AppSpacing.gapHMd,
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Settings',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        Text(
+                          'Manage app preferences',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

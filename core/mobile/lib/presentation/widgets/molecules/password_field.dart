@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
+import 'password_strength.dart';
 
 /// A password text field with show/hide toggle functionality.
 ///
@@ -14,6 +15,18 @@ import '../../../core/theme/app_spacing.dart';
 ///   label: 'Password',
 ///   hint: 'Enter your password',
 ///   validator: (value) => value?.isEmpty ?? true ? 'Required' : null,
+/// )
+/// ```
+///
+/// With strength meter:
+/// ```dart
+/// PasswordField(
+///   controller: passwordController,
+///   label: 'Password',
+///   showStrength: true,
+///   onStrengthChange: (strength) {
+///     print('Password strength: ${strength.label}');
+///   },
 /// )
 /// ```
 class PasswordField extends StatefulWidget {
@@ -56,6 +69,18 @@ class PasswordField extends StatefulWidget {
   /// Helper text displayed below the field.
   final String? helperText;
 
+  /// Whether to show the password strength meter.
+  final bool showStrength;
+
+  /// Minimum length for password strength evaluation (default: 8).
+  final int strengthMinLength;
+
+  /// Whether to show the requirements checklist (default: true).
+  final bool showStrengthRequirements;
+
+  /// Callback when password strength changes.
+  final ValueChanged<PasswordStrength>? onStrengthChange;
+
   const PasswordField({
     super.key,
     this.controller,
@@ -71,6 +96,10 @@ class PasswordField extends StatefulWidget {
     this.focusNode,
     this.prefixIcon = Icons.lock_outline,
     this.helperText,
+    this.showStrength = false,
+    this.strengthMinLength = 8,
+    this.showStrengthRequirements = true,
+    this.onStrengthChange,
   });
 
   @override
@@ -79,11 +108,50 @@ class PasswordField extends StatefulWidget {
 
 class _PasswordFieldState extends State<PasswordField> {
   bool _obscureText = true;
+  String _currentPassword = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _currentPassword = widget.controller?.text ?? '';
+    widget.controller?.addListener(_onControllerChanged);
+  }
+
+  @override
+  void didUpdateWidget(PasswordField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller?.removeListener(_onControllerChanged);
+      widget.controller?.addListener(_onControllerChanged);
+      _currentPassword = widget.controller?.text ?? '';
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.controller?.removeListener(_onControllerChanged);
+    super.dispose();
+  }
+
+  void _onControllerChanged() {
+    if (mounted) {
+      setState(() {
+        _currentPassword = widget.controller?.text ?? '';
+      });
+    }
+  }
 
   void _toggleVisibility() {
     setState(() {
       _obscureText = !_obscureText;
     });
+  }
+
+  void _handleChanged(String value) {
+    setState(() {
+      _currentPassword = value;
+    });
+    widget.onChanged?.call(value);
   }
 
   @override
@@ -107,7 +175,7 @@ class _PasswordFieldState extends State<PasswordField> {
           obscureText: _obscureText,
           keyboardType: TextInputType.visiblePassword,
           textInputAction: widget.textInputAction,
-          onChanged: widget.onChanged,
+          onChanged: _handleChanged,
           onFieldSubmitted: widget.onSubmitted,
           validator: widget.validator,
           enabled: widget.enabled,
@@ -124,7 +192,7 @@ class _PasswordFieldState extends State<PasswordField> {
               fontSize: 15,
             ),
             errorText: widget.errorText,
-            helperText: widget.helperText,
+            helperText: widget.showStrength ? null : widget.helperText,
             helperStyle: const TextStyle(
               color: AppColors.textMuted,
               fontSize: 11,
@@ -178,6 +246,15 @@ class _PasswordFieldState extends State<PasswordField> {
             ),
           ),
         ),
+        if (widget.showStrength) ...[
+          const SizedBox(height: AppSpacing.md),
+          PasswordStrengthMeter(
+            password: _currentPassword,
+            minLength: widget.strengthMinLength,
+            showRequirements: widget.showStrengthRequirements,
+            onStrengthChange: widget.onStrengthChange,
+          ),
+        ],
       ],
     );
   }

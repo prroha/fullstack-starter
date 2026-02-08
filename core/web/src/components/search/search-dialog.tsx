@@ -77,7 +77,13 @@ function RecentSearches({
                 e.stopPropagation();
                 onRemove(search);
               }}
-              className="opacity-0 group-hover:opacity-100 p-1 hover:bg-background rounded transition-all"
+              className={cn(
+                "min-h-[44px] min-w-[44px] flex items-center justify-center",
+                "rounded transition-all",
+                "opacity-50 hover:opacity-100 hover:bg-background",
+                "sm:opacity-0 sm:group-hover:opacity-100",
+                "focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              )}
               aria-label={`Remove "${search}" from recent searches`}
             >
               <svg
@@ -267,12 +273,19 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
         {/* Footer */}
         <div className="p-3 border-t border-border bg-muted/50">
           <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center justify-center gap-4">
               <span className="flex items-center gap-1">
-                <kbd className="px-1.5 py-0.5 bg-background border rounded text-[10px]">
-                  Esc
-                </kbd>
-                <span>to close</span>
+                <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px] font-mono">↑</kbd>
+                <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px] font-mono">↓</kbd>
+                <span>navigate</span>
+              </span>
+              <span className="flex items-center gap-1">
+                <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px] font-mono">↵</kbd>
+                <span>select</span>
+              </span>
+              <span className="flex items-center gap-1">
+                <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px] font-mono">esc</kbd>
+                <span>close</span>
               </span>
             </div>
             <span>

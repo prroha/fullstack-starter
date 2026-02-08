@@ -239,22 +239,34 @@ class _AppErrorScreenState extends State<AppErrorScreen> {
               ],
               AppSpacing.gapXl,
 
-              // Action buttons
-              AppButton(
-                label: 'Try Again',
-                onPressed: widget.onRetry,
-                variant: AppButtonVariant.primary,
-                isFullWidth: true,
-                icon: Icons.refresh_rounded,
-              ),
-              AppSpacing.gapSm,
-              AppButton(
-                label: 'Go Home',
-                onPressed: widget.onGoHome ?? () => context.go(Routes.home),
-                variant: AppButtonVariant.outline,
-                isFullWidth: true,
-                icon: Icons.home_rounded,
-              ),
+              // Action buttons - Primary action should be most likely next step
+              // If there's a retry option, that's usually what users want
+              if (widget.onRetry != null) ...[
+                AppButton(
+                  label: 'Try Again',
+                  onPressed: widget.onRetry,
+                  variant: AppButtonVariant.primary,
+                  isFullWidth: true,
+                  icon: Icons.refresh_rounded,
+                ),
+                AppSpacing.gapSm,
+                AppButton(
+                  label: 'Go Home',
+                  onPressed: widget.onGoHome ?? () => context.go(Routes.home),
+                  variant: AppButtonVariant.outline,
+                  isFullWidth: true,
+                  icon: Icons.home_rounded,
+                ),
+              ] else ...[
+                // No retry - Go Home becomes primary
+                AppButton(
+                  label: 'Go Home',
+                  onPressed: widget.onGoHome ?? () => context.go(Routes.home),
+                  variant: AppButtonVariant.primary,
+                  isFullWidth: true,
+                  icon: Icons.home_rounded,
+                ),
+              ],
 
               // Debug mode indicator
               AppSpacing.gapXl,

@@ -148,15 +148,22 @@ function NotificationItem({
         )}
       </div>
 
-      {/* Actions (shown on hover) */}
-      <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+      {/* Actions (shown on hover, always visible on touch devices) */}
+      <div
+        className={cn(
+          "absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 transition-opacity",
+          "opacity-50 hover:opacity-100",
+          "sm:opacity-0 sm:group-hover:opacity-100",
+          "focus-within:opacity-100"
+        )}
+      >
         {!notification.read && onMarkAsRead && (
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7"
+            className="min-h-[44px] min-w-[44px] h-11 w-11 sm:h-7 sm:w-7 focus:ring-2 focus:ring-ring focus:ring-offset-2"
             onClick={handleMarkAsRead}
-            title="Mark as read"
+            aria-label="Mark as read"
           >
             <Check className="h-4 w-4" />
           </Button>
@@ -165,9 +172,9 @@ function NotificationItem({
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7 text-muted-foreground hover:text-destructive"
+            className="min-h-[44px] min-w-[44px] h-11 w-11 sm:h-7 sm:w-7 text-muted-foreground hover:text-destructive focus:ring-2 focus:ring-ring focus:ring-offset-2"
             onClick={handleDelete}
-            title="Delete"
+            aria-label="Delete notification"
           >
             <X className="h-4 w-4" />
           </Button>

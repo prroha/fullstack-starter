@@ -377,8 +377,8 @@ function ResizableSplitLayout({
           className={cn(
             "flex-shrink-0 relative group",
             stackOnMobile
-              ? `hidden ${mobileBreakpoint}:flex items-center justify-center w-1`
-              : "flex items-center justify-center w-1",
+              ? `hidden ${mobileBreakpoint}:flex items-center justify-center w-2`
+              : "flex items-center justify-center w-2",
             "cursor-col-resize hover:bg-primary/10 transition-colors",
             isDragging && "bg-primary/20"
           )}
@@ -386,12 +386,14 @@ function ResizableSplitLayout({
           onTouchStart={handleTouchStart}
           role="separator"
           aria-orientation="vertical"
-          aria-valuenow={ratio}
+          aria-valuenow={Math.round(ratio)}
           aria-valuemin={0}
           aria-valuemax={100}
+          aria-label="Resize panels. Use left and right arrow keys to adjust."
           tabIndex={0}
           onKeyDown={(e) => {
             if (e.key === "ArrowLeft") {
+              e.preventDefault();
               const newRatio = Math.max(
                 (minLeftWidth / (containerRef.current?.offsetWidth || 1000)) * 100,
                 ratio - 5
@@ -399,6 +401,7 @@ function ResizableSplitLayout({
               setRatio(newRatio);
               onRatioChange?.(newRatio);
             } else if (e.key === "ArrowRight") {
+              e.preventDefault();
               const newRatio = Math.min(
                 100 - (minRightWidth / (containerRef.current?.offsetWidth || 1000)) * 100,
                 ratio + 5
@@ -416,14 +419,31 @@ function ResizableSplitLayout({
               isDragging && "bg-primary"
             )}
           />
-          {/* Drag handle indicator */}
+          {/* Drag handle indicator - More visible grip pattern */}
           <div
             className={cn(
-              "absolute top-1/2 -translate-y-1/2 w-1 h-8 rounded-full",
-              "bg-muted-foreground/20 group-hover:bg-primary/50 transition-colors",
-              isDragging && "bg-primary"
+              "absolute top-1/2 -translate-y-1/2 flex flex-col gap-1 items-center",
+              "opacity-40 group-hover:opacity-100 transition-opacity",
+              isDragging && "opacity-100"
             )}
-          />
+          >
+            {/* Grip dots for better discoverability */}
+            <div className={cn(
+              "w-1 h-1 rounded-full bg-muted-foreground",
+              "group-hover:bg-primary transition-colors",
+              isDragging && "bg-primary"
+            )} />
+            <div className={cn(
+              "w-1 h-1 rounded-full bg-muted-foreground",
+              "group-hover:bg-primary transition-colors",
+              isDragging && "bg-primary"
+            )} />
+            <div className={cn(
+              "w-1 h-1 rounded-full bg-muted-foreground",
+              "group-hover:bg-primary transition-colors",
+              isDragging && "bg-primary"
+            )} />
+          </div>
         </div>
       )}
 

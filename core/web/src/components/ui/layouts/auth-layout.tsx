@@ -61,12 +61,14 @@ function AuthLayout({
       {/* Background Pattern */}
       {showBackgroundPattern && <BackgroundPattern />}
 
-      {/* Auth Card Container */}
-      <div
+      {/* Auth Card Container - Using main for semantic structure */}
+      <main
         className={cn(
           "relative z-10 w-full",
           maxWidthClasses[maxWidth]
         )}
+        role="main"
+        aria-labelledby="auth-title"
       >
         {/* Logo */}
         {logo && (
@@ -85,7 +87,10 @@ function AuthLayout({
         >
           {/* Header */}
           <div className="text-center mb-4">
-            <h1 className="text-2xl font-bold tracking-tight text-card-foreground">
+            <h1
+              id="auth-title"
+              className="text-2xl font-bold tracking-tight text-card-foreground"
+            >
               {title}
             </h1>
             {subtitle && (
@@ -101,13 +106,22 @@ function AuthLayout({
           </div>
         </div>
 
-        {/* Footer */}
+        {/* Footer - Enhanced visibility for navigation links */}
         {footer && (
-          <div className="mt-4 text-center text-sm text-muted-foreground">
+          <nav
+            aria-label="Authentication navigation"
+            className={cn(
+              "mt-4 text-center text-sm",
+              // Slightly more visible than muted but still secondary
+              "text-muted-foreground",
+              // Links within footer should be more discoverable
+              "[&_a]:text-foreground [&_a]:underline-offset-4 [&_a]:hover:underline [&_a]:focus-visible:outline-none [&_a]:focus-visible:ring-2 [&_a]:focus-visible:ring-ring [&_a]:focus-visible:ring-offset-2 [&_a]:rounded-sm"
+            )}
+          >
             {footer}
-          </div>
+          </nav>
         )}
-      </div>
+      </main>
     </div>
   );
 }

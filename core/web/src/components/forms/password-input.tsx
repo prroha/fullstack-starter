@@ -3,6 +3,10 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 import { Input, type InputProps } from "@/components/ui/input";
+import {
+  PasswordStrengthMeter,
+  type PasswordStrength,
+} from "@/components/ui/password-strength";
 
 // =====================================================
 // Password Input Component
@@ -11,6 +15,14 @@ import { Input, type InputProps } from "@/components/ui/input";
 interface PasswordInputProps extends Omit<InputProps, "type"> {
   showPasswordLabel?: string;
   hidePasswordLabel?: string;
+  /** Whether to show the password strength meter */
+  showStrength?: boolean;
+  /** Minimum length for password strength evaluation (default: 8) */
+  strengthMinLength?: number;
+  /** Whether to show the requirements checklist (default: true) */
+  showStrengthRequirements?: boolean;
+  /** Callback when password strength changes */
+  onStrengthChange?: (strength: PasswordStrength) => void;
 }
 
 const PasswordInput = React.forwardRef<HTMLInputElement, PasswordInputProps>(
@@ -19,41 +31,74 @@ const PasswordInput = React.forwardRef<HTMLInputElement, PasswordInputProps>(
       className,
       showPasswordLabel = "Show password",
       hidePasswordLabel = "Hide password",
+      showStrength = false,
+      strengthMinLength = 8,
+      showStrengthRequirements = true,
+      onStrengthChange,
+      value,
+      defaultValue,
+      onChange,
       ...props
     },
     ref
   ) => {
     const [showPassword, setShowPassword] = React.useState(false);
+    const [internalValue, setInternalValue] = React.useState(
+      (defaultValue as string) || ""
+    );
+
+    // Track the current password value for strength meter
+    const passwordValue = value !== undefined ? String(value) : internalValue;
 
     const toggleVisibility = () => {
       setShowPassword((prev) => !prev);
     };
 
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (value === undefined) {
+        setInternalValue(e.target.value);
+      }
+      onChange?.(e);
+    };
+
     return (
-      <div className="relative">
-        <Input
-          type={showPassword ? "text" : "password"}
-          className={cn("pr-10", className)}
-          ref={ref}
-          {...props}
-        />
-        <button
-          type="button"
-          onClick={toggleVisibility}
-          className={cn(
-            "absolute right-0 top-0 h-full px-3",
-            "text-muted-foreground hover:text-foreground",
-            "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-            "rounded-r-md transition-colors"
-          )}
-          aria-label={showPassword ? hidePasswordLabel : showPasswordLabel}
-        >
-          {showPassword ? (
-            <EyeOffIcon className="h-4 w-4" aria-hidden="true" />
-          ) : (
-            <EyeIcon className="h-4 w-4" aria-hidden="true" />
-          )}
-        </button>
+      <div className="space-y-3">
+        <div className="relative">
+          <Input
+            type={showPassword ? "text" : "password"}
+            className={cn("pr-10", className)}
+            ref={ref}
+            value={value}
+            defaultValue={value === undefined ? defaultValue : undefined}
+            onChange={handleChange}
+            {...props}
+          />
+          <button
+            type="button"
+            onClick={toggleVisibility}
+            className={cn(
+              "absolute right-0 top-0 h-full px-3",
+              "text-muted-foreground hover:text-foreground",
+              "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+              "rounded-r-md transition-colors"
+            )}
+            aria-label={showPassword ? hidePasswordLabel : showPasswordLabel}
+          >
+            {showPassword ? (
+              <EyeOffIcon className="h-4 w-4" aria-hidden="true" />
+            ) : (
+              <EyeIcon className="h-4 w-4" aria-hidden="true" />
+            )}
+          </button>
+        </div>
+        {showStrength && (
+          <PasswordStrengthMeter
+            password={passwordValue}
+            minLength={strengthMinLength}
+            showRequirements={showStrengthRequirements}
+            onStrengthChange={onStrengthChange}
+          />
+        )}
       </div>
     );
   }

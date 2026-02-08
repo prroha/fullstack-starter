@@ -249,19 +249,35 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
           textAlign: TextAlign.center,
         ),
         AppSpacing.gapXl,
+        // Primary action - most likely next step
         AppButton(
           label: 'Go to sign in',
           onPressed: () => context.go(Routes.login),
           isFullWidth: true,
         ),
         AppSpacing.gapMd,
-        Text(
-          'Need a new verification link? Sign in and request a new one.',
-          style: TextStyle(
-            fontSize: 14,
-            color: AppColors.textSecondary.withAlpha(180),
+        // Helper text with clear instructions
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: AppColors.info.withAlpha(25),
+            borderRadius: AppSpacing.borderRadiusSm,
           ),
-          textAlign: TextAlign.center,
+          child: Row(
+            children: [
+              const Icon(Icons.info_outline, color: AppColors.info, size: 20),
+              AppSpacing.gapHSm,
+              const Expanded(
+                child: Text(
+                  'Need a new verification link? Sign in and request a new one from your profile.',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );

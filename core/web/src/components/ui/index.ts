@@ -6,6 +6,10 @@
 export { Button } from "./button";
 export type { ButtonProps } from "./button";
 
+// ConfirmButton
+export { ConfirmButton } from "./confirm-button";
+export type { ConfirmButtonProps, ConfirmMode } from "./confirm-button";
+
 // Checkbox
 export { Checkbox } from "./checkbox";
 export type { CheckboxProps } from "./checkbox";
@@ -134,6 +138,18 @@ export type { TagInputProps } from "./tag-input";
 // QRCode
 export { QRCode } from "./qr-code";
 export type { QRCodeProps, ErrorCorrectionLevel, DownloadFormat } from "./qr-code";
+
+// Password Strength
+export { PasswordStrengthMeter } from "./password-strength";
+export type {
+  PasswordStrengthMeterProps,
+  PasswordStrength,
+  PasswordRequirement,
+} from "./password-strength";
+
+// Kbd (Keyboard Key)
+export { Kbd } from "./kbd";
+export type { KbdProps } from "./kbd";
 
 // =====================================================
 // Layout Components

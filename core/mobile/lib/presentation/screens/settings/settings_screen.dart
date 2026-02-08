@@ -461,7 +461,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
           const SizedBox(height: AppSpacing.lg),
 
-          // Account Section
+          // Account Section - destructive actions with clear visual distinction
           SettingsSection(
             title: 'Account',
             description: 'Manage your account',
@@ -472,6 +472,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 description: 'Sign out of your account',
                 onTap: () => _handleLogout(context),
               ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.lg),
+
+          // Danger Zone - separated for clear visual hierarchy
+          SettingsSection(
+            title: 'Danger Zone',
+            description: 'Irreversible actions',
+            children: [
               SettingsItem(
                 icon: Icons.delete_forever_outlined,
                 label: 'Delete Account',

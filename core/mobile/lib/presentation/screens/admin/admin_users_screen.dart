@@ -112,30 +112,49 @@ class UserListItem extends StatelessWidget {
               ),
             ),
             AppSpacing.gapMd,
-            // Actions
+            // Actions - Edit is primary, status toggle is secondary
+            // Deactivate uses warning color to indicate destructive action
             Row(
               children: [
                 Expanded(
                   child: AppButton(
                     label: 'Edit',
                     onPressed: isUpdating ? null : onEdit,
-                    variant: AppButtonVariant.outline,
+                    variant: AppButtonVariant.primary,
                     size: AppButtonSize.small,
                     icon: Icons.edit,
                   ),
                 ),
                 AppSpacing.gapHMd,
                 Expanded(
-                  child: AppButton(
-                    label: user.isActive ? 'Deactivate' : 'Activate',
-                    onPressed: isUpdating ? null : onToggleStatus,
-                    variant: user.isActive
-                        ? AppButtonVariant.outline
-                        : AppButtonVariant.primary,
-                    size: AppButtonSize.small,
-                    icon: user.isActive ? Icons.block : Icons.check_circle,
-                    isLoading: isUpdating,
-                  ),
+                  child: user.isActive
+                      ? OutlinedButton.icon(
+                          onPressed: isUpdating ? null : onToggleStatus,
+                          icon: isUpdating
+                              ? const SizedBox(
+                                  width: 14,
+                                  height: 14,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : const Icon(Icons.block, size: 14),
+                          label: const Text('Deactivate', style: TextStyle(fontSize: 12)),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.error,
+                            side: const BorderSide(color: AppColors.error),
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: AppSpacing.borderRadiusMd,
+                            ),
+                          ),
+                        )
+                      : AppButton(
+                          label: 'Activate',
+                          onPressed: isUpdating ? null : onToggleStatus,
+                          variant: AppButtonVariant.secondary,
+                          size: AppButtonSize.small,
+                          icon: Icons.check_circle,
+                          isLoading: isUpdating,
+                        ),
                 ),
               ],
             ),
@@ -425,7 +444,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
-                // Search
+                // Search - with real-time search on text change for better UX
                 TextField(
                   controller: _searchController,
                   decoration: InputDecoration(
@@ -441,6 +460,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                     suffixIcon: _searchController.text.isNotEmpty
                         ? IconButton(
                             icon: const Icon(Icons.clear),
+                            tooltip: 'Clear search',
                             onPressed: () {
                               _searchController.clear();
                               ref
@@ -450,9 +470,14 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                           )
                         : null,
                   ),
+                  onChanged: (value) {
+                    // Update UI to show/hide clear button
+                    setState(() {});
+                  },
                   onSubmitted: (value) {
                     ref.read(adminUsersProvider.notifier).setSearch(value);
                   },
+                  textInputAction: TextInputAction.search,
                 ),
                 AppSpacing.gapMd,
                 // Filters

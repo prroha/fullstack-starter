@@ -160,6 +160,20 @@ function DashboardLayout({
 
   return (
     <div className={cn("min-h-screen bg-background", className)}>
+      {/* Skip to main content link for accessibility */}
+      <a
+        href="#dashboard-main-content"
+        className={cn(
+          "sr-only focus:not-sr-only",
+          "fixed top-2 left-1/2 -translate-x-1/2 z-[60]",
+          "px-4 py-2 rounded-md",
+          "bg-primary text-primary-foreground",
+          "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+        )}
+      >
+        Skip to main content
+      </a>
+
       {/* Mobile Menu Button - Only visible on mobile */}
       <button
         type="button"
@@ -167,13 +181,14 @@ function DashboardLayout({
         className={cn(
           "fixed top-4 left-4 z-50 md:hidden",
           "p-2 rounded-md",
-          "bg-background border border-border",
+          "bg-background border border-border shadow-sm",
           "text-foreground hover:bg-accent",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
           "transition-colors"
         )}
-        aria-label={showMobileMenu ? "Close menu" : "Open menu"}
+        aria-label={showMobileMenu ? "Close navigation menu" : "Open navigation menu"}
         aria-expanded={showMobileMenu}
+        aria-controls="dashboard-mobile-sidebar"
       >
         {showMobileMenu ? (
           <CloseIcon className="h-5 w-5" />
@@ -193,6 +208,8 @@ function DashboardLayout({
 
       {/* Sidebar - Desktop */}
       <aside
+        role="navigation"
+        aria-label="Main navigation"
         className={cn(
           "fixed top-0 left-0 z-30 h-screen",
           "hidden md:flex flex-col",
@@ -206,20 +223,23 @@ function DashboardLayout({
           {sidebar}
         </div>
 
-        {/* Collapse Toggle Button */}
+        {/* Collapse Toggle Button - Enhanced visibility */}
         {onSidebarToggle && (
           <button
             type="button"
             onClick={onSidebarToggle}
             className={cn(
               "absolute -right-3 top-1/2 -translate-y-1/2",
-              "p-1 rounded-full",
+              "p-1.5 rounded-full",
               "bg-card border border-border",
               "text-muted-foreground hover:text-foreground hover:bg-accent",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              "transition-colors shadow-sm"
+              "transition-all shadow-md hover:shadow-lg",
+              // Improved discoverability: slightly larger hit area and more visible
+              "hover:scale-110"
             )}
             aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
             {sidebarCollapsed ? (
               <ChevronRightIcon className="h-4 w-4" />
@@ -232,6 +252,9 @@ function DashboardLayout({
 
       {/* Sidebar - Mobile (Drawer) */}
       <aside
+        id="dashboard-mobile-sidebar"
+        role="navigation"
+        aria-label="Main navigation"
         className={cn(
           "fixed top-0 left-0 z-40 h-screen w-[280px]",
           "flex md:hidden flex-col",
@@ -283,7 +306,7 @@ function DashboardLayout({
         )}
 
         {/* Main Content - Scrollable */}
-        <main className="flex-1 overflow-y-auto">{children}</main>
+        <main id="dashboard-main-content" className="flex-1 overflow-y-auto">{children}</main>
       </div>
     </div>
   );
@@ -368,6 +391,9 @@ function DashboardNavItem({
     className
   );
 
+  // Extract text content for tooltip when collapsed
+  const textContent = typeof children === "string" ? children : "";
+
   const content = (
     <>
       {icon && <span className="flex-shrink-0">{icon}</span>}
@@ -375,16 +401,30 @@ function DashboardNavItem({
     </>
   );
 
+  // Common props for tooltip when collapsed
+  const tooltipProps = collapsed && textContent ? { title: textContent } : {};
+
   if (href) {
     return (
-      <a href={href} className={baseClasses}>
+      <a
+        href={href}
+        className={baseClasses}
+        aria-current={active ? "page" : undefined}
+        {...tooltipProps}
+      >
         {content}
       </a>
     );
   }
 
   return (
-    <button type="button" className={baseClasses} {...props}>
+    <button
+      type="button"
+      className={baseClasses}
+      aria-current={active ? "true" : undefined}
+      {...tooltipProps}
+      {...props}
+    >
       {content}
     </button>
   );

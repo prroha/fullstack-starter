@@ -5,11 +5,11 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/theme_provider.dart';
 import '../../router/routes.dart';
 import '../../widgets/atoms/app_button.dart';
 import '../../widgets/molecules/app_snackbar.dart';
 import '../../widgets/molecules/email_verification_banner.dart';
-import '../../widgets/molecules/theme_toggle.dart';
 import '../../widgets/notifications/notification_bell.dart';
 
 /// Home screen with user info and logout functionality
@@ -64,23 +64,10 @@ class HomeScreen extends ConsumerWidget {
         centerTitle: true,
         elevation: 0,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () => context.push(Routes.search),
-            tooltip: 'Search',
-          ),
+          // Notifications bell - time-sensitive, kept prominent
           const NotificationBell(),
-          const ThemeToggle(variant: ThemeToggleVariant.icon),
-          IconButton(
-            icon: const Icon(Icons.person_outline),
-            onPressed: () => context.go(Routes.profile),
-            tooltip: 'Profile',
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings_outlined),
-            onPressed: () => context.go(Routes.settings),
-            tooltip: 'Settings',
-          ),
+          // User menu - consolidates Profile, Settings, Theme, Logout
+          _UserMenu(onLogout: () => _handleLogout(context, ref)),
         ],
       ),
       body: SafeArea(
@@ -186,13 +173,19 @@ class HomeScreen extends ConsumerWidget {
 
                     const Spacer(),
 
-                    // Logout button
-                    AppButton(
-                      label: 'Logout',
+                    // Logout button - styled as text button to be less prominent
+                    // keeping it accessible but not encouraging accidental taps
+                    TextButton.icon(
                       onPressed: () => _handleLogout(context, ref),
-                      variant: AppButtonVariant.outline,
-                      isFullWidth: true,
-                      icon: Icons.logout,
+                      icon: Icon(Icons.logout, color: colorScheme.error),
+                      label: Text(
+                        'Logout',
+                        style: TextStyle(color: colorScheme.error),
+                      ),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        minimumSize: const Size(double.infinity, 48),
+                      ),
                     ),
                     AppSpacing.gapMd,
                   ],
@@ -202,6 +195,117 @@ class HomeScreen extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// User menu popup that consolidates Profile, Settings, Theme, and Logout
+/// Reduces cognitive load by grouping related actions (Hick's Law)
+class _UserMenu extends ConsumerWidget {
+  final VoidCallback onLogout;
+
+  const _UserMenu({required this.onLogout});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    // Get user initial for avatar
+    final userInitial = authState.email?.isNotEmpty == true
+        ? authState.email![0].toUpperCase()
+        : 'U';
+
+    return PopupMenuButton<String>(
+      icon: CircleAvatar(
+        radius: 16,
+        backgroundColor: colorScheme.primaryContainer,
+        child: Text(
+          userInitial,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: colorScheme.onPrimaryContainer,
+          ),
+        ),
+      ),
+      tooltip: 'User menu',
+      offset: const Offset(0, 48),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      itemBuilder: (context) => [
+        // Profile
+        PopupMenuItem<String>(
+          value: 'profile',
+          child: ListTile(
+            leading: const Icon(Icons.person_outline),
+            title: const Text('Profile'),
+            contentPadding: EdgeInsets.zero,
+            dense: true,
+          ),
+        ),
+        // Settings
+        PopupMenuItem<String>(
+          value: 'settings',
+          child: ListTile(
+            leading: const Icon(Icons.settings_outlined),
+            title: const Text('Settings'),
+            contentPadding: EdgeInsets.zero,
+            dense: true,
+          ),
+        ),
+        // Search
+        PopupMenuItem<String>(
+          value: 'search',
+          child: ListTile(
+            leading: const Icon(Icons.search),
+            title: const Text('Search'),
+            contentPadding: EdgeInsets.zero,
+            dense: true,
+          ),
+        ),
+        const PopupMenuDivider(),
+        // Theme toggle
+        PopupMenuItem<String>(
+          value: 'theme',
+          child: ListTile(
+            leading: Icon(isDark ? Icons.light_mode : Icons.dark_mode),
+            title: Text(isDark ? 'Light Mode' : 'Dark Mode'),
+            contentPadding: EdgeInsets.zero,
+            dense: true,
+          ),
+        ),
+        const PopupMenuDivider(),
+        // Logout
+        PopupMenuItem<String>(
+          value: 'logout',
+          child: ListTile(
+            leading: Icon(Icons.logout, color: colorScheme.error),
+            title: Text(
+              'Logout',
+              style: TextStyle(color: colorScheme.error),
+            ),
+            contentPadding: EdgeInsets.zero,
+            dense: true,
+          ),
+        ),
+      ],
+      onSelected: (value) {
+        switch (value) {
+          case 'profile':
+            context.go(Routes.profile);
+          case 'settings':
+            context.go(Routes.settings);
+          case 'search':
+            context.push(Routes.search);
+          case 'theme':
+            ref.read(themeProvider.notifier).toggleTheme(context);
+          case 'logout':
+            onLogout();
+        }
+      },
     );
   }
 }

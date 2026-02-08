@@ -160,7 +160,13 @@ function getColsClasses(cols: ResponsiveValue<number>): string {
 
   const classes: string[] = [];
 
-  if (cols.sm !== undefined) {
+  // Determine the base (mobile-first) column count
+  // Priority: sm > md > lg > xl (use smallest defined breakpoint as base)
+  const baseColCount = cols.sm ?? cols.md ?? cols.lg ?? cols.xl ?? 1;
+  classes.push(colsClassMap[baseColCount] || `grid-cols-${baseColCount}`);
+
+  // Add responsive breakpoint classes (only if different from base or if explicitly set)
+  if (cols.sm !== undefined && cols.sm !== baseColCount) {
     classes.push(smColsClassMap[cols.sm] || `sm:grid-cols-${cols.sm}`);
   }
   if (cols.md !== undefined) {
@@ -171,11 +177,6 @@ function getColsClasses(cols: ResponsiveValue<number>): string {
   }
   if (cols.xl !== undefined) {
     classes.push(xlColsClassMap[cols.xl] || `xl:grid-cols-${cols.xl}`);
-  }
-
-  // Add base class for smallest breakpoint if sm is defined
-  if (cols.sm !== undefined) {
-    classes.unshift(colsClassMap[cols.sm] || `grid-cols-${cols.sm}`);
   }
 
   return classes.join(" ");

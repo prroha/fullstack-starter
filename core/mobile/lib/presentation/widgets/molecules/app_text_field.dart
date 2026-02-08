@@ -3,10 +3,27 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 
+/// Validation mode for the text field.
+///
+/// - [onSubmit]: Validation only occurs when the form is submitted (default Flutter behavior)
+/// - [onBlur]: Validation occurs when the field loses focus, providing immediate feedback
+/// - [onChange]: Validation occurs on every change (can be noisy for the user)
+enum FieldValidationMode {
+  onSubmit,
+  onBlur,
+  onChange,
+}
+
 /// A styled text input field with label, hint, and error support.
 ///
 /// This is a molecule-level widget that combines a label, text input,
 /// and error message into a cohesive form field component.
+///
+/// The [validationMode] parameter controls when validation occurs:
+/// - [FieldValidationMode.onBlur] (default): Validates when the field loses focus,
+///   providing immediate feedback while the context is fresh in the user's mind.
+/// - [FieldValidationMode.onSubmit]: Only validates on form submission.
+/// - [FieldValidationMode.onChange]: Validates on every keystroke.
 ///
 /// Example:
 /// ```dart
@@ -16,9 +33,10 @@ import '../../../core/theme/app_spacing.dart';
 ///   hint: 'Enter your email',
 ///   keyboardType: TextInputType.emailAddress,
 ///   validator: (value) => value?.isEmpty ?? true ? 'Required' : null,
+///   validationMode: FieldValidationMode.onBlur, // Validates on blur (default)
 /// )
 /// ```
-class AppTextField extends StatelessWidget {
+class AppTextField extends StatefulWidget {
   /// Controller for the text field.
   final TextEditingController? controller;
 
@@ -76,6 +94,20 @@ class AppTextField extends StatelessWidget {
   /// Helper text displayed below the field.
   final String? helperText;
 
+  /// Whether to show the character counter below the field.
+  final bool showCharacterCount;
+
+  /// When to trigger validation.
+  /// Default is [FieldValidationMode.onBlur] for better UX - users get immediate
+  /// feedback when they leave a field, while the context of what they entered
+  /// is still fresh in their mind.
+  final FieldValidationMode validationMode;
+
+  /// Whether to clear validation error when the user starts typing.
+  /// Only applies when [validationMode] is [FieldValidationMode.onBlur].
+  /// Default is true for better UX - errors clear as user fixes them.
+  final bool clearErrorOnChange;
+
   const AppTextField({
     super.key,
     this.controller,
@@ -97,16 +129,143 @@ class AppTextField extends StatelessWidget {
     this.initialValue,
     this.maxLength,
     this.helperText,
+    this.showCharacterCount = false,
+    this.validationMode = FieldValidationMode.onBlur,
+    this.clearErrorOnChange = true,
   });
 
   @override
+  State<AppTextField> createState() => _AppTextFieldState();
+}
+
+class _AppTextFieldState extends State<AppTextField> {
+  int _charCount = 0;
+  late FocusNode _focusNode;
+  String? _validationError;
+  bool _hasBeenTouched = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize character count from controller or initial value
+    _charCount = widget.controller?.text.length ?? widget.initialValue?.length ?? 0;
+    widget.controller?.addListener(_onControllerChanged);
+
+    // Set up focus node for onBlur validation
+    _focusNode = widget.focusNode ?? FocusNode();
+    _focusNode.addListener(_onFocusChange);
+  }
+
+  @override
+  void didUpdateWidget(AppTextField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller?.removeListener(_onControllerChanged);
+      widget.controller?.addListener(_onControllerChanged);
+      _charCount = widget.controller?.text.length ?? 0;
+    }
+    if (oldWidget.focusNode != widget.focusNode) {
+      _focusNode.removeListener(_onFocusChange);
+      if (widget.focusNode == null) {
+        _focusNode = FocusNode();
+      } else {
+        _focusNode = widget.focusNode!;
+      }
+      _focusNode.addListener(_onFocusChange);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.controller?.removeListener(_onControllerChanged);
+    _focusNode.removeListener(_onFocusChange);
+    // Only dispose if we created the focus node
+    if (widget.focusNode == null) {
+      _focusNode.dispose();
+    }
+    super.dispose();
+  }
+
+  void _onFocusChange() {
+    // Validate on blur when the field loses focus
+    if (!_focusNode.hasFocus &&
+        widget.validationMode == FieldValidationMode.onBlur &&
+        widget.validator != null) {
+      _hasBeenTouched = true;
+      _runValidation();
+    }
+  }
+
+  void _runValidation() {
+    if (widget.validator == null) return;
+
+    final value = widget.controller?.text ?? widget.initialValue ?? '';
+    final error = widget.validator!(value);
+
+    if (error != _validationError) {
+      setState(() {
+        _validationError = error;
+      });
+    }
+  }
+
+  void _onControllerChanged() {
+    final newCount = widget.controller?.text.length ?? 0;
+    if (newCount != _charCount) {
+      setState(() {
+        _charCount = newCount;
+      });
+    }
+  }
+
+  void _handleOnChanged(String value) {
+    setState(() {
+      _charCount = value.length;
+    });
+    widget.onChanged?.call(value);
+
+    // Handle validation based on mode
+    if (widget.validationMode == FieldValidationMode.onChange) {
+      _hasBeenTouched = true;
+      _runValidation();
+    } else if (widget.validationMode == FieldValidationMode.onBlur &&
+        widget.clearErrorOnChange &&
+        _hasBeenTouched &&
+        _validationError != null) {
+      // Clear error as user types (revalidate to see if fixed)
+      _runValidation();
+    }
+  }
+
+  /// Calculate the counter color based on percentage of maxLength used.
+  Color _getCounterColor() {
+    if (widget.maxLength == null || widget.maxLength == 0) {
+      return AppColors.textMuted;
+    }
+    final percentage = (_charCount / widget.maxLength!) * 100;
+    if (percentage >= 100) {
+      return AppColors.error;
+    } else if (percentage >= 80) {
+      return AppColors.warning;
+    }
+    return AppColors.textMuted;
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final showCounter = widget.showCharacterCount && widget.maxLength != null;
+    // Use external errorText if provided, otherwise use validation error for onBlur/onChange modes
+    final displayError = widget.errorText ??
+        (widget.validationMode != FieldValidationMode.onSubmit && _hasBeenTouched
+            ? _validationError
+            : null);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (label != null) ...[
+        if (widget.label != null) ...[
           Text(
-            label!,
+            widget.label!,
             style: const TextStyle(
               color: AppColors.textPrimary,
               fontWeight: FontWeight.w500,
@@ -116,39 +275,45 @@ class AppTextField extends StatelessWidget {
           const SizedBox(height: 4), // Tighter label-to-field spacing
         ],
         TextFormField(
-          controller: controller,
-          initialValue: initialValue,
-          obscureText: obscureText,
-          keyboardType: keyboardType,
-          textInputAction: textInputAction,
-          onChanged: onChanged,
-          onFieldSubmitted: onSubmitted,
-          validator: validator,
-          enabled: enabled,
-          maxLines: maxLines,
-          maxLength: maxLength,
-          autofocus: autofocus,
-          focusNode: focusNode,
+          controller: widget.controller,
+          initialValue: widget.initialValue,
+          obscureText: widget.obscureText,
+          keyboardType: widget.keyboardType,
+          textInputAction: widget.textInputAction,
+          onChanged: _handleOnChanged,
+          onFieldSubmitted: widget.onSubmitted,
+          // Keep validator for Form.validate() to work on submit
+          validator: widget.validator,
+          enabled: widget.enabled,
+          maxLines: widget.maxLines,
+          maxLength: widget.maxLength,
+          autofocus: widget.autofocus,
+          // Use managed focus node for onBlur validation
+          focusNode: _focusNode,
+          // Hide the built-in counter since we show our own
+          buildCounter: showCounter
+              ? (context, {required currentLength, required isFocused, maxLength}) => null
+              : null,
           style: const TextStyle(
             color: AppColors.textPrimary,
             fontSize: 15, // Slightly tighter text
           ),
           decoration: InputDecoration(
-            hintText: hint,
+            hintText: widget.hint,
             hintStyle: const TextStyle(
               color: AppColors.textMuted,
               fontSize: 15,
             ),
-            errorText: errorText,
-            helperText: helperText,
+            errorText: displayError,
+            helperText: widget.helperText,
             helperStyle: const TextStyle(
               color: AppColors.textMuted,
               fontSize: 11,
             ),
-            prefixIcon: prefixIcon,
-            suffixIcon: suffixIcon,
+            prefixIcon: widget.prefixIcon,
+            suffixIcon: widget.suffixIcon,
             filled: true,
-            fillColor: enabled ? AppColors.surface : AppColors.border.withAlpha(50),
+            fillColor: widget.enabled ? AppColors.surface : AppColors.border.withAlpha(50),
             // Tighter content padding: 12h x 10v for compact inputs
             contentPadding: const EdgeInsets.symmetric(
               horizontal: AppSpacing.md, // 12dp
@@ -181,6 +346,23 @@ class AppTextField extends StatelessWidget {
             ),
           ),
         ),
+        if (showCounter) ...[
+          const SizedBox(height: 4),
+          Align(
+            alignment: Alignment.centerRight,
+            child: AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 200),
+              style: TextStyle(
+                color: _getCounterColor(),
+                fontSize: 11,
+                fontWeight: _charCount >= (widget.maxLength ?? 0) * 0.8
+                    ? FontWeight.w500
+                    : FontWeight.normal,
+              ),
+              child: Text('$_charCount/${widget.maxLength}'),
+            ),
+          ),
+        ],
       ],
     );
   }

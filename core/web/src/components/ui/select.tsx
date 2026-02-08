@@ -12,9 +12,23 @@ interface SelectOption {
   label: string;
 }
 
+interface SelectOptionGroup {
+  label: string;
+  options: SelectOption[];
+}
+
+type SelectOptions = (SelectOption | SelectOptionGroup)[];
+
+// Type guard to check if an option is a group
+function isOptionGroup(
+  option: SelectOption | SelectOptionGroup
+): option is SelectOptionGroup {
+  return "options" in option && Array.isArray(option.options);
+}
+
 interface SelectProps
   extends Omit<React.SelectHTMLAttributes<HTMLSelectElement>, "onChange" | "size"> {
-  options: SelectOption[];
+  options: SelectOptions;
   value?: string;
   onChange?: (value: string) => void;
   placeholder?: string;
@@ -101,11 +115,25 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
               {placeholder}
             </option>
           )}
-          {options.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
+          {options.map((option, index) =>
+            isOptionGroup(option) ? (
+              <optgroup
+                key={`group-${option.label}-${index}`}
+                label={option.label}
+                className="font-semibold text-muted-foreground"
+              >
+                {option.options.map((groupOption) => (
+                  <option key={groupOption.value} value={groupOption.value}>
+                    {groupOption.label}
+                  </option>
+                ))}
+              </optgroup>
+            ) : (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            )
+          )}
         </select>
         {error && (
           <p
@@ -121,5 +149,5 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
 );
 Select.displayName = "Select";
 
-export { Select };
-export type { SelectProps, SelectOption };
+export { Select, isOptionGroup };
+export type { SelectProps, SelectOption, SelectOptionGroup, SelectOptions };

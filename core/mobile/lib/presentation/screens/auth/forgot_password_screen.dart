@@ -214,18 +214,20 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Success icon
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withAlpha(25),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.email_outlined,
-                  size: 40,
-                  color: AppColors.primary,
+              // Success icon - centered properly
+              Center(
+                child: Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withAlpha(25),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.email_outlined,
+                    size: 40,
+                    color: AppColors.primary,
+                  ),
                 ),
               ),
               AppSpacing.gapLg,
@@ -251,7 +253,15 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
               ),
               AppSpacing.gapXl,
 
-              // Try again button
+              // Primary action - Back to login should be most prominent
+              AppButton(
+                label: 'Back to Sign In',
+                onPressed: () => context.go(Routes.login),
+                isFullWidth: true,
+              ),
+              AppSpacing.gapMd,
+
+              // Secondary action - Try again is less common action
               TextButton(
                 onPressed: () {
                   setState(() {
@@ -259,6 +269,10 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                     _emailController.clear();
                   });
                 },
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  minimumSize: const Size(48, 44), // Minimum touch target
+                ),
                 child: const Text(
                   'Didn\'t receive the email? Try again',
                   style: TextStyle(
@@ -266,15 +280,6 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-              ),
-              AppSpacing.gapSm,
-
-              // Back to login button
-              AppButton(
-                label: 'Back to Sign In',
-                onPressed: () => context.go(Routes.login),
-                variant: ButtonVariant.outline,
-                isFullWidth: true,
               ),
             ],
           ),
