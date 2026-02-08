@@ -46,8 +46,16 @@ function UserRow({
         </div>
       </td>
       <td className="px-4 py-3">
-        <Badge variant={user.role === "ADMIN" ? "default" : "secondary"}>
-          {user.role}
+        <Badge
+          variant={
+            user.role === "SUPER_ADMIN"
+              ? "destructive"
+              : user.role === "ADMIN"
+                ? "default"
+                : "secondary"
+          }
+        >
+          {user.role === "SUPER_ADMIN" ? "Super Admin" : user.role}
         </Badge>
       </td>
       <td className="px-4 py-3">
@@ -167,10 +175,10 @@ function EditUserModal({
 }: {
   user: AdminUser;
   onClose: () => void;
-  onSave: (data: { role?: "USER" | "ADMIN"; name?: string }) => void;
+  onSave: (data: { role?: "USER" | "ADMIN" | "SUPER_ADMIN"; name?: string }) => void;
   isSaving: boolean;
 }) {
-  const [role, setRole] = useState<"USER" | "ADMIN">(user.role);
+  const [role, setRole] = useState<"USER" | "ADMIN" | "SUPER_ADMIN">(user.role);
   const [name, setName] = useState(user.name || "");
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -212,11 +220,12 @@ function EditUserModal({
             <select
               id="role"
               value={role}
-              onChange={(e) => setRole(e.target.value as "USER" | "ADMIN")}
+              onChange={(e) => setRole(e.target.value as "USER" | "ADMIN" | "SUPER_ADMIN")}
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
             >
               <option value="USER">User</option>
               <option value="ADMIN">Admin</option>
+              <option value="SUPER_ADMIN">Super Admin</option>
             </select>
           </div>
           <div className="flex justify-end gap-2 pt-4">
@@ -245,7 +254,7 @@ export default function AdminUsersPage() {
   const [search, setSearch] = useState("");
   const [searchDebounced, setSearchDebounced] = useState("");
   const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
-  const [roleFilter, setRoleFilter] = useState<"" | "USER" | "ADMIN">("");
+  const [roleFilter, setRoleFilter] = useState<"" | "USER" | "ADMIN" | "SUPER_ADMIN">("");
   const [statusFilter, setStatusFilter] = useState<"" | "active" | "inactive">(
     ""
   );
@@ -321,7 +330,7 @@ export default function AdminUsersPage() {
   };
 
   const handleEditSave = async (data: {
-    role?: "USER" | "ADMIN";
+    role?: "USER" | "ADMIN" | "SUPER_ADMIN";
     name?: string;
   }) => {
     if (!editingUser) return;
@@ -375,12 +384,13 @@ export default function AdminUsersPage() {
         </div>
         <select
           value={roleFilter}
-          onChange={(e) => setRoleFilter(e.target.value as "" | "USER" | "ADMIN")}
+          onChange={(e) => setRoleFilter(e.target.value as "" | "USER" | "ADMIN" | "SUPER_ADMIN")}
           className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
         >
           <option value="">All Roles</option>
           <option value="USER">User</option>
           <option value="ADMIN">Admin</option>
+          <option value="SUPER_ADMIN">Super Admin</option>
         </select>
         <select
           value={statusFilter}

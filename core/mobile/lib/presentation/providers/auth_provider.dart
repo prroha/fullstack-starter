@@ -23,8 +23,11 @@ class AuthState {
     this.emailVerified = false,
   });
 
-  /// Check if the current user is an admin
-  bool get isAdmin => role == 'ADMIN';
+  /// Check if the current user has admin access (ADMIN or SUPER_ADMIN)
+  bool get isAdmin => role == 'ADMIN' || role == 'SUPER_ADMIN';
+
+  /// Check if the current user is a super admin (platform owner)
+  bool get isSuperAdmin => role == 'SUPER_ADMIN';
 
   /// Check if the email is verified
   bool get isEmailVerified => emailVerified;

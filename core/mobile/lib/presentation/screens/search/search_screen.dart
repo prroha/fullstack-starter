@@ -292,20 +292,24 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            if (user.role == 'ADMIN')
+            if (user.role == 'ADMIN' || user.role == 'SUPER_ADMIN')
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 6,
                   vertical: 2,
                 ),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.primary.withAlpha(25),
+                  color: user.role == 'SUPER_ADMIN'
+                      ? theme.colorScheme.error.withAlpha(25)
+                      : theme.colorScheme.primary.withAlpha(25),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
-                  'Admin',
+                  user.role == 'SUPER_ADMIN' ? 'Super Admin' : 'Admin',
                   style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.primary,
+                    color: user.role == 'SUPER_ADMIN'
+                        ? theme.colorScheme.error
+                        : theme.colorScheme.primary,
                   ),
                 ),
               ),

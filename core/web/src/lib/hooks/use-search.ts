@@ -13,7 +13,7 @@ export interface UserSearchResult {
   id: string;
   email: string;
   name: string | null;
-  role: "USER" | "ADMIN";
+  role: "USER" | "ADMIN" | "SUPER_ADMIN";
   isActive: boolean;
   createdAt: string;
 }

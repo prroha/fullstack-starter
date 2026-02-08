@@ -341,8 +341,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               _buildBadge(
-                profile.role,
-                profile.role == 'ADMIN' ? AppColors.primary : AppColors.secondary,
+                profile.role == 'SUPER_ADMIN' ? 'Super Admin' : profile.role,
+                profile.role == 'SUPER_ADMIN'
+                    ? AppColors.error
+                    : profile.role == 'ADMIN'
+                        ? AppColors.primary
+                        : AppColors.secondary,
               ),
               if (profile.isActive) ...[
                 AppSpacing.gapHSm,

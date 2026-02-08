@@ -676,7 +676,7 @@ class ApiClient {
     page?: number;
     limit?: number;
     search?: string;
-    role?: "USER" | "ADMIN";
+    role?: "USER" | "ADMIN" | "SUPER_ADMIN";
     isActive?: boolean;
     sortBy?: "createdAt" | "email" | "name";
     sortOrder?: "asc" | "desc";
@@ -703,7 +703,7 @@ class ApiClient {
 
   async updateAdminUser(
     id: string,
-    data: { role?: "USER" | "ADMIN"; isActive?: boolean; name?: string }
+    data: { role?: "USER" | "ADMIN" | "SUPER_ADMIN"; isActive?: boolean; name?: string }
   ) {
     return this.patch<{ user: AdminUser }>(`/v1/admin/users/${id}`, data);
   }
@@ -776,7 +776,7 @@ class ApiClient {
           id: string;
           email: string;
           name: string | null;
-          role: "USER" | "ADMIN";
+          role: "USER" | "ADMIN" | "SUPER_ADMIN";
           isActive: boolean;
           createdAt: string;
         }>;

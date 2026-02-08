@@ -8,6 +8,7 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   isAdmin: boolean;
+  isSuperAdmin: boolean;
   isEmailVerified: boolean;
   userRole: UserRole | null;
   login: (email: string, password: string) => Promise<User>;
@@ -81,13 +82,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     checkAuth();
   }, [refreshAuth]);
 
+  // Check if user has admin access (ADMIN or SUPER_ADMIN)
+  const isAdmin = user?.role === "ADMIN" || user?.role === "SUPER_ADMIN";
+  const isSuperAdmin = user?.role === "SUPER_ADMIN";
+
   return (
     <AuthContext.Provider
       value={{
         user,
         isLoading,
         isAuthenticated: !!user,
-        isAdmin: user?.role === "ADMIN",
+        isAdmin,
+        isSuperAdmin,
         isEmailVerified: user?.emailVerified ?? false,
         userRole: user?.role ?? null,
         login,

@@ -269,6 +269,7 @@ class _EditUserDialogState extends State<EditUserDialog> {
             items: const [
               DropdownMenuItem(value: 'USER', child: Text('User')),
               DropdownMenuItem(value: 'ADMIN', child: Text('Admin')),
+              DropdownMenuItem(value: 'SUPER_ADMIN', child: Text('Super Admin')),
             ],
             onChanged: (value) {
               if (value != null) {
@@ -506,6 +507,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                           DropdownMenuItem(value: null, child: Text('All')),
                           DropdownMenuItem(value: 'USER', child: Text('User')),
                           DropdownMenuItem(value: 'ADMIN', child: Text('Admin')),
+                          DropdownMenuItem(value: 'SUPER_ADMIN', child: Text('Super Admin')),
                         ],
                         onChanged: (value) {
                           ref

@@ -136,7 +136,7 @@ export async function authMiddleware(
 }
 
 /**
- * Admin middleware - requires ADMIN role
+ * Admin middleware - requires ADMIN or SUPER_ADMIN role
  * Must be used AFTER authMiddleware
  */
 export async function adminMiddleware(
@@ -151,8 +151,33 @@ export async function adminMiddleware(
     return;
   }
 
-  if (authReq.dbUser.role !== UserRole.ADMIN) {
+  const role = authReq.dbUser.role;
+  if (role !== UserRole.ADMIN && role !== UserRole.SUPER_ADMIN) {
     sendAuthError(res, 403, "Admin access required", "ADMIN_REQUIRED");
+    return;
+  }
+
+  next();
+}
+
+/**
+ * Super admin middleware - requires SUPER_ADMIN role only
+ * Must be used AFTER authMiddleware
+ */
+export async function superAdminMiddleware(
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  const authReq = req as AuthenticatedRequest;
+
+  if (!authReq.user || !authReq.dbUser) {
+    sendAuthError(res, 401, "Authentication required", "AUTH_REQUIRED");
+    return;
+  }
+
+  if (authReq.dbUser.role !== UserRole.SUPER_ADMIN) {
+    sendAuthError(res, 403, "Super admin access required", "ADMIN_REQUIRED");
     return;
   }
 

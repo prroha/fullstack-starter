@@ -185,6 +185,11 @@ class DurationConfig {
 class UserRoles {
   static const String user = 'USER';
   static const String admin = 'ADMIN';
+  static const String superAdmin = 'SUPER_ADMIN';
+
+  /// Check if a role has admin access (ADMIN or SUPER_ADMIN)
+  static bool hasAdminAccess(String? role) =>
+      role == admin || role == superAdmin;
 
   // Prevent instantiation
   UserRoles._();

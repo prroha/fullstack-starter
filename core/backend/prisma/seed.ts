@@ -9,7 +9,7 @@ interface SeedUser {
   email: string;
   password: string;
   name: string;
-  role: "USER" | "ADMIN";
+  role: "USER" | "ADMIN" | "SUPER_ADMIN";
   environments: ("development" | "production")[];
 }
 
@@ -17,16 +17,23 @@ const defaultUsers: SeedUser[] = [
   {
     email: "admin@proha.com",
     password: "Admin@123",
-    name: "Admin User",
+    name: "Platform Admin",
+    role: "SUPER_ADMIN",
+    environments: ["development", "production"], // Platform super admin - manages everything
+  },
+  {
+    email: "admin@client.com",
+    password: "Admin@123",
+    name: "Client Admin",
     role: "ADMIN",
-    environments: ["development", "production"], // Created in all environments
+    environments: ["development"], // Client admin for template preview
   },
   {
     email: "user@user.com",
     password: "User@123",
     name: "Demo User",
     role: "USER",
-    environments: ["development"], // Only in development
+    environments: ["development"], // Normal user for testing
   },
 ];
 

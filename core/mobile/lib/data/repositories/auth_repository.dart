@@ -48,7 +48,11 @@ class AuthResponse {
     );
   }
 
-  bool get isAdmin => role == 'ADMIN';
+  /// Check if user has admin access (ADMIN or SUPER_ADMIN)
+  bool get isAdmin => role == 'ADMIN' || role == 'SUPER_ADMIN';
+
+  /// Check if user is a super admin (platform owner)
+  bool get isSuperAdmin => role == 'SUPER_ADMIN';
 }
 
 /// Register response model (registration doesn't return tokens)
