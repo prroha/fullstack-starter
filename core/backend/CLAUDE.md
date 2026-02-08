@@ -1,6 +1,6 @@
 # CLAUDE.md - Fullstack Starter Backend
 
-> **Last Updated**: 2026-02-06
+> **Last Updated**: 2026-02-08
 > **Codebase Version**: 1.0.0
 > **Maintainer**: AI-assisted documentation (auto-update on changes)
 
@@ -25,6 +25,7 @@ Use these to quickly find what you need:
 <!-- Add new entries at the top -->
 | Date | Change | Files |
 |------|--------|-------|
+| 2026-02-08 | Admin platform expansion: FAQs, Announcements, Settings, Content, Coupons, Orders, Notifications, Audit logs | `routes/*.routes.ts`, `controllers/*.controller.ts`, `services/*.service.ts`, `prisma/schema.prisma` |
 | 2026-02-06 | Initial documentation | CLAUDE.md |
 
 ---
@@ -90,6 +91,23 @@ src/
 | `src/utils/jwt.ts` | Token generation/verification |
 | `src/utils/response.ts` | Error response formatting, error codes |
 
+### Services
+| Service | File | Purpose |
+|---------|------|---------|
+| `authService` | `auth.service.ts` | Authentication logic, password hashing |
+| `userService` | `user.service.ts` | User CRUD operations |
+| `adminService` | `admin.service.ts` | Admin dashboard stats, user management |
+| `sessionService` | `session.service.ts` | Multi-device session management |
+| `auditService` | `audit.service.ts` | Audit log creation and querying |
+| `notificationService` | `notification.service.ts` | In-app notification management |
+| `emailService` | `email.service.ts` | Email sending (transactional) |
+| `emailVerificationService` | `email-verification.service.ts` | Email verification flow |
+| `lockoutService` | `lockout.service.ts` | Account lockout/brute force protection |
+| `contactService` | `contact.service.ts` | Contact form message handling |
+| `orderService` | `order.service.ts` | Order management and stats |
+| `searchService` | `search.service.ts` | Global search across entities |
+| `exportService` | `export.service.ts` | CSV export for admin data |
+
 ---
 
 ## 3. API Structure
@@ -97,7 +115,19 @@ src/
 ### Route Files
 | Route File | Base Path | Description |
 |------------|-----------|-------------|
-| `auth.routes.ts` | `/api/v1/auth` | Login, register, logout, me |
+| `auth.routes.ts` | `/api/v1/auth` | Login, register, logout, me, refresh |
+| `user.routes.ts` | `/api/v1/users` | User profile management |
+| `admin.routes.ts` | `/api/v1/admin` | Dashboard stats, user mgmt, audit logs, contact messages |
+| `faq.routes.ts` | `/api/v1/faqs` | FAQ CRUD, categories (public + admin) |
+| `announcement.routes.ts` | `/api/v1/announcements` | Announcements (active public, CRUD admin) |
+| `setting.routes.ts` | `/api/v1/settings` | App settings (public readable, admin writable) |
+| `content.routes.ts` | `/api/v1/content` | CMS pages (public by slug, CRUD admin) |
+| `coupon.routes.ts` | `/api/v1/coupons` | Coupon validation (public), CRUD (admin) |
+| `order.routes.ts` | `/api/v1/orders` | User orders |
+| `order.routes.ts` | `/api/v1/admin/orders` | Order management, stats, export (admin) |
+| `contact.routes.ts` | `/api/v1/contact` | Contact form submission (rate limited) |
+| `notification.routes.ts` | `/api/v1/notifications` | User notifications (authenticated) |
+| `search.routes.ts` | `/api/v1/search` | Global search |
 
 ### Route Registration
 ```typescript
@@ -170,32 +200,43 @@ router.use("/v1", v1Router);
 
 ## 4. Database Schema
 
-### Key Models
+### Core Models
 
-**User**
-```prisma
-model User {
-  id            String    @id @default(uuid())
-  email         String    @unique
-  passwordHash  String    @map("password_hash")
-  name          String?
-  role          UserRole  @default(USER)
-  isActive      Boolean   @default(true) @map("is_active")
-  emailVerified Boolean   @default(false) @map("email_verified")
-  googleId      String?   @unique @map("google_id")
-  authProvider  String    @default("email") @map("auth_provider")
-  activeDeviceId String?  @map("active_device_id")
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
+| Model | Table | Description |
+|-------|-------|-------------|
+| `User` | `users` | User accounts with auth, OAuth, lockout protection |
+| `Session` | `sessions` | Multi-device login sessions with device info |
+| `PasswordResetToken` | `password_reset_tokens` | Password reset flow |
+| `EmailVerificationToken` | `email_verification_tokens` | Email verification flow |
+| `AuditLog` | `audit_logs` | Action audit trail with changes, IP, user agent |
+| `Notification` | `notifications` | In-app user notifications |
 
-  @@map("users")
-}
+### Admin/CMS Models
 
-enum UserRole {
-  USER
-  ADMIN
-}
-```
+| Model | Table | Description |
+|-------|-------|-------------|
+| `FaqCategory` | `faq_categories` | FAQ categories with slug, ordering |
+| `Faq` | `faqs` | FAQ entries with question, answer, ordering |
+| `Announcement` | `announcements` | System banners with scheduling, type |
+| `Setting` | `settings` | Key-value app settings (string/number/boolean/json) |
+| `ContentPage` | `content_pages` | Static CMS pages with SEO metadata |
+| `Coupon` | `coupons` | Discount codes with type, limits, validity |
+| `Order` | `orders` | Orders/purchases with items, payment, status |
+| `ContactMessage` | `contact_messages` | Contact form submissions |
+
+### Key Enums
+
+| Enum | Values |
+|------|--------|
+| `UserRole` | USER, ADMIN |
+| `AuditAction` | CREATE, READ, UPDATE, DELETE, LOGIN, LOGOUT, LOGIN_FAILED, PASSWORD_CHANGE, PASSWORD_RESET, EMAIL_VERIFY, ADMIN_ACTION |
+| `NotificationType` | INFO, SUCCESS, WARNING, ERROR, SYSTEM |
+| `AnnouncementType` | INFO, WARNING, SUCCESS, PROMO |
+| `SettingType` | STRING, NUMBER, BOOLEAN, JSON |
+| `DiscountType` | PERCENTAGE, FIXED |
+| `OrderStatus` | PENDING, COMPLETED, REFUNDED, FAILED |
+| `PaymentMethod` | STRIPE, PAYPAL, MANUAL |
+| `ContactMessageStatus` | PENDING, READ, REPLIED |
 
 ### Database Commands
 ```bash

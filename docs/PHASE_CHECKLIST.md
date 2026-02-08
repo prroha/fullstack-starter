@@ -60,10 +60,11 @@
 - [x] Zod validation integration
 
 #### Testing & Documentation
-- [ ] Test framework setup (Vitest/Jest)
-- [ ] Unit tests for services
+- [x] Test framework setup (Vitest)
+- [x] Unit tests for response utilities
+- [ ] Unit tests for services (in progress)
 - [ ] Integration tests for API endpoints
-- [ ] API documentation (Swagger/OpenAPI)
+- [x] API documentation (Swagger/OpenAPI)
 
 ### Frontend Infrastructure
 
@@ -304,7 +305,7 @@
 - [x] Publish/draft filter
 - [x] Loading skeleton
 - [x] Search pages
-- [ ] Sorting
+- [x] Sorting
 - [x] Pagination
 - [x] Export to CSV
 
@@ -767,8 +768,8 @@
 
 | Phase | Status | Progress | Target Date |
 |-------|--------|----------|-------------|
-| Phase 0: Foundation | 🟡 In Progress | 95% | TBD |
-| Phase 0.1: Admin Platform | ✅ Completed | 98% | Done |
+| Phase 0: Foundation | ✅ Completed | 98% | Done |
+| Phase 0.1: Admin Platform | ✅ Completed | 100% | Done |
 | Phase 1: MVP | ⬜ Not Started | 0% | TBD |
 | Phase 2: Pilot | ⬜ Not Started | 0% | TBD |
 | Phase 3: Release | ⬜ Not Started | 0% | TBD |
@@ -781,16 +782,13 @@
 - ✅ Completed
 - ⏸️ Blocked
 
-### Phase 0 Remaining Work
+### Phase 0 Remaining Work (Nice to have)
 
-**Backend:**
-- [ ] Test framework setup (Vitest)
-- [ ] Unit tests for core services
-- [ ] API documentation (Swagger/OpenAPI)
+- [ ] More unit tests for core services
+- [ ] Integration tests for API endpoints
 
 ### Phase 0.1 Remaining Work (Nice to have)
 
-- [ ] Content pages: Sorting
 - [ ] Bulk delete endpoints
 
 ### Completed Summary

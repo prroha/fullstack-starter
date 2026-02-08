@@ -25,6 +25,7 @@ Use these to quickly find what you need:
 <!-- Add new entries at the top -->
 | Date | Change | Files |
 |------|--------|-------|
+| 2026-02-08 | Admin platform expansion with full admin dashboard pages | `app/(protected)/admin/*` |
 | 2026-02-08 | Organized components with atomic design pattern | `components/ui/index.ts`, `CLAUDE.md` |
 | 2026-02-08 | Added comprehensive UI components documentation | CLAUDE.md |
 | 2026-02-06 | Initial documentation | CLAUDE.md |
@@ -224,6 +225,22 @@ async createPost(data: CreatePostInput) {
 | `/` | Homepage | No |
 | `/login` | Login (create) | No |
 | `/register` | Register (create) | No |
+
+### Admin Pages
+All admin pages are under `app/(protected)/admin/` and require ADMIN role.
+
+| Route | Page | Description |
+|-------|------|-------------|
+| `/admin` | Admin Dashboard | Overview stats, quick actions |
+| `/admin/users` | User Management | List, view, edit, delete users, export |
+| `/admin/audit-logs` | Audit Logs | View action history, filter, export |
+| `/admin/orders` | Order Management | View orders, stats, update status, export |
+| `/admin/faqs` | FAQ Management | CRUD FAQs and categories, reorder |
+| `/admin/announcements` | Announcements | Create/manage system announcements |
+| `/admin/settings` | App Settings | Key-value settings management |
+| `/admin/content` | CMS Pages | Static content page editor |
+| `/admin/coupons` | Coupon Management | Discount codes, usage tracking |
+| `/admin/messages` | Contact Messages | View/respond to contact form submissions |
 
 ### Adding Protected Routes
 ```tsx

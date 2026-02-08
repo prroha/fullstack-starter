@@ -9,6 +9,7 @@ import {
   Text,
   Input,
   Textarea,
+  Select,
   Badge,
   Modal,
   Switch,
@@ -47,6 +48,13 @@ interface PaginationInfo {
   hasPrev: boolean;
 }
 
+const sortOptions = [
+  { value: "title:asc", label: "Title A-Z" },
+  { value: "title:desc", label: "Title Z-A" },
+  { value: "createdAt:desc", label: "Newest First" },
+  { value: "createdAt:asc", label: "Oldest First" },
+];
+
 export default function AdminContentPage() {
   const [pages, setPages] = useState<ContentPage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,6 +64,7 @@ export default function AdminContentPage() {
   const [filterPublished, setFilterPublished] = useState<string>("");
   const [search, setSearch] = useState("");
   const [searchDebounced, setSearchDebounced] = useState("");
+  const [sortBy, setSortBy] = useState("createdAt:desc");
   const [pagination, setPagination] = useState<PaginationInfo | null>(null);
 
   const [form, setForm] = useState({
@@ -83,6 +92,11 @@ export default function AdminContentPage() {
       params.append("limit", "10");
       if (filterPublished) params.append("isPublished", filterPublished);
       if (searchDebounced) params.append("search", searchDebounced);
+      if (sortBy) {
+        const [field, order] = sortBy.split(":");
+        params.append("sortBy", field);
+        params.append("sortOrder", order);
+      }
 
       const res = await api.get<PaginatedResponse<ContentPage>>(
         `/content?${params.toString()}`
@@ -96,7 +110,7 @@ export default function AdminContentPage() {
     } finally {
       setLoading(false);
     }
-  }, [filterPublished, searchDebounced]);
+  }, [filterPublished, searchDebounced, sortBy]);
 
   useEffect(() => {
     loadData();
@@ -206,7 +220,7 @@ export default function AdminContentPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col md:flex-row gap-4">
+      <div className="flex flex-wrap gap-4">
         <div className="flex-1 min-w-[200px]">
           <Input
             type="search"
@@ -238,6 +252,12 @@ export default function AdminContentPage() {
             Draft
           </Button>
         </div>
+        <Select
+          value={sortBy}
+          onChange={(val) => setSortBy(val)}
+          className="w-40"
+          options={sortOptions}
+        />
       </div>
 
       {/* Table */}

@@ -1,6 +1,6 @@
 # CLAUDE.md - Fullstack Starter Template
 
-> **Last Updated**: 2026-02-06
+> **Last Updated**: 2026-02-08
 > **Codebase Version**: 1.0.0
 > **Maintainer**: AI-assisted documentation (auto-update on changes)
 
@@ -26,6 +26,7 @@ Use these to quickly find what you need:
 <!-- Add new entries at the top -->
 | Date | Change | Files |
 |------|--------|-------|
+| 2026-02-08 | Admin platform expansion with FAQ, Announcements, Settings, Content, Coupons, Orders modules | `backend/src/routes/*.routes.ts`, `prisma/schema.prisma`, `web/src/app/(protected)/admin/*` |
 | 2026-02-06 | Initial documentation | CLAUDE.md |
 
 ---
@@ -172,6 +173,22 @@ flutter pub run build_runner build --delete-conflicting-outputs  # Generate code
 | `/api/v1/auth/me` | GET | Get current user |
 | `/api/v1/auth/refresh` | POST | Refresh tokens |
 
+### Admin API Endpoints
+
+| Base Path | Description | Auth |
+|-----------|-------------|------|
+| `/api/v1/admin/stats` | Dashboard statistics | Admin |
+| `/api/v1/admin/users` | User management (CRUD, export) | Admin |
+| `/api/v1/admin/audit-logs` | Audit log viewing and export | Admin |
+| `/api/v1/admin/contact-messages` | Contact message management | Admin |
+| `/api/v1/admin/orders` | Order management and stats | Admin |
+| `/api/v1/faqs` | FAQ management (public + admin) | Mixed |
+| `/api/v1/announcements` | Announcement management | Mixed |
+| `/api/v1/settings` | Application settings | Mixed |
+| `/api/v1/content` | CMS content pages | Mixed |
+| `/api/v1/coupons` | Coupon/discount management | Mixed |
+| `/api/v1/notifications` | User notification system | Auth |
+
 ### Request/Response Format
 
 **Success Response:**
@@ -226,24 +243,43 @@ flutter run --dart-define=API_URL=http://10.0.2.2:8000/api/v1
 
 ## Database Schema (Prisma)
 
-### User Model
-```prisma
-model User {
-  id            String    @id @default(uuid())
-  email         String    @unique
-  passwordHash  String
-  name          String?
-  role          UserRole  @default(USER)
-  isActive      Boolean   @default(true)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-}
+### Core Models
 
-enum UserRole {
-  USER
-  ADMIN
-}
-```
+| Model | Description |
+|-------|-------------|
+| `User` | Core user with auth, OAuth, session management, account lockout |
+| `Session` | Multi-device session management with device info |
+| `PasswordResetToken` | Password reset flow tokens |
+| `EmailVerificationToken` | Email verification tokens |
+| `AuditLog` | Action tracking with entity, changes, IP, user agent |
+| `Notification` | In-app user notifications (info, success, warning, error, system) |
+
+### Admin/CMS Models
+
+| Model | Description |
+|-------|-------------|
+| `FaqCategory` | FAQ category organization with slug and ordering |
+| `Faq` | FAQ items with category, question, answer, ordering |
+| `Announcement` | System announcements/banners with scheduling |
+| `Setting` | Key-value app settings (string, number, boolean, json) |
+| `ContentPage` | Static CMS pages with SEO metadata |
+| `Coupon` | Discount codes (percentage/fixed, usage limits, validity) |
+| `Order` | Order/purchase tracking with items, payment, status |
+| `ContactMessage` | Contact form submissions with status tracking |
+
+### Enums
+
+| Enum | Values |
+|------|--------|
+| `UserRole` | USER, ADMIN |
+| `AuditAction` | CREATE, READ, UPDATE, DELETE, LOGIN, LOGOUT, LOGIN_FAILED, PASSWORD_CHANGE, PASSWORD_RESET, EMAIL_VERIFY, ADMIN_ACTION |
+| `NotificationType` | INFO, SUCCESS, WARNING, ERROR, SYSTEM |
+| `AnnouncementType` | INFO, WARNING, SUCCESS, PROMO |
+| `SettingType` | STRING, NUMBER, BOOLEAN, JSON |
+| `DiscountType` | PERCENTAGE, FIXED |
+| `OrderStatus` | PENDING, COMPLETED, REFUNDED, FAILED |
+| `PaymentMethod` | STRIPE, PAYPAL, MANUAL |
+| `ContactMessageStatus` | PENDING, READ, REPLIED |
 
 ---
 

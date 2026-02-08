@@ -3,6 +3,7 @@ import cors from "cors";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
 import path from "path";
+import swaggerUi from "swagger-ui-express";
 
 import { config } from "./config";
 import { errorMiddleware } from "./middleware/error.middleware";
@@ -13,6 +14,7 @@ import { requestIdMiddleware, REQUEST_ID_HEADER } from "./middleware/request-id.
 import { UPLOAD_DIR } from "./middleware/upload.middleware";
 import { logger, requestContext } from "./lib/logger";
 import routes from "./routes";
+import { swaggerSpec } from "./swagger";
 
 const app = express();
 
@@ -87,6 +89,16 @@ app.use(generalRateLimiter);
 // Health check (before CSRF to allow monitoring)
 app.get("/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
+});
+
+// Swagger API documentation
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  explorer: true,
+  customSiteTitle: "Fullstack Starter API Docs",
+}));
+app.get("/api-docs.json", (_req, res) => {
+  res.setHeader("Content-Type", "application/json");
+  res.send(swaggerSpec);
 });
 
 // CSRF protection for state-changing requests
