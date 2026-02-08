@@ -157,7 +157,7 @@ function FormControl({ children }: { children: React.ReactElement }) {
     name,
     "aria-invalid": !!error,
     "aria-describedby": error ? `${id}-error` : undefined,
-  });
+  } as React.Attributes & Record<string, unknown>);
 }
 
 // =====================================================

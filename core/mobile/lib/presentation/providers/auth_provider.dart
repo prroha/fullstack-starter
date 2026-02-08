@@ -10,6 +10,8 @@ class AuthState {
   final String? error;
   final String? userId;
   final String? email;
+  final String? role;
+  final bool emailVerified;
 
   const AuthState({
     this.isAuthenticated = false,
@@ -17,7 +19,15 @@ class AuthState {
     this.error,
     this.userId,
     this.email,
+    this.role,
+    this.emailVerified = false,
   });
+
+  /// Check if the current user is an admin
+  bool get isAdmin => role == 'ADMIN';
+
+  /// Check if the email is verified
+  bool get isEmailVerified => emailVerified;
 
   AuthState copyWith({
     bool? isAuthenticated,
@@ -25,6 +35,8 @@ class AuthState {
     String? error,
     String? userId,
     String? email,
+    String? role,
+    bool? emailVerified,
   }) {
     return AuthState(
       isAuthenticated: isAuthenticated ?? this.isAuthenticated,
@@ -32,6 +44,8 @@ class AuthState {
       error: error,
       userId: userId ?? this.userId,
       email: email ?? this.email,
+      role: role ?? this.role,
+      emailVerified: emailVerified ?? this.emailVerified,
     );
   }
 }
@@ -94,6 +108,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
           isLoading: false,
           userId: authResponse.userId,
           email: authResponse.email,
+          role: authResponse.role,
         );
         return true;
       },
@@ -164,6 +179,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
               isLoading: false,
               userId: authResponse.userId,
               email: authResponse.email,
+              role: authResponse.role,
             );
             return true;
           },
@@ -197,6 +213,68 @@ class AuthNotifier extends StateNotifier<AuthState> {
       isAuthenticated: false,
       isLoading: false,
       error: 'Session expired. Please login again.',
+    );
+  }
+
+  /// Change password
+  Future<bool> changePassword(
+    String currentPassword,
+    String newPassword,
+    String confirmPassword,
+  ) async {
+    state = state.copyWith(isLoading: true, error: null);
+
+    // Basic validation
+    if (currentPassword.isEmpty || newPassword.isEmpty || confirmPassword.isEmpty) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'All password fields are required',
+      );
+      return false;
+    }
+
+    if (newPassword.length < 8) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'New password must be at least 8 characters',
+      );
+      return false;
+    }
+
+    if (newPassword != confirmPassword) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'New passwords do not match',
+      );
+      return false;
+    }
+
+    if (currentPassword == newPassword) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'New password must be different from current password',
+      );
+      return false;
+    }
+
+    final result = await _authRepository.changePassword(
+      currentPassword: currentPassword,
+      newPassword: newPassword,
+      confirmPassword: confirmPassword,
+    );
+
+    return result.fold(
+      (failure) {
+        state = state.copyWith(
+          isLoading: false,
+          error: failure.message,
+        );
+        return false;
+      },
+      (_) {
+        state = state.copyWith(isLoading: false);
+        return true;
+      },
     );
   }
 }

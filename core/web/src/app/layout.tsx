@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
+import { ThemeProvider, ThemeScript } from "@/lib/theme-context";
 import { Toaster } from "@/components/feedback";
 import { SkeletonPage } from "@/components/ui";
 
@@ -19,14 +20,19 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <ThemeScript />
+      </head>
       <body className={inter.className}>
-        <AuthProvider>
-          <Suspense fallback={<SkeletonPage />}>
-            {children}
-          </Suspense>
-          <Toaster position="top-right" richColors closeButton />
-        </AuthProvider>
+        <ThemeProvider defaultTheme="system">
+          <AuthProvider>
+            <Suspense fallback={<SkeletonPage />}>
+              {children}
+            </Suspense>
+            <Toaster position="top-right" richColors closeButton />
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

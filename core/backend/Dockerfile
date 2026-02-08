@@ -56,9 +56,11 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/docker-entrypoint.sh ./docker-entrypoint.sh
 
-# Change ownership to non-root user
-RUN chown -R expressjs:nodejs /app
+# Make entrypoint executable and change ownership
+RUN chmod +x docker-entrypoint.sh && \
+    chown -R expressjs:nodejs /app
 
 # Switch to non-root user
 USER expressjs
@@ -70,5 +72,5 @@ EXPOSE 3001
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:3001/health || exit 1
 
-# Start the application
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/app.js"]
+# Start the application with migrations and seed
+ENTRYPOINT ["./docker-entrypoint.sh"]

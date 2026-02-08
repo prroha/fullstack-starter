@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { registerSchema, type RegisterFormData } from "@/lib/validations";
 import { logger } from "@/lib/logger";
+import { toast } from "@/lib/toast";
 import {
   Form,
   FormField,
@@ -38,14 +39,24 @@ export default function RegisterPage() {
     try {
       await api.register(data.email, data.password, data.name || undefined);
       logger.info("Auth", "User registered successfully", { email: data.email });
+      toast.success("Account created!", {
+        description: "Please sign in with your new credentials.",
+      });
       router.push("/login?registered=true");
     } catch (err) {
       if (err instanceof ApiError) {
         logger.warn("Auth", "Registration failed", { email: data.email, code: err.code });
         setError(err.message);
+        toast.error("Registration failed", {
+          description: err.message,
+        });
       } else {
         logger.error("Auth", "Unexpected registration error", err);
-        setError("An unexpected error occurred. Please try again.");
+        const errorMessage = "An unexpected error occurred. Please try again.";
+        setError(errorMessage);
+        toast.error("Registration failed", {
+          description: errorMessage,
+        });
       }
     }
   };

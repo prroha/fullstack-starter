@@ -81,6 +81,22 @@ export const profileSchema = z.object({
 export type ProfileFormData = z.infer<typeof profileSchema>;
 
 // =====================================================
+// Update Profile Schema (for profile edit form)
+// =====================================================
+
+export const updateProfileSchema = z.object({
+  name: z
+    .string()
+    .min(1, "Name is required")
+    .min(2, "Name must be at least 2 characters")
+    .max(100, "Name must be less than 100 characters")
+    .regex(/^[a-zA-Z\s'-]+$/, "Name can only contain letters, spaces, hyphens, and apostrophes"),
+  email: emailSchema,
+});
+
+export type UpdateProfileFormData = z.infer<typeof updateProfileSchema>;
+
+// =====================================================
 // Password Change Schema
 // =====================================================
 

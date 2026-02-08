@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
+import path from "path";
 
 import { config } from "./config";
 import { errorMiddleware } from "./middleware/error.middleware";
@@ -9,6 +10,7 @@ import { csrfProtection } from "./middleware/csrf.middleware";
 import { sanitizeInput } from "./middleware/sanitize.middleware";
 import { generalRateLimiter } from "./middleware/rate-limit.middleware";
 import { requestIdMiddleware, REQUEST_ID_HEADER } from "./middleware/request-id.middleware";
+import { UPLOAD_DIR } from "./middleware/upload.middleware";
 import { logger, requestContext } from "./lib/logger";
 import routes from "./routes";
 
@@ -89,6 +91,12 @@ app.get("/health", (_req, res) => {
 
 // CSRF protection for state-changing requests
 app.use(csrfProtection);
+
+// Serve uploaded files (static)
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads"), {
+  maxAge: "1d", // Cache for 1 day
+  immutable: true, // Files are immutable (content-based naming)
+}));
 
 // API routes
 app.use("/api", routes);

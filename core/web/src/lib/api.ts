@@ -96,6 +96,75 @@ export interface User {
   email: string;
   name: string | null;
   role: UserRole;
+  emailVerified?: boolean;
+}
+
+export interface AdminUser {
+  id: string;
+  email: string;
+  name: string | null;
+  role: UserRole;
+  isActive: boolean;
+  emailVerified: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type NotificationType = "INFO" | "SUCCESS" | "WARNING" | "ERROR" | "SYSTEM";
+
+export interface Notification {
+  id: string;
+  userId: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  data?: Record<string, unknown>;
+  read: boolean;
+  createdAt: string;
+}
+
+export type ContactMessageStatus = "PENDING" | "READ" | "REPLIED";
+
+export type AuditAction =
+  | "CREATE"
+  | "READ"
+  | "UPDATE"
+  | "DELETE"
+  | "LOGIN"
+  | "LOGOUT"
+  | "LOGIN_FAILED"
+  | "PASSWORD_CHANGE"
+  | "PASSWORD_RESET"
+  | "EMAIL_VERIFY"
+  | "ADMIN_ACTION";
+
+export interface AuditLog {
+  id: string;
+  userId: string | null;
+  action: AuditAction;
+  entity: string;
+  entityId: string | null;
+  changes: Record<string, unknown> | null;
+  ipAddress: string | null;
+  userAgent: string | null;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+  user: {
+    id: string;
+    email: string;
+    name: string | null;
+  } | null;
+}
+
+export interface ContactMessage {
+  id: string;
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+  status: ContactMessageStatus;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // =====================================================
@@ -492,6 +561,434 @@ class ApiClient {
       accessToken: string;
       refreshToken: string;
     }>("/v1/auth/refresh");
+  }
+
+  async changePassword(currentPassword: string, newPassword: string, confirmPassword: string) {
+    return this.post("/v1/auth/change-password", {
+      currentPassword,
+      newPassword,
+      confirmPassword,
+    });
+  }
+
+  async forgotPassword(email: string) {
+    return this.post<null>("/v1/auth/forgot-password", { email });
+  }
+
+  async verifyResetToken(token: string) {
+    return this.get<{ valid: boolean; email?: string }>(`/v1/auth/verify-reset-token/${token}`);
+  }
+
+  async resetPassword(token: string, password: string, confirmPassword: string) {
+    return this.post<null>("/v1/auth/reset-password", { token, password, confirmPassword });
+  }
+
+  async verifyEmail(token: string) {
+    return this.get<{ verified: boolean; email: string }>(`/v1/auth/verify-email/${token}`);
+  }
+
+  async sendVerificationEmail() {
+    return this.post<null>("/v1/auth/send-verification");
+  }
+
+  // =====================================================
+  // SESSIONS
+  // =====================================================
+
+  async getSessions() {
+    return this.get<{
+      sessions: Array<{
+        id: string;
+        deviceName: string | null;
+        browser: string | null;
+        os: string | null;
+        ipAddress: string | null;
+        lastActiveAt: string;
+        createdAt: string;
+        isCurrent: boolean;
+      }>;
+    }>("/v1/auth/sessions");
+  }
+
+  async revokeSession(sessionId: string) {
+    return this.delete<null>(`/v1/auth/sessions/${sessionId}`);
+  }
+
+  async revokeAllOtherSessions() {
+    return this.delete<{ revokedCount: number }>("/v1/auth/sessions");
+  }
+
+  // =====================================================
+  // USER PROFILE
+  // =====================================================
+
+  async getProfile() {
+    return this.get<{
+      profile: {
+        id: string;
+        email: string;
+        name: string | null;
+        role: string;
+        isActive: boolean;
+        createdAt: string;
+        updatedAt: string;
+      };
+    }>("/v1/users/me");
+  }
+
+  async updateProfile(data: { name?: string; email?: string }) {
+    return this.patch<{
+      profile: {
+        id: string;
+        email: string;
+        name: string | null;
+        role: string;
+        isActive: boolean;
+        createdAt: string;
+        updatedAt: string;
+      };
+    }>("/v1/users/me", data);
+  }
+
+  async getAvatar() {
+    return this.get<{
+      avatar: {
+        url: string | null;
+        initials: string;
+      };
+    }>("/v1/users/me/avatar");
+  }
+
+  async uploadAvatar(
+    file: File,
+    onProgress?: (progress: number) => void
+  ): Promise<ApiResponse<{ avatar: { url: string } }>> {
+    const formData = new FormData();
+    formData.append("avatar", file);
+
+    const requestId = this.generateRequestId();
+
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", `${this.config.baseUrl}/v1/users/me/avatar`);
+      xhr.withCredentials = true;
+      xhr.setRequestHeader("x-request-id", requestId);
+
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable && onProgress) {
+          const progress = Math.round((event.loaded / event.total) * 100);
+          onProgress(progress);
+        }
+      };
+
+      xhr.onload = () => {
+        try {
+          const data = JSON.parse(xhr.responseText);
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve(data);
+          } else {
+            reject(ApiError.fromResponse(xhr.status, data, requestId));
+          }
+        } catch {
+          reject(new ApiError(xhr.status, "Failed to parse response", undefined, undefined, false, requestId));
+        }
+      };
+
+      xhr.onerror = () => {
+        reject(ApiError.networkError("Failed to upload avatar", undefined, requestId));
+      };
+
+      xhr.send(formData);
+    });
+  }
+
+  async deleteAvatar() {
+    return this.delete<null>("/v1/users/me/avatar");
+  }
+
+  private generateRequestId(): string {
+    if (typeof crypto !== "undefined" && crypto.randomUUID) {
+      return crypto.randomUUID();
+    }
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+      const r = (Math.random() * 16) | 0;
+      const v = c === "x" ? r : (r & 0x3) | 0x8;
+      return v.toString(16);
+    });
+  }
+
+  // =====================================================
+  // ADMIN
+  // =====================================================
+
+  async getAdminStats() {
+    return this.get<{
+      totalUsers: number;
+      activeUsers: number;
+      inactiveUsers: number;
+      adminUsers: number;
+      recentSignups: number;
+      signupsByDay: Array<{ date: string; count: number }>;
+    }>("/v1/admin/stats");
+  }
+
+  async getAdminUsers(params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    role?: "USER" | "ADMIN";
+    isActive?: boolean;
+    sortBy?: "createdAt" | "email" | "name";
+    sortOrder?: "asc" | "desc";
+  }) {
+    const searchParams = new URLSearchParams();
+    if (params?.page) searchParams.set("page", params.page.toString());
+    if (params?.limit) searchParams.set("limit", params.limit.toString());
+    if (params?.search) searchParams.set("search", params.search);
+    if (params?.role) searchParams.set("role", params.role);
+    if (params?.isActive !== undefined)
+      searchParams.set("isActive", params.isActive.toString());
+    if (params?.sortBy) searchParams.set("sortBy", params.sortBy);
+    if (params?.sortOrder) searchParams.set("sortOrder", params.sortOrder);
+
+    const query = searchParams.toString();
+    return this.get<PaginatedResponse<AdminUser>>(
+      `/v1/admin/users${query ? `?${query}` : ""}`
+    );
+  }
+
+  async getAdminUser(id: string) {
+    return this.get<{ user: AdminUser }>(`/v1/admin/users/${id}`);
+  }
+
+  async updateAdminUser(
+    id: string,
+    data: { role?: "USER" | "ADMIN"; isActive?: boolean; name?: string }
+  ) {
+    return this.patch<{ user: AdminUser }>(`/v1/admin/users/${id}`, data);
+  }
+
+  async deleteAdminUser(id: string) {
+    return this.delete(`/v1/admin/users/${id}`);
+  }
+
+  // =====================================================
+  // AUDIT LOGS (Admin)
+  // =====================================================
+
+  async getAuditLogs(params?: {
+    page?: number;
+    limit?: number;
+    userId?: string;
+    action?: AuditAction;
+    entity?: string;
+    entityId?: string;
+    startDate?: string;
+    endDate?: string;
+    search?: string;
+  }) {
+    const searchParams = new URLSearchParams();
+    if (params?.page) searchParams.set("page", params.page.toString());
+    if (params?.limit) searchParams.set("limit", params.limit.toString());
+    if (params?.userId) searchParams.set("userId", params.userId);
+    if (params?.action) searchParams.set("action", params.action);
+    if (params?.entity) searchParams.set("entity", params.entity);
+    if (params?.entityId) searchParams.set("entityId", params.entityId);
+    if (params?.startDate) searchParams.set("startDate", params.startDate);
+    if (params?.endDate) searchParams.set("endDate", params.endDate);
+    if (params?.search) searchParams.set("search", params.search);
+
+    const query = searchParams.toString();
+    return this.get<PaginatedResponse<AuditLog>>(
+      `/v1/admin/audit-logs${query ? `?${query}` : ""}`
+    );
+  }
+
+  async getAuditLog(id: string) {
+    return this.get<{ log: AuditLog }>(`/v1/admin/audit-logs/${id}`);
+  }
+
+  async getAuditLogEntityTypes() {
+    return this.get<{ entityTypes: string[] }>("/v1/admin/audit-logs/entity-types");
+  }
+
+  async getAuditLogActionTypes() {
+    return this.get<{ actionTypes: AuditAction[] }>("/v1/admin/audit-logs/action-types");
+  }
+
+  // =====================================================
+  // SEARCH
+  // =====================================================
+
+  async search(params: {
+    q: string;
+    type?: "all" | "users";
+    limit?: number;
+  }) {
+    const searchParams = new URLSearchParams();
+    searchParams.set("q", params.q);
+    if (params.type) searchParams.set("type", params.type);
+    if (params.limit) searchParams.set("limit", params.limit.toString());
+
+    return this.get<{
+      results: {
+        users?: Array<{
+          id: string;
+          email: string;
+          name: string | null;
+          role: "USER" | "ADMIN";
+          isActive: boolean;
+          createdAt: string;
+        }>;
+        query: string;
+        totalResults: number;
+      };
+    }>(`/v1/search?${searchParams.toString()}`);
+  }
+
+  // =====================================================
+  // CONTACT
+  // =====================================================
+
+  async submitContact(data: {
+    name: string;
+    email: string;
+    subject: string;
+    message: string;
+  }) {
+    return this.post<{ id: string; createdAt: string }>("/v1/contact", data);
+  }
+
+  async getContactMessages(params?: {
+    page?: number;
+    limit?: number;
+    status?: "PENDING" | "READ" | "REPLIED";
+    search?: string;
+    sortBy?: "createdAt" | "status";
+    sortOrder?: "asc" | "desc";
+  }) {
+    const searchParams = new URLSearchParams();
+    if (params?.page) searchParams.set("page", params.page.toString());
+    if (params?.limit) searchParams.set("limit", params.limit.toString());
+    if (params?.status) searchParams.set("status", params.status);
+    if (params?.search) searchParams.set("search", params.search);
+    if (params?.sortBy) searchParams.set("sortBy", params.sortBy);
+    if (params?.sortOrder) searchParams.set("sortOrder", params.sortOrder);
+
+    const query = searchParams.toString();
+    return this.get<PaginatedResponse<ContactMessage>>(
+      `/v1/admin/contact-messages${query ? `?${query}` : ""}`
+    );
+  }
+
+  async getContactMessage(id: string) {
+    return this.get<{ message: ContactMessage }>(
+      `/v1/admin/contact-messages/${id}`
+    );
+  }
+
+  async updateContactMessage(
+    id: string,
+    data: { status?: "PENDING" | "READ" | "REPLIED" }
+  ) {
+    return this.patch<{ message: ContactMessage }>(
+      `/v1/admin/contact-messages/${id}`,
+      data
+    );
+  }
+
+  async deleteContactMessage(id: string) {
+    return this.delete(`/v1/admin/contact-messages/${id}`);
+  }
+
+  async getContactUnreadCount() {
+    return this.get<{ count: number }>("/v1/admin/contact-messages/unread-count");
+  }
+
+  // =====================================================
+  // DATA EXPORT
+  // =====================================================
+
+  /**
+   * Get export URL for user's own data (GDPR)
+   * Note: Use downloadFile from lib/export.ts to download
+   */
+  getMyDataExportUrl(format: "json" | "csv" = "json"): string {
+    return `${this.config.baseUrl}/v1/users/me/export?format=${format}`;
+  }
+
+  /**
+   * Get export URL for all users (admin only)
+   * Note: Use downloadFile from lib/export.ts to download
+   */
+  getAdminUsersExportUrl(stream: boolean = false): string {
+    return `${this.config.baseUrl}/v1/admin/users/export${stream ? "?stream=true" : ""}`;
+  }
+
+  /**
+   * Get export URL for audit logs (admin only)
+   * Note: Use downloadFile from lib/export.ts to download
+   */
+  getAdminAuditLogsExportUrl(params?: {
+    startDate?: string;
+    endDate?: string;
+    action?: string;
+    userId?: string;
+  }): string {
+    const searchParams = new URLSearchParams();
+    if (params?.startDate) searchParams.set("startDate", params.startDate);
+    if (params?.endDate) searchParams.set("endDate", params.endDate);
+    if (params?.action) searchParams.set("action", params.action);
+    if (params?.userId) searchParams.set("userId", params.userId);
+
+    const query = searchParams.toString();
+    return `${this.config.baseUrl}/v1/admin/audit-logs/export${query ? `?${query}` : ""}`;
+  }
+
+  // =====================================================
+  // NOTIFICATIONS
+  // =====================================================
+
+  async getNotifications(params?: {
+    page?: number;
+    limit?: number;
+    read?: boolean;
+    type?: "INFO" | "SUCCESS" | "WARNING" | "ERROR" | "SYSTEM";
+  }) {
+    const searchParams = new URLSearchParams();
+    if (params?.page) searchParams.set("page", params.page.toString());
+    if (params?.limit) searchParams.set("limit", params.limit.toString());
+    if (params?.read !== undefined) searchParams.set("read", params.read.toString());
+    if (params?.type) searchParams.set("type", params.type);
+
+    const query = searchParams.toString();
+    return this.get<PaginatedResponse<Notification>>(
+      `/v1/notifications${query ? `?${query}` : ""}`
+    );
+  }
+
+  async getNotification(id: string) {
+    return this.get<{ notification: Notification }>(`/v1/notifications/${id}`);
+  }
+
+  async getUnreadNotificationCount() {
+    return this.get<{ count: number }>("/v1/notifications/unread-count");
+  }
+
+  async markNotificationAsRead(id: string) {
+    return this.patch<{ notification: Notification }>(`/v1/notifications/${id}/read`);
+  }
+
+  async markAllNotificationsAsRead() {
+    return this.patch<{ count: number }>("/v1/notifications/read-all");
+  }
+
+  async deleteNotification(id: string) {
+    return this.delete<null>(`/v1/notifications/${id}`);
+  }
+
+  async deleteAllNotifications() {
+    return this.delete<{ count: number }>("/v1/notifications");
   }
 
   // =====================================================

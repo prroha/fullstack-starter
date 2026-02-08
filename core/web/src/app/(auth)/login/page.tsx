@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth-context";
 import { ApiError } from "@/lib/api";
 import { loginSchema, type LoginFormData } from "@/lib/validations";
 import { logger } from "@/lib/logger";
+import { toast } from "@/lib/toast";
 import {
   Form,
   FormField,
@@ -37,14 +38,24 @@ export default function LoginPage() {
     try {
       await login(data.email, data.password);
       logger.info("Auth", "User logged in successfully", { email: data.email });
+      toast.success("Welcome back!", {
+        description: "You have been signed in successfully.",
+      });
       router.push("/");
     } catch (err) {
       if (err instanceof ApiError) {
         logger.warn("Auth", "Login failed", { email: data.email, code: err.code });
         setError(err.message);
+        toast.error("Login failed", {
+          description: err.message,
+        });
       } else {
         logger.error("Auth", "Unexpected login error", err);
-        setError("An unexpected error occurred. Please try again.");
+        const errorMessage = "An unexpected error occurred. Please try again.";
+        setError(errorMessage);
+        toast.error("Login failed", {
+          description: errorMessage,
+        });
       }
     }
   };

@@ -19,6 +19,20 @@ enum UserRole {
   ADMIN
 }
 
+enum ContactMessageStatus {
+  PENDING
+  READ
+  REPLIED
+}
+
+enum NotificationType {
+  INFO
+  SUCCESS
+  WARNING
+  ERROR
+  SYSTEM
+}
+
 // ============================================================================
 // MODELS
 // ============================================================================
@@ -29,6 +43,7 @@ model User {
   email         String    @unique
   passwordHash  String    @map("password_hash")
   name          String?
+  avatarUrl     String?   @map("avatar_url")
   role          UserRole  @default(USER)
   isActive      Boolean   @default(true) @map("is_active")
   emailVerified Boolean   @default(false) @map("email_verified")
@@ -49,13 +64,169 @@ model User {
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
 
-  // Relations - add your own
+  // Relations
+  passwordResetTokens PasswordResetToken[]
+  emailVerificationTokens EmailVerificationToken[]
+  sessions    Session[]
+  auditLogs   AuditLog[]
+  notifications Notification[]
   // posts        Post[]
   // comments     Comment[]
 
   @@index([email])
   @@index([googleId])
   @@map("users")
+}
+
+// ============================================================================
+// PASSWORD RESET
+// ============================================================================
+
+/// Password reset token for forgot password flow
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+  @@map("password_reset_tokens")
+}
+
+// ============================================================================
+// EMAIL VERIFICATION
+// ============================================================================
+
+/// Email verification token for verifying user email addresses
+model EmailVerificationToken {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+  @@map("email_verification_tokens")
+}
+
+// ============================================================================
+// SESSION MANAGEMENT
+// ============================================================================
+
+/// Session model for managing user login sessions across devices
+model Session {
+  id                String   @id @default(uuid())
+  visibleId         String   @unique @default(uuid()) @map("visible_id")
+  userId            String   @map("user_id")
+  refreshTokenHash  String   @map("refresh_token_hash")
+  ipAddress         String?  @map("ip_address")
+  userAgent         String?  @map("user_agent")
+  deviceName        String?  @map("device_name")
+  browser           String?
+  os                String?
+  lastActiveAt      DateTime @default(now()) @map("last_active_at")
+  createdAt         DateTime @default(now()) @map("created_at")
+  expiresAt         DateTime @map("expires_at")
+
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([refreshTokenHash])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+// ============================================================================
+// CONTACT MESSAGES
+// ============================================================================
+
+/// Contact form messages from public visitors
+model ContactMessage {
+  id        String               @id @default(uuid())
+  name      String
+  email     String
+  subject   String
+  message   String               @db.Text
+  status    ContactMessageStatus @default(PENDING)
+  createdAt DateTime             @default(now()) @map("created_at")
+  updatedAt DateTime             @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("contact_messages")
+}
+
+// ============================================================================
+// AUDIT LOG
+// ============================================================================
+
+/// Audit log action types
+enum AuditAction {
+  CREATE
+  READ
+  UPDATE
+  DELETE
+  LOGIN
+  LOGOUT
+  LOGIN_FAILED
+  PASSWORD_CHANGE
+  PASSWORD_RESET
+  EMAIL_VERIFY
+  ADMIN_ACTION
+}
+
+/// Audit log for tracking user actions
+model AuditLog {
+  id        String      @id @default(uuid())
+  userId    String?     @map("user_id")
+  action    AuditAction
+  entity    String      // e.g., "User", "Profile", "Session"
+  entityId  String?     @map("entity_id")
+  changes   Json?       // JSON object with old/new values (sensitive data excluded)
+  ipAddress String?     @map("ip_address")
+  userAgent String?     @map("user_agent")
+  metadata  Json?       // Additional context data
+  createdAt DateTime    @default(now()) @map("created_at")
+
+  user      User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([action])
+  @@index([entity])
+  @@index([entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// ============================================================================
+// NOTIFICATIONS
+// ============================================================================
+
+/// In-app notifications for users
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String           @map("user_id")
+  type      NotificationType @default(INFO)
+  title     String
+  message   String
+  data      Json?            // Optional JSON data for action links, metadata, etc.
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, read])
+  @@index([createdAt])
+  @@map("notifications")
 }
 
 // ============================================================================

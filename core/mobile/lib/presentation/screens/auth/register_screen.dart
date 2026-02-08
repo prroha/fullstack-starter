@@ -7,6 +7,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../providers/auth_provider.dart';
 import '../../router/routes.dart';
 import '../../widgets/atoms/app_button.dart';
+import '../../widgets/molecules/app_snackbar.dart';
 import '../../widgets/molecules/app_text_field.dart';
 
 /// Password strength levels
@@ -159,8 +160,25 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             _passwordController.text,
             _confirmPasswordController.text,
           );
-      if (success && mounted) {
-        context.go(Routes.home);
+      if (mounted) {
+        if (success) {
+          AppSnackbar.success(
+            context,
+            'Account created!',
+            description: 'Welcome aboard. You are now signed in.',
+          );
+          context.go(Routes.home);
+        } else {
+          // Error is already shown in the UI, but also show a snackbar
+          final error = ref.read(authProvider).error;
+          if (error != null) {
+            AppSnackbar.error(
+              context,
+              'Registration failed',
+              description: error,
+            );
+          }
+        }
       }
     }
   }

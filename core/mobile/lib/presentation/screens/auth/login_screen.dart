@@ -7,6 +7,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../providers/auth_provider.dart';
 import '../../router/routes.dart';
 import '../../widgets/atoms/app_button.dart';
+import '../../widgets/molecules/app_snackbar.dart';
 import '../../widgets/molecules/app_text_field.dart';
 
 /// Login screen with email/password authentication
@@ -60,8 +61,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             _emailController.text.trim(),
             _passwordController.text,
           );
-      if (success && mounted) {
-        context.go(Routes.home);
+      if (mounted) {
+        if (success) {
+          AppSnackbar.success(
+            context,
+            'Welcome back!',
+            description: 'You have been signed in successfully.',
+          );
+          context.go(Routes.home);
+        } else {
+          // Error is already shown in the UI, but also show a snackbar
+          final error = ref.read(authProvider).error;
+          if (error != null) {
+            AppSnackbar.error(
+              context,
+              'Login failed',
+              description: error,
+            );
+          }
+        }
       }
     }
   }
@@ -171,7 +189,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   enabled: !authState.isLoading,
                   onSubmitted: (_) => _handleLogin(),
                 ),
-                AppSpacing.gapLg,
+                AppSpacing.gapSm,
+
+                // Forgot password link
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: authState.isLoading
+                        ? null
+                        : () => context.go(Routes.forgotPassword),
+                    child: const Text(
+                      'Forgot password?',
+                      style: TextStyle(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ),
+                AppSpacing.gapMd,
 
                 // Login button
                 AppButton(

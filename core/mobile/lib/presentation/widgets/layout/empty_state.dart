@@ -3,6 +3,24 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../atoms/app_button.dart';
 
+/// Variant types for empty state styling.
+enum EmptyStateVariant {
+  /// Default variant with neutral styling
+  noData,
+
+  /// Search results empty state
+  noResults,
+
+  /// Notifications empty state
+  noNotifications,
+
+  /// Error variant with destructive styling
+  error,
+
+  /// Offline/connection variant with warning styling
+  offline,
+}
+
 /// An empty state widget with illustration, message, and optional action.
 ///
 /// This is a layout-level widget for displaying empty states in lists,
@@ -49,6 +67,9 @@ class EmptyState extends StatelessWidget {
   /// Callback for secondary action.
   final VoidCallback? onSecondaryAction;
 
+  /// The variant that controls icon color and background.
+  final EmptyStateVariant variant;
+
   const EmptyState({
     super.key,
     required this.icon,
@@ -61,66 +82,144 @@ class EmptyState extends StatelessWidget {
     this.illustration,
     this.secondaryActionLabel,
     this.onSecondaryAction,
+    this.variant = EmptyStateVariant.noData,
   });
 
   /// Creates an empty state for no data scenarios.
   const EmptyState.noData({
     super.key,
-    this.title = 'No data',
-    this.message = 'There is nothing here yet',
+    this.title = 'Nothing here yet',
+    this.message = 'This list is empty. Add some items to get started.',
     this.actionLabel,
     this.onAction,
+    this.secondaryActionLabel,
+    this.onSecondaryAction,
   })  : icon = Icons.inbox_outlined,
         iconSize = 64,
         iconColor = null,
         illustration = null,
-        secondaryActionLabel = null,
-        onSecondaryAction = null;
+        variant = EmptyStateVariant.noData;
 
   /// Creates an empty state for search results.
   const EmptyState.noResults({
     super.key,
     this.title = 'No results found',
-    this.message = 'Try adjusting your search or filter criteria',
+    this.message = "We couldn't find what you're looking for. Try adjusting your search or filters.",
     this.actionLabel,
     this.onAction,
+    this.secondaryActionLabel,
+    this.onSecondaryAction,
   })  : icon = Icons.search_off,
         iconSize = 64,
         iconColor = null,
         illustration = null,
-        secondaryActionLabel = null,
-        onSecondaryAction = null;
+        variant = EmptyStateVariant.noResults;
+
+  /// Creates an empty state for notifications.
+  const EmptyState.noNotifications({
+    super.key,
+    this.title = "You're all caught up!",
+    this.message = "No new notifications right now. We'll let you know when something important happens.",
+    this.actionLabel,
+    this.onAction,
+    this.secondaryActionLabel,
+    this.onSecondaryAction,
+  })  : icon = Icons.notifications_off_outlined,
+        iconSize = 64,
+        iconColor = null,
+        illustration = null,
+        variant = EmptyStateVariant.noNotifications;
 
   /// Creates an empty state for network errors.
   const EmptyState.offline({
     super.key,
-    this.title = 'No connection',
-    this.message = 'Please check your internet connection',
-    this.actionLabel = 'Retry',
+    this.title = 'No internet connection',
+    this.message = 'Please check your connection and try again. Your changes will sync once you\'re back online.',
+    this.actionLabel = 'Try again',
     this.onAction,
+    this.secondaryActionLabel,
+    this.onSecondaryAction,
   })  : icon = Icons.wifi_off,
         iconSize = 64,
         iconColor = null,
         illustration = null,
-        secondaryActionLabel = null,
-        onSecondaryAction = null;
+        variant = EmptyStateVariant.offline;
+
+  /// Creates an empty state for error scenarios.
+  const EmptyState.error({
+    super.key,
+    this.title = 'Something went wrong',
+    this.message = 'We encountered an error loading this content. Please try again.',
+    this.actionLabel = 'Retry',
+    this.onAction,
+    this.secondaryActionLabel,
+    this.onSecondaryAction,
+  })  : icon = Icons.error_outline,
+        iconSize = 64,
+        iconColor = null,
+        illustration = null,
+        variant = EmptyStateVariant.error;
+
+  Color _getIconColor(BuildContext context) {
+    if (iconColor != null) return iconColor!;
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    switch (variant) {
+      case EmptyStateVariant.error:
+        return AppColors.error;
+      case EmptyStateVariant.offline:
+        return isDark ? Colors.amber : AppColors.warning;
+      case EmptyStateVariant.noData:
+      case EmptyStateVariant.noResults:
+      case EmptyStateVariant.noNotifications:
+        return isDark ? Colors.grey.shade400 : AppColors.textMuted;
+    }
+  }
+
+  Color _getBackgroundColor(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    switch (variant) {
+      case EmptyStateVariant.error:
+        return isDark ? AppColors.error.withAlpha(26) : AppColors.error.withAlpha(13);
+      case EmptyStateVariant.offline:
+        return isDark ? Colors.amber.withAlpha(26) : AppColors.warning.withAlpha(13);
+      case EmptyStateVariant.noData:
+      case EmptyStateVariant.noResults:
+      case EmptyStateVariant.noNotifications:
+        return isDark ? Colors.grey.shade800 : AppColors.border.withAlpha(77);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final titleColor = isDark ? Colors.white : AppColors.textPrimary;
+    final messageColor = isDark ? Colors.grey.shade400 : AppColors.textSecondary;
+
     return Center(
       child: Padding(
         padding: AppSpacing.screenPadding,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Illustration or icon
+            // Illustration or icon with background
             if (illustration != null)
               illustration!
             else
-              Icon(
-                icon,
-                size: iconSize,
-                color: iconColor ?? AppColors.textMuted,
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: _getBackgroundColor(context),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  icon,
+                  size: iconSize * 0.6,
+                  color: _getIconColor(context),
+                ),
               ),
             AppSpacing.gapLg,
 
@@ -128,23 +227,26 @@ class EmptyState extends StatelessWidget {
             Text(
               title,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
+                color: titleColor,
               ),
             ),
 
             // Message
             if (message != null) ...[
               AppSpacing.gapSm,
-              Text(
-                message!,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: AppColors.textSecondary,
-                  height: 1.5,
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 300),
+                child: Text(
+                  message!,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: messageColor,
+                    height: 1.5,
+                  ),
                 ),
               ),
             ],
@@ -155,7 +257,10 @@ class EmptyState extends StatelessWidget {
               AppButton(
                 label: actionLabel!,
                 onPressed: onAction,
-                variant: AppButtonVariant.primary,
+                variant: variant == EmptyStateVariant.error ||
+                        variant == EmptyStateVariant.offline
+                    ? AppButtonVariant.outline
+                    : AppButtonVariant.primary,
               ),
             ],
 
@@ -170,6 +275,49 @@ class EmptyState extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Backwards-compatible widget wrapper for EmptyState.
+///
+/// This provides a simpler API matching the old EmptyStateWidget usage.
+///
+/// Example:
+/// ```dart
+/// EmptyStateWidget(
+///   message: 'No users found',
+///   icon: Icons.people_outline,
+/// )
+/// ```
+class EmptyStateWidget extends StatelessWidget {
+  /// The message to display.
+  final String message;
+
+  /// The icon to display.
+  final IconData icon;
+
+  /// Optional action button label.
+  final String? actionLabel;
+
+  /// Callback when the action button is pressed.
+  final VoidCallback? onAction;
+
+  const EmptyStateWidget({
+    super.key,
+    required this.message,
+    required this.icon,
+    this.actionLabel,
+    this.onAction,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return EmptyState(
+      icon: icon,
+      title: message,
+      actionLabel: actionLabel,
+      onAction: onAction,
     );
   }
 }

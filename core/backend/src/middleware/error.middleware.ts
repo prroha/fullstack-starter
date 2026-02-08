@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { ZodError } from "zod";
 import { config } from "../config";
 import { logger } from "../lib/logger";
-import { errorResponse, ErrorCodes } from "../utils/response";
+import { errorResponse, ErrorCodes, ErrorCode } from "../utils/response";
 
 /**
  * Custom error class for API errors
@@ -19,27 +19,27 @@ export class ApiError extends Error {
     Error.captureStackTrace(this, this.constructor);
   }
 
-  static badRequest(message: string, code = ErrorCodes.INVALID_INPUT): ApiError {
+  static badRequest(message: string, code: ErrorCode = ErrorCodes.INVALID_INPUT): ApiError {
     return new ApiError(400, message, code);
   }
 
-  static unauthorized(message = "Unauthorized", code = ErrorCodes.AUTH_REQUIRED): ApiError {
+  static unauthorized(message = "Unauthorized", code: ErrorCode = ErrorCodes.AUTH_REQUIRED): ApiError {
     return new ApiError(401, message, code);
   }
 
-  static forbidden(message = "Forbidden", code = ErrorCodes.FORBIDDEN): ApiError {
+  static forbidden(message = "Forbidden", code: ErrorCode = ErrorCodes.FORBIDDEN): ApiError {
     return new ApiError(403, message, code);
   }
 
-  static notFound(message = "Not found", code = ErrorCodes.NOT_FOUND): ApiError {
+  static notFound(message = "Not found", code: ErrorCode = ErrorCodes.NOT_FOUND): ApiError {
     return new ApiError(404, message, code);
   }
 
-  static conflict(message: string, code = ErrorCodes.CONFLICT): ApiError {
+  static conflict(message: string, code: ErrorCode = ErrorCodes.CONFLICT): ApiError {
     return new ApiError(409, message, code);
   }
 
-  static internal(message = "Internal server error", code = ErrorCodes.INTERNAL_ERROR): ApiError {
+  static internal(message = "Internal server error", code: ErrorCode = ErrorCodes.INTERNAL_ERROR): ApiError {
     return new ApiError(500, message, code, false);
   }
 }

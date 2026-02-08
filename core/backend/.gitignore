@@ -26,4 +26,8 @@ Thumbs.db
 coverage/
 
 # Uploads (if using local storage)
-uploads/
+uploads/*
+!uploads/.gitkeep
+!uploads/avatars/
+uploads/avatars/*
+!uploads/avatars/.gitkeep

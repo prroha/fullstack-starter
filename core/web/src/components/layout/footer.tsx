@@ -111,11 +111,25 @@ function Footer({
 
 interface SimpleFooterProps extends React.HTMLAttributes<HTMLElement> {
   copyright?: string;
+  /** Whether to show legal links (About, FAQ, Terms, Privacy) */
+  showLegalLinks?: boolean;
 }
 
-function SimpleFooter({ className, copyright, ...props }: SimpleFooterProps) {
+function SimpleFooter({
+  className,
+  copyright,
+  showLegalLinks = true,
+  ...props
+}: SimpleFooterProps) {
   const currentYear = new Date().getFullYear();
   const defaultCopyright = `${currentYear} Your Company. All rights reserved.`;
+
+  const legalLinks = [
+    { label: "About", href: "/about" },
+    { label: "FAQ", href: "/faq" },
+    { label: "Terms", href: "/terms" },
+    { label: "Privacy", href: "/privacy" },
+  ];
 
   return (
     <footer
@@ -126,9 +140,24 @@ function SimpleFooter({ className, copyright, ...props }: SimpleFooterProps) {
       {...props}
     >
       <div className="container mx-auto px-4">
-        <p className="text-center text-sm text-muted-foreground">
-          {copyright ?? defaultCopyright}
-        </p>
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+          <p className="text-sm text-muted-foreground">
+            {copyright ?? defaultCopyright}
+          </p>
+          {showLegalLinks && (
+            <nav className="flex items-center gap-4" aria-label="Legal links">
+              {legalLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </nav>
+          )}
+        </div>
       </div>
     </footer>
   );

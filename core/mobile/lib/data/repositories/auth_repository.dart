@@ -21,6 +21,7 @@ class AuthResponse {
   final String userId;
   final String email;
   final String? name;
+  final String role;
   final String accessToken;
   final String refreshToken;
 
@@ -28,6 +29,7 @@ class AuthResponse {
     required this.userId,
     required this.email,
     this.name,
+    required this.role,
     required this.accessToken,
     required this.refreshToken,
   });
@@ -40,10 +42,13 @@ class AuthResponse {
       userId: user['id'] as String,
       email: user['email'] as String,
       name: user['name'] as String?,
+      role: user['role'] as String? ?? 'USER',
       accessToken: data['accessToken'] as String,
       refreshToken: data['refreshToken'] as String,
     );
   }
+
+  bool get isAdmin => role == 'ADMIN';
 }
 
 /// Register response model (registration doesn't return tokens)
@@ -97,6 +102,44 @@ class TokenRefreshResponse {
   }
 }
 
+/// Verify reset token response
+class VerifyResetTokenResponse {
+  final bool valid;
+  final String? email;
+
+  const VerifyResetTokenResponse({
+    required this.valid,
+    this.email,
+  });
+
+  factory VerifyResetTokenResponse.fromJson(Map<String, dynamic> json) {
+    final data = json['data'] ?? json;
+    return VerifyResetTokenResponse(
+      valid: data['valid'] as bool,
+      email: data['email'] as String?,
+    );
+  }
+}
+
+/// Verify email response
+class VerifyEmailResponse {
+  final bool verified;
+  final String email;
+
+  const VerifyEmailResponse({
+    required this.verified,
+    required this.email,
+  });
+
+  factory VerifyEmailResponse.fromJson(Map<String, dynamic> json) {
+    final data = json['data'] ?? json;
+    return VerifyEmailResponse(
+      verified: data['verified'] as bool,
+      email: data['email'] as String,
+    );
+  }
+}
+
 /// Auth repository interface
 abstract class AuthRepository {
   /// Login with email and password
@@ -119,6 +162,36 @@ abstract class AuthRepository {
 
   /// Logout the current user
   Future<Either<Failure, void>> logout();
+
+  /// Change user password
+  Future<Either<Failure, void>> changePassword({
+    required String currentPassword,
+    required String newPassword,
+    required String confirmPassword,
+  });
+
+  /// Request password reset email
+  Future<Either<Failure, void>> forgotPassword({
+    required String email,
+  });
+
+  /// Verify password reset token
+  Future<Either<Failure, VerifyResetTokenResponse>> verifyResetToken(
+    String token,
+  );
+
+  /// Reset password with token
+  Future<Either<Failure, void>> resetPassword({
+    required String token,
+    required String password,
+    required String confirmPassword,
+  });
+
+  /// Verify email with token
+  Future<Either<Failure, VerifyEmailResponse>> verifyEmail(String token);
+
+  /// Request a new verification email
+  Future<Either<Failure, void>> sendVerificationEmail();
 }
 
 /// Auth repository implementation
@@ -213,6 +286,79 @@ class AuthRepositoryImpl with BaseRepository implements AuthRepository {
         // Ignore logout API errors, still clear local tokens
       }
       await _tokenManager.clearTokens();
+    });
+  }
+
+  @override
+  Future<Either<Failure, void>> changePassword({
+    required String currentPassword,
+    required String newPassword,
+    required String confirmPassword,
+  }) async {
+    return safeCall(() async {
+      await _dio.post(
+        ApiConstants.changePassword,
+        data: {
+          'currentPassword': currentPassword,
+          'newPassword': newPassword,
+          'confirmPassword': confirmPassword,
+        },
+      );
+    });
+  }
+
+  @override
+  Future<Either<Failure, void>> forgotPassword({
+    required String email,
+  }) async {
+    return safeCall(() async {
+      await _dio.post(
+        ApiConstants.forgotPassword,
+        data: {'email': email},
+      );
+    });
+  }
+
+  @override
+  Future<Either<Failure, VerifyResetTokenResponse>> verifyResetToken(
+    String token,
+  ) async {
+    return safeCall(() async {
+      final response = await _dio.get(ApiConstants.verifyResetToken(token));
+      return VerifyResetTokenResponse.fromJson(response.data);
+    });
+  }
+
+  @override
+  Future<Either<Failure, void>> resetPassword({
+    required String token,
+    required String password,
+    required String confirmPassword,
+  }) async {
+    return safeCall(() async {
+      await _dio.post(
+        ApiConstants.resetPassword,
+        data: {
+          'token': token,
+          'password': password,
+          'confirmPassword': confirmPassword,
+        },
+      );
+    });
+  }
+
+  @override
+  Future<Either<Failure, VerifyEmailResponse>> verifyEmail(String token) async {
+    return safeCall(() async {
+      final response = await _dio.get(ApiConstants.verifyEmail(token));
+      return VerifyEmailResponse.fromJson(response.data);
+    });
+  }
+
+  @override
+  Future<Either<Failure, void>> sendVerificationEmail() async {
+    return safeCall(() async {
+      await _dio.post(ApiConstants.sendVerification);
     });
   }
 }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../providers/theme_provider.dart';
 
 /// A menu item in the navigation drawer.
 class AppDrawerItem {
@@ -51,7 +53,7 @@ class AppDrawerItem {
 ///   ],
 /// )
 /// ```
-class AppDrawer extends StatelessWidget {
+class AppDrawer extends ConsumerWidget {
   /// Title displayed in the header.
   final String? headerTitle;
 
@@ -76,6 +78,9 @@ class AppDrawer extends StatelessWidget {
   /// Width of the drawer.
   final double? width;
 
+  /// Whether to show the theme toggle in the drawer.
+  final bool showThemeToggle;
+
   const AppDrawer({
     super.key,
     this.headerTitle,
@@ -86,13 +91,19 @@ class AppDrawer extends StatelessWidget {
     this.footerItems,
     this.onItemTap,
     this.width,
+    this.showThemeToggle = true,
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final themeState = ref.watch(themeProvider);
+    final themeNotifier = ref.read(themeProvider.notifier);
+
     return Drawer(
       width: width,
-      backgroundColor: AppColors.surface,
+      backgroundColor: colorScheme.surface,
       child: SafeArea(
         child: Column(
           children: [
@@ -100,7 +111,7 @@ class AppDrawer extends StatelessWidget {
             if (customHeader != null)
               customHeader!
             else if (headerTitle != null || headerAvatar != null)
-              _buildHeader(),
+              _buildHeader(context),
 
             // Main items
             Expanded(
@@ -112,9 +123,15 @@ class AppDrawer extends StatelessWidget {
               ),
             ),
 
+            // Theme toggle
+            if (showThemeToggle) ...[
+              Divider(height: 1, color: colorScheme.outlineVariant),
+              _buildThemeToggle(context, themeState, themeNotifier),
+            ],
+
             // Footer items
             if (footerItems != null && footerItems!.isNotEmpty) ...[
-              const Divider(height: 1, color: AppColors.border),
+              Divider(height: 1, color: colorScheme.outlineVariant),
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
                 child: Column(
@@ -130,13 +147,67 @@ class AppDrawer extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildThemeToggle(
+    BuildContext context,
+    ThemeState state,
+    ThemeNotifier notifier,
+  ) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
+      child: Row(
+        children: [
+          Icon(
+            state.themeMode.icon,
+            color: colorScheme.primary,
+            size: 20,
+          ),
+          AppSpacing.gapSm,
+          Text(
+            'Theme',
+            style: theme.textTheme.bodyMedium,
+          ),
+          const Spacer(),
+          SegmentedButton<AppThemeMode>(
+            segments: AppThemeMode.values.map((mode) {
+              return ButtonSegment<AppThemeMode>(
+                value: mode,
+                icon: Icon(mode.icon, size: 16),
+                tooltip: mode.label,
+              );
+            }).toList(),
+            selected: {state.themeMode},
+            onSelectionChanged: (selected) {
+              if (selected.isNotEmpty) {
+                notifier.setTheme(selected.first);
+              }
+            },
+            showSelectedIcon: false,
+            style: ButtonStyle(
+              visualDensity: VisualDensity.compact,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Container(
       width: double.infinity,
       padding: AppSpacing.cardPadding,
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         border: Border(
-          bottom: BorderSide(color: AppColors.border),
+          bottom: BorderSide(color: colorScheme.outlineVariant),
         ),
       ),
       child: Column(
@@ -149,19 +220,16 @@ class AppDrawer extends StatelessWidget {
           if (headerTitle != null)
             Text(
               headerTitle!,
-              style: const TextStyle(
-                fontSize: 18,
+              style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
               ),
             ),
           if (headerSubtitle != null) ...[
             AppSpacing.gapXs,
             Text(
               headerSubtitle!,
-              style: const TextStyle(
-                fontSize: 14,
-                color: AppColors.textSecondary,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: colorScheme.onSurfaceVariant,
               ),
             ),
           ],
@@ -171,15 +239,18 @@ class AppDrawer extends StatelessWidget {
   }
 
   Widget _buildMenuItem(BuildContext context, AppDrawerItem item) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return ListTile(
       leading: Icon(
         item.icon,
-        color: item.isSelected ? AppColors.primary : AppColors.textSecondary,
+        color: item.isSelected ? colorScheme.primary : colorScheme.onSurfaceVariant,
       ),
       title: Text(
         item.label,
-        style: TextStyle(
-          color: item.isSelected ? AppColors.primary : AppColors.textPrimary,
+        style: theme.textTheme.bodyLarge?.copyWith(
+          color: item.isSelected ? colorScheme.primary : colorScheme.onSurface,
           fontWeight: item.isSelected ? FontWeight.w600 : FontWeight.normal,
         ),
       ),
@@ -187,13 +258,13 @@ class AppDrawer extends StatelessWidget {
           ? Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
-                color: AppColors.error,
+                color: colorScheme.error,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
                 item.badgeCount! > 99 ? '99+' : '${item.badgeCount}',
-                style: const TextStyle(
-                  color: AppColors.white,
+                style: TextStyle(
+                  color: colorScheme.onError,
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
                 ),
@@ -201,7 +272,7 @@ class AppDrawer extends StatelessWidget {
             )
           : null,
       selected: item.isSelected,
-      selectedTileColor: AppColors.primary.withAlpha(25),
+      selectedTileColor: colorScheme.primary.withAlpha(25),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
       ),

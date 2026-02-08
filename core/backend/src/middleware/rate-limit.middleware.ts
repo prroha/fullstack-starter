@@ -293,10 +293,11 @@ class RedisStore implements RateLimitStore {
     try {
       // Dynamic import to avoid requiring redis if not used
       const redis = await import("redis");
-      this.client = redis.createClient({ url: this.redisUrl }) as RedisClientType;
+      this.client = redis.createClient({ url: this.redisUrl }) as unknown as RedisClientType;
 
-      this.client.on("error", (err: Error) => {
-        console.error("[rate-limit] Redis client error:", err.message);
+      this.client.on("error", (err: unknown) => {
+        const error = err as Error;
+        console.error("[rate-limit] Redis client error:", error.message);
         this.isConnected = false;
       });
 

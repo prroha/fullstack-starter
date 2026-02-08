@@ -111,20 +111,33 @@ class ErrorState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final titleColor = isDark ? Colors.white : AppColors.textPrimary;
+    final messageColor = isDark ? Colors.grey.shade400 : AppColors.textSecondary;
+    final iconBackgroundColor = isDark ? AppColors.error.withAlpha(26) : AppColors.error.withAlpha(13);
+
     return Center(
       child: Padding(
         padding: AppSpacing.screenPadding,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Illustration or icon
+            // Illustration or icon with background
             if (illustration != null)
               illustration!
             else
-              Icon(
-                icon,
-                size: iconSize,
-                color: AppColors.error,
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: iconBackgroundColor,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  icon,
+                  size: iconSize * 0.6,
+                  color: AppColors.error,
+                ),
               ),
             AppSpacing.gapLg,
 
@@ -133,23 +146,26 @@ class ErrorState extends StatelessWidget {
               Text(
                 title!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
+                  color: titleColor,
                 ),
               ),
               AppSpacing.gapSm,
             ],
 
             // Message
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 16,
-                height: 1.5,
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 300),
+              child: Text(
+                message,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: messageColor,
+                  fontSize: 16,
+                  height: 1.5,
+                ),
               ),
             ),
 
@@ -220,8 +236,10 @@ class ErrorScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: backgroundColor ?? AppColors.background,
+      backgroundColor: backgroundColor ?? (isDark ? Colors.grey.shade900 : AppColors.background),
       body: ErrorState(
         message: message,
         onRetry: onRetry,
@@ -229,6 +247,39 @@ class ErrorScreen extends StatelessWidget {
         title: title,
         icon: icon,
       ),
+    );
+  }
+}
+
+/// Backwards-compatible widget wrapper for ErrorState.
+///
+/// This provides a simpler API matching the old ErrorStateWidget usage.
+///
+/// Example:
+/// ```dart
+/// ErrorStateWidget(
+///   message: 'Failed to load data',
+///   onRetry: () => refetch(),
+/// )
+/// ```
+class ErrorStateWidget extends StatelessWidget {
+  /// The error message to display.
+  final String message;
+
+  /// Callback when the retry button is pressed.
+  final VoidCallback? onRetry;
+
+  const ErrorStateWidget({
+    super.key,
+    required this.message,
+    this.onRetry,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ErrorState(
+      message: message,
+      onRetry: onRetry,
     );
   }
 }

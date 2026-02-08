@@ -82,10 +82,32 @@ export const config = {
     .split(",")
     .map((origin) => origin.trim()),
 
-  // Email (optional - add your provider)
+  // Frontend URL (for password reset emails, etc.)
+  frontendUrl: process.env.FRONTEND_URL || "http://localhost:3000",
+
+  // Email Configuration
   email: {
+    // Provider: 'console' (default for dev), 'smtp', 'sendgrid', 'resend'
+    provider: optionalEnv("EMAIL_PROVIDER", "console"),
     apiKey: process.env.EMAIL_API_KEY || "",
-    from: process.env.EMAIL_FROM || "App <noreply@example.com>",
+    from: optionalEnv("EMAIL_FROM", "App <noreply@example.com>"),
+    replyTo: process.env.EMAIL_REPLY_TO || "",
+    // SMTP settings (when provider is 'smtp')
+    smtp: {
+      host: process.env.SMTP_HOST || "",
+      port: parseInt(process.env.SMTP_PORT || "587", 10),
+      secure: process.env.SMTP_SECURE === "true",
+      user: process.env.SMTP_USER || "",
+      password: process.env.SMTP_PASSWORD || "",
+    },
+  },
+
+  // App Branding (used in emails, etc.)
+  app: {
+    name: optionalEnv("APP_NAME", "Fullstack Starter"),
+    primaryColor: optionalEnv("APP_PRIMARY_COLOR", "#4F46E5"),
+    logoUrl: process.env.APP_LOGO_URL || "",
+    supportEmail: optionalEnv("APP_SUPPORT_EMAIL", "support@example.com"),
   },
 
   // Helper methods

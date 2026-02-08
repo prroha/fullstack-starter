@@ -1,6 +1,6 @@
 # CLAUDE.md - Fullstack Starter Web
 
-> **Last Updated**: 2026-02-06
+> **Last Updated**: 2026-02-08
 > **Codebase Version**: 1.0.0
 > **Maintainer**: AI-assisted documentation (auto-update on changes)
 
@@ -16,6 +16,7 @@ Use these to quickly find what you need:
 - **Styling**: `globals.css`, `tailwind`, `cn()`, `utils.ts`
 - **Layout**: `layout.tsx`, `AuthProvider`
 - **Pages**: `app/page.tsx`, `app/*/page.tsx`
+- **UI Components**: `components/ui/index.ts`, `Button`, `Input`, `Dialog`, `Tabs`
 
 ---
 
@@ -24,6 +25,7 @@ Use these to quickly find what you need:
 <!-- Add new entries at the top -->
 | Date | Change | Files |
 |------|--------|-------|
+| 2026-02-08 | Added comprehensive UI components documentation | CLAUDE.md |
 | 2026-02-06 | Initial documentation | CLAUDE.md |
 
 ---
@@ -68,7 +70,7 @@ src/
 │   └── register/           # Register page (create as needed)
 │
 ├── components/
-│   └── ui/                 # UI components (add as needed)
+│   └── ui/                 # Custom UI component library (see UI Components section)
 │
 └── lib/
     ├── api.ts              # API client + types
@@ -87,7 +89,8 @@ src/
 | `src/lib/api.ts` | API client, types, error handling |
 | `src/lib/auth-context.tsx` | Auth state, login/logout functions |
 | `src/lib/utils.ts` | `cn()` utility for Tailwind class merging |
-| `src/app/globals.css` | Global CSS and Tailwind imports |
+| `src/app/globals.css` | Global CSS, Tailwind imports, CSS variables |
+| `src/components/ui/index.ts` | UI component library barrel export |
 
 ---
 
@@ -267,6 +270,185 @@ import { cn } from "@/lib/utils";
 // Buttons
 <button className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
 <button className="px-4 py-2 border border-blue-500 text-blue-500 rounded hover:bg-blue-50">
+```
+
+---
+
+## UI Components Library
+
+> **Note**: This is a **custom component library** built specifically for this project. It is **NOT shadcn/ui** - all components are implemented from scratch with full control over styling and behavior. The design system uses **CSS variables with Tailwind CSS** for theming.
+
+### Import Pattern
+```typescript
+// Import from the barrel file
+import { Button, Input, Dialog, Tabs } from "@/components/ui";
+
+// Or import individual components
+import { Button } from "@/components/ui/button";
+```
+
+### Form Components
+
+| Component | File | Description |
+|-----------|------|-------------|
+| `Button` | `button.tsx` | Versatile button with variants (default, destructive, outline, secondary, ghost, link), sizes (sm, md, lg, icon), and loading state |
+| `Input` | `input.tsx` | Text input with focus ring, disabled state, and error styling via `aria-invalid` |
+| `Textarea` | `textarea.tsx` | Multi-line text input with auto-resize support and consistent styling |
+| `Checkbox` | `checkbox.tsx` | Checkbox with label support, indeterminate state, and size variants (sm, md, lg) |
+| `Radio` / `RadioGroup` | `radio.tsx` | Radio button and group with keyboard navigation, horizontal/vertical orientation |
+| `Select` | `select.tsx` | Dropdown select with options, placeholder, label, error message, and size variants |
+| `Switch` | `switch.tsx` | Toggle switch with label support, size variants, and configurable label position |
+
+### Display Components
+
+| Component | File | Description |
+|-----------|------|-------------|
+| `Badge` | `badge.tsx` | Status indicator with variants (default, secondary, destructive, outline, success, warning) and sizes |
+| `Spinner` / `SpinnerOverlay` | `spinner.tsx` | Loading spinner in three sizes; overlay version for full-page loading states |
+| `Skeleton` | `skeleton.tsx` | Loading placeholder with pulse/shimmer animations and many variants (see below) |
+
+### Skeleton Variants
+
+The skeleton system includes specialized components for common UI patterns:
+
+| Component | Description |
+|-----------|-------------|
+| `Skeleton` | Base skeleton with pulse or shimmer animation |
+| `SkeletonText` | Multi-line text placeholder with configurable line count |
+| `SkeletonCircle` | Circle placeholder for avatars |
+| `SkeletonAvatar` | Avatar with optional text placeholders |
+| `SkeletonButton` | Button placeholder in various sizes |
+| `SkeletonImage` | Image placeholder with aspect ratio support (square, video, portrait, wide) |
+| `SkeletonCard` | Card layout skeleton (default, horizontal, compact variants) |
+| `SkeletonTable` | Table skeleton with configurable rows/columns |
+| `SkeletonList` | List skeleton (default, simple, detailed variants) |
+| `SkeletonPage` | Full page loading skeleton |
+| `SkeletonDashboard` | Dashboard layout skeleton with nav, sidebar, stats, and charts |
+| `SkeletonForm` | Form layout skeleton |
+| `SkeletonProfile` | Profile page skeleton |
+| `SkeletonAuth` | Authentication page skeleton |
+
+### Layout Components
+
+| Component | File | Description |
+|-----------|------|-------------|
+| `Dialog` | `dialog.tsx` | Modal dialog with focus trap, escape to close, and size variants (sm, md, lg, xl, full) |
+| `DialogHeader` | `dialog.tsx` | Dialog header with optional close button |
+| `DialogBody` | `dialog.tsx` | Scrollable dialog content area |
+| `DialogFooter` | `dialog.tsx` | Dialog footer for action buttons |
+| `Tabs` | `tabs.tsx` | Tab container with controlled/uncontrolled modes |
+| `TabList` / `Tab` | `tabs.tsx` | Tab navigation with keyboard support and variants (line, enclosed, soft-rounded) |
+| `TabPanels` / `TabPanel` | `tabs.tsx` | Tab content panels with auto-indexing |
+| `Accordion` | `accordion.tsx` | Expandable sections with single/multiple mode support |
+| `AccordionItem` | `accordion.tsx` | Individual accordion section |
+| `AccordionTrigger` | `accordion.tsx` | Clickable accordion header |
+| `AccordionContent` | `accordion.tsx` | Animated accordion content |
+
+### Utility Components
+
+| Component | File | Description |
+|-----------|------|-------------|
+| `ThemeToggle` | `theme-toggle.tsx` | Dark/light mode toggle with variants (icon, button, dropdown) |
+| `ExportButton` | `export-button.tsx` | File download button with format selection and loading state |
+| `ExportCsvButton` | `export-button.tsx` | Simplified CSV export button |
+| `ExportMyDataButton` | `export-button.tsx` | User data export button for GDPR compliance |
+
+### Usage Examples
+
+#### Button with Loading State
+```tsx
+import { Button } from "@/components/ui";
+
+<Button variant="default" isLoading={isSubmitting}>
+  Submit
+</Button>
+```
+
+#### Dialog Modal
+```tsx
+import { Dialog, DialogHeader, DialogBody, DialogFooter, Button } from "@/components/ui";
+
+<Dialog isOpen={isOpen} onClose={() => setIsOpen(false)} size="md">
+  <DialogHeader>Confirm Action</DialogHeader>
+  <DialogBody>Are you sure you want to proceed?</DialogBody>
+  <DialogFooter>
+    <Button variant="outline" onClick={() => setIsOpen(false)}>Cancel</Button>
+    <Button onClick={handleConfirm}>Confirm</Button>
+  </DialogFooter>
+</Dialog>
+```
+
+#### Tabs with Variants
+```tsx
+import { Tabs, TabList, Tab, TabPanels, TabPanel } from "@/components/ui";
+
+<Tabs variant="enclosed" defaultIndex={0}>
+  <TabList>
+    <Tab>Profile</Tab>
+    <Tab>Settings</Tab>
+    <Tab disabled>Disabled</Tab>
+  </TabList>
+  <TabPanels>
+    <TabPanel>Profile content</TabPanel>
+    <TabPanel>Settings content</TabPanel>
+    <TabPanel>Disabled content</TabPanel>
+  </TabPanels>
+</Tabs>
+```
+
+#### Form with Validation
+```tsx
+import { Input, Select, Checkbox, Button } from "@/components/ui";
+
+<form>
+  <Input placeholder="Email" aria-invalid={!!errors.email} />
+  <Select
+    options={[{ value: "us", label: "United States" }]}
+    error={errors.country}
+    label="Country"
+  />
+  <Checkbox label="I agree to terms" />
+  <Button type="submit">Submit</Button>
+</form>
+```
+
+#### Skeleton Loading State
+```tsx
+import { SkeletonCard, SkeletonTable } from "@/components/ui";
+
+{isLoading ? (
+  <div className="grid grid-cols-3 gap-4">
+    <SkeletonCard />
+    <SkeletonCard />
+    <SkeletonCard />
+  </div>
+) : (
+  <CardGrid items={items} />
+)}
+```
+
+### Design System CSS Variables
+
+The component library uses CSS variables for theming. Key variables include:
+
+```css
+/* Colors (defined in globals.css) */
+--background    /* Page background */
+--foreground    /* Primary text color */
+--primary       /* Primary brand color */
+--secondary     /* Secondary color */
+--muted         /* Muted backgrounds */
+--accent        /* Accent/hover backgrounds */
+--destructive   /* Error/danger color */
+--border        /* Border color */
+--input         /* Input border color */
+--ring          /* Focus ring color */
+
+/* Usage in components */
+bg-primary text-primary-foreground
+bg-muted text-muted-foreground
+border-border
+ring-ring
 ```
 
 ---

@@ -6,6 +6,10 @@
 export { Header, HeaderNavLink, HeaderUserMenu } from "./header";
 export type { HeaderProps, HeaderNavLinkProps, HeaderUserMenuProps } from "./header";
 
+// App Header (with notifications)
+export { AppHeader } from "./app-header";
+export type { AppHeaderProps } from "./app-header";
+
 // Footer
 export { Footer, SimpleFooter } from "./footer";
 export type {
@@ -31,3 +35,20 @@ export type {
   CardSectionProps,
   EmptySectionProps,
 } from "./section";
+
+// Legal Page
+export {
+  LegalPage,
+  LegalSection,
+  LegalSubsection,
+  LegalList,
+  LegalHighlight,
+} from "./legal-page";
+export type {
+  LegalPageProps,
+  TableOfContentsItem,
+  LegalSectionProps,
+  LegalSubsectionProps,
+  LegalListProps,
+  LegalHighlightProps,
+} from "./legal-page";

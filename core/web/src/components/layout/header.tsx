@@ -3,6 +3,8 @@
 import * as React from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { HeaderSearch } from "@/components/search";
 
 // =====================================================
 // Header Component
@@ -15,6 +17,8 @@ interface HeaderProps extends React.HTMLAttributes<HTMLElement> {
   actions?: React.ReactNode;
   sticky?: boolean;
   bordered?: boolean;
+  showThemeToggle?: boolean;
+  showSearch?: boolean;
 }
 
 function Header({
@@ -25,6 +29,8 @@ function Header({
   actions,
   sticky = true,
   bordered = true,
+  showThemeToggle = true,
+  showSearch = false,
   ...props
 }: HeaderProps) {
   return (
@@ -62,10 +68,14 @@ function Header({
             </nav>
           )}
 
-          {/* Actions (user menu, buttons, etc.) */}
-          {actions && (
-            <div className="flex items-center gap-4">{actions}</div>
-          )}
+          {/* Actions (search, user menu, buttons, theme toggle, etc.) */}
+          <div className="flex items-center gap-2">
+            {showSearch && <HeaderSearch />}
+            {showThemeToggle && <ThemeToggle variant="dropdown" size="sm" />}
+            {actions && (
+              <div className="flex items-center gap-4">{actions}</div>
+            )}
+          </div>
         </div>
       </div>
     </header>
