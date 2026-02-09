@@ -1,6 +1,17 @@
 'use client';
 
+/**
+ * File Upload Component
+ *
+ * A drag-and-drop file upload component using core UI components.
+ * Uses core Progress, Button, and Spinner for consistent UI.
+ */
+
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { Spinner } from '@/components/ui/spinner';
+import { cn } from '@/lib/utils';
 import {
   uploadService,
   formatFileSize,
@@ -63,6 +74,92 @@ const DEFAULT_ALLOWED_TYPES = [
   'image/webp',
   'application/pdf',
 ];
+
+// =============================================================================
+// File Icon Component (domain-specific)
+// =============================================================================
+
+function FileIcon({ mimeType }: { mimeType: string }) {
+  const isImage = mimeType.startsWith('image/');
+  const isPdf = mimeType === 'application/pdf';
+
+  if (isImage) {
+    return (
+      <svg className="w-8 h-8 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+        />
+      </svg>
+    );
+  }
+
+  if (isPdf) {
+    return (
+      <svg className="w-8 h-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+        />
+      </svg>
+    );
+  }
+
+  return (
+    <svg className="w-8 h-8 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+      />
+    </svg>
+  );
+}
+
+// =============================================================================
+// Status Icons
+// =============================================================================
+
+function SuccessIcon() {
+  return (
+    <svg className="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+      <path
+        fillRule="evenodd"
+        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+        clipRule="evenodd"
+      />
+    </svg>
+  );
+}
+
+function ErrorIcon() {
+  return (
+    <svg className="w-5 h-5 text-destructive" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+      <path
+        fillRule="evenodd"
+        d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+        clipRule="evenodd"
+      />
+    </svg>
+  );
+}
+
+function CloseIcon() {
+  return (
+    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+      <path
+        fillRule="evenodd"
+        d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+        clipRule="evenodd"
+      />
+    </svg>
+  );
+}
 
 // =============================================================================
 // File Upload Component
@@ -319,7 +416,7 @@ export function FileUpload({
   const hasFiles = files.length > 0;
 
   return (
-    <div className={`w-full ${className}`}>
+    <div className={cn('w-full', className)}>
       {/* Drop Zone */}
       <div
         onDragEnter={handleDragEnter}
@@ -327,15 +424,13 @@ export function FileUpload({
         onDragOver={handleDragOver}
         onDrop={handleDrop}
         onClick={openFileBrowser}
-        className={`
-          relative border-2 border-dashed rounded-lg p-8 text-center cursor-pointer
-          transition-colors duration-200
-          ${isDragging
-            ? 'border-blue-500 bg-blue-50'
-            : 'border-gray-300 hover:border-gray-400 bg-gray-50'
-          }
-          ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
-        `}
+        className={cn(
+          'relative border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors duration-200',
+          isDragging
+            ? 'border-primary bg-primary/5'
+            : 'border-border hover:border-muted-foreground bg-muted/50',
+          disabled && 'opacity-50 cursor-not-allowed'
+        )}
       >
         <input
           ref={inputRef}
@@ -349,7 +444,7 @@ export function FileUpload({
 
         {/* Upload Icon */}
         <svg
-          className={`mx-auto h-12 w-12 ${isDragging ? 'text-blue-500' : 'text-gray-400'}`}
+          className={cn('mx-auto h-12 w-12', isDragging ? 'text-primary' : 'text-muted-foreground')}
           stroke="currentColor"
           fill="none"
           viewBox="0 0 48 48"
@@ -364,13 +459,13 @@ export function FileUpload({
         </svg>
 
         <div className="mt-4">
-          <span className="text-sm font-medium text-blue-600 hover:text-blue-500">
+          <span className="text-sm font-medium text-primary hover:text-primary/80">
             {label}
           </span>
-          <span className="text-sm text-gray-500"> or drag and drop</span>
+          <span className="text-sm text-muted-foreground"> or drag and drop</span>
         </div>
 
-        <p className="mt-1 text-xs text-gray-500">
+        <p className="mt-1 text-xs text-muted-foreground">
           {helperText || `Max ${formatFileSize(maxSize)} per file`}
         </p>
       </div>
@@ -381,7 +476,7 @@ export function FileUpload({
           {files.map((fileWithProgress) => (
             <div
               key={fileWithProgress.id}
-              className="flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-200"
+              className="flex items-center gap-3 p-3 bg-card rounded-lg border"
             >
               {/* File Icon */}
               <div className="flex-shrink-0">
@@ -390,67 +485,43 @@ export function FileUpload({
 
               {/* File Info */}
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">
+                <p className="text-sm font-medium text-foreground truncate">
                   {fileWithProgress.file.name}
                 </p>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-muted-foreground">
                   {formatFileSize(fileWithProgress.file.size)}
                 </p>
 
-                {/* Progress Bar */}
+                {/* Progress Bar - Using core Progress component */}
                 {fileWithProgress.status === 'uploading' && (
-                  <div className="mt-1 w-full bg-gray-200 rounded-full h-1.5">
-                    <div
-                      className="bg-blue-600 h-1.5 rounded-full transition-all duration-300"
-                      style={{ width: `${fileWithProgress.progress}%` }}
-                    />
-                  </div>
+                  <Progress
+                    value={fileWithProgress.progress}
+                    size="sm"
+                    className="mt-2"
+                  />
                 )}
 
                 {/* Error Message */}
                 {fileWithProgress.status === 'error' && (
-                  <p className="mt-1 text-xs text-red-500">{fileWithProgress.error}</p>
+                  <p className="mt-1 text-xs text-destructive">{fileWithProgress.error}</p>
                 )}
               </div>
 
               {/* Status Icon */}
               <div className="flex-shrink-0">
-                {fileWithProgress.status === 'success' && (
-                  <svg className="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                    <path
-                      fillRule="evenodd"
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                )}
-                {fileWithProgress.status === 'error' && (
-                  <svg className="w-5 h-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-                    <path
-                      fillRule="evenodd"
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                )}
-                {fileWithProgress.status === 'uploading' && (
-                  <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-                )}
+                {fileWithProgress.status === 'success' && <SuccessIcon />}
+                {fileWithProgress.status === 'error' && <ErrorIcon />}
+                {fileWithProgress.status === 'uploading' && <Spinner size="sm" />}
                 {fileWithProgress.status === 'pending' && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       removeFile(fileWithProgress.id);
                     }}
-                    className="text-gray-400 hover:text-gray-600"
+                    className="text-muted-foreground hover:text-foreground"
+                    aria-label={`Remove ${fileWithProgress.file.name}`}
                   >
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                      <path
-                        fillRule="evenodd"
-                        d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
+                    <CloseIcon />
                   </button>
                 )}
               </div>
@@ -459,84 +530,37 @@ export function FileUpload({
         </div>
       )}
 
-      {/* Action Buttons */}
+      {/* Action Buttons - Using core Button component */}
       {hasFiles && (
         <div className="mt-4 flex gap-2">
           {pendingCount > 0 && !isUploading && (
-            <button
+            <Button
               onClick={uploadFiles}
               disabled={disabled}
-              className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Upload {pendingCount} file{pendingCount !== 1 ? 's' : ''}
-            </button>
+            </Button>
           )}
 
           {isUploading && (
-            <button
+            <Button
+              variant="destructive"
               onClick={cancelUpload}
-              className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700"
             >
               Cancel
-            </button>
+            </Button>
           )}
 
-          <button
+          <Button
+            variant="secondary"
             onClick={clearFiles}
             disabled={isUploading}
-            className="px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Clear all
-          </button>
+          </Button>
         </div>
       )}
     </div>
-  );
-}
-
-// =============================================================================
-// File Icon Component
-// =============================================================================
-
-function FileIcon({ mimeType }: { mimeType: string }) {
-  const isImage = mimeType.startsWith('image/');
-  const isPdf = mimeType === 'application/pdf';
-
-  if (isImage) {
-    return (
-      <svg className="w-8 h-8 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-        />
-      </svg>
-    );
-  }
-
-  if (isPdf) {
-    return (
-      <svg className="w-8 h-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-        />
-      </svg>
-    );
-  }
-
-  return (
-    <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-      />
-    </svg>
   );
 }
 

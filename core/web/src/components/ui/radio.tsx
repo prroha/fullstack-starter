@@ -178,6 +178,7 @@ const RadioGroup = React.forwardRef<HTMLDivElement, RadioGroupProps>(
         {error && (
           <p
             id={`${groupId}-error`}
+            role="alert"
             className="text-sm font-medium text-destructive"
           >
             {error}

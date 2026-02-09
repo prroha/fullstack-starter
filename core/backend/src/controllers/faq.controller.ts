@@ -33,6 +33,13 @@ const faqSchema = z.object({
   isActive: z.boolean().optional(),
 });
 
+const reorderFaqsSchema = z.object({
+  items: z.array(z.object({
+    id: z.string().uuid(),
+    order: z.number().int().min(0),
+  })).min(1, "At least one item is required"),
+});
+
 // ============================================================================
 // Controller
 // ============================================================================
@@ -214,8 +221,10 @@ export const faqController = {
 
   async reorderFaqs(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
-      const { items } = req.body as { items: { id: string; order: number }[] };
-      await faqService.reorderFaqs(items);
+      const validated = validateOrRespond(reorderFaqsSchema, req.body, res);
+      if (!validated) return;
+
+      await faqService.reorderFaqs(validated.items);
       res.json(successResponse({ message: "FAQs reordered" }));
     } catch (error) {
       next(error);

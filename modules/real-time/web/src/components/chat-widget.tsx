@@ -1,6 +1,17 @@
 "use client";
 
+/**
+ * Chat Widget Component
+ *
+ * A real-time chat widget using core UI components for consistency.
+ * Uses core Button, Input, and Spinner components.
+ */
+
 import React, { useState, useRef, useEffect, useCallback } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Spinner } from "@/components/ui/spinner";
+import { cn } from "@/lib/utils";
 import { useSocket, useRoom, useChat, UseSocketOptions } from "../hooks/use-socket";
 import { ChatMessage } from "../lib/socket";
 
@@ -43,14 +54,15 @@ function MessageItem({ message, isOwnMessage, showTimestamp }: MessageItemProps)
 
   return (
     <div
-      className={`flex ${isOwnMessage ? "justify-end" : "justify-start"} mb-2`}
+      className={cn("flex mb-2", isOwnMessage ? "justify-end" : "justify-start")}
     >
       <div
-        className={`max-w-[70%] rounded-lg px-4 py-2 ${
+        className={cn(
+          "max-w-[70%] rounded-lg px-4 py-2",
           isOwnMessage
-            ? "bg-blue-500 text-white"
-            : "bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-gray-100"
-        }`}
+            ? "bg-primary text-primary-foreground"
+            : "bg-muted text-foreground"
+        )}
       >
         {!isOwnMessage && (
           <div className="text-xs font-medium mb-1 opacity-70">
@@ -60,9 +72,10 @@ function MessageItem({ message, isOwnMessage, showTimestamp }: MessageItemProps)
         <div className="break-words">{message.content}</div>
         {showTimestamp && (
           <div
-            className={`text-xs mt-1 ${
-              isOwnMessage ? "text-blue-100" : "text-gray-500 dark:text-gray-400"
-            }`}
+            className={cn(
+              "text-xs mt-1",
+              isOwnMessage ? "opacity-70" : "text-muted-foreground"
+            )}
           >
             {formatTime(message.timestamp)}
           </div>
@@ -73,7 +86,7 @@ function MessageItem({ message, isOwnMessage, showTimestamp }: MessageItemProps)
 }
 
 // =============================================================================
-// Typing Indicator Component
+// Typing Indicator Component (uses core Spinner)
 // =============================================================================
 
 interface TypingIndicatorProps {
@@ -91,11 +104,11 @@ function TypingIndicator({ users }: TypingIndicatorProps) {
       : `${users.length} people are typing...`;
 
   return (
-    <div className="flex items-center gap-2 px-4 py-2 text-sm text-gray-500 dark:text-gray-400">
+    <div className="flex items-center gap-2 px-4 py-2 text-sm text-muted-foreground">
       <div className="flex gap-1">
-        <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-        <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-        <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+        <span className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+        <span className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+        <span className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
       </div>
       <span>{text}</span>
     </div>
@@ -116,15 +129,15 @@ function ConnectionStatus({ status, reconnectAttempt }: ConnectionStatusProps) {
 
   const statusConfig: Record<string, { color: string; text: string }> = {
     connecting: { color: "bg-yellow-500", text: "Connecting..." },
-    disconnected: { color: "bg-red-500", text: "Disconnected" },
+    disconnected: { color: "bg-destructive", text: "Disconnected" },
     reconnecting: { color: "bg-yellow-500", text: `Reconnecting (${reconnectAttempt})...` },
-    error: { color: "bg-red-500", text: "Connection error" },
+    error: { color: "bg-destructive", text: "Connection error" },
   };
 
-  const config = statusConfig[status] || { color: "bg-gray-500", text: status };
+  const config = statusConfig[status] || { color: "bg-muted-foreground", text: status };
 
   return (
-    <div className={`${config.color} text-white text-xs text-center py-1`}>
+    <div className={cn(config.color, "text-white text-xs text-center py-1")}>
       {config.text}
     </div>
   );
@@ -228,28 +241,32 @@ export function ChatWidget({
 
   return (
     <div
-      className={`flex flex-col h-full bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden ${className}`}
+      className={cn(
+        "flex flex-col h-full bg-card rounded-lg shadow-lg overflow-hidden border",
+        className
+      )}
     >
       {/* Header */}
       {renderHeader ? (
         renderHeader({ isConnected, memberCount: members.length })
       ) : (
-        <div className="flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between px-4 py-3 bg-muted/50 border-b">
           <div className="flex items-center gap-2">
-            <h3 className="font-semibold text-gray-900 dark:text-gray-100">
+            <h3 className="font-semibold text-foreground">
               {title}
             </h3>
             {isJoined && (
-              <span className="text-xs text-gray-500 dark:text-gray-400">
+              <span className="text-xs text-muted-foreground">
                 ({members.length + 1} online)
               </span>
             )}
           </div>
           <div className="flex items-center gap-2">
             <span
-              className={`w-2 h-2 rounded-full ${
-                isConnected ? "bg-green-500" : "bg-red-500"
-              }`}
+              className={cn(
+                "w-2 h-2 rounded-full",
+                isConnected ? "bg-green-500" : "bg-destructive"
+              )}
             />
           </div>
         </div>
@@ -261,14 +278,15 @@ export function ChatWidget({
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4">
         {!isJoined && isJoining && (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-gray-500 dark:text-gray-400">Joining room...</div>
+          <div className="flex items-center justify-center h-full gap-2">
+            <Spinner size="sm" />
+            <span className="text-muted-foreground">Joining room...</span>
           </div>
         )}
 
         {isJoined && messages.length === 0 && (
           <div className="flex items-center justify-center h-full">
-            <div className="text-gray-500 dark:text-gray-400">
+            <div className="text-muted-foreground">
               No messages yet. Start the conversation!
             </div>
           </div>
@@ -296,10 +314,10 @@ export function ChatWidget({
       {/* Typing Indicator */}
       {showTypingIndicator && <TypingIndicator users={filteredTypingUsers} />}
 
-      {/* Input */}
-      <div className="border-t border-gray-200 dark:border-gray-700 p-4">
+      {/* Input - Using core Input and Button components */}
+      <div className="border-t p-4">
         <div className="flex gap-2">
-          <input
+          <Input
             ref={inputRef}
             type="text"
             value={inputValue}
@@ -308,15 +326,14 @@ export function ChatWidget({
             onBlur={stopTyping}
             placeholder={placeholder}
             disabled={!isJoined}
-            className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1"
           />
-          <button
+          <Button
             onClick={handleSend}
             disabled={!isJoined || !inputValue.trim()}
-            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             Send
-          </button>
+          </Button>
         </div>
       </div>
     </div>

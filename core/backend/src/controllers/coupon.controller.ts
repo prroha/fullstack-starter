@@ -13,7 +13,7 @@ import { successResponse, paginatedResponse } from "../utils/response";
 import { z } from "zod";
 import { DiscountType } from "@prisma/client";
 import { booleanFilterSchema, paginationSchema } from "../utils/validation-schemas";
-import { validateOrRespond, sendCsvExport, ensureParam } from "../utils/controller-helpers";
+import { validateOrRespond, sendCsvExport } from "../utils/controller-helpers";
 
 // ============================================================================
 // Validation Schemas
@@ -33,6 +33,10 @@ const couponSchema = z.object({
 const validateCouponSchema = z.object({
   code: z.string().min(1),
   purchaseAmount: z.number().positive().optional(),
+});
+
+const incrementUsageSchema = z.object({
+  code: z.string().min(1, "Coupon code is required"),
 });
 
 const getCouponsQuerySchema = paginationSchema.extend({
@@ -196,14 +200,11 @@ export const couponController = {
 
   async incrementUsage(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
-      const { code } = req.body as { code: string };
+      const validated = validateOrRespond(incrementUsageSchema, req.body, res);
+      if (!validated) return;
 
-      if (!ensureParam(code, res, "Coupon code")) {
-        return;
-      }
-
-      const previousCoupon = await couponService.getByCode(code);
-      const coupon = await couponService.incrementUsage(code);
+      const previousCoupon = await couponService.getByCode(validated.code);
+      const coupon = await couponService.incrementUsage(validated.code);
 
       await auditService.log({
         userId: req.user.userId,

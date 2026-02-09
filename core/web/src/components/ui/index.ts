@@ -5,8 +5,8 @@
 // This file exports all UI components organized by atomic design principles:
 //
 // ATOMS (Basic building blocks - single HTML elements with styling)
-//   - Button, Input, Textarea, Checkbox, Radio, Select, Switch
-//   - Badge, Spinner, Skeleton, Label, Icon, AppLink, Kbd, Text, Divider
+//   - Button, Input, Textarea, Checkbox, Radio, Select, Switch, Slider, Rating, NumberInput
+//   - Badge, Spinner, Skeleton, Progress, Label, Icon, AppLink, Kbd, Text, Divider
 //   - VisuallyHidden, Card (with Header, Title, Description, Content, Footer)
 //   - Table (with Header, Body, Footer, Row, Head, Cell, Caption)
 //
@@ -14,11 +14,19 @@
 //   - Avatar, NavLink, IconButton, MenuItem, FieldWrapper, StatusBadge
 //   - ThemeToggle, ThemeSelector, PasswordStrengthMeter
 //   - ConfirmButton, ExportButton, Autocomplete, TagInput, QRCode, AvatarUpload
+//   - CopyButton, CopyableText, StatCard
 //
 // ORGANISMS (Complex components with multiple molecules/atoms)
 //   - Dialog (with Header, Body, Footer), Modal (simplified Dialog wrapper)
 //   - Tabs (with TabList, Tab, TabPanels, TabPanel)
 //   - Accordion (with Item, Trigger, Content)
+//   - Tooltip (hover-triggered overlay with positioning and arrow)
+//   - Popover (click-triggered overlay with Header, Footer, Close)
+//   - Timeline (with TimelineItem), Collapsible (with Trigger, Content)
+//   - DropdownMenu (trigger, items, submenus, keyboard navigation)
+//   - Pagination (page numbers, ellipsis, size selector)
+//   - Breadcrumb (navigation path with separators)
+//   - Stepper (multi-step workflow navigation)
 //
 // LAYOUTS (Structural components for page composition)
 //   - Container, Stack, Grid, PageLayout, AuthLayout
@@ -64,6 +72,24 @@ export type { SelectProps, SelectOption } from "./select";
 export { Switch } from "./switch";
 export type { SwitchProps } from "./switch";
 
+// Slider - Range slider input
+export { Slider } from "./slider";
+export type {
+  SliderProps,
+  SliderSize,
+  SliderColor,
+  SliderOrientation,
+  SliderMark,
+} from "./slider";
+
+// Rating - Star rating input
+export { Rating } from "./rating";
+export type { RatingProps, RatingSize } from "./rating";
+
+// NumberInput - Numeric input with increment/decrement
+export { NumberInput } from "./number-input";
+export type { NumberInputProps, NumberInputSize } from "./number-input";
+
 // Badge - Status/label indicator
 export { Badge } from "./badge";
 export type { BadgeProps } from "./badge";
@@ -89,6 +115,17 @@ export {
   SkeletonProfile,
   SkeletonAuth,
 } from "./skeleton";
+
+// Progress - Progress indicators (linear and circular)
+export { Progress, LinearProgress, CircularProgress } from "./progress";
+export type {
+  ProgressProps,
+  LinearProgressProps,
+  CircularProgressProps,
+  ProgressSize,
+  ProgressColor,
+  ProgressVariant,
+} from "./progress";
 
 // Label - Form field label
 export { Label } from "./label";
@@ -247,6 +284,18 @@ export type {
 export { Autocomplete } from "./autocomplete";
 export type { AutocompleteProps, AutocompleteOption } from "./autocomplete";
 
+// SearchInput - Search input with debounce and loading state
+export { SearchInput } from "./search-input";
+export type { SearchInputProps, SearchInputSize } from "./search-input";
+
+// CommandPalette - Command palette with fuzzy search
+export { CommandPalette, useCommandPalette } from "./command-palette";
+export type {
+  CommandPaletteProps,
+  CommandItem,
+  CommandGroup,
+} from "./command-palette";
+
 // TagInput - Multi-value tag input
 export { TagInput } from "./tag-input";
 export type { TagInputProps } from "./tag-input";
@@ -257,6 +306,41 @@ export type { QRCodeProps, ErrorCorrectionLevel, DownloadFormat } from "./qr-cod
 
 // AvatarUpload - Avatar with upload capability
 export { AvatarUpload } from "./avatar-upload";
+
+// CopyButton - Copy text to clipboard
+export { CopyButton, CopyableText } from "./copy-button";
+export type {
+  CopyButtonProps,
+  CopyButtonSize,
+  CopyButtonVariant,
+  CopyableTextProps,
+} from "./copy-button";
+
+// StatCard - Statistics display card
+export { StatCard, StatCardSkeleton } from "./stat-card";
+export type {
+  StatCardProps,
+  StatCardVariant,
+  StatCardSize,
+  TrendDirection,
+} from "./stat-card";
+
+// RichTextEditor - WYSIWYG rich text editor with formatting toolbar
+export { RichTextEditor } from "./rich-text-editor";
+export type { RichTextEditorProps, RichTextEditorSize } from "./rich-text-editor";
+
+// DatePicker - Calendar dropdown for date selection
+export { DatePicker, formatDate, isSameDay, isToday } from "./date-picker";
+export type { DatePickerProps, DatePickerSize } from "./date-picker";
+
+// TimePicker - Time selection dropdown
+export { TimePicker, formatTime, timeToMinutes, isTimeInRange } from "./time-picker";
+export type {
+  TimePickerProps,
+  TimePickerSize,
+  TimeFormat,
+  TimeValue,
+} from "./time-picker";
 
 // =============================================================================
 // ORGANISMS - Complex UI Patterns
@@ -306,6 +390,70 @@ export type {
   AccordionTriggerProps,
   AccordionContentProps,
 } from "./accordion";
+
+// Stepper - Multi-step workflow navigation
+export {
+  Stepper,
+  Step,
+  StepIndicator,
+  StepLabel,
+  StepConnector,
+  useStepperContext,
+} from "./stepper";
+export type {
+  StepperProps,
+  StepProps,
+  StepperContextValue,
+  Step as StepConfig,
+  StepState,
+  StepperOrientation,
+} from "./stepper";
+
+// Timeline - Vertical timeline display
+export { Timeline, TimelineItem } from "./timeline";
+export type {
+  TimelineProps,
+  TimelineItemProps,
+  TimelineItemData,
+  TimelineStatus,
+  TimelineSize,
+} from "./timeline";
+
+// Collapsible - Expandable/collapsible content
+export {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
+  useCollapsibleContext,
+} from "./collapsible";
+export type {
+  CollapsibleProps,
+  CollapsibleTriggerProps,
+  CollapsibleContentProps,
+} from "./collapsible";
+
+// DropdownMenu - Dropdown menu with keyboard navigation
+export { DropdownMenu } from "./dropdown-menu";
+export type {
+  DropdownMenuProps,
+  DropdownMenuItem,
+  DropdownMenuDivider,
+  DropdownMenuGroup,
+  DropdownMenuContent,
+  DropdownMenuPosition,
+} from "./dropdown-menu";
+
+// Pagination - Page navigation with ellipsis and size selector
+export { Pagination } from "./pagination";
+export type { PaginationProps, PaginationSize } from "./pagination";
+
+// Breadcrumb - Navigation breadcrumb with separators
+export { Breadcrumb } from "./breadcrumb";
+export type {
+  BreadcrumbProps,
+  BreadcrumbItem,
+  BreadcrumbSeparator,
+} from "./breadcrumb";
 
 // =============================================================================
 // LAYOUTS - Page Structure Components
@@ -378,4 +526,10 @@ export type {
 } from "./layouts/dashboard-layout";
 
 // SplitLayout - Two-panel layout
-export { SplitLayout } from "./layouts/split-layout";
+export { SplitLayout, ResizableSplitLayout } from "./layouts/split-layout";
+export type {
+  SplitLayoutProps,
+  ResizableSplitLayoutProps,
+  SplitRatio,
+  MobileBreakpoint,
+} from "./layouts/split-layout";

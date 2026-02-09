@@ -161,6 +161,7 @@ const Avatar = React.forwardRef<HTMLDivElement, AvatarProps>(
               statusSizes[size],
               statusColors[status]
             )}
+            role="status"
             aria-label={`Status: ${status}`}
           />
         )}

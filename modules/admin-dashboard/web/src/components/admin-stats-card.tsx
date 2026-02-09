@@ -1,12 +1,39 @@
 'use client';
 
+/**
+ * Admin Stats Card Components
+ *
+ * This module re-exports the core StatCard component with admin-specific presets.
+ * Use the core StatCard directly for most cases.
+ *
+ * @example
+ * ```tsx
+ * import { AdminStatsCard, AdminStatsGrid } from '@modules/admin-dashboard/web/src/components/admin-stats-card';
+ *
+ * <AdminStatsGrid>
+ *   <AdminStatsCard
+ *     title="Total Users"
+ *     value={1234}
+ *     trend="up"
+ *     trendValue="+12%"
+ *     icon={<UsersIcon />}
+ *   />
+ * </AdminStatsGrid>
+ * ```
+ */
+
 import { cn } from '@/lib/utils';
+import { StatCard, StatCardSkeleton, type StatCardProps, type TrendDirection } from '@/components/ui/stat-card';
 
 // =============================================================================
-// Types
+// Re-export core types for convenience
 // =============================================================================
 
-export type TrendDirection = 'up' | 'down' | 'neutral';
+export type { TrendDirection };
+
+// =============================================================================
+// Admin Stats Card Props
+// =============================================================================
 
 export interface AdminStatsCardProps {
   /** Card title */
@@ -30,94 +57,15 @@ export interface AdminStatsCardProps {
 }
 
 // =============================================================================
-// Trend Icon Component
+// Admin Stats Card Component
 // =============================================================================
 
-function TrendIcon({ direction }: { direction: TrendDirection }) {
-  if (direction === 'up') {
-    return (
-      <svg
-        className="w-4 h-4"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-        aria-hidden="true"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M5 10l7-7m0 0l7 7m-7-7v18"
-        />
-      </svg>
-    );
-  }
-
-  if (direction === 'down') {
-    return (
-      <svg
-        className="w-4 h-4"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-        aria-hidden="true"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M19 14l-7 7m0 0l-7-7m7 7V3"
-        />
-      </svg>
-    );
-  }
-
-  return (
-    <svg
-      className="w-4 h-4"
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M5 12h14"
-      />
-    </svg>
-  );
-}
-
-// =============================================================================
-// Loading Skeleton
-// =============================================================================
-
-function StatsCardSkeleton({ className }: { className?: string }) {
-  return (
-    <div
-      className={cn(
-        'bg-white rounded-xl shadow-sm border border-gray-200 p-6 animate-pulse',
-        className
-      )}
-    >
-      <div className="flex items-start justify-between">
-        <div className="space-y-3 flex-1">
-          <div className="h-4 w-24 bg-gray-200 rounded" />
-          <div className="h-8 w-16 bg-gray-200 rounded" />
-          <div className="h-3 w-32 bg-gray-200 rounded" />
-        </div>
-        <div className="h-10 w-10 bg-gray-200 rounded-lg" />
-      </div>
-    </div>
-  );
-}
-
-// =============================================================================
-// Stats Card Component
-// =============================================================================
-
+/**
+ * AdminStatsCard - A wrapper around core StatCard with admin-specific styling.
+ *
+ * For new implementations, consider using the core StatCard directly:
+ * `import { StatCard } from '@/components/ui/stat-card';`
+ */
 export function AdminStatsCard({
   title,
   value,
@@ -129,84 +77,24 @@ export function AdminStatsCard({
   loading = false,
   onClick,
 }: AdminStatsCardProps) {
-  if (loading) {
-    return <StatsCardSkeleton className={className} />;
-  }
-
-  const trendColors: Record<TrendDirection, string> = {
-    up: 'text-green-600 bg-green-50',
-    down: 'text-red-600 bg-red-50',
-    neutral: 'text-gray-500 bg-gray-50',
-  };
-
-  const trendTextColors: Record<TrendDirection, string> = {
-    up: 'text-green-600',
-    down: 'text-red-600',
-    neutral: 'text-gray-500',
-  };
-
-  const isClickable = !!onClick;
+  // Parse trendValue to change percentage if it's a percentage string
+  const changeValue = trendValue
+    ? parseFloat(trendValue.replace(/[+%]/g, ''))
+    : undefined;
 
   return (
-    <div
-      className={cn(
-        'bg-white rounded-xl shadow-sm border border-gray-200 p-6 transition-all',
-        isClickable && 'cursor-pointer hover:shadow-md hover:border-gray-300',
-        className
-      )}
+    <StatCard
+      label={title}
+      value={typeof value === 'number' ? value.toLocaleString() : value}
+      change={changeValue}
+      trend={trend}
+      trendLabel={description}
+      icon={icon}
+      isLoading={loading}
       onClick={onClick}
-      role={isClickable ? 'button' : undefined}
-      tabIndex={isClickable ? 0 : undefined}
-      onKeyDown={
-        isClickable
-          ? (e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                onClick?.();
-              }
-            }
-          : undefined
-      }
-    >
-      <div className="flex items-start justify-between">
-        <div>
-          <h3 className="text-sm font-medium text-gray-500">{title}</h3>
-          <p className="mt-2 text-3xl font-bold text-gray-900">
-            {typeof value === 'number' ? value.toLocaleString() : value}
-          </p>
-
-          {(description || (trend && trendValue)) && (
-            <div className="mt-2 flex items-center gap-2">
-              {trend && trendValue && (
-                <span
-                  className={cn(
-                    'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium',
-                    trendColors[trend]
-                  )}
-                >
-                  <TrendIcon direction={trend} />
-                  {trendValue}
-                </span>
-              )}
-              {description && (
-                <span
-                  className={cn(
-                    'text-sm',
-                    trend ? trendTextColors[trend] : 'text-gray-500'
-                  )}
-                >
-                  {description}
-                </span>
-              )}
-            </div>
-          )}
-        </div>
-
-        {icon && (
-          <div className="p-2 bg-blue-50 rounded-lg text-blue-600">{icon}</div>
-        )}
-      </div>
-    </div>
+      variant="info"
+      className={className}
+    />
   );
 }
 
@@ -234,7 +122,7 @@ export function AdminStatsGrid({
   return (
     <div
       className={cn(
-        'grid grid-cols-1 gap-6',
+        'grid grid-cols-1 gap-4',
         columnClasses[columns],
         className
       )}
@@ -243,6 +131,13 @@ export function AdminStatsGrid({
     </div>
   );
 }
+
+// =============================================================================
+// Re-export core components for advanced use cases
+// =============================================================================
+
+export { StatCard, StatCardSkeleton };
+export type { StatCardProps };
 
 // =============================================================================
 // Default Export

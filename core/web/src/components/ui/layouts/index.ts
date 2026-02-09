@@ -21,6 +21,17 @@ export type {
   JustifyValue,
 } from "./stack";
 
+// Grid
+export { Grid, GridItem } from "./grid";
+export type {
+  GridProps,
+  GridItemProps,
+  ResponsiveValue,
+  GapSize as GridGapSize,
+  AlignItems,
+  JustifyItems,
+} from "./grid";
+
 // Auth Layout
 export { AuthLayout, BackgroundPattern } from "./auth-layout";
 export type { AuthLayoutProps, MaxWidth } from "./auth-layout";
@@ -58,6 +69,6 @@ export type {
   SplitLayoutProps,
   ResizableSplitLayoutProps,
   SplitRatio,
-  GapSize,
+  GapSize as SplitGapSize,
   MobileBreakpoint,
 } from "./split-layout";

@@ -1,6 +1,17 @@
 'use client';
 
+/**
+ * Social Login Buttons Component
+ *
+ * Provides OAuth login buttons for various social providers.
+ * Uses core Button and Spinner components for consistency.
+ */
+
 import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
+import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 
 // =============================================================================
 // Types
@@ -111,24 +122,14 @@ export default function SocialLoginButtons({
     window.location.href = url;
   };
 
-  // Size classes
-  const sizeClasses = {
-    sm: 'px-3 py-1.5 text-sm',
-    md: 'px-4 py-2.5',
-    lg: 'px-6 py-3 text-lg',
-  };
-
-  const iconSize = {
-    sm: 'w-4 h-4',
-    md: 'w-5 h-5',
-    lg: 'w-6 h-6',
-  };
+  // Size classes for buttons
+  const buttonSize = size === 'lg' ? 'lg' : size === 'sm' ? 'sm' : 'default';
 
   if (loading) {
     return (
-      <div className={`animate-pulse ${className}`}>
-        <div className="h-10 bg-gray-200 rounded-lg mb-2" />
-        <div className="h-10 bg-gray-200 rounded-lg" />
+      <div className={cn('space-y-3', className)}>
+        <Skeleton className="h-10 w-full rounded-lg" />
+        <Skeleton className="h-10 w-full rounded-lg" />
       </div>
     );
   }
@@ -143,48 +144,42 @@ export default function SocialLoginButtons({
       {dividerText && (
         <div className="relative my-6">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-300" />
+            <div className="w-full border-t border-border" />
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-white text-gray-500">{dividerText}</span>
+            <span className="px-2 bg-background text-muted-foreground">{dividerText}</span>
           </div>
         </div>
       )}
 
       {/* Buttons */}
       <div
-        className={`
-          ${layout === 'horizontal' ? 'flex flex-row gap-3' : 'flex flex-col gap-3'}
-        `}
+        className={cn(
+          layout === 'horizontal' ? 'flex flex-row gap-3' : 'flex flex-col gap-3'
+        )}
       >
         {providers.map((provider) => (
-          <button
+          <Button
             key={provider.id}
+            variant="outline"
+            size={buttonSize}
             onClick={() => handleLogin(provider.id)}
             disabled={loadingProvider !== null}
-            className={`
-              ${sizeClasses[size]}
-              ${layout === 'horizontal' ? 'flex-1' : 'w-full'}
-              inline-flex items-center justify-center gap-3
-              rounded-lg border border-gray-300 bg-white
-              text-gray-700 font-medium
-              hover:bg-gray-50 hover:border-gray-400
-              focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500
-              disabled:opacity-50 disabled:cursor-not-allowed
-              transition-colors
-            `}
+            isLoading={loadingProvider === provider.id}
+            className={cn(
+              layout === 'horizontal' ? 'flex-1' : 'w-full',
+              'justify-center gap-3'
+            )}
           >
-            {loadingProvider === provider.id ? (
-              <LoadingSpinner className={iconSize[size]} />
-            ) : (
-              <ProviderIcon provider={provider.id} className={iconSize[size]} />
+            {loadingProvider !== provider.id && (
+              <ProviderIcon provider={provider.id} className="h-5 w-5" />
             )}
             <span className={layout === 'horizontal' && size === 'sm' ? 'sr-only' : ''}>
               {loadingProvider === provider.id
                 ? 'Connecting...'
                 : `Continue with ${provider.name}`}
             </span>
-          </button>
+          </Button>
         ))}
       </div>
     </div>
@@ -192,7 +187,7 @@ export default function SocialLoginButtons({
 }
 
 // =============================================================================
-// Provider Icons
+// Provider Icons (domain-specific, kept in this module)
 // =============================================================================
 
 function ProviderIcon({
@@ -218,7 +213,7 @@ function ProviderIcon({
 
 function GoogleIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
       <path
         d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
         fill="#4285F4"
@@ -241,7 +236,7 @@ function GoogleIcon({ className }: { className?: string }) {
 
 function GitHubIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
       <path
         fillRule="evenodd"
         clipRule="evenodd"
@@ -253,7 +248,7 @@ function GitHubIcon({ className }: { className?: string }) {
 
 function AppleIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
       <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
     </svg>
   );
@@ -261,39 +256,14 @@ function AppleIcon({ className }: { className?: string }) {
 
 function FacebookIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="#1877F2">
+    <svg className={className} viewBox="0 0 24 24" fill="#1877F2" aria-hidden="true">
       <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
     </svg>
   );
 }
 
-function LoadingSpinner({ className }: { className?: string }) {
-  return (
-    <svg
-      className={`animate-spin ${className}`}
-      xmlns="http://www.w3.org/2000/svg"
-      fill="none"
-      viewBox="0 0 24 24"
-    >
-      <circle
-        className="opacity-25"
-        cx="12"
-        cy="12"
-        r="10"
-        stroke="currentColor"
-        strokeWidth="4"
-      />
-      <path
-        className="opacity-75"
-        fill="currentColor"
-        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-      />
-    </svg>
-  );
-}
-
 // =============================================================================
-// Individual Button Exports
+// Individual Button Exports (using core Button)
 // =============================================================================
 
 export function GoogleLoginButton({
@@ -308,27 +278,16 @@ export function GoogleLoginButton({
   className?: string;
 }) {
   return (
-    <button
+    <Button
+      variant="outline"
       onClick={onClick}
-      disabled={disabled || loading}
-      className={`
-        w-full px-4 py-2.5 inline-flex items-center justify-center gap-3
-        rounded-lg border border-gray-300 bg-white
-        text-gray-700 font-medium
-        hover:bg-gray-50 hover:border-gray-400
-        focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500
-        disabled:opacity-50 disabled:cursor-not-allowed
-        transition-colors
-        ${className}
-      `}
+      disabled={disabled}
+      isLoading={loading}
+      className={cn('w-full justify-center gap-3', className)}
     >
-      {loading ? (
-        <LoadingSpinner className="w-5 h-5" />
-      ) : (
-        <GoogleIcon className="w-5 h-5" />
-      )}
+      {!loading && <GoogleIcon className="w-5 h-5" />}
       <span>{loading ? 'Connecting...' : 'Continue with Google'}</span>
-    </button>
+    </Button>
   );
 }
 
@@ -344,26 +303,15 @@ export function GitHubLoginButton({
   className?: string;
 }) {
   return (
-    <button
+    <Button
       onClick={onClick}
-      disabled={disabled || loading}
-      className={`
-        w-full px-4 py-2.5 inline-flex items-center justify-center gap-3
-        rounded-lg bg-gray-900 text-white font-medium
-        hover:bg-gray-800
-        focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-700
-        disabled:opacity-50 disabled:cursor-not-allowed
-        transition-colors
-        ${className}
-      `}
+      disabled={disabled}
+      isLoading={loading}
+      className={cn('w-full justify-center gap-3 bg-gray-900 hover:bg-gray-800', className)}
     >
-      {loading ? (
-        <LoadingSpinner className="w-5 h-5" />
-      ) : (
-        <GitHubIcon className="w-5 h-5" />
-      )}
+      {!loading && <GitHubIcon className="w-5 h-5" />}
       <span>{loading ? 'Connecting...' : 'Continue with GitHub'}</span>
-    </button>
+    </Button>
   );
 }
 
@@ -379,25 +327,14 @@ export function AppleLoginButton({
   className?: string;
 }) {
   return (
-    <button
+    <Button
       onClick={onClick}
-      disabled={disabled || loading}
-      className={`
-        w-full px-4 py-2.5 inline-flex items-center justify-center gap-3
-        rounded-lg bg-black text-white font-medium
-        hover:bg-gray-900
-        focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-700
-        disabled:opacity-50 disabled:cursor-not-allowed
-        transition-colors
-        ${className}
-      `}
+      disabled={disabled}
+      isLoading={loading}
+      className={cn('w-full justify-center gap-3 bg-black hover:bg-gray-900', className)}
     >
-      {loading ? (
-        <LoadingSpinner className="w-5 h-5" />
-      ) : (
-        <AppleIcon className="w-5 h-5" />
-      )}
+      {!loading && <AppleIcon className="w-5 h-5" />}
       <span>{loading ? 'Connecting...' : 'Continue with Apple'}</span>
-    </button>
+    </Button>
   );
 }

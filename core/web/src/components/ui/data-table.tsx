@@ -106,12 +106,13 @@ function TablePagination({
       <Text size="sm" color="muted">
         Showing {start} to {end} of {total} {itemLabel}
       </Text>
-      <div className="flex items-center gap-1">
+      <nav aria-label="Pagination" className="flex items-center gap-1">
         <Button
           variant="outline"
           size="sm"
           onClick={() => onPageChange(page - 1)}
           disabled={!hasPrev}
+          aria-label="Go to previous page"
         >
           Previous
         </Button>
@@ -130,6 +131,8 @@ function TablePagination({
                   size="sm"
                   onClick={() => onPageChange(pageNum)}
                   className="w-9"
+                  aria-label={`Go to page ${pageNum}`}
+                  aria-current={pageNum === page ? "page" : undefined}
                 >
                   {pageNum}
                 </Button>
@@ -141,10 +144,11 @@ function TablePagination({
           size="sm"
           onClick={() => onPageChange(page + 1)}
           disabled={!hasNext}
+          aria-label="Go to next page"
         >
           Next
         </Button>
-      </div>
+      </nav>
     </div>
   );
 }

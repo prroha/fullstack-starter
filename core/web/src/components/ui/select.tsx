@@ -139,6 +139,7 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
         {error && (
           <p
             id={`${selectId}-error`}
+            role="alert"
             className="text-sm font-medium text-destructive"
           >
             {error}

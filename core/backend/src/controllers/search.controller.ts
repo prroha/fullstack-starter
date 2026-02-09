@@ -35,7 +35,7 @@ class SearchController {
         limit: req.query.limit,
       });
 
-      const isAdmin = authReq.dbUser.role === UserRole.ADMIN;
+      const isAdmin = authReq.dbUser.role === UserRole.ADMIN || authReq.dbUser.role === UserRole.SUPER_ADMIN;
 
       const results = await searchService.search({
         query: validated.q,

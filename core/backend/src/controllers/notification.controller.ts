@@ -1,8 +1,8 @@
 import { Response, NextFunction } from "express";
 import { notificationService } from "../services/notification.service";
-import { successResponse, paginatedResponse } from "../utils/response";
+import { successResponse, paginatedResponse, errorResponse, ErrorCodes } from "../utils/response";
 import { z } from "zod";
-import { AppRequest } from "../types";
+import { AppRequest, AuthenticatedRequest } from "../types";
 import { NotificationType } from "@prisma/client";
 
 // ============================================================================
@@ -25,12 +25,28 @@ const getNotificationsSchema = z.object({
 
 class NotificationController {
   /**
+   * Helper to get userId with proper type checking
+   */
+  private getUserId(req: AppRequest, res: Response): string | null {
+    const authReq = req as AuthenticatedRequest;
+    if (!authReq.user?.userId) {
+      res.status(401).json(
+        errorResponse(ErrorCodes.AUTH_REQUIRED, "Authentication required")
+      );
+      return null;
+    }
+    return authReq.user.userId;
+  }
+
+  /**
    * Get all notifications for the authenticated user
    * GET /api/v1/notifications
    */
   async getAll(req: AppRequest, res: Response, next: NextFunction) {
     try {
-      const userId = req.user!.userId;
+      const userId = this.getUserId(req, res);
+      if (!userId) return;
+
       const params = getNotificationsSchema.parse(req.query);
       const result = await notificationService.getAll({
         userId,
@@ -56,7 +72,9 @@ class NotificationController {
    */
   async getUnreadCount(req: AppRequest, res: Response, next: NextFunction) {
     try {
-      const userId = req.user!.userId;
+      const userId = this.getUserId(req, res);
+      if (!userId) return;
+
       const count = await notificationService.getUnreadCount(userId);
 
       res.json(successResponse({ count }));
@@ -71,7 +89,9 @@ class NotificationController {
    */
   async getById(req: AppRequest, res: Response, next: NextFunction) {
     try {
-      const userId = req.user!.userId;
+      const userId = this.getUserId(req, res);
+      if (!userId) return;
+
       const id = req.params.id as string;
       const notification = await notificationService.getById(id, userId);
 
@@ -87,7 +107,9 @@ class NotificationController {
    */
   async markAsRead(req: AppRequest, res: Response, next: NextFunction) {
     try {
-      const userId = req.user!.userId;
+      const userId = this.getUserId(req, res);
+      if (!userId) return;
+
       const id = req.params.id as string;
       const notification = await notificationService.markAsRead(id, userId);
 
@@ -103,7 +125,9 @@ class NotificationController {
    */
   async markAllAsRead(req: AppRequest, res: Response, next: NextFunction) {
     try {
-      const userId = req.user!.userId;
+      const userId = this.getUserId(req, res);
+      if (!userId) return;
+
       const result = await notificationService.markAllAsRead(userId);
 
       res.json(successResponse(result, "All notifications marked as read"));
@@ -118,7 +142,9 @@ class NotificationController {
    */
   async delete(req: AppRequest, res: Response, next: NextFunction) {
     try {
-      const userId = req.user!.userId;
+      const userId = this.getUserId(req, res);
+      if (!userId) return;
+
       const id = req.params.id as string;
       await notificationService.delete(id, userId);
 
@@ -134,7 +160,9 @@ class NotificationController {
    */
   async deleteAll(req: AppRequest, res: Response, next: NextFunction) {
     try {
-      const userId = req.user!.userId;
+      const userId = this.getUserId(req, res);
+      if (!userId) return;
+
       const result = await notificationService.deleteAll(userId);
 
       res.json(successResponse(result, "All notifications deleted successfully"));

@@ -64,7 +64,10 @@ function Header({
 
           {/* Navigation */}
           {nav && (
-            <nav className="hidden md:flex items-center gap-6 flex-1 justify-center">
+            <nav
+              aria-label="Main navigation"
+              className="hidden md:flex items-center gap-6 flex-1 justify-center"
+            >
               {nav}
             </nav>
           )}

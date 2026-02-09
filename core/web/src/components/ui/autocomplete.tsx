@@ -367,6 +367,7 @@ const Autocomplete = React.forwardRef<HTMLInputElement, AutocompleteProps>(
         {error && (
           <p
             id={`${inputId}-error`}
+            role="alert"
             className="text-sm font-medium text-destructive"
           >
             {error}
