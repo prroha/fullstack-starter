@@ -213,15 +213,15 @@ function ResizableSplitLayout({
   const [isDragging, setIsDragging] = React.useState(false);
   const [isDesktop, setIsDesktop] = React.useState(false);
 
-  // Breakpoint values in pixels
-  const breakpointValues: Record<MobileBreakpoint, number> = {
-    sm: 640,
-    md: 768,
-    lg: 1024,
-  };
-
   // Check if we're at desktop breakpoint
   React.useEffect(() => {
+    // Breakpoint values in pixels
+    const breakpointValues: Record<MobileBreakpoint, number> = {
+      sm: 640,
+      md: 768,
+      lg: 1024,
+    };
+
     function checkBreakpoint() {
       setIsDesktop(window.innerWidth >= breakpointValues[mobileBreakpoint]);
     }

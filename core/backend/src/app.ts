@@ -11,7 +11,7 @@ import { csrfProtection } from "./middleware/csrf.middleware";
 import { sanitizeInput } from "./middleware/sanitize.middleware";
 import { generalRateLimiter } from "./middleware/rate-limit.middleware";
 import { requestIdMiddleware, REQUEST_ID_HEADER } from "./middleware/request-id.middleware";
-import { UPLOAD_DIR } from "./middleware/upload.middleware";
+import { UPLOAD_DIR as _UPLOAD_DIR } from "./middleware/upload.middleware";
 import { logger, requestContext } from "./lib/logger";
 import routes from "./routes";
 import { swaggerSpec } from "./swagger";

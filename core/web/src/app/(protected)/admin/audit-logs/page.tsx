@@ -317,7 +317,7 @@ export default function AdminAuditLogsPage() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
       <AdminPageHeader
         title="Audit Logs"

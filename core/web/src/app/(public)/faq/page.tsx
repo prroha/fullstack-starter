@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Metadata } from "next";
 import {
   Accordion,
   AccordionItem,

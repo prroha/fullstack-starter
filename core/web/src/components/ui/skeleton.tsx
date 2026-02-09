@@ -351,7 +351,7 @@ export function SkeletonList({
   className,
   ...props
 }: SkeletonListProps) {
-  const renderItem = (index: number) => {
+  const renderItem = (_index: number) => {
     if (variant === "simple") {
       return (
         <div className="flex items-center gap-3 py-2">
@@ -445,7 +445,7 @@ export function SkeletonDashboard({ className, ...props }: SkeletonProps) {
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 p-6 space-y-6">
+        <div className="flex-1 p-6 space-y-4">
           {/* Stats */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {Array.from({ length: 4 }).map((_, i) => (
@@ -475,7 +475,7 @@ export function SkeletonDashboard({ className, ...props }: SkeletonProps) {
 
 export function SkeletonForm({ className, ...props }: SkeletonProps) {
   return (
-    <div className={cn("space-y-6 max-w-md", className)} {...props}>
+    <div className={cn("space-y-4 max-w-md", className)} {...props}>
       <div className="space-y-2">
         <Skeleton className="h-4 w-20" />
         <Skeleton className="h-10 w-full" />
@@ -543,7 +543,7 @@ export function SkeletonAuth({ className, ...props }: SkeletonProps) {
       )}
       {...props}
     >
-      <div className="w-full max-w-md space-y-6 p-8 rounded-xl border bg-background">
+      <div className="w-full max-w-md space-y-4 p-8 rounded-xl border bg-background">
         <div className="text-center space-y-2">
           <Skeleton className="h-8 w-32 mx-auto" />
           <Skeleton className="h-4 w-48 mx-auto" />

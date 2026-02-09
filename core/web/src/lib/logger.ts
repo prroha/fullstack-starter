@@ -158,8 +158,8 @@ class Logger {
     const message = `${prefix} ${entry.message}`;
 
     const consoleMethod = {
-      debug: console.debug,
-      info: console.info,
+      debug: console.debug, // eslint-disable-line no-console
+      info: console.info, // eslint-disable-line no-console
       warn: console.warn,
       error: console.error,
     }[entry.level];

@@ -3,7 +3,6 @@ import { config } from "../config";
 
 // Global type declaration to prevent multiple instances in development
 declare global {
-  // eslint-disable-next-line no-var
   var prisma: PrismaClient | undefined;
 }
 

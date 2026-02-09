@@ -117,7 +117,7 @@ class SearchService {
    * Get search suggestions based on recent/popular searches
    * This could be extended to use Redis for caching popular searches
    */
-  async getSuggestions(userId: string, limit: number = 5): Promise<string[]> {
+  async getSuggestions(_userId: string, _limit: number = 5): Promise<string[]> {
     // For now, return empty array - can be extended with Redis caching
     // or database table for storing search history
     return [];

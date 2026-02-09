@@ -207,7 +207,7 @@ function OrderDetailsModal({
         </div>
       }
     >
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* Customer Info */}
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-muted-foreground">
@@ -554,7 +554,7 @@ export default function AdminOrdersPage() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

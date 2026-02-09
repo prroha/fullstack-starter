@@ -9,10 +9,10 @@ import { Request, Response, NextFunction } from "express";
 import { AuthenticatedRequest } from "../types";
 import { couponService } from "../services/coupon.service";
 import { auditService } from "../services/audit.service";
-import { successResponse, paginatedResponse, errorResponse, ErrorCodes } from "../utils/response";
+import { successResponse, paginatedResponse } from "../utils/response";
 import { z } from "zod";
 import { DiscountType } from "@prisma/client";
-import { booleanFilterSchema, paginationSchema, dateBoundedSchema, parseDateBounds } from "../utils/validation-schemas";
+import { booleanFilterSchema, paginationSchema } from "../utils/validation-schemas";
 import { validateOrRespond, sendCsvExport, ensureParam } from "../utils/controller-helpers";
 
 // ============================================================================

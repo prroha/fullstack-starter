@@ -1,11 +1,10 @@
 import { Response, NextFunction } from "express";
 import { userService } from "../services/user.service";
-import { exportService, ExportFormat } from "../services/export.service";
+import { exportService } from "../services/export.service";
 import { successResponse, errorResponse, ErrorCodes } from "../utils/response";
 import { z } from "zod";
 import { AppRequest, AuthenticatedRequest } from "../types";
 import { strictNameSchema, emailSchema } from "../utils/validation-schemas";
-import { validateOrRespond } from "../utils/controller-helpers";
 
 // ============================================================================
 // Validation Schemas

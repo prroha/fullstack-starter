@@ -217,7 +217,7 @@ export default function ProfilePage() {
           {/* Avatar Section */}
           <div className="p-6 rounded-lg border bg-card">
             <h2 className="text-lg font-semibold mb-6">Profile Picture</h2>
-            <div className="flex flex-col sm:flex-row items-center gap-6">
+            <div className="flex flex-col sm:flex-row items-center gap-4">
               <AvatarUpload
                 currentAvatarUrl={avatar?.url}
                 initials={avatar?.initials || "U"}
@@ -249,7 +249,7 @@ export default function ProfilePage() {
             <h2 className="text-lg font-semibold mb-6">Edit Profile</h2>
 
             <FormErrorBoundary>
-              <Form form={form} onSubmit={onSubmit} className="space-y-6">
+              <Form form={form} onSubmit={onSubmit} className="space-y-4">
                 <FormStatusMessage variant="error" message={error} />
 
                 <FormFieldInput

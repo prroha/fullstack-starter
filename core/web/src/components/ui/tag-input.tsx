@@ -81,7 +81,10 @@ const TagInput = React.forwardRef<HTMLInputElement, TagInputProps>(
     React.useImperativeHandle(ref, () => inputRef.current as HTMLInputElement);
 
     // Normalize delimiter to array
-    const delimiters = Array.isArray(delimiter) ? delimiter : [delimiter];
+    const delimiters = React.useMemo(
+      () => Array.isArray(delimiter) ? delimiter : [delimiter],
+      [delimiter]
+    );
 
     // Size variants
     const containerSizes = {

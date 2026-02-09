@@ -30,7 +30,7 @@ const Divider = React.forwardRef<HTMLDivElement, DividerProps>(
   ) => {
     const baseStyles = "bg-border";
 
-    const variantStyles: Record<DividerVariant, string> = {
+    const _variantStyles: Record<DividerVariant, string> = {
       solid: "",
       dashed:
         "bg-transparent border-0 border-border border-dashed",

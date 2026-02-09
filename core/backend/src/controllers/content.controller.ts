@@ -11,7 +11,7 @@ import { contentService } from "../services/content.service";
 import { auditService } from "../services/audit.service";
 import { successResponse, paginatedResponse } from "../utils/response";
 import { z } from "zod";
-import { slugSchema, seoMetaSchema, booleanFilterSchema, paginationSchema } from "../utils/validation-schemas";
+import { slugSchema, booleanFilterSchema, paginationSchema } from "../utils/validation-schemas";
 import { validateOrRespond, sendCsvExport } from "../utils/controller-helpers";
 
 // ============================================================================

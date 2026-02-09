@@ -41,4 +41,19 @@ export default [
       "no-unused-vars": "off",
     },
   },
+  // Overrides - must come after general rules
+  {
+    // Allow console.log in seed scripts and logger/email utilities
+    files: ["**/prisma/**/*.ts", "**/lib/logger.ts", "**/services/email.service.ts"],
+    rules: {
+      "no-console": "off",
+    },
+  },
+  {
+    // Allow var in global type declarations
+    files: ["**/lib/db.ts"],
+    rules: {
+      "no-var": "off",
+    },
+  },
 ];

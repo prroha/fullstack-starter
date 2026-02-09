@@ -18,7 +18,6 @@ import {
 } from "../utils/validation-schemas";
 import {
   ensureParam,
-  ensureExists,
   getUserIdFromToken,
 } from "../utils/controller-helpers";
 

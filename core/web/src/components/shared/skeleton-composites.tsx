@@ -7,7 +7,6 @@ import {
   SkeletonButton,
   SkeletonCard,
   SkeletonCircle,
-  SkeletonForm,
   SkeletonTable,
   SkeletonText,
 } from "@/components/ui/skeleton";
@@ -137,7 +136,7 @@ export function SkeletonProfilePage({
   ...props
 }: SkeletonProfilePageProps) {
   return (
-    <div className={cn("space-y-6", className)} {...props}>
+    <div className={cn("space-y-4", className)} {...props}>
       {/* Cover Photo */}
       {showCover && (
         <Skeleton className="h-48 md:h-64 w-full rounded-xl" />
@@ -274,7 +273,7 @@ export function SkeletonDashboardEnhanced({
         )}
 
         {/* Main Content */}
-        <main className="flex-1 p-6 space-y-6">
+        <main className="flex-1 p-6 space-y-4">
           {/* Page Header */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="space-y-2">
@@ -384,7 +383,7 @@ export function SkeletonFormEnhanced({
   ...props
 }: SkeletonFormEnhancedProps) {
   const renderFieldGroup = (index: number, fieldsCount: number = 3) => (
-    <div key={index} className="space-y-6">
+    <div key={index} className="space-y-4">
       {showSectionHeaders && (
         <div className="space-y-1">
           <Skeleton className="h-6 w-40" />
@@ -393,7 +392,7 @@ export function SkeletonFormEnhanced({
       )}
       <div className={cn(
         layout === "grid" && "grid grid-cols-1 md:grid-cols-2 gap-6",
-        layout === "vertical" && "space-y-6",
+        layout === "vertical" && "space-y-4",
         layout === "horizontal" && "flex flex-wrap gap-6"
       )}>
         {Array.from({ length: fieldsCount }).map((_, i) => (
@@ -623,7 +622,7 @@ export function SkeletonSearchResults({
   return (
     <div className={cn("flex gap-6", className)} {...props}>
       {showFilters && (
-        <aside className="hidden lg:block w-64 space-y-6">
+        <aside className="hidden lg:block w-64 space-y-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="space-y-3">
               <Skeleton className="h-5 w-24" />
@@ -639,7 +638,7 @@ export function SkeletonSearchResults({
           ))}
         </aside>
       )}
-      <div className="flex-1 space-y-6">
+      <div className="flex-1 space-y-4">
         {/* Results Header */}
         <div className="flex items-center justify-between">
           <Skeleton className="h-5 w-32" />
@@ -658,6 +657,136 @@ export function SkeletonSearchResults({
           ))}
         </div>
       </div>
+    </div>
+  );
+}
+
+// =====================================================
+// Admin Page Skeleton (Reusable for admin loading states)
+// =====================================================
+
+interface SkeletonAdminPageProps extends CompositeSkeletonProps {
+  /** Page title width */
+  titleWidth?: string;
+  /** Page description width */
+  descriptionWidth?: string;
+  /** Header action buttons */
+  headerActions?: number;
+  /** Number of filter inputs */
+  filterCount?: number;
+  /** Show table content */
+  showTable?: boolean;
+  /** Table rows */
+  tableRows?: number;
+  /** Table columns */
+  tableColumns?: number;
+  /** Custom content instead of table */
+  customContent?: React.ReactNode;
+}
+
+/**
+ * Reusable skeleton for admin pages with configurable layout.
+ * Eliminates duplication across admin loading screens.
+ */
+export function SkeletonAdminPage({
+  className,
+  titleWidth = "w-48",
+  descriptionWidth = "w-64",
+  headerActions = 1,
+  filterCount = 3,
+  showTable = true,
+  tableRows = 8,
+  tableColumns = 5,
+  customContent,
+  ...props
+}: SkeletonAdminPageProps) {
+  return (
+    <div className={cn("space-y-4", className)} {...props}>
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="space-y-2">
+          <Skeleton className={cn("h-10", titleWidth)} />
+          <Skeleton className={cn("h-4", descriptionWidth)} />
+        </div>
+        {headerActions > 0 && (
+          <div className="flex gap-2">
+            {Array.from({ length: headerActions }).map((_, i) => (
+              <Skeleton key={i} className="h-10 w-32" />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Filters */}
+      {filterCount > 0 && (
+        <div className="flex gap-4">
+          {Array.from({ length: filterCount }).map((_, i) => (
+            <Skeleton
+              key={i}
+              className={cn("h-10", i === 0 ? "flex-1" : "w-32")}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Content */}
+      {customContent ?? (
+        showTable && (
+          <div className="rounded-lg border bg-card p-6">
+            <SkeletonTable rows={tableRows} columns={tableColumns} />
+          </div>
+        )
+      )}
+    </div>
+  );
+}
+
+// =====================================================
+// Settings Page Skeleton
+// =====================================================
+
+interface SkeletonSettingsPageProps extends CompositeSkeletonProps {
+  /** Number of setting sections */
+  sections?: number;
+  /** Fields per section */
+  fieldsPerSection?: number;
+}
+
+/**
+ * Skeleton for settings pages with multiple form sections.
+ */
+export function SkeletonSettingsPage({
+  className,
+  sections = 3,
+  fieldsPerSection = 3,
+  ...props
+}: SkeletonSettingsPageProps) {
+  return (
+    <div className={cn("space-y-4", className)} {...props}>
+      {/* Header */}
+      <div className="space-y-2">
+        <Skeleton className="h-10 w-48" />
+        <Skeleton className="h-4 w-64" />
+      </div>
+
+      {/* Sections */}
+      {Array.from({ length: sections }).map((_, sectionIndex) => (
+        <div key={sectionIndex} className="rounded-lg border bg-card p-6 space-y-4">
+          <Skeleton className="h-6 w-40" />
+          <Skeleton className="h-4 w-64" />
+          <div className="space-y-4 pt-2">
+            {Array.from({ length: fieldsPerSection }).map((_, fieldIndex) => (
+              <div key={fieldIndex} className="space-y-2">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-10 w-full rounded-lg" />
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-end pt-2">
+            <Skeleton className="h-10 w-24" />
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

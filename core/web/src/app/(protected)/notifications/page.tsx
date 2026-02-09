@@ -217,7 +217,7 @@ export default function NotificationsPage() {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8 max-w-3xl">
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Page Header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">

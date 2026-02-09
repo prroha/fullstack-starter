@@ -50,6 +50,8 @@ export {
   SkeletonComment,
   SkeletonNotification,
   SkeletonSearchResults,
+  SkeletonAdminPage,
+  SkeletonSettingsPage,
 } from "./skeleton-composites";
 
 // Email Verification Banner

@@ -12,7 +12,7 @@ import { auditService } from "../services/audit.service";
 import { successResponse, paginatedResponse } from "../utils/response";
 import { z } from "zod";
 import { booleanFilterSchema, paginationSchema } from "../utils/validation-schemas";
-import { validateOrRespond, sendCsvExport, getPaginationFromQuery } from "../utils/controller-helpers";
+import { validateOrRespond, sendCsvExport } from "../utils/controller-helpers";
 
 // ============================================================================
 // Validation Schemas

@@ -14,7 +14,7 @@ import {
   FormActions,
   useZodForm,
 } from "@/components/forms";
-import { Button, Spinner, Badge, Text } from "@/components/ui";
+import { Spinner, Badge, Text } from "@/components/ui";
 import { AvatarUpload } from "@/components/ui/avatar-upload";
 import { FormErrorBoundary } from "@/components/shared";
 import { CardSection } from "@/components/layout";
@@ -44,7 +44,7 @@ interface Avatar {
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { user, refreshAuth } = useAuth();
+  const { user: _user, refreshAuth } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [avatar, setAvatar] = useState<Avatar | null>(null);
@@ -199,7 +199,7 @@ export default function ProfilePage() {
 
       {/* Avatar Section */}
       <CardSection title="Profile Picture">
-        <div className="flex flex-col sm:flex-row items-center gap-6">
+        <div className="flex flex-col sm:flex-row items-center gap-4">
           <AvatarUpload
             currentAvatarUrl={avatar?.url}
             initials={avatar?.initials || "U"}
@@ -229,7 +229,7 @@ export default function ProfilePage() {
       {/* Profile Form */}
       <CardSection title="Edit Profile">
         <FormErrorBoundary>
-          <Form form={form} onSubmit={onSubmit} className="space-y-6">
+          <Form form={form} onSubmit={onSubmit} className="space-y-4">
             <FormStatusMessage variant="error" message={error} />
 
             <FormFieldInput

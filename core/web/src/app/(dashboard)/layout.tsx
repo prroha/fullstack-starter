@@ -75,7 +75,7 @@ export default function UserDashboardLayout({
   };
 
   // Check if a nav item is active
-  const isActive = (href: string) => {
+  const _isActive = (href: string) => {
     if (href === "/dashboard") {
       return pathname === "/dashboard";
     }

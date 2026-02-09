@@ -5,16 +5,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { useTheme } from "@/lib/theme-context";
-import { api, ApiError } from "@/lib/api";
+import { ApiError } from "@/lib/api";
 import { logger } from "@/lib/logger";
 import { toast } from "@/lib/toast";
-import { downloadFile } from "@/lib/export";
 import { Button, ExportMyDataButton, ThemeSelector } from "@/components/ui";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import {
   SettingsSection,
   SettingsItem,
-  SettingsToggle,
 } from "@/components/settings";
 
 // =====================================================
@@ -325,7 +323,7 @@ function DeleteAccountModal({
 export default function SettingsPage() {
   const router = useRouter();
   const { user, logout } = useAuth();
-  const { colorMode, resolvedColorMode, currentTheme, currentThemeConfig } = useTheme();
+  const { colorMode, resolvedColorMode, currentTheme: _currentTheme, currentThemeConfig } = useTheme();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 

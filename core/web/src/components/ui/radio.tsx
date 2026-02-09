@@ -23,7 +23,8 @@ interface RadioProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "
 
 const Radio = React.forwardRef<HTMLInputElement, RadioProps>(
   ({ className, label, id, disabled, ...props }, ref) => {
-    const inputId = id || React.useId();
+    const generatedId = React.useId();
+    const inputId = id || generatedId;
 
     return (
       <div className="flex items-center gap-2">

@@ -5,7 +5,7 @@
  * Provides common patterns for validation, pagination, exports, and error handling.
  */
 
-import { Response, NextFunction } from "express";
+import { Response } from "express";
 import { z, ZodSchema, ZodError } from "zod";
 import { AppRequest, AuthenticatedRequest } from "../types";
 import { errorResponse, ErrorCodes } from "./response";

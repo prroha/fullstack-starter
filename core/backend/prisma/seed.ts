@@ -64,6 +64,7 @@ async function main() {
         name: user.name,
         role: user.role,
         isActive: true,
+        emailVerified: true, // Pre-verify seeded users
       },
     });
 

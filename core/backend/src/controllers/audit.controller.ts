@@ -4,12 +4,10 @@ import { auditService } from "../services/audit.service";
 import {
   successResponse,
   paginatedResponse,
-  errorResponse,
-  ErrorCodes,
 } from "../utils/response";
 import { z } from "zod";
 import { AuthenticatedRequest } from "../types";
-import { paginationSchema, uuidSchema } from "../utils/validation-schemas";
+import { paginationSchema } from "../utils/validation-schemas";
 import { ensureParam, ensureExists } from "../utils/controller-helpers";
 
 // ============================================================================

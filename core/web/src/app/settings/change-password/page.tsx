@@ -84,7 +84,7 @@ export default function ChangePasswordPage() {
         </div>
 
         <FormErrorBoundary>
-          <Form form={form} onSubmit={onSubmit} className="space-y-6">
+          <Form form={form} onSubmit={onSubmit} className="space-y-4">
             <FormStatusMessage variant="error" message={error} />
             <FormStatusMessage variant="success" message={success} />
 

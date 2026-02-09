@@ -283,7 +283,7 @@ export default function AdminAnnouncementsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
       <AdminPageHeader
         title="Announcements"
@@ -401,7 +401,7 @@ export default function AdminAnnouncementsPage() {
               />
             </div>
           </div>
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
               <Switch
                 checked={form.isActive}

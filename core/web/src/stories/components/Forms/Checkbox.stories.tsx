@@ -94,7 +94,7 @@ export const Sizes: Story = {
 // Indeterminate state
 export const Indeterminate: Story = {
   render: function IndeterminateCheckbox() {
-    const [allChecked, setAllChecked] = useState(false);
+    const [_allChecked, setAllChecked] = useState(false);
     const [items, setItems] = useState([
       { id: 1, label: "Item 1", checked: true },
       { id: 2, label: "Item 2", checked: false },

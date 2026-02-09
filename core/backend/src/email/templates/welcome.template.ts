@@ -12,7 +12,6 @@ import {
   emailParagraph,
   emailMutedText,
   emailDivider,
-  htmlToPlainText,
   EmailOutput,
 } from "./base.template";
 

@@ -27,7 +27,7 @@ export interface EmailVerificationData {
  * Generate email verification HTML and plain text
  */
 export function emailVerificationEmail(data: EmailVerificationData): EmailOutput {
-  const { name, email, verificationToken, expiresInHours = 24 } = data;
+  const { name, email: _email, verificationToken, expiresInHours = 24 } = data;
   const branding = config.app;
   const displayName = name || "there";
   const verifyUrl = `${config.frontendUrl}/verify-email?token=${verificationToken}`;

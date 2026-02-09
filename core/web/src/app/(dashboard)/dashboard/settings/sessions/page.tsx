@@ -358,7 +358,7 @@ export default function SessionsPage() {
   const otherSessionsCount = sessions.filter((s) => !s.isCurrent).length;
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="max-w-2xl mx-auto space-y-4">
       {/* Back link */}
       <Link
         href="/dashboard/settings"
@@ -395,7 +395,7 @@ export default function SessionsPage() {
           </Button>
         </div>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Sign out all other devices button */}
           {otherSessionsCount > 0 && (
             <div className="flex items-center justify-between p-4 rounded-lg border bg-card">

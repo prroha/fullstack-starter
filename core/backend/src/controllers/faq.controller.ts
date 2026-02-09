@@ -9,9 +9,9 @@ import { Request, Response, NextFunction } from "express";
 import { AuthenticatedRequest } from "../types";
 import { faqService } from "../services/faq.service";
 import { auditService } from "../services/audit.service";
-import { successResponse, errorResponse, ErrorCodes } from "../utils/response";
+import { successResponse } from "../utils/response";
 import { z } from "zod";
-import { slugSchema, orderableSchema, publishableSchema } from "../utils/validation-schemas";
+import { slugSchema } from "../utils/validation-schemas";
 import { validateOrRespond, sendCsvExport } from "../utils/controller-helpers";
 
 // ============================================================================

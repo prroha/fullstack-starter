@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import { db } from "../lib/db";
-import { config } from "../config";
+import { config as _config } from "../config";
 import { ApiError } from "../middleware/error.middleware";
 import { ErrorCodes } from "../utils/response";
 import { emailService } from "./email.service";

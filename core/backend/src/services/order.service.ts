@@ -216,7 +216,7 @@ class OrderService {
       refundedOrders,
       failedOrders,
       recentOrders,
-      aggregates,
+      _aggregates,
       completedAggregates,
       revenueByDay,
       revenueByPaymentMethod,

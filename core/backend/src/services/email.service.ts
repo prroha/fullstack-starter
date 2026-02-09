@@ -13,11 +13,6 @@ import {
   emailVerificationEmail,
   passwordChangedEmail,
   contactFormEmail,
-  type WelcomeEmailData,
-  type PasswordResetEmailData,
-  type EmailVerificationData,
-  type PasswordChangedEmailData,
-  type ContactFormEmailData,
 } from "../email/templates";
 
 export interface SendEmailOptions {
@@ -76,7 +71,7 @@ class EmailService {
    * Send an email using the configured provider
    */
   private async send(options: SendEmailOptions): Promise<SendEmailResult> {
-    const { to, subject, html, text, replyTo, headers } = options;
+    const { to, subject, html: _html, text: _text, replyTo: _replyTo, headers: _headers } = options;
 
     // Log email for development/debugging
     if (this.provider === "console" || config.isDevelopment()) {

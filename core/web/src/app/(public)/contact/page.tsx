@@ -108,7 +108,7 @@ export default function ContactPage() {
       <section className="py-16 md:py-24">
         <div className="container mx-auto px-4">
           <div className="max-w-xl mx-auto">
-            <Form form={form} onSubmit={onSubmit} className="space-y-6">
+            <Form form={form} onSubmit={onSubmit} className="space-y-4">
               <FormFieldInput
                 control={form.control}
                 name="name"
@@ -162,7 +162,7 @@ export default function ContactPage() {
               <h2 className="text-lg font-semibold text-foreground mb-4 text-center">
                 Other Ways to Reach Us
               </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="text-center">
                   <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 text-primary mb-3">
                     <Icon name="Mail" size="lg" />

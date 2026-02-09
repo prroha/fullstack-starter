@@ -9,7 +9,7 @@ import {
   useMemo,
 } from "react";
 import {
-  appTypeThemes,
+  appTypeThemes as _appTypeThemes,
   getAppTheme,
   getAppThemeColors,
   getAvailableThemeTypes,

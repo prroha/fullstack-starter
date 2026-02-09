@@ -13,6 +13,7 @@ export default [
       "**/dist/**",
       "**/out/**",
       "**/coverage/**",
+      "**/storybook-static/**",
       "**/*.d.ts",
     ],
   },

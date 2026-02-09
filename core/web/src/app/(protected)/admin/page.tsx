@@ -322,7 +322,7 @@ export default function AdminDashboardPage() {
 
   if (error) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-4">
         <h1 className="text-3xl font-bold">Dashboard</h1>
         <Alert variant="destructive">{error}</Alert>
       </div>
@@ -331,7 +331,7 @@ export default function AdminDashboardPage() {
 
   if (!stats) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-4">
         <h1 className="text-3xl font-bold">Dashboard</h1>
         <Alert variant="warning">No stats available</Alert>
       </div>
@@ -388,9 +388,9 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Main Content Grid */}
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-4 lg:grid-cols-3">
         {/* Left Column - Section Cards */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-4">
           {/* Users & Orders Row */}
           <div className="grid gap-4 sm:grid-cols-2">
             <SectionCard
@@ -460,7 +460,7 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Right Column - Activity & Quick Actions */}
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Quick Actions */}
           <div className="rounded-lg border bg-card p-4 shadow-sm">
             <h3 className="font-semibold mb-4">Quick Actions</h3>

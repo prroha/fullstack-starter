@@ -404,8 +404,8 @@ function withIndexProvider<P extends { _index?: number }>(
 }
 
 // Create indexed versions
-const IndexedTab = withIndexProvider(Tab, TabContext.Provider);
-const IndexedTabPanel = withIndexProvider(TabPanel, TabPanelContext.Provider);
+const _IndexedTab = withIndexProvider(Tab, TabContext.Provider);
+const _IndexedTabPanel = withIndexProvider(TabPanel, TabPanelContext.Provider);
 
 // =====================================================
 // Enhanced TabList that auto-indexes children

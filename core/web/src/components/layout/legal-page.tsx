@@ -1,5 +1,4 @@
 import * as React from "react";
-import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 // =====================================================
@@ -30,7 +29,7 @@ interface TableOfContentsItem {
 function LegalPage({
   title,
   lastUpdated,
-  companyName = "Your Company",
+  companyName: _companyName = "Your Company",
   contactEmail,
   tableOfContents,
   className,

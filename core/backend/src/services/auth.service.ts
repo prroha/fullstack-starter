@@ -306,7 +306,7 @@ class AuthService {
    * Refresh access token using a valid refresh token
    */
   async refreshToken(input: RefreshInput): Promise<RefreshResult> {
-    const { refreshToken, ipAddress, userAgent } = input;
+    const { refreshToken, ipAddress: _ipAddress, userAgent: _userAgent } = input;
 
     // Verify the refresh token
     let payload: JwtPayload;

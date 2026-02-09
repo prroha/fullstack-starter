@@ -9,7 +9,6 @@ import {
   baseTemplate,
   emailButton,
   emailHeading,
-  emailParagraph,
   emailMutedText,
   emailInfoBox,
   emailDivider,

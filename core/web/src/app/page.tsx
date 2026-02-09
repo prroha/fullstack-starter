@@ -80,7 +80,7 @@ export default function Home() {
           </div>
 
           {/* Features */}
-          <div className="grid sm:grid-cols-3 gap-6 pt-12 text-left">
+          <div className="grid sm:grid-cols-3 gap-4 pt-12 text-left">
             <CardSection title="Authentication">
               <Text variant="caption" color="muted">
                 Secure login, registration, and session management out of the box.
@@ -100,7 +100,7 @@ export default function Home() {
         </div>
 
         {/* Footer Links */}
-        <div className="absolute bottom-8 flex items-center gap-6">
+        <div className="absolute bottom-8 flex items-center gap-4">
           <AppLink href="/about" variant="muted" size="sm">
             About
           </AppLink>

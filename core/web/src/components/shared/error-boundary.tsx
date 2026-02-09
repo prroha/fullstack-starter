@@ -150,7 +150,7 @@ function SectionErrorBoundary({
   return (
     <ErrorBoundary
       onError={onError}
-      fallbackRender={({ error, resetErrorBoundary }) => (
+      fallbackRender={({ error: _error, resetErrorBoundary }) => (
         <div className="flex flex-col items-center justify-center p-8 rounded-lg border border-border bg-muted/50">
           <svg
             className="w-8 h-8 text-muted-foreground mb-3"
