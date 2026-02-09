@@ -22,7 +22,7 @@ const meta: Meta<typeof Icon> = {
     name: {
       control: "select",
       options: [
-        "Home",
+        "House",
         "Settings",
         "User",
         "Mail",
@@ -43,14 +43,14 @@ const meta: Meta<typeof Icon> = {
         "Download",
         "Upload",
         "Trash2",
-        "Edit",
+        "Pencil",
         "Eye",
         "EyeOff",
         "Copy",
         "ExternalLink",
         "Menu",
         "MoreHorizontal",
-        "MoreVertical",
+        "EllipsisVertical",
         "Calendar",
         "Clock",
         "MapPin",
@@ -60,11 +60,11 @@ const meta: Meta<typeof Icon> = {
         "Image",
         "Video",
         "Music",
-        "AlertCircle",
-        "AlertTriangle",
+        "CircleAlert",
+        "TriangleAlert",
         "Info",
-        "HelpCircle",
-        "CheckCircle",
+        "CircleQuestionMark",
+        "CircleCheck",
         "XCircle",
       ] as IconName[],
       description: "Name of the Lucide icon",
@@ -88,7 +88,7 @@ type Story = StoryObj<typeof meta>;
 // Default icon
 export const Default: Story = {
   args: {
-    name: "Home",
+    name: "House",
     size: "md",
     color: "default",
   },
@@ -172,7 +172,7 @@ export const Colors: Story = {
 export const CommonIcons: Story = {
   render: () => {
     const icons: IconName[] = [
-      "Home",
+      "House",
       "Settings",
       "User",
       "Mail",
@@ -187,7 +187,7 @@ export const CommonIcons: Story = {
       "Download",
       "Upload",
       "Trash2",
-      "Edit",
+      "Pencil",
       "Eye",
       "Copy",
       "Menu",
@@ -255,15 +255,15 @@ export const StatusIcons: Story = {
   render: () => (
     <div className="flex items-center gap-6">
       <div className="text-center">
-        <Icon name="CheckCircle" size="lg" color="success" />
+        <Icon name="CircleCheck" size="lg" color="success" />
         <p className="text-xs mt-2">Success</p>
       </div>
       <div className="text-center">
-        <Icon name="AlertCircle" size="lg" color="destructive" />
+        <Icon name="CircleAlert" size="lg" color="destructive" />
         <p className="text-xs mt-2">Error</p>
       </div>
       <div className="text-center">
-        <Icon name="AlertTriangle" size="lg" color="warning" />
+        <Icon name="TriangleAlert" size="lg" color="warning" />
         <p className="text-xs mt-2">Warning</p>
       </div>
       <div className="text-center">
@@ -271,7 +271,7 @@ export const StatusIcons: Story = {
         <p className="text-xs mt-2">Info</p>
       </div>
       <div className="text-center">
-        <Icon name="HelpCircle" size="lg" color="muted" />
+        <Icon name="CircleQuestionMark" size="lg" color="muted" />
         <p className="text-xs mt-2">Help</p>
       </div>
     </div>

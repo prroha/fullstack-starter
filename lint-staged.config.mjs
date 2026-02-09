@@ -8,7 +8,7 @@ export default {
   // Backend (Express + TypeScript)
   // ==========================================================================
   "core/backend/**/*.{ts,tsx}": [
-    "eslint --fix --max-warnings=0",
+    "eslint --config core/backend/eslint.config.mjs --fix --max-warnings=0",
   ],
   "core/backend/**/*.{json,md}": [
     "prettier --write",
@@ -18,7 +18,7 @@ export default {
   // Web (Next.js + TypeScript)
   // ==========================================================================
   "core/web/**/*.{ts,tsx,js,jsx}": [
-    "eslint --fix --max-warnings=0",
+    "eslint --config core/web/eslint.config.mjs --fix --max-warnings=0",
   ],
   "core/web/**/*.{json,md,css,scss}": [
     "prettier --write",

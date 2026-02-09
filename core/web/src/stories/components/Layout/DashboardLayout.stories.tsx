@@ -74,7 +74,7 @@ const SampleSidebar = ({ collapsed = false }: { collapsed?: boolean }) => (
   >
     <div className="space-y-1">
       <DashboardNavItem
-        icon={<Icon name="Home" size="sm" />}
+        icon={<Icon name="House" size="sm" />}
         active
         collapsed={collapsed}
         href="/dashboard"
@@ -96,7 +96,7 @@ const SampleSidebar = ({ collapsed = false }: { collapsed?: boolean }) => (
         Documents
       </DashboardNavItem>
       <DashboardNavItem
-        icon={<Icon name="BarChart3" size="sm" />}
+        icon={<Icon name="ChartBar" size="sm" />}
         collapsed={collapsed}
         href="/analytics"
       >
@@ -292,7 +292,7 @@ export const ComponentsShowcase: Story = {
         <h3 className="text-lg font-semibold mb-4">DashboardNavItem</h3>
         <div className="w-64 space-y-2">
           <DashboardNavItem
-            icon={<Icon name="Home" size="sm" />}
+            icon={<Icon name="House" size="sm" />}
             active
           >
             Active Item

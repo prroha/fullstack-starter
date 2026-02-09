@@ -13,37 +13,25 @@ import {
   Modal,
   Switch,
   Spinner,
-  Table,
-  TableRow,
-  TableCell,
-  TableHeader,
+  DataTable,
   IconButton,
   Label,
 } from "@/components/ui";
-import { api, PaginatedResponse } from "@/lib/api";
-import { AdminPageHeader, AdminPagination } from "@/components/admin";
+import {
+  api,
+  Coupon,
+  CreateCouponData,
+  UpdateCouponData,
+} from "@/lib/api";
+import { AdminPageHeader } from "@/components/admin";
 import { useAdminList } from "@/lib/hooks";
 import { downloadFile } from "@/lib/export";
-import { API_CONFIG } from "@/lib/constants";
 import { toast } from "sonner";
+import type { Column } from "@/components/ui/data-table";
 
 // =====================================================
 // Types
 // =====================================================
-
-interface Coupon {
-  id: string;
-  code: string;
-  discountType: "PERCENTAGE" | "FIXED";
-  discountValue: number;
-  minPurchase: number | null;
-  maxUses: number | null;
-  usedCount: number;
-  validFrom: string | null;
-  validUntil: string | null;
-  isActive: boolean;
-  createdAt: string;
-}
 
 interface CouponFilters {
   discountType: string;
@@ -62,6 +50,29 @@ const sortOptions = [
   { value: "code:asc", label: "Code A-Z" },
   { value: "code:desc", label: "Code Z-A" },
 ];
+
+// =====================================================
+// Helper Functions
+// =====================================================
+
+const formatDate = (date: string | null) => {
+  if (!date) return "-";
+  return new Date(date).toLocaleDateString();
+};
+
+const formatDiscount = (coupon: Coupon) => {
+  if (coupon.discountType === "PERCENTAGE") {
+    return `${coupon.discountValue}%`;
+  }
+  return `$${coupon.discountValue.toFixed(2)}`;
+};
+
+const getUsageDisplay = (coupon: Coupon) => {
+  if (coupon.maxUses === null) {
+    return `${coupon.usedCount} / Unlimited`;
+  }
+  return `${coupon.usedCount} / ${coupon.maxUses}`;
+};
 
 // =====================================================
 // Main Component
@@ -92,7 +103,7 @@ export default function AdminCouponsPage() {
     isActive: true,
   });
 
-  // Use shared admin list hook
+  // Use shared admin list hook with typed API method
   const {
     items: coupons,
     pagination,
@@ -103,25 +114,19 @@ export default function AdminCouponsPage() {
     setFilter,
     handlePageChange,
     hasActiveFilters,
-    isEmpty,
     refetch,
   } = useAdminList<Coupon, CouponFilters>({
     fetchFn: async ({ page, limit, search, filters }) => {
-      const params = new URLSearchParams();
-      params.append("page", page.toString());
-      params.append("limit", limit.toString());
-      if (filters.discountType) params.append("discountType", filters.discountType);
-      if (filters.isActive) params.append("isActive", filters.isActive);
-      if (search) params.append("search", search);
-      if (filters.sortBy) {
-        const [field, order] = filters.sortBy.split(":");
-        params.append("sortBy", field);
-        params.append("sortOrder", order);
-      }
-
-      const res = await api.get<PaginatedResponse<Coupon>>(
-        `/coupons?${params.toString()}`
-      );
+      const [sortField, sortOrder] = filters.sortBy?.split(":") || ["createdAt", "desc"];
+      const res = await api.getCoupons({
+        page,
+        limit,
+        search: search || undefined,
+        discountType: filters.discountType || undefined,
+        isActive: filters.isActive || undefined,
+        sortBy: sortField,
+        sortOrder: sortOrder,
+      });
 
       return {
         items: res.data?.items || [],
@@ -170,7 +175,7 @@ export default function AdminCouponsPage() {
   const save = async () => {
     setSaving(true);
     try {
-      const data = {
+      const data: CreateCouponData = {
         code: form.code.toUpperCase(),
         discountType: form.discountType,
         discountValue: form.discountValue,
@@ -182,10 +187,11 @@ export default function AdminCouponsPage() {
       };
 
       if (editing) {
-        await api.patch(`/coupons/${editing.id}`, data);
+        const updateData: UpdateCouponData = data;
+        await api.updateCoupon(editing.id, updateData);
         toast.success("Coupon updated");
       } else {
-        await api.post("/coupons", data);
+        await api.createCoupon(data);
         toast.success("Coupon created");
       }
       setShowModal(false);
@@ -201,32 +207,13 @@ export default function AdminCouponsPage() {
   const deleteCoupon = async (id: string) => {
     if (!confirm("Are you sure you want to delete this coupon?")) return;
     try {
-      await api.delete(`/coupons/${id}`);
+      await api.deleteCoupon(id);
       toast.success("Coupon deleted");
       refetch(pagination?.page || 1);
     } catch (error) {
       toast.error("Failed to delete coupon");
       console.error("Failed to delete coupon:", error);
     }
-  };
-
-  const formatDate = (date: string | null) => {
-    if (!date) return "-";
-    return new Date(date).toLocaleDateString();
-  };
-
-  const formatDiscount = (coupon: Coupon) => {
-    if (coupon.discountType === "PERCENTAGE") {
-      return `${coupon.discountValue}%`;
-    }
-    return `$${coupon.discountValue.toFixed(2)}`;
-  };
-
-  const getUsageDisplay = (coupon: Coupon) => {
-    if (coupon.maxUses === null) {
-      return `${coupon.usedCount} / Unlimited`;
-    }
-    return `${coupon.usedCount} / ${coupon.maxUses}`;
   };
 
   const typeFilterOptions = [
@@ -240,6 +227,82 @@ export default function AdminCouponsPage() {
     { value: "false", label: "Inactive" },
   ];
 
+  // Define table columns
+  const columns: Column<Coupon>[] = [
+    {
+      key: "code",
+      header: "Code",
+      render: (coupon) => (
+        <Text className="font-mono font-semibold">{coupon.code}</Text>
+      ),
+    },
+    {
+      key: "type",
+      header: "Type",
+      render: (coupon) => (
+        <Badge variant="secondary">
+          {coupon.discountType === "PERCENTAGE" ? "Percentage" : "Fixed"}
+        </Badge>
+      ),
+    },
+    {
+      key: "value",
+      header: "Value",
+      render: (coupon) => (
+        <Text className="font-medium">{formatDiscount(coupon)}</Text>
+      ),
+    },
+    {
+      key: "usage",
+      header: "Usage",
+      render: (coupon) => (
+        <Text size="sm" color="muted">{getUsageDisplay(coupon)}</Text>
+      ),
+    },
+    {
+      key: "validPeriod",
+      header: "Valid Period",
+      render: (coupon) => (
+        <Text size="sm" color="muted">
+          {formatDate(coupon.validFrom)} - {formatDate(coupon.validUntil)}
+        </Text>
+      ),
+    },
+    {
+      key: "status",
+      header: "Status",
+      render: (coupon) => (
+        <Badge variant={coupon.isActive ? "success" : "warning"}>
+          {coupon.isActive ? "Active" : "Inactive"}
+        </Badge>
+      ),
+    },
+    {
+      key: "actions",
+      header: "Actions",
+      headerClassName: "text-right",
+      cellClassName: "text-right",
+      render: (coupon) => (
+        <div className="flex justify-end gap-2">
+          <IconButton
+            icon={<Icon name="Pencil" size="sm" />}
+            size="sm"
+            variant="ghost"
+            onClick={() => openModal(coupon)}
+            aria-label="Edit coupon"
+          />
+          <IconButton
+            icon={<Icon name="Trash2" size="sm" />}
+            size="sm"
+            variant="ghost"
+            onClick={() => deleteCoupon(coupon.id)}
+            aria-label="Delete coupon"
+          />
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -249,7 +312,7 @@ export default function AdminCouponsPage() {
         exportConfig={{
           label: "Export",
           onExport: async () => {
-            await downloadFile(`${API_CONFIG.BASE_URL}/coupons/export`);
+            await downloadFile(api.getCouponsExportUrl());
           },
           successMessage: "Coupons exported successfully",
         }}
@@ -294,96 +357,22 @@ export default function AdminCouponsPage() {
       {/* Table */}
       <Card>
         <CardContent className="p-0">
-          <Table>
-            <thead>
-              <TableRow>
-                <TableHeader>Code</TableHeader>
-                <TableHeader>Type</TableHeader>
-                <TableHeader>Value</TableHeader>
-                <TableHeader>Usage</TableHeader>
-                <TableHeader>Valid Period</TableHeader>
-                <TableHeader>Status</TableHeader>
-                <TableHeader className="text-right">Actions</TableHeader>
-              </TableRow>
-            </thead>
-            <tbody>
-              {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">
-                    <Spinner size="lg" />
-                  </TableCell>
-                </TableRow>
-              ) : isEmpty ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">
-                    <Text color="muted">
-                      {hasActiveFilters
-                        ? "No coupons match your filters"
-                        : "No coupons found"}
-                    </Text>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                coupons.map((coupon) => (
-                  <TableRow key={coupon.id}>
-                    <TableCell>
-                      <Text className="font-mono font-semibold">{coupon.code}</Text>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">
-                        {coupon.discountType === "PERCENTAGE" ? "Percentage" : "Fixed"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Text className="font-medium">{formatDiscount(coupon)}</Text>
-                    </TableCell>
-                    <TableCell>
-                      <Text size="sm" color="muted">{getUsageDisplay(coupon)}</Text>
-                    </TableCell>
-                    <TableCell>
-                      <Text size="sm" color="muted">
-                        {formatDate(coupon.validFrom)} - {formatDate(coupon.validUntil)}
-                      </Text>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={coupon.isActive ? "success" : "warning"}>
-                        {coupon.isActive ? "Active" : "Inactive"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <IconButton
-                          icon={<Icon name="Pencil" size="sm" />}
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => openModal(coupon)}
-                          aria-label="Edit coupon"
-                        />
-                        <IconButton
-                          icon={<Icon name="Trash2" size="sm" />}
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => deleteCoupon(coupon.id)}
-                          aria-label="Delete coupon"
-                        />
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </tbody>
-          </Table>
-
-          {/* Pagination */}
-          {pagination && pagination.totalPages > 1 && (
-            <div className="border-t p-4">
-              <AdminPagination
-                pagination={pagination}
-                onPageChange={handlePageChange}
-                itemLabel="coupons"
-              />
-            </div>
-          )}
+          <DataTable
+            columns={columns}
+            data={coupons}
+            keyExtractor={(coupon) => coupon.id}
+            isLoading={isLoading}
+            emptyMessage="No coupons found"
+            hasActiveFilters={hasActiveFilters}
+            onClearFilters={() => {
+              setSearch("");
+              setFilter("discountType", "");
+              setFilter("isActive", "");
+            }}
+            pagination={pagination}
+            onPageChange={handlePageChange}
+            itemLabel="coupons"
+          />
         </CardContent>
       </Card>
 

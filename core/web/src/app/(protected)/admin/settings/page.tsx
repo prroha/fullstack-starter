@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   Card,
-  CardHeader,
   CardContent,
   Button,
   Icon,
@@ -15,28 +14,15 @@ import {
   Modal,
   Switch,
   Spinner,
-  Table,
-  TableRow,
-  TableCell,
-  TableHeader,
+  DataTable,
   IconButton,
   Label,
   ExportCsvButton,
 } from "@/components/ui";
-import { api } from "@/lib/api";
+import { api, Setting, CreateSettingData, UpdateSettingData } from "@/lib/api";
 import { downloadFile } from "@/lib/export";
-import { API_CONFIG } from "@/lib/constants";
 import { toast } from "sonner";
-
-interface Setting {
-  id: string;
-  key: string;
-  value: string;
-  type: "STRING" | "NUMBER" | "BOOLEAN" | "JSON";
-  description: string | null;
-  isPublic: boolean;
-  createdAt: string;
-}
+import type { Column } from "@/components/ui/data-table";
 
 const typeOptions = [
   { value: "STRING", label: "Text" },
@@ -77,10 +63,11 @@ export default function AdminSettingsPage() {
 
   const loadData = useCallback(async () => {
     try {
-      const res = await api.get<{ settings: Setting[] }>("/settings");
+      const res = await api.getSettings();
       setSettings(res.data?.settings || []);
     } catch (error) {
       console.error("Failed to load settings:", error);
+      toast.error("Failed to load settings");
     } finally {
       setLoading(false);
     }
@@ -117,19 +104,30 @@ export default function AdminSettingsPage() {
     setSaving(true);
     try {
       if (editing) {
-        await api.patch(`/settings/${editing.key}`, {
+        const updateData: UpdateSettingData = {
           value: form.value,
           type: form.type,
           description: form.description || null,
           isPublic: form.isPublic,
-        });
+        };
+        await api.updateSetting(editing.key, updateData);
+        toast.success("Setting updated");
       } else {
-        await api.post("/settings", form);
+        const createData: CreateSettingData = {
+          key: form.key,
+          value: form.value,
+          type: form.type,
+          description: form.description || undefined,
+          isPublic: form.isPublic,
+        };
+        await api.createSetting(createData);
+        toast.success("Setting created");
       }
       setShowModal(false);
       loadData();
     } catch (error) {
       console.error("Failed to save setting:", error);
+      toast.error("Failed to save setting");
     } finally {
       setSaving(false);
     }
@@ -138,10 +136,12 @@ export default function AdminSettingsPage() {
   const deleteSetting = async (key: string) => {
     if (!confirm(`Are you sure you want to delete the setting "${key}"?`)) return;
     try {
-      await api.delete(`/settings/${key}`);
+      await api.deleteSetting(key);
+      toast.success("Setting deleted");
       loadData();
     } catch (error) {
       console.error("Failed to delete setting:", error);
+      toast.error("Failed to delete setting");
     }
   };
 
@@ -176,6 +176,67 @@ export default function AdminSettingsPage() {
     return setting.value.length > 50 ? setting.value.slice(0, 50) + "..." : setting.value;
   };
 
+  // Define table columns
+  const columns: Column<Setting>[] = [
+    {
+      key: "key",
+      header: "Key",
+      render: (setting) => (
+        <div>
+          <Text className="font-mono text-sm">{setting.key}</Text>
+          {setting.description && (
+            <Text size="xs" color="muted">{setting.description}</Text>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: "value",
+      header: "Value",
+      render: (setting) => (
+        <Text size="sm" className="font-mono">{formatValue(setting)}</Text>
+      ),
+    },
+    {
+      key: "type",
+      header: "Type",
+      render: (setting) => <Badge variant="secondary">{setting.type}</Badge>,
+    },
+    {
+      key: "visibility",
+      header: "Visibility",
+      render: (setting) => (
+        <Badge variant={setting.isPublic ? "success" : "warning"}>
+          {setting.isPublic ? "Public" : "Private"}
+        </Badge>
+      ),
+    },
+    {
+      key: "actions",
+      header: "Actions",
+      headerClassName: "text-right",
+      cellClassName: "text-right",
+      render: (setting) => (
+        <div className="flex justify-end gap-2">
+          <IconButton
+            icon={<Icon name="Pencil" size="sm" />}
+            size="sm"
+            variant="ghost"
+            onClick={() => openModal(setting)}
+            aria-label="Edit setting"
+          />
+          <IconButton
+            icon={<Icon name="Trash2" size="sm" />}
+            size="sm"
+            variant="ghost"
+            onClick={() => deleteSetting(setting.key)}
+            aria-label="Delete setting"
+          />
+        </div>
+      ),
+    },
+  ];
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -195,9 +256,7 @@ export default function AdminSettingsPage() {
         <div className="flex gap-2">
           <ExportCsvButton
             label="Export"
-            onExport={async () => {
-              await downloadFile(`${API_CONFIG.BASE_URL}/settings/export`);
-            }}
+            onExport={() => downloadFile(api.getSettingsExportUrl())}
             onSuccess={() => toast.success("Settings exported successfully")}
             onError={(error) => toast.error(error.message || "Export failed")}
           />
@@ -230,68 +289,14 @@ export default function AdminSettingsPage() {
       {/* Table */}
       <Card>
         <CardContent className="p-0">
-          <Table>
-            <thead>
-              <TableRow>
-                <TableHeader>Key</TableHeader>
-                <TableHeader>Value</TableHeader>
-                <TableHeader>Type</TableHeader>
-                <TableHeader>Visibility</TableHeader>
-                <TableHeader className="text-right">Actions</TableHeader>
-              </TableRow>
-            </thead>
-            <tbody>
-              {filteredSettings.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8">
-                    <Text color="muted">No settings found</Text>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredSettings.map((setting) => (
-                  <TableRow key={setting.id}>
-                    <TableCell>
-                      <div>
-                        <Text className="font-mono text-sm">{setting.key}</Text>
-                        {setting.description && (
-                          <Text size="xs" color="muted">{setting.description}</Text>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Text size="sm" className="font-mono">{formatValue(setting)}</Text>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">{setting.type}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={setting.isPublic ? "success" : "warning"}>
-                        {setting.isPublic ? "Public" : "Private"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <IconButton
-                          icon={<Icon name="Pencil" size="sm" />}
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => openModal(setting)}
-                          aria-label="Edit setting"
-                        />
-                        <IconButton
-                          icon={<Icon name="Trash2" size="sm" />}
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => deleteSetting(setting.key)}
-                          aria-label="Delete setting"
-                        />
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </tbody>
-          </Table>
+          <DataTable
+            columns={columns}
+            data={filteredSettings}
+            keyExtractor={(setting) => setting.id}
+            emptyMessage="No settings found"
+            hasActiveFilters={!!searchQuery}
+            onClearFilters={() => setSearchQuery("")}
+          />
         </CardContent>
       </Card>
 

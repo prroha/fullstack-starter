@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { api, ApiError, AdminUser } from "@/lib/api";
 import { Button, Input, Badge, Text, Select, Modal } from "@/components/ui";
 import { Alert } from "@/components/feedback";
@@ -71,7 +71,7 @@ function UserRow({
       </td>
       <td className="px-4 py-3">
         <Text variant="caption" color="muted">
-          {new Date(user.createdAt).toLocaleDateString()}
+          {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "-"}
         </Text>
       </td>
       <td className="px-4 py-3">

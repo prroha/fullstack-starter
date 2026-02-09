@@ -168,10 +168,10 @@ export const IconOnly: Story = {
         <Icon name="Plus" size="sm" />
       </Button>
       <Button size="icon" variant="secondary">
-        <Icon name="Edit" size="sm" />
+        <Icon name="Pencil" size="sm" />
       </Button>
       <Button size="icon" variant="outline">
-        <Icon name="MoreVertical" size="sm" />
+        <Icon name="EllipsisVertical" size="sm" />
       </Button>
       <Button size="icon" variant="ghost">
         <Icon name="X" size="sm" />

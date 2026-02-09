@@ -4,7 +4,6 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 import { Notification, NotificationType } from "@/lib/api";
 import {
-  Bell,
   CheckCircle,
   AlertTriangle,
   XCircle,
@@ -138,7 +137,7 @@ function NotificationItem({
             {notification.title}
           </h4>
           <span className="text-xs text-muted-foreground whitespace-nowrap">
-            {formatTimeAgo(notification.createdAt)}
+            {notification.createdAt ? formatTimeAgo(notification.createdAt) : ""}
           </span>
         </div>
         {!compact && (

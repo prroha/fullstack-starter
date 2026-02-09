@@ -1,18 +1,69 @@
 import { db } from "../lib/db";
-import { UserRole } from "@prisma/client";
+import { UserRole, ContactMessageStatus, OrderStatus } from "@prisma/client";
 import { ApiError } from "../middleware/error.middleware";
 import { ErrorCodes } from "../utils/response";
 
 /**
- * Dashboard statistics response
+ * Dashboard statistics response - comprehensive stats for all admin sections
  */
 interface DashboardStats {
-  totalUsers: number;
-  activeUsers: number;
-  inactiveUsers: number;
-  adminUsers: number;
-  recentSignups: number;
-  signupsByDay: Array<{ date: string; count: number }>;
+  // User stats
+  users: {
+    total: number;
+    active: number;
+    inactive: number;
+    admins: number;
+    recentSignups: number;
+    signupsByDay: Array<{ date: string; count: number }>;
+  };
+  // Order stats
+  orders: {
+    total: number;
+    pending: number;
+    completed: number;
+    totalRevenue: number;
+    recentOrders: number;
+  };
+  // Message stats
+  messages: {
+    total: number;
+    pending: number;
+    read: number;
+    replied: number;
+  };
+  // FAQ stats
+  faqs: {
+    total: number;
+    active: number;
+    categories: number;
+  };
+  // Announcement stats
+  announcements: {
+    total: number;
+    active: number;
+    pinned: number;
+  };
+  // Coupon stats
+  coupons: {
+    total: number;
+    active: number;
+    expired: number;
+  };
+  // Content stats
+  content: {
+    total: number;
+    published: number;
+    draft: number;
+  };
+  // Recent audit logs
+  recentActivity: Array<{
+    id: string;
+    action: string;
+    entity: string;
+    entityId: string | null;
+    userEmail: string | null;
+    createdAt: Date;
+  }>;
 }
 
 /**
@@ -53,45 +104,146 @@ interface SafeUser {
 
 class AdminService {
   /**
-   * Get dashboard statistics
+   * Get comprehensive dashboard statistics for all admin sections
    */
   async getDashboardStats(): Promise<DashboardStats> {
-    // Get counts in parallel for better performance
-    const [totalUsers, activeUsers, adminUsers, recentSignups, signupsByDay] =
-      await Promise.all([
-        // Total users count
-        db.user.count(),
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-        // Active users count
-        db.user.count({
-          where: { isActive: true },
-        }),
-
-        // Admin users count
-        db.user.count({
-          where: { role: UserRole.ADMIN },
-        }),
-
-        // Signups in the last 7 days
-        db.user.count({
-          where: {
-            createdAt: {
-              gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-            },
-          },
-        }),
-
-        // Signups by day for the last 7 days
-        this.getSignupsByDay(7),
-      ]);
-
-    return {
+    // Get all counts in parallel for better performance
+    const [
+      // User stats
       totalUsers,
       activeUsers,
-      inactiveUsers: totalUsers - activeUsers,
       adminUsers,
       recentSignups,
       signupsByDay,
+      // Order stats
+      totalOrders,
+      pendingOrders,
+      completedOrders,
+      revenueResult,
+      recentOrders,
+      // Message stats
+      totalMessages,
+      pendingMessages,
+      readMessages,
+      repliedMessages,
+      // FAQ stats
+      totalFaqs,
+      activeFaqs,
+      totalCategories,
+      // Announcement stats
+      totalAnnouncements,
+      activeAnnouncements,
+      pinnedAnnouncements,
+      // Coupon stats
+      totalCoupons,
+      activeCoupons,
+      expiredCoupons,
+      // Content stats
+      totalContent,
+      publishedContent,
+      // Recent activity
+      recentActivity,
+    ] = await Promise.all([
+      // User stats
+      db.user.count(),
+      db.user.count({ where: { isActive: true } }),
+      db.user.count({ where: { role: { in: [UserRole.ADMIN, UserRole.SUPER_ADMIN] } } }),
+      db.user.count({ where: { createdAt: { gte: sevenDaysAgo } } }),
+      this.getSignupsByDay(7),
+      // Order stats
+      db.order.count(),
+      db.order.count({ where: { status: OrderStatus.PENDING } }),
+      db.order.count({ where: { status: OrderStatus.COMPLETED } }),
+      db.order.aggregate({ _sum: { total: true }, where: { status: OrderStatus.COMPLETED } }),
+      db.order.count({ where: { createdAt: { gte: sevenDaysAgo } } }),
+      // Message stats
+      db.contactMessage.count(),
+      db.contactMessage.count({ where: { status: ContactMessageStatus.PENDING } }),
+      db.contactMessage.count({ where: { status: ContactMessageStatus.READ } }),
+      db.contactMessage.count({ where: { status: ContactMessageStatus.REPLIED } }),
+      // FAQ stats
+      db.faq.count(),
+      db.faq.count({ where: { isActive: true } }),
+      db.faqCategory.count(),
+      // Announcement stats
+      db.announcement.count(),
+      db.announcement.count({ where: { isActive: true, OR: [{ endDate: null }, { endDate: { gte: now } }] } }),
+      db.announcement.count({ where: { isPinned: true, isActive: true } }),
+      // Coupon stats
+      db.coupon.count(),
+      db.coupon.count({ where: { isActive: true, OR: [{ validUntil: null }, { validUntil: { gte: now } }] } }),
+      db.coupon.count({ where: { validUntil: { lt: now } } }),
+      // Content stats
+      db.contentPage.count(),
+      db.contentPage.count({ where: { isPublished: true } }),
+      // Recent activity (last 10 audit logs)
+      db.auditLog.findMany({
+        take: 10,
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          action: true,
+          entity: true,
+          entityId: true,
+          createdAt: true,
+          user: { select: { email: true } },
+        },
+      }),
+    ]);
+
+    return {
+      users: {
+        total: totalUsers,
+        active: activeUsers,
+        inactive: totalUsers - activeUsers,
+        admins: adminUsers,
+        recentSignups,
+        signupsByDay,
+      },
+      orders: {
+        total: totalOrders,
+        pending: pendingOrders,
+        completed: completedOrders,
+        totalRevenue: revenueResult._sum.total || 0,
+        recentOrders,
+      },
+      messages: {
+        total: totalMessages,
+        pending: pendingMessages,
+        read: readMessages,
+        replied: repliedMessages,
+      },
+      faqs: {
+        total: totalFaqs,
+        active: activeFaqs,
+        categories: totalCategories,
+      },
+      announcements: {
+        total: totalAnnouncements,
+        active: activeAnnouncements,
+        pinned: pinnedAnnouncements,
+      },
+      coupons: {
+        total: totalCoupons,
+        active: activeCoupons,
+        expired: expiredCoupons,
+      },
+      content: {
+        total: totalContent,
+        published: publishedContent,
+        draft: totalContent - publishedContent,
+      },
+      recentActivity: recentActivity.map((log) => ({
+        id: log.id,
+        action: log.action,
+        entity: log.entity,
+        entityId: log.entityId,
+        userEmail: log.user?.email || null,
+        createdAt: log.createdAt,
+      })),
     };
   }
 

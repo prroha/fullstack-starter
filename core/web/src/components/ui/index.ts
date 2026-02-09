@@ -169,6 +169,10 @@ export type {
   TableCaptionProps,
 } from "./table";
 
+// DataTable - Reusable data table with loading/empty states
+export { DataTable } from "./data-table";
+export type { DataTableProps, Column as DataTableColumn } from "./data-table";
+
 // =============================================================================
 // MOLECULES - Simple Combinations of Atoms
 // =============================================================================

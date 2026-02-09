@@ -8,7 +8,6 @@ import { Icon } from "@/components/ui/icon";
 import { AdminPageHeader, AdminTableContainer } from "@/components/admin";
 import { useAdminList } from "@/lib/hooks";
 import { downloadFile } from "@/lib/export";
-import { API_CONFIG } from "@/lib/constants";
 import { toast } from "sonner";
 
 // =====================================================
@@ -73,11 +72,17 @@ function MessageRow({
       </td>
       <td className="px-4 py-3">
         <Text variant="caption" color="muted">
-          {new Date(message.createdAt).toLocaleDateString()}{" "}
-          {new Date(message.createdAt).toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-          })}
+          {message.createdAt ? (
+            <>
+              {new Date(message.createdAt).toLocaleDateString()}{" "}
+              {new Date(message.createdAt).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </>
+          ) : (
+            "-"
+          )}
         </Text>
       </td>
       <td className="px-4 py-3">
@@ -156,7 +161,7 @@ function ViewMessageModal({
               From: {message.name} ({message.email})
             </Text>
             <Text variant="caption" color="muted">
-              Received: {new Date(message.createdAt).toLocaleString()}
+              Received: {message.createdAt ? new Date(message.createdAt).toLocaleString() : "-"}
             </Text>
           </div>
           <StatusBadge status={message.status} />
@@ -403,7 +408,7 @@ export default function AdminMessagesPage() {
         exportConfig={{
           label: "Export",
           onExport: async () => {
-            await downloadFile(`${API_CONFIG.BASE_URL}/admin/contact-messages/export`);
+            await downloadFile(api.getContactMessagesExportUrl());
           },
           successMessage: "Messages exported successfully",
         }}

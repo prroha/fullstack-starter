@@ -36,68 +36,37 @@
     "schemas": {
       "UserRole": {
         "type": "string",
-        "enum": [
-          "USER",
-          "ADMIN",
-          "SUPER_ADMIN"
-        ],
+        "enum": ["USER", "ADMIN", "SUPER_ADMIN"],
         "description": "User role in the system"
       },
       "ContactMessageStatus": {
         "type": "string",
-        "enum": [
-          "PENDING",
-          "READ",
-          "REPLIED"
-        ],
+        "enum": ["PENDING", "READ", "REPLIED"],
         "description": "Contact message status"
       },
       "NotificationType": {
         "type": "string",
-        "enum": [
-          "INFO",
-          "SUCCESS",
-          "WARNING",
-          "ERROR",
-          "SYSTEM"
-        ],
+        "enum": ["INFO", "SUCCESS", "WARNING", "ERROR", "SYSTEM"],
         "description": "Notification type"
       },
       "AnnouncementType": {
         "type": "string",
-        "enum": [
-          "INFO",
-          "WARNING",
-          "SUCCESS",
-          "PROMO"
-        ],
+        "enum": ["INFO", "WARNING", "SUCCESS", "PROMO"],
         "description": "Announcement type"
       },
       "DiscountType": {
         "type": "string",
-        "enum": [
-          "PERCENTAGE",
-          "FIXED"
-        ],
+        "enum": ["PERCENTAGE", "FIXED"],
         "description": "Coupon discount type"
       },
       "OrderStatus": {
         "type": "string",
-        "enum": [
-          "PENDING",
-          "COMPLETED",
-          "REFUNDED",
-          "FAILED"
-        ],
+        "enum": ["PENDING", "COMPLETED", "REFUNDED", "FAILED"],
         "description": "Order status"
       },
       "PaymentMethod": {
         "type": "string",
-        "enum": [
-          "STRIPE",
-          "PAYPAL",
-          "MANUAL"
-        ],
+        "enum": ["STRIPE", "PAYPAL", "MANUAL"],
         "description": "Payment method"
       },
       "AuditAction": {
@@ -119,12 +88,7 @@
       },
       "SettingType": {
         "type": "string",
-        "enum": [
-          "STRING",
-          "NUMBER",
-          "BOOLEAN",
-          "JSON"
-        ],
+        "enum": ["STRING", "NUMBER", "BOOLEAN", "JSON"],
         "description": "Setting value type"
       },
       "User": {
@@ -157,11 +121,7 @@
             "format": "date-time"
           }
         },
-        "required": [
-          "id",
-          "email",
-          "role"
-        ]
+        "required": ["id", "email", "role"]
       },
       "AdminUser": {
         "type": "object",
@@ -196,13 +156,7 @@
             "format": "date-time"
           }
         },
-        "required": [
-          "id",
-          "email",
-          "role",
-          "isActive",
-          "emailVerified"
-        ]
+        "required": ["id", "email", "role", "isActive", "emailVerified"]
       },
       "Session": {
         "type": "object",
@@ -276,14 +230,7 @@
             "format": "date-time"
           }
         },
-        "required": [
-          "id",
-          "name",
-          "email",
-          "subject",
-          "message",
-          "status"
-        ]
+        "required": ["id", "name", "email", "subject", "message", "status"]
       },
       "Notification": {
         "type": "object",
@@ -317,14 +264,7 @@
             "format": "date-time"
           }
         },
-        "required": [
-          "id",
-          "userId",
-          "type",
-          "title",
-          "message",
-          "read"
-        ]
+        "required": ["id", "userId", "type", "title", "message", "read"]
       },
       "FaqCategory": {
         "type": "object",
@@ -354,11 +294,7 @@
             "format": "date-time"
           }
         },
-        "required": [
-          "id",
-          "name",
-          "slug"
-        ]
+        "required": ["id", "name", "slug"]
       },
       "Faq": {
         "type": "object",
@@ -397,11 +333,7 @@
             "nullable": true
           }
         },
-        "required": [
-          "id",
-          "question",
-          "answer"
-        ]
+        "required": ["id", "question", "answer"]
       },
       "Announcement": {
         "type": "object",
@@ -444,12 +376,7 @@
             "format": "date-time"
           }
         },
-        "required": [
-          "id",
-          "title",
-          "content",
-          "type"
-        ]
+        "required": ["id", "title", "content", "type"]
       },
       "ContentPage": {
         "type": "object",
@@ -487,12 +414,7 @@
             "format": "date-time"
           }
         },
-        "required": [
-          "id",
-          "slug",
-          "title",
-          "content"
-        ]
+        "required": ["id", "slug", "title", "content"]
       },
       "Setting": {
         "type": "object",
@@ -526,12 +448,7 @@
             "format": "date-time"
           }
         },
-        "required": [
-          "id",
-          "key",
-          "value",
-          "type"
-        ]
+        "required": ["id", "key", "value", "type"]
       },
       "Coupon": {
         "type": "object",
@@ -582,12 +499,7 @@
             "format": "date-time"
           }
         },
-        "required": [
-          "id",
-          "code",
-          "discountType",
-          "discountValue"
-        ]
+        "required": ["id", "code", "discountType", "discountValue"]
       },
       "OrderItem": {
         "type": "object",
@@ -605,12 +517,7 @@
             "type": "integer"
           }
         },
-        "required": [
-          "productId",
-          "productName",
-          "price",
-          "quantity"
-        ]
+        "required": ["productId", "productName", "price", "quantity"]
       },
       "Order": {
         "type": "object",
@@ -734,11 +641,7 @@
             "nullable": true
           }
         },
-        "required": [
-          "id",
-          "action",
-          "entity"
-        ]
+        "required": ["id", "action", "entity"]
       },
       "PaginationInfo": {
         "type": "object",
@@ -794,16 +697,10 @@
                 "nullable": true
               }
             },
-            "required": [
-              "code",
-              "message"
-            ]
+            "required": ["code", "message"]
           }
         },
-        "required": [
-          "success",
-          "error"
-        ]
+        "required": ["success", "error"]
       },
       "SuccessResponse": {
         "type": "object",
@@ -816,9 +713,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "success"
-        ]
+        "required": ["success"]
       },
       "AuthResponse": {
         "type": "object",
@@ -839,52 +734,166 @@
                 "type": "string"
               }
             },
-            "required": [
-              "user",
-              "accessToken",
-              "refreshToken"
-            ]
+            "required": ["user", "accessToken", "refreshToken"]
           }
         },
-        "required": [
-          "success",
-          "data"
-        ]
+        "required": ["success", "data"]
       },
       "AdminStats": {
         "type": "object",
         "properties": {
-          "totalUsers": {
-            "type": "integer"
+          "users": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "integer"
+              },
+              "active": {
+                "type": "integer"
+              },
+              "inactive": {
+                "type": "integer"
+              },
+              "admins": {
+                "type": "integer"
+              },
+              "recentSignups": {
+                "type": "integer"
+              },
+              "signupsByDay": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "date": {
+                      "type": "string"
+                    },
+                    "count": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
           },
-          "activeUsers": {
-            "type": "integer"
+          "orders": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "integer"
+              },
+              "pending": {
+                "type": "integer"
+              },
+              "completed": {
+                "type": "integer"
+              },
+              "totalRevenue": {
+                "type": "number"
+              },
+              "recentOrders": {
+                "type": "integer"
+              }
+            }
           },
-          "totalOrders": {
-            "type": "integer"
+          "messages": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "integer"
+              },
+              "pending": {
+                "type": "integer"
+              },
+              "read": {
+                "type": "integer"
+              },
+              "replied": {
+                "type": "integer"
+              }
+            }
           },
-          "totalRevenue": {
-            "type": "number"
+          "faqs": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "integer"
+              },
+              "active": {
+                "type": "integer"
+              },
+              "categories": {
+                "type": "integer"
+              }
+            }
           },
-          "pendingOrders": {
-            "type": "integer"
+          "announcements": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "integer"
+              },
+              "active": {
+                "type": "integer"
+              },
+              "pinned": {
+                "type": "integer"
+              }
+            }
           },
-          "avgOrderValue": {
-            "type": "number"
+          "coupons": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "integer"
+              },
+              "active": {
+                "type": "integer"
+              },
+              "expired": {
+                "type": "integer"
+              }
+            }
           },
-          "recentSignups": {
-            "type": "integer"
+          "content": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "integer"
+              },
+              "published": {
+                "type": "integer"
+              },
+              "draft": {
+                "type": "integer"
+              }
+            }
           },
-          "signupsByDay": {
+          "recentActivity": {
             "type": "array",
             "items": {
               "type": "object",
               "properties": {
-                "date": {
+                "id": {
                   "type": "string"
                 },
-                "count": {
-                  "type": "integer"
+                "action": {
+                  "type": "string"
+                },
+                "entity": {
+                  "type": "string"
+                },
+                "entityId": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "userEmail": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time"
                 }
               }
             }
@@ -902,20 +911,14 @@
     "/auth/register": {
       "post": {
         "summary": "Register a new user",
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "email",
-                  "password",
-                  "name"
-                ],
+                "required": ["email", "password", "name"],
                 "properties": {
                   "email": {
                     "type": "string",
@@ -983,19 +986,14 @@
     "/auth/login": {
       "post": {
         "summary": "Login with email and password",
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "email",
-                  "password"
-                ],
+                "required": ["email", "password"],
                 "properties": {
                   "email": {
                     "type": "string",
@@ -1063,9 +1061,7 @@
     "/auth/logout": {
       "post": {
         "summary": "Logout and invalidate tokens",
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "responses": {
           "200": {
             "description": "Logout successful",
@@ -1098,9 +1094,7 @@
     "/auth/refresh": {
       "post": {
         "summary": "Refresh access token using refresh token cookie",
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "security": [
           {
             "cookieAuth": []
@@ -1140,18 +1134,14 @@
     "/auth/forgot-password": {
       "post": {
         "summary": "Request a password reset email",
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "email"
-                ],
+                "required": ["email"],
                 "properties": {
                   "email": {
                     "type": "string",
@@ -1172,9 +1162,7 @@
     "/auth/verify-reset-token/{token}": {
       "get": {
         "summary": "Verify a password reset token is valid",
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "parameters": [
           {
             "in": "path",
@@ -1198,19 +1186,14 @@
     "/auth/reset-password": {
       "post": {
         "summary": "Reset password using reset token",
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "token",
-                  "password"
-                ],
+                "required": ["token", "password"],
                 "properties": {
                   "token": {
                     "type": "string"
@@ -1237,9 +1220,7 @@
     "/auth/verify-email/{token}": {
       "get": {
         "summary": "Verify email address using verification token",
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "parameters": [
           {
             "in": "path",
@@ -1263,9 +1244,7 @@
     "/auth/send-verification": {
       "post": {
         "summary": "Resend email verification link",
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "security": [
           {
             "bearerAuth": []
@@ -1284,9 +1263,7 @@
     "/auth/me": {
       "get": {
         "summary": "Get current authenticated user",
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "security": [
           {
             "bearerAuth": []
@@ -1333,9 +1310,7 @@
     "/auth/change-password": {
       "post": {
         "summary": "Change password for authenticated user",
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "security": [
           {
             "bearerAuth": []
@@ -1347,10 +1322,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "currentPassword",
-                  "newPassword"
-                ],
+                "required": ["currentPassword", "newPassword"],
                 "properties": {
                   "currentPassword": {
                     "type": "string"
@@ -1377,9 +1349,7 @@
     "/auth/sessions": {
       "get": {
         "summary": "Get all active sessions for the current user",
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "security": [
           {
             "bearerAuth": []
@@ -1396,9 +1366,7 @@
       },
       "delete": {
         "summary": "Revoke all other sessions except current",
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "security": [
           {
             "bearerAuth": []
@@ -1417,9 +1385,7 @@
     "/auth/sessions/{id}": {
       "delete": {
         "summary": "Revoke a specific session",
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "security": [
           {
             "bearerAuth": []

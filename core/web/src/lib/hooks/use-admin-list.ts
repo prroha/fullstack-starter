@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useDebounce } from "./use-debounce";
 import type { PaginationInfo } from "@/types/api";
 
@@ -93,6 +93,14 @@ export function useAdminList<TItem, TFilters extends object>({
   // Filter state
   const [filters, setFilters] = useState<TFilters>(initialFilters);
 
+  // Use ref to store fetchFn to avoid it being a dependency
+  // This prevents unnecessary re-fetches when the parent component re-renders
+  const fetchFnRef = useRef(fetchFn);
+  fetchFnRef.current = fetchFn;
+
+  // Track if initial fetch has been done (for React Strict Mode)
+  const hasFetchedRef = useRef(false);
+
   // Set individual filter
   const setFilter = useCallback(<K extends keyof TFilters>(key: K, value: TFilters[K]) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
@@ -105,7 +113,7 @@ export function useAdminList<TItem, TFilters extends object>({
         setIsLoading(true);
         setError(null);
 
-        const result = await fetchFn({
+        const result = await fetchFnRef.current({
           page,
           limit,
           search: searchDebounced || undefined,
@@ -121,11 +129,15 @@ export function useAdminList<TItem, TFilters extends object>({
         setIsLoading(false);
       }
     },
-    [fetchFn, limit, searchDebounced, filters]
+    [limit, searchDebounced, filters]
   );
 
   // Initial fetch and refetch on dependency changes
   useEffect(() => {
+    // Skip duplicate fetches from React Strict Mode on initial mount
+    if (!hasFetchedRef.current) {
+      hasFetchedRef.current = true;
+    }
     refetch();
   }, [refetch]);
 

@@ -14,35 +14,25 @@ import {
   Modal,
   Switch,
   Spinner,
-  Table,
-  TableRow,
-  TableCell,
-  TableHeader,
+  DataTable,
   IconButton,
   Label,
 } from "@/components/ui";
-import { api, PaginatedResponse } from "@/lib/api";
-import { AdminPageHeader, AdminPagination } from "@/components/admin";
+import {
+  api,
+  Announcement,
+  CreateAnnouncementData,
+  UpdateAnnouncementData,
+} from "@/lib/api";
+import { AdminPageHeader } from "@/components/admin";
 import { useAdminList } from "@/lib/hooks";
 import { downloadFile } from "@/lib/export";
-import { API_CONFIG } from "@/lib/constants";
 import { toast } from "sonner";
+import type { Column } from "@/components/ui/data-table";
 
 // =====================================================
 // Types
 // =====================================================
-
-interface Announcement {
-  id: string;
-  title: string;
-  content: string;
-  type: "INFO" | "WARNING" | "SUCCESS" | "PROMO";
-  startDate: string | null;
-  endDate: string | null;
-  isActive: boolean;
-  isPinned: boolean;
-  createdAt: string;
-}
 
 interface AnnouncementFilters {
   type: string;
@@ -102,25 +92,22 @@ export default function AdminAnnouncementsPage() {
     setFilter,
     handlePageChange,
     hasActiveFilters,
-    isEmpty,
     refetch,
   } = useAdminList<Announcement, AnnouncementFilters>({
     fetchFn: async ({ page, limit, search, filters }) => {
-      const params = new URLSearchParams();
-      params.append("page", page.toString());
-      params.append("limit", limit.toString());
-      if (filters.type) params.append("type", filters.type);
-      if (filters.isActive) params.append("isActive", filters.isActive);
-      if (search) params.append("search", search);
-      if (filters.sortBy) {
-        const [field, order] = filters.sortBy.split(":");
-        params.append("sortBy", field);
-        params.append("sortOrder", order);
-      }
+      const [sortField, sortOrder] = filters.sortBy
+        ? filters.sortBy.split(":")
+        : ["createdAt", "desc"];
 
-      const res = await api.get<PaginatedResponse<Announcement>>(
-        `/announcements?${params.toString()}`
-      );
+      const res = await api.getAnnouncements({
+        page,
+        limit,
+        search: search || undefined,
+        type: filters.type || undefined,
+        isActive: filters.isActive || undefined,
+        sortBy: sortField,
+        sortOrder,
+      });
 
       return {
         items: res.data?.items || [],
@@ -167,17 +154,21 @@ export default function AdminAnnouncementsPage() {
   const save = async () => {
     setSaving(true);
     try {
-      const data = {
-        ...form,
+      const data: CreateAnnouncementData | UpdateAnnouncementData = {
+        title: form.title,
+        content: form.content,
+        type: form.type,
         startDate: form.startDate ? new Date(form.startDate).toISOString() : null,
         endDate: form.endDate ? new Date(form.endDate).toISOString() : null,
+        isActive: form.isActive,
+        isPinned: form.isPinned,
       };
 
       if (editing) {
-        await api.patch(`/announcements/${editing.id}`, data);
+        await api.updateAnnouncement(editing.id, data);
         toast.success("Announcement updated");
       } else {
-        await api.post("/announcements", data);
+        await api.createAnnouncement(data as CreateAnnouncementData);
         toast.success("Announcement created");
       }
       setShowModal(false);
@@ -193,7 +184,7 @@ export default function AdminAnnouncementsPage() {
   const deleteAnnouncement = async (id: string) => {
     if (!confirm("Are you sure you want to delete this announcement?")) return;
     try {
-      await api.delete(`/announcements/${id}`);
+      await api.deleteAnnouncement(id);
       toast.success("Announcement deleted");
       refetch(pagination?.page || 1);
     } catch (error) {
@@ -223,6 +214,74 @@ export default function AdminAnnouncementsPage() {
     { value: "false", label: "Inactive" },
   ];
 
+  // Define table columns
+  const columns: Column<Announcement>[] = [
+    {
+      key: "title",
+      header: "Title",
+      render: (item) => (
+        <div className="flex items-center gap-2">
+          {item.isPinned && <Icon name="Star" size="sm" className="text-primary" />}
+          <Text className="font-medium">{item.title}</Text>
+        </div>
+      ),
+    },
+    {
+      key: "type",
+      header: "Type",
+      render: (item) => getTypeBadge(item.type),
+    },
+    {
+      key: "dates",
+      header: "Dates",
+      render: (item) => (
+        <Text size="sm" color="muted">
+          {formatDate(item.startDate)} - {formatDate(item.endDate)}
+        </Text>
+      ),
+    },
+    {
+      key: "status",
+      header: "Status",
+      render: (item) => (
+        <Badge variant={item.isActive ? "success" : "warning"}>
+          {item.isActive ? "Active" : "Inactive"}
+        </Badge>
+      ),
+    },
+    {
+      key: "actions",
+      header: "Actions",
+      headerClassName: "text-right",
+      cellClassName: "text-right",
+      render: (item) => (
+        <div className="flex justify-end gap-2">
+          <IconButton
+            icon={<Icon name="Pencil" size="sm" />}
+            size="sm"
+            variant="ghost"
+            onClick={() => openModal(item)}
+            aria-label="Edit announcement"
+          />
+          <IconButton
+            icon={<Icon name="Trash2" size="sm" />}
+            size="sm"
+            variant="ghost"
+            onClick={() => deleteAnnouncement(item.id)}
+            aria-label="Delete announcement"
+          />
+        </div>
+      ),
+    },
+  ];
+
+  const clearFilters = () => {
+    setSearch("");
+    setFilter("type", "");
+    setFilter("isActive", "");
+    setFilter("sortBy", "createdAt:desc");
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -232,7 +291,7 @@ export default function AdminAnnouncementsPage() {
         exportConfig={{
           label: "Export",
           onExport: async () => {
-            await downloadFile(`${API_CONFIG.BASE_URL}/announcements/export`);
+            await downloadFile(api.getAnnouncementsExportUrl());
           },
           successMessage: "Announcements exported successfully",
         }}
@@ -277,87 +336,18 @@ export default function AdminAnnouncementsPage() {
       {/* Table */}
       <Card>
         <CardContent className="p-0">
-          <Table>
-            <thead>
-              <TableRow>
-                <TableHeader>Title</TableHeader>
-                <TableHeader>Type</TableHeader>
-                <TableHeader>Dates</TableHeader>
-                <TableHeader>Status</TableHeader>
-                <TableHeader className="text-right">Actions</TableHeader>
-              </TableRow>
-            </thead>
-            <tbody>
-              {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8">
-                    <Spinner size="lg" />
-                  </TableCell>
-                </TableRow>
-              ) : isEmpty ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8">
-                    <Text color="muted">
-                      {hasActiveFilters
-                        ? "No announcements match your filters"
-                        : "No announcements found"}
-                    </Text>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                announcements.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        {item.isPinned && <Icon name="Star" size="sm" className="text-primary" />}
-                        <Text className="font-medium">{item.title}</Text>
-                      </div>
-                    </TableCell>
-                    <TableCell>{getTypeBadge(item.type)}</TableCell>
-                    <TableCell>
-                      <Text size="sm" color="muted">
-                        {formatDate(item.startDate)} - {formatDate(item.endDate)}
-                      </Text>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={item.isActive ? "success" : "warning"}>
-                        {item.isActive ? "Active" : "Inactive"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <IconButton
-                          icon={<Icon name="Pencil" size="sm" />}
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => openModal(item)}
-                          aria-label="Edit announcement"
-                        />
-                        <IconButton
-                          icon={<Icon name="Trash2" size="sm" />}
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => deleteAnnouncement(item.id)}
-                          aria-label="Delete announcement"
-                        />
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </tbody>
-          </Table>
-
-          {/* Pagination */}
-          {pagination && pagination.totalPages > 1 && (
-            <div className="border-t p-4">
-              <AdminPagination
-                pagination={pagination}
-                onPageChange={handlePageChange}
-                itemLabel="announcements"
-              />
-            </div>
-          )}
+          <DataTable
+            columns={columns}
+            data={announcements}
+            keyExtractor={(item) => item.id}
+            isLoading={isLoading}
+            emptyMessage="No announcements found"
+            hasActiveFilters={hasActiveFilters}
+            onClearFilters={clearFilters}
+            pagination={pagination}
+            onPageChange={handlePageChange}
+            itemLabel="announcements"
+          />
         </CardContent>
       </Card>
 

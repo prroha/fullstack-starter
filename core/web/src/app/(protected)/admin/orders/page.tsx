@@ -16,165 +16,8 @@ import {
 import { Alert } from "@/components/feedback";
 import { EmptySearch, EmptyList } from "@/components/shared";
 import { toast } from "sonner";
-import { api, PaginatedResponse } from "@/lib/api";
-
-// =====================================================
-// Types
-// =====================================================
-
-type OrderStatus = "PENDING" | "COMPLETED" | "REFUNDED" | "FAILED";
-
-interface OrderItem {
-  id: string;
-  name: string;
-  quantity: number;
-  unitPrice: number;
-}
-
-interface Order {
-  id: string;
-  orderNumber: string;
-  customer: {
-    id: string;
-    name: string;
-    email: string;
-  };
-  items: OrderItem[];
-  total: number;
-  status: OrderStatus;
-  paymentMethod?: string;
-  paymentId?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface OrderStats {
-  totalRevenue: number;
-  totalOrders: number;
-  avgOrderValue: number;
-  recentOrders: number;
-}
-
-interface PaginationInfo {
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
-  hasNext: boolean;
-  hasPrev: boolean;
-}
-
-// =====================================================
-// API Response Types
-// =====================================================
-
-interface OrderApiResponse {
-  id: string;
-  orderNumber: string;
-  userId: string;
-  user: {
-    id: string;
-    name: string | null;
-    email: string;
-  };
-  items: OrderItem[];
-  total: number;
-  status: OrderStatus;
-  paymentMethod?: string;
-  paymentId?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-// Transform API response to frontend Order type
-function transformOrder(apiOrder: OrderApiResponse): Order {
-  return {
-    id: apiOrder.id,
-    orderNumber: apiOrder.orderNumber,
-    customer: {
-      id: apiOrder.user.id,
-      name: apiOrder.user.name || apiOrder.user.email.split("@")[0],
-      email: apiOrder.user.email,
-    },
-    items: apiOrder.items,
-    total: apiOrder.total,
-    status: apiOrder.status,
-    paymentMethod: apiOrder.paymentMethod,
-    paymentId: apiOrder.paymentId,
-    createdAt: apiOrder.createdAt,
-    updatedAt: apiOrder.updatedAt,
-  };
-}
-
-// API functions
-async function fetchOrders(params: {
-  page: number;
-  limit: number;
-  status?: OrderStatus;
-  startDate?: string;
-  endDate?: string;
-  search?: string;
-}): Promise<{ items: Order[]; pagination: PaginationInfo }> {
-  const searchParams = new URLSearchParams();
-  searchParams.append("page", params.page.toString());
-  searchParams.append("limit", params.limit.toString());
-  if (params.status) searchParams.append("status", params.status);
-  if (params.startDate) searchParams.append("startDate", params.startDate);
-  if (params.endDate) searchParams.append("endDate", params.endDate);
-  if (params.search) searchParams.append("search", params.search);
-
-  const res = await api.get<PaginatedResponse<OrderApiResponse>>(
-    `/admin/orders?${searchParams.toString()}`
-  );
-
-  const data = res.data;
-  const items = (data?.items || []).map(transformOrder);
-  const pagination = data?.pagination;
-
-  return {
-    items,
-    pagination: {
-      page: pagination?.page || params.page,
-      limit: pagination?.limit || params.limit,
-      total: pagination?.total || 0,
-      totalPages: pagination?.totalPages || 1,
-      hasNext: pagination?.hasNext || false,
-      hasPrev: pagination?.hasPrev || false,
-    },
-  };
-}
-
-interface ApiOrderStats {
-  totalRevenue: number;
-  totalOrders: number;
-  averageOrderValue: number;
-  recentOrders: number;
-}
-
-async function fetchOrderStats(): Promise<OrderStats> {
-  const res = await api.get<{ data: ApiOrderStats }>("/admin/orders/stats");
-  const stats = res.data?.data;
-  return {
-    totalRevenue: stats?.totalRevenue || 0,
-    totalOrders: stats?.totalOrders || 0,
-    avgOrderValue: stats?.averageOrderValue || 0,
-    recentOrders: stats?.recentOrders || 0,
-  };
-}
-
-async function updateOrderStatus(
-  orderId: string,
-  status: OrderStatus
-): Promise<Order> {
-  const res = await api.patch<{ data: { order: OrderApiResponse } }>(
-    `/admin/orders/${orderId}/status`,
-    { status }
-  );
-  if (!res.data?.data?.order) {
-    throw new Error("Failed to update order status");
-  }
-  return transformOrder(res.data.data.order);
-}
+import { api, Order, OrderStatus, OrderStats } from "@/lib/api";
+import type { PaginationInfo } from "@/types/api";
 
 // =====================================================
 // Utility Functions
@@ -605,8 +448,10 @@ export default function AdminOrdersPage() {
   useEffect(() => {
     const loadStats = async () => {
       try {
-        const statsData = await fetchOrderStats();
-        setStats(statsData);
+        const response = await api.getOrderStats();
+        if (response.data) {
+          setStats(response.data);
+        }
       } catch (err) {
         console.error("Failed to load stats:", err);
       }
@@ -619,7 +464,7 @@ export default function AdminOrdersPage() {
       try {
         setIsLoading(true);
         setError(null);
-        const response = await fetchOrders({
+        const response = await api.getOrders({
           page,
           limit: 10,
           status: statusFilter || undefined,
@@ -628,8 +473,8 @@ export default function AdminOrdersPage() {
           endDate: endDate || undefined,
         });
 
-        setOrders(response.items);
-        setPagination(response.pagination);
+        setOrders(response.data?.items || []);
+        setPagination(response.data?.pagination || null);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load orders");
       } finally {
@@ -650,12 +495,15 @@ export default function AdminOrdersPage() {
   const handleStatusUpdate = async (orderId: string, status: OrderStatus) => {
     try {
       setIsUpdating(true);
-      const updatedOrder = await updateOrderStatus(orderId, status);
-      setOrders((prev) =>
-        prev.map((o) => (o.id === orderId ? updatedOrder : o))
-      );
-      setSelectedOrder(updatedOrder);
-      toast.success(`Order status updated to ${statusConfig[status].label}`);
+      const response = await api.updateOrderStatus(orderId, status);
+      if (response.data?.order) {
+        const updatedOrder = response.data.order;
+        setOrders((prev) =>
+          prev.map((o) => (o.id === orderId ? updatedOrder : o))
+        );
+        setSelectedOrder(updatedOrder);
+        toast.success(`Order status updated to ${statusConfig[status].label}`);
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to update order");
     } finally {

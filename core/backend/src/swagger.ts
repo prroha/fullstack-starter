@@ -365,20 +365,88 @@ const sharedSchemas = {
   AdminStats: {
     type: "object",
     properties: {
-      totalUsers: { type: "integer" },
-      activeUsers: { type: "integer" },
-      totalOrders: { type: "integer" },
-      totalRevenue: { type: "number" },
-      pendingOrders: { type: "integer" },
-      avgOrderValue: { type: "number" },
-      recentSignups: { type: "integer" },
-      signupsByDay: {
+      users: {
+        type: "object",
+        properties: {
+          total: { type: "integer" },
+          active: { type: "integer" },
+          inactive: { type: "integer" },
+          admins: { type: "integer" },
+          recentSignups: { type: "integer" },
+          signupsByDay: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                date: { type: "string" },
+                count: { type: "integer" },
+              },
+            },
+          },
+        },
+      },
+      orders: {
+        type: "object",
+        properties: {
+          total: { type: "integer" },
+          pending: { type: "integer" },
+          completed: { type: "integer" },
+          totalRevenue: { type: "number" },
+          recentOrders: { type: "integer" },
+        },
+      },
+      messages: {
+        type: "object",
+        properties: {
+          total: { type: "integer" },
+          pending: { type: "integer" },
+          read: { type: "integer" },
+          replied: { type: "integer" },
+        },
+      },
+      faqs: {
+        type: "object",
+        properties: {
+          total: { type: "integer" },
+          active: { type: "integer" },
+          categories: { type: "integer" },
+        },
+      },
+      announcements: {
+        type: "object",
+        properties: {
+          total: { type: "integer" },
+          active: { type: "integer" },
+          pinned: { type: "integer" },
+        },
+      },
+      coupons: {
+        type: "object",
+        properties: {
+          total: { type: "integer" },
+          active: { type: "integer" },
+          expired: { type: "integer" },
+        },
+      },
+      content: {
+        type: "object",
+        properties: {
+          total: { type: "integer" },
+          published: { type: "integer" },
+          draft: { type: "integer" },
+        },
+      },
+      recentActivity: {
         type: "array",
         items: {
           type: "object",
           properties: {
-            date: { type: "string" },
-            count: { type: "integer" },
+            id: { type: "string" },
+            action: { type: "string" },
+            entity: { type: "string" },
+            entityId: { type: "string", nullable: true },
+            userEmail: { type: "string", nullable: true },
+            createdAt: { type: "string", format: "date-time" },
           },
         },
       },

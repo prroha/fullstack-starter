@@ -952,16 +952,58 @@ export interface components {
             };
         };
         AdminStats: {
-            totalUsers?: number;
-            activeUsers?: number;
-            totalOrders?: number;
-            totalRevenue?: number;
-            pendingOrders?: number;
-            avgOrderValue?: number;
-            recentSignups?: number;
-            signupsByDay?: {
-                date?: string;
-                count?: number;
+            users?: {
+                total?: number;
+                active?: number;
+                inactive?: number;
+                admins?: number;
+                recentSignups?: number;
+                signupsByDay?: {
+                    date?: string;
+                    count?: number;
+                }[];
+            };
+            orders?: {
+                total?: number;
+                pending?: number;
+                completed?: number;
+                totalRevenue?: number;
+                recentOrders?: number;
+            };
+            messages?: {
+                total?: number;
+                pending?: number;
+                read?: number;
+                replied?: number;
+            };
+            faqs?: {
+                total?: number;
+                active?: number;
+                categories?: number;
+            };
+            announcements?: {
+                total?: number;
+                active?: number;
+                pinned?: number;
+            };
+            coupons?: {
+                total?: number;
+                active?: number;
+                expired?: number;
+            };
+            content?: {
+                total?: number;
+                published?: number;
+                draft?: number;
+            };
+            recentActivity?: {
+                id?: string;
+                action?: string;
+                entity?: string;
+                entityId?: string | null;
+                userEmail?: string | null;
+                /** Format: date-time */
+                createdAt?: string;
             }[];
         };
     };

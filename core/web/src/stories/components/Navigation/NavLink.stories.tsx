@@ -63,7 +63,7 @@ export const SidebarVariant: Story = {
       <NavLink
         href="/dashboard"
         label="Dashboard"
-        icon={<Icon name="Home" size="sm" />}
+        icon={<Icon name="House" size="sm" />}
         variant="sidebar"
       />
       <NavLink
@@ -81,7 +81,7 @@ export const SidebarVariant: Story = {
       <NavLink
         href="/analytics"
         label="Analytics"
-        icon={<Icon name="BarChart3" size="sm" />}
+        icon={<Icon name="ChartBar" size="sm" />}
         variant="sidebar"
       />
     </div>
@@ -121,7 +121,7 @@ export const MobileVariant: Story = {
       <NavLink
         href="/dashboard"
         label="Dashboard"
-        icon={<Icon name="Home" size="md" />}
+        icon={<Icon name="House" size="md" />}
         variant="mobile"
       />
       <NavLink

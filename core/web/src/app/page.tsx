@@ -10,14 +10,19 @@ import { CardSection } from "@/components/layout";
 
 export default function Home() {
   const router = useRouter();
-  const { user, isLoading, isAuthenticated } = useAuth();
+  const { user: _user, isLoading, isAuthenticated, isAdmin } = useAuth();
 
-  // Redirect authenticated users to dashboard
+  // Redirect authenticated users to appropriate dashboard based on role
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
-      router.push("/dashboard");
+      // Admins and Super Admins go to admin dashboard
+      if (isAdmin) {
+        router.push("/admin");
+      } else {
+        router.push("/dashboard");
+      }
     }
-  }, [isLoading, isAuthenticated, router]);
+  }, [isLoading, isAuthenticated, isAdmin, router]);
 
   if (isLoading) {
     return (
@@ -33,7 +38,7 @@ export default function Home() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-background">
         <Spinner size="lg" />
-        <Text color="muted">Redirecting to dashboard...</Text>
+        <Text color="muted">Redirecting...</Text>
       </div>
     );
   }

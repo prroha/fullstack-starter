@@ -69,9 +69,13 @@ export const config = {
   },
 
   // Rate Limiting
+  // Higher limits in development to avoid hitting rate limits during local testing
   rateLimit: {
     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || "60000", 10),
-    maxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || "100", 10),
+    maxRequests: parseInt(
+      process.env.RATE_LIMIT_MAX_REQUESTS || (isProduction ? "100" : "500"),
+      10
+    ),
   },
 
   // Security

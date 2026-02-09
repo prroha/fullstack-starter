@@ -1,14 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { api, ApiError, AuditLog, AuditAction } from "@/lib/api";
+import { api, AuditLog, AuditAction } from "@/lib/api";
 import { Button, Input, Badge, Text, Select } from "@/components/ui";
 import { Alert } from "@/components/feedback";
 import { Icon } from "@/components/ui/icon";
 import { AdminPageHeader, AdminTableContainer } from "@/components/admin";
 import { useAdminList } from "@/lib/hooks";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
 import { downloadFile } from "@/lib/export";
 
 // =====================================================
@@ -172,11 +171,17 @@ function LogRow({
         </td>
         <td className="px-4 py-3">
           <Text variant="caption" color="muted">
-            {new Date(log.createdAt).toLocaleDateString()}{" "}
-            {new Date(log.createdAt).toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
+            {log.createdAt ? (
+              <>
+                {new Date(log.createdAt).toLocaleDateString()}{" "}
+                {new Date(log.createdAt).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </>
+            ) : (
+              "-"
+            )}
           </Text>
         </td>
         <td className="px-4 py-3">
@@ -259,7 +264,7 @@ export default function AdminAuditLogsPage() {
     hasActiveFilters,
     isEmpty,
   } = useAdminList<AuditLog, AuditFilters>({
-    fetchFn: async ({ page, limit, search, filters }) => {
+    fetchFn: async ({ page, limit: _limit, search, filters }) => {
       const response = await api.getAuditLogs({
         page,
         limit: 20,

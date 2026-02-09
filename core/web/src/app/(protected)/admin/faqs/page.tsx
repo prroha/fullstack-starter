@@ -15,42 +15,28 @@ import {
   Modal,
   Switch,
   Spinner,
-  Table,
-  TableRow,
-  TableCell,
-  TableHeader,
+  DataTable,
   IconButton,
   Label,
 } from "@/components/ui";
-import { api } from "@/lib/api";
-import { AdminPageHeader, AdminPagination } from "@/components/admin";
+import {
+  api,
+  Faq,
+  FaqCategory,
+  CreateFaqData,
+  UpdateFaqData,
+  CreateFaqCategoryData,
+  UpdateFaqCategoryData,
+} from "@/lib/api";
+import { AdminPageHeader } from "@/components/admin";
 import { useAdminList } from "@/lib/hooks";
 import { downloadFile } from "@/lib/export";
-import { API_CONFIG } from "@/lib/constants";
 import { toast } from "sonner";
+import type { Column } from "@/components/ui/data-table";
 
 // =====================================================
 // Types
 // =====================================================
-
-interface FaqCategory {
-  id: string;
-  name: string;
-  slug: string;
-  order: number;
-  isActive: boolean;
-}
-
-interface Faq {
-  id: string;
-  categoryId: string | null;
-  question: string;
-  answer: string;
-  order: number;
-  isActive: boolean;
-  createdAt: string;
-  category?: { id: string; name: string; slug: string } | null;
-}
 
 interface FaqFilters {
   categoryId: string;
@@ -90,7 +76,7 @@ export default function AdminFaqsPage() {
   // Fetch categories
   const fetchCategories = useCallback(async () => {
     try {
-      const res = await api.get<{ categories: FaqCategory[] }>("/faqs/categories");
+      const res = await api.getFaqCategories();
       setCategories(res.data?.categories || []);
     } catch (error) {
       console.error("Failed to load categories:", error);
@@ -108,27 +94,25 @@ export default function AdminFaqsPage() {
     isLoading,
     search,
     setSearch,
-    searchDebounced,
     filters,
     setFilter,
     handlePageChange,
     hasActiveFilters,
-    isEmpty,
+    isEmpty: _isEmpty,
     refetch,
   } = useAdminList<Faq, FaqFilters>({
     fetchFn: async ({ page, limit, search, filters }) => {
-      const params = new URLSearchParams();
-      params.set("page", String(page));
-      params.set("limit", String(limit));
-      if (filters.categoryId) params.set("categoryId", filters.categoryId);
-      if (search) params.set("search", search);
-      if (filters.sortBy) {
-        const [field, order] = filters.sortBy.split("-");
-        params.set("sortBy", field);
-        params.set("sortOrder", order);
-      }
+      const [field, order] = filters.sortBy ? filters.sortBy.split("-") : ["createdAt", "desc"];
 
-      const res = await api.get<{ faqs: Faq[]; pagination: { page: number; limit: number; total: number; totalPages: number; hasNext: boolean; hasPrev: boolean } }>(`/faqs?${params.toString()}`);
+      const res = await api.getFaqs({
+        page,
+        limit,
+        search: search || undefined,
+        categoryId: filters.categoryId || undefined,
+        sortBy: field,
+        sortOrder: order,
+      });
+
       return {
         items: res.data?.faqs || [],
         pagination: res.data?.pagination || {
@@ -180,16 +164,25 @@ export default function AdminFaqsPage() {
   const saveFaq = async () => {
     setSaving(true);
     try {
-      const data = {
-        ...faqForm,
-        categoryId: faqForm.categoryId || null,
-      };
-
       if (editingFaq) {
-        await api.patch(`/faqs/${editingFaq.id}`, data);
+        const updateData: UpdateFaqData = {
+          question: faqForm.question,
+          answer: faqForm.answer,
+          categoryId: faqForm.categoryId || null,
+          isActive: faqForm.isActive,
+          order: faqForm.order,
+        };
+        await api.updateFaq(editingFaq.id, updateData);
         toast.success("FAQ updated");
       } else {
-        await api.post("/faqs", data);
+        const createData: CreateFaqData = {
+          question: faqForm.question,
+          answer: faqForm.answer,
+          categoryId: faqForm.categoryId || null,
+          isActive: faqForm.isActive,
+          order: faqForm.order,
+        };
+        await api.createFaq(createData);
         toast.success("FAQ created");
       }
       setShowFaqModal(false);
@@ -205,7 +198,7 @@ export default function AdminFaqsPage() {
   const deleteFaq = async (id: string) => {
     if (!confirm("Are you sure you want to delete this FAQ?")) return;
     try {
-      await api.delete(`/faqs/${id}`);
+      await api.deleteFaq(id);
       toast.success("FAQ deleted");
       refetch();
     } catch (error) {
@@ -218,10 +211,22 @@ export default function AdminFaqsPage() {
     setSaving(true);
     try {
       if (editingCategory) {
-        await api.patch(`/faqs/categories/${editingCategory.id}`, categoryForm);
+        const updateData: UpdateFaqCategoryData = {
+          name: categoryForm.name,
+          slug: categoryForm.slug,
+          isActive: categoryForm.isActive,
+          order: categoryForm.order,
+        };
+        await api.updateFaqCategory(editingCategory.id, updateData);
         toast.success("Category updated");
       } else {
-        await api.post("/faqs/categories", categoryForm);
+        const createData: CreateFaqCategoryData = {
+          name: categoryForm.name,
+          slug: categoryForm.slug,
+          isActive: categoryForm.isActive,
+          order: categoryForm.order,
+        };
+        await api.createFaqCategory(createData);
         toast.success("Category created");
       }
       setShowCategoryModal(false);
@@ -238,7 +243,7 @@ export default function AdminFaqsPage() {
   const deleteCategory = async (id: string) => {
     if (!confirm("Are you sure you want to delete this category? FAQs will be uncategorized.")) return;
     try {
-      await api.delete(`/faqs/categories/${id}`);
+      await api.deleteFaqCategory(id);
       toast.success("Category deleted");
       fetchCategories();
       refetch();
@@ -260,6 +265,75 @@ export default function AdminFaqsPage() {
     { value: "question-desc", label: "Question Z-A" },
   ];
 
+  // Define table columns
+  const columns: Column<Faq>[] = [
+    {
+      key: "question",
+      header: "Question",
+      render: (faq) => (
+        <Text className="font-medium line-clamp-2">{faq.question}</Text>
+      ),
+    },
+    {
+      key: "category",
+      header: "Category",
+      render: (faq) => (
+        faq.category ? (
+          <Badge variant="secondary">{faq.category.name}</Badge>
+        ) : (
+          <Text color="muted" size="sm">Uncategorized</Text>
+        )
+      ),
+    },
+    {
+      key: "status",
+      header: "Status",
+      render: (faq) => (
+        <Badge variant={faq.isActive ? "success" : "warning"}>
+          {faq.isActive ? "Active" : "Inactive"}
+        </Badge>
+      ),
+    },
+    {
+      key: "createdAt",
+      header: "Created",
+      render: (faq) => (
+        <Text color="muted" size="sm">
+          {faq.createdAt ? new Date(faq.createdAt).toLocaleDateString() : "-"}
+        </Text>
+      ),
+    },
+    {
+      key: "actions",
+      header: "Actions",
+      headerClassName: "text-right",
+      cellClassName: "text-right",
+      render: (faq) => (
+        <div className="flex justify-end gap-2">
+          <IconButton
+            aria-label="Edit"
+            icon={<Icon name="Pencil" size="sm" />}
+            size="sm"
+            variant="ghost"
+            onClick={() => openFaqModal(faq)}
+          />
+          <IconButton
+            aria-label="Delete"
+            icon={<Icon name="Trash2" size="sm" />}
+            size="sm"
+            variant="ghost"
+            onClick={() => deleteFaq(faq.id)}
+          />
+        </div>
+      ),
+    },
+  ];
+
+  const clearFilters = () => {
+    setSearch("");
+    setFilter("categoryId", "");
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -269,7 +343,7 @@ export default function AdminFaqsPage() {
         exportConfig={{
           label: "Export",
           onExport: async () => {
-            await downloadFile(`${API_CONFIG.BASE_URL}/faqs/export`);
+            await downloadFile(api.getFaqsExportUrl());
           },
           successMessage: "FAQs exported successfully",
         }}
@@ -352,101 +426,18 @@ export default function AdminFaqsPage() {
       {/* FAQs Table */}
       <Card>
         <CardContent className="p-0">
-          <Table>
-            <thead>
-              <TableRow>
-                <TableHeader>Question</TableHeader>
-                <TableHeader>Category</TableHeader>
-                <TableHeader>Status</TableHeader>
-                <TableHeader>Created</TableHeader>
-                <TableHeader className="text-right">Actions</TableHeader>
-              </TableRow>
-            </thead>
-            <tbody>
-              {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8">
-                    <Spinner size="lg" />
-                  </TableCell>
-                </TableRow>
-              ) : isEmpty ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8">
-                    <Text color="muted">
-                      {hasActiveFilters ? "No FAQs match your search" : "No FAQs found"}
-                    </Text>
-                    {hasActiveFilters && (
-                      <Button
-                        variant="link"
-                        size="sm"
-                        onClick={() => {
-                          setSearch("");
-                          setFilter("categoryId", "");
-                        }}
-                        className="mt-2"
-                      >
-                        Clear search
-                      </Button>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ) : (
-                faqs.map((faq) => (
-                  <TableRow key={faq.id}>
-                    <TableCell>
-                      <Text className="font-medium line-clamp-2">{faq.question}</Text>
-                    </TableCell>
-                    <TableCell>
-                      {faq.category ? (
-                        <Badge variant="secondary">{faq.category.name}</Badge>
-                      ) : (
-                        <Text color="muted" size="sm">Uncategorized</Text>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={faq.isActive ? "success" : "warning"}>
-                        {faq.isActive ? "Active" : "Inactive"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Text color="muted" size="sm">
-                        {faq.createdAt ? new Date(faq.createdAt).toLocaleDateString() : "-"}
-                      </Text>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <IconButton
-                          aria-label="Edit"
-                          icon={<Icon name="Pencil" size="sm" />}
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => openFaqModal(faq)}
-                        />
-                        <IconButton
-                          aria-label="Delete"
-                          icon={<Icon name="Trash2" size="sm" />}
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => deleteFaq(faq.id)}
-                        />
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </tbody>
-          </Table>
-
-          {/* Pagination */}
-          {pagination && pagination.totalPages > 1 && (
-            <div className="border-t p-4">
-              <AdminPagination
-                pagination={pagination}
-                onPageChange={handlePageChange}
-                itemLabel="FAQs"
-              />
-            </div>
-          )}
+          <DataTable
+            columns={columns}
+            data={faqs}
+            keyExtractor={(faq) => faq.id}
+            isLoading={isLoading}
+            emptyMessage="No FAQs found"
+            hasActiveFilters={hasActiveFilters}
+            onClearFilters={clearFilters}
+            pagination={pagination}
+            onPageChange={handlePageChange}
+            itemLabel="FAQs"
+          />
         </CardContent>
       </Card>
 

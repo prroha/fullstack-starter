@@ -14,39 +14,20 @@ import {
   Modal,
   Switch,
   Spinner,
-  Table,
-  TableRow,
-  TableCell,
-  TableHeader,
+  DataTable,
   IconButton,
   Label,
-  ExportCsvButton,
 } from "@/components/ui";
-import { api, PaginatedResponse } from "@/lib/api";
+import { AdminPageHeader } from "@/components/admin";
+import {
+  api,
+  ContentPage,
+  CreateContentPageData,
+  UpdateContentPageData,
+} from "@/lib/api";
 import { downloadFile } from "@/lib/export";
-import { API_CONFIG } from "@/lib/constants";
-import { toast } from "sonner";
-
-interface ContentPage {
-  id: string;
-  slug: string;
-  title: string;
-  content: string;
-  metaTitle: string | null;
-  metaDesc: string | null;
-  isPublished: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface PaginationInfo {
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
-  hasNext: boolean;
-  hasPrev: boolean;
-}
+import type { Column } from "@/components/ui/data-table";
+import type { PaginationInfo } from "@/types/api";
 
 const sortOptions = [
   { value: "title:asc", label: "Title A-Z" },
@@ -87,20 +68,15 @@ export default function AdminContentPage() {
   const loadData = useCallback(async (page = 1) => {
     try {
       setLoading(true);
-      const params = new URLSearchParams();
-      params.append("page", page.toString());
-      params.append("limit", "10");
-      if (filterPublished) params.append("isPublished", filterPublished);
-      if (searchDebounced) params.append("search", searchDebounced);
-      if (sortBy) {
-        const [field, order] = sortBy.split(":");
-        params.append("sortBy", field);
-        params.append("sortOrder", order);
-      }
-
-      const res = await api.get<PaginatedResponse<ContentPage>>(
-        `/content?${params.toString()}`
-      );
+      const [field, order] = sortBy.split(":");
+      const res = await api.getContentPages({
+        page,
+        limit: 10,
+        isPublished: filterPublished || undefined,
+        search: searchDebounced || undefined,
+        sortBy: field,
+        sortOrder: order,
+      });
       setPages(res.data?.items || []);
       if (res.data?.pagination) {
         setPagination(res.data.pagination);
@@ -148,16 +124,19 @@ export default function AdminContentPage() {
   const save = async () => {
     setSaving(true);
     try {
-      const data = {
-        ...form,
+      const data: CreateContentPageData | UpdateContentPageData = {
+        slug: form.slug,
+        title: form.title,
+        content: form.content,
         metaTitle: form.metaTitle || null,
         metaDesc: form.metaDesc || null,
+        isPublished: form.isPublished,
       };
 
       if (editing) {
-        await api.patch(`/content/${editing.id}`, data);
+        await api.updateContentPage(editing.id, data);
       } else {
-        await api.post("/content", data);
+        await api.createContentPage(data as CreateContentPageData);
       }
       setShowModal(false);
       loadData(pagination?.page || 1);
@@ -171,7 +150,7 @@ export default function AdminContentPage() {
   const deletePage = async (id: string) => {
     if (!confirm("Are you sure you want to delete this page?")) return;
     try {
-      await api.delete(`/content/${id}`);
+      await api.deleteContentPage(id);
       loadData(pagination?.page || 1);
     } catch (error) {
       console.error("Failed to delete page:", error);
@@ -186,6 +165,82 @@ export default function AdminContentPage() {
     });
   };
 
+  const hasActiveFilters = !!filterPublished || !!searchDebounced;
+
+  const clearFilters = () => {
+    setFilterPublished("");
+    setSearch("");
+    setSearchDebounced("");
+  };
+
+  // Define table columns
+  const columns: Column<ContentPage>[] = [
+    {
+      key: "title",
+      header: "Title",
+      render: (page) => (
+        <Text className="font-medium">{page.title}</Text>
+      ),
+    },
+    {
+      key: "slug",
+      header: "Slug",
+      render: (page) => (
+        <Text size="sm" className="font-mono text-muted-foreground">
+          /{page.slug}
+        </Text>
+      ),
+    },
+    {
+      key: "status",
+      header: "Status",
+      render: (page) => (
+        <Badge variant={page.isPublished ? "success" : "warning"}>
+          {page.isPublished ? "Published" : "Draft"}
+        </Badge>
+      ),
+    },
+    {
+      key: "updated",
+      header: "Updated",
+      render: (page) => (
+        <Text size="sm" color="muted">{formatDate(page.updatedAt)}</Text>
+      ),
+    },
+    {
+      key: "actions",
+      header: "Actions",
+      headerClassName: "text-right",
+      cellClassName: "text-right",
+      render: (page) => (
+        <div className="flex justify-end gap-2">
+          <IconButton
+            icon={<Icon name="ExternalLink" size="sm" />}
+            size="sm"
+            variant="ghost"
+            onClick={() => window.open(`/page/${page.slug}`, "_blank")}
+            title="Preview"
+            aria-label="Preview"
+          />
+          <IconButton
+            icon={<Icon name="Pencil" size="sm" />}
+            size="sm"
+            variant="ghost"
+            onClick={() => openModal(page)}
+            aria-label="Edit"
+          />
+          <IconButton
+            icon={<Icon name="Trash2" size="sm" />}
+            size="sm"
+            variant="ghost"
+            onClick={() => deletePage(page.id)}
+            aria-label="Delete"
+          />
+        </div>
+      ),
+    },
+  ];
+
   // Show loading spinner only on initial load (when pages array is empty)
   if (loading && pages.length === 0 && !pagination) {
     return (
@@ -198,26 +253,21 @@ export default function AdminContentPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">Content Pages</h1>
-          <Text color="muted">Manage static content pages (CMS)</Text>
-        </div>
-        <div className="flex gap-2">
-          <ExportCsvButton
-            label="Export"
-            onExport={async () => {
-              await downloadFile(`${API_CONFIG.BASE_URL}/content/export`);
-            }}
-            onSuccess={() => toast.success("Content pages exported successfully")}
-            onError={(error) => toast.error(error.message || "Export failed")}
-          />
+      <AdminPageHeader
+        title="Content Pages"
+        description="Manage static content pages (CMS)"
+        exportConfig={{
+          label: "Export",
+          onExport: () => downloadFile(api.getContentExportUrl()),
+          successMessage: "Content pages exported successfully",
+        }}
+        actions={
           <Button onClick={() => openModal()}>
             <Icon name="Plus" size="sm" className="mr-2" />
             Add Page
           </Button>
-        </div>
-      </div>
+        }
+      />
 
       {/* Filters */}
       <div className="flex flex-wrap gap-4">
@@ -263,132 +313,18 @@ export default function AdminContentPage() {
       {/* Table */}
       <Card>
         <CardContent className="p-0">
-          <Table>
-            <thead>
-              <TableRow>
-                <TableHeader>Title</TableHeader>
-                <TableHeader>Slug</TableHeader>
-                <TableHeader>Status</TableHeader>
-                <TableHeader>Updated</TableHeader>
-                <TableHeader className="text-right">Actions</TableHeader>
-              </TableRow>
-            </thead>
-            <tbody>
-              {pages.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8">
-                    <Text color="muted">No content pages found</Text>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                pages.map((page) => (
-                  <TableRow key={page.id}>
-                    <TableCell>
-                      <Text className="font-medium">{page.title}</Text>
-                    </TableCell>
-                    <TableCell>
-                      <Text size="sm" className="font-mono text-muted-foreground">
-                        /{page.slug}
-                      </Text>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={page.isPublished ? "success" : "warning"}>
-                        {page.isPublished ? "Published" : "Draft"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Text size="sm" color="muted">{formatDate(page.updatedAt)}</Text>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <IconButton
-                          icon={<Icon name="ExternalLink" size="sm" />}
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => window.open(`/page/${page.slug}`, "_blank")}
-                          title="Preview"
-                          aria-label="Preview"
-                        />
-                        <IconButton
-                          icon={<Icon name="Pencil" size="sm" />}
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => openModal(page)}
-                          aria-label="Edit"
-                        />
-                        <IconButton
-                          icon={<Icon name="Trash2" size="sm" />}
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => deletePage(page.id)}
-                          aria-label="Delete"
-                        />
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </tbody>
-          </Table>
+          <DataTable
+            columns={columns}
+            data={pages}
+            keyExtractor={(page) => page.id}
+            emptyMessage="No content pages found"
+            hasActiveFilters={hasActiveFilters}
+            onClearFilters={clearFilters}
+            pagination={pagination}
+            onPageChange={handlePageChange}
+            itemLabel="pages"
+          />
         </CardContent>
-
-        {/* Pagination */}
-        {pagination && pagination.totalPages > 1 && (
-          <div className="border-t p-4">
-            <div className="flex items-center justify-between">
-              <Text size="sm" color="muted">
-                Showing {(pagination.page - 1) * pagination.limit + 1} to{" "}
-                {Math.min(pagination.page * pagination.limit, pagination.total)} of{" "}
-                {pagination.total} pages
-              </Text>
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handlePageChange(pagination.page - 1)}
-                  disabled={!pagination.hasPrev}
-                >
-                  Previous
-                </Button>
-                {Array.from({ length: pagination.totalPages }, (_, i) => i + 1)
-                  .filter(
-                    (p) =>
-                      p === 1 ||
-                      p === pagination.totalPages ||
-                      Math.abs(p - pagination.page) <= 1
-                  )
-                  .map((page, index, arr) => {
-                    const prevPage = arr[index - 1];
-                    const showEllipsis = prevPage && page - prevPage > 1;
-
-                    return (
-                      <div key={page} className="flex items-center">
-                        {showEllipsis && (
-                          <span className="px-2 text-muted-foreground">...</span>
-                        )}
-                        <Button
-                          variant={page === pagination.page ? "default" : "ghost"}
-                          size="sm"
-                          onClick={() => handlePageChange(page)}
-                          className="w-9"
-                        >
-                          {page}
-                        </Button>
-                      </div>
-                    );
-                  })}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handlePageChange(pagination.page + 1)}
-                  disabled={!pagination.hasNext}
-                >
-                  Next
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
       </Card>
 
       {/* Modal */}

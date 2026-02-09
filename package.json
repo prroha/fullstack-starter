@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "description": "Fullstack Starter - Backend, Web, and Mobile",
+  "overrides": {
+    "webpack": "5.101.2"
+  },
   "scripts": {
     "prepare": "node -e \"try { require.resolve('husky') } catch (e) { process.exit(0) }\" && husky || true",
     "lint": "npm run lint --workspaces --if-present",
@@ -27,7 +30,8 @@
   ],
   "devDependencies": {
     "husky": "^9.1.0",
-    "lint-staged": "^15.2.0"
+    "lint-staged": "^15.2.0",
+    "prettier": "^3.8.1"
   },
   "engines": {
     "node": ">=20.0.0"

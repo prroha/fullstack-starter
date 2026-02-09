@@ -10,10 +10,10 @@
 // =====================================================
 
 export const API_CONFIG = {
-  /** Base URL for API requests */
-  BASE_URL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api",
+  /** Base URL for API requests (includes version) */
+  BASE_URL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1",
 
-  /** API version prefix */
+  /** API version prefix (for reference) */
   VERSION: "v1",
 
   /** Request timeout in milliseconds (30 seconds) */
