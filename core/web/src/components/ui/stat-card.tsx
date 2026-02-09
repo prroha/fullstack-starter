@@ -247,6 +247,10 @@ const StatCard = React.forwardRef<HTMLDivElement, StatCardProps>(
       ? { onClick, type: "button" as const }
       : {};
 
+    // Extract only safe props to spread (exclude event handlers that differ between element types)
+    const { style, id, "aria-label": ariaLabel, "aria-describedby": ariaDescribedBy, role, tabIndex, title } = props;
+    const safeProps = { style, id, "aria-label": ariaLabel, "aria-describedby": ariaDescribedBy, role, tabIndex, title };
+
     return (
       <Wrapper
         ref={ref as React.Ref<HTMLDivElement & HTMLAnchorElement & HTMLButtonElement>}
@@ -262,7 +266,7 @@ const StatCard = React.forwardRef<HTMLDivElement, StatCardProps>(
           className
         )}
         {...wrapperProps}
-        {...props}
+        {...safeProps}
       >
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0 flex-1">

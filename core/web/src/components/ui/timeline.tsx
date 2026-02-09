@@ -39,7 +39,7 @@ export interface TimelineProps extends React.HTMLAttributes<HTMLDivElement> {
   size?: TimelineSize;
 }
 
-export interface TimelineItemProps extends React.HTMLAttributes<HTMLDivElement> {
+export interface TimelineItemProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "content"> {
   /** Title of the timeline item */
   title: string;
   /** Description or subtitle */

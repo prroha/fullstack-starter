@@ -1,0 +1,437 @@
+// Starter Studio Database Schema
+// This is separate from the core template database
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =====================================================
+// Platform Users (Customers who buy templates)
+// =====================================================
+
+model StudioUser {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String?
+  name          String?
+  avatarUrl     String?
+
+  // Auth
+  emailVerified Boolean   @default(false)
+  isBlocked     Boolean   @default(false)
+
+  // Relations
+  orders        Order[]
+  sessions      StudioSession[]
+
+  // Timestamps
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  lastLoginAt   DateTime?
+
+  @@map("studio_users")
+}
+
+model StudioSession {
+  id          String      @id @default(cuid())
+  userId      String
+  user        StudioUser  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token       String      @unique
+  userAgent   String?
+  ipAddress   String?
+  expiresAt   DateTime
+  createdAt   DateTime    @default(now())
+
+  @@map("studio_sessions")
+}
+
+// =====================================================
+// Orders & Purchases
+// =====================================================
+
+model Order {
+  id              String        @id @default(cuid())
+  orderNumber     String        @unique
+
+  // Customer
+  userId          String
+  user            StudioUser    @relation(fields: [userId], references: [id])
+  customerEmail   String
+  customerName    String?
+
+  // What was purchased
+  tier            String        // basic, starter, pro, business, enterprise
+  templateId      String?
+  template        Template?     @relation(fields: [templateId], references: [id])
+  selectedFeatures String[]     // Array of feature IDs
+
+  // Pricing
+  subtotal        Int           // in cents
+  discount        Int           @default(0)
+  tax             Int           @default(0)
+  total           Int           // in cents
+  currency        String        @default("usd")
+
+  // Coupon
+  couponId        String?
+  coupon          StudioCoupon? @relation(fields: [couponId], references: [id])
+  couponCode      String?
+
+  // Payment
+  status          OrderStatus   @default(PENDING)
+  paymentMethod   String?       // stripe, razorpay, etc.
+  paymentId       String?       // Stripe payment intent ID
+  paidAt          DateTime?
+
+  // Download
+  license         License?
+
+  // Timestamps
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@map("orders")
+}
+
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REFUNDED
+  CANCELLED
+}
+
+// =====================================================
+// Licenses & Downloads
+// =====================================================
+
+model License {
+  id              String    @id @default(cuid())
+
+  // Order relation
+  orderId         String    @unique
+  order           Order     @relation(fields: [orderId], references: [id])
+
+  // License details
+  licenseKey      String    @unique
+  downloadToken   String    @unique
+  downloadCount   Int       @default(0)
+  maxDownloads    Int       @default(5)
+
+  // Validity
+  status          LicenseStatus @default(ACTIVE)
+  expiresAt       DateTime?
+  revokedAt       DateTime?
+  revokedReason   String?
+
+  // Timestamps
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  lastDownloadAt  DateTime?
+
+  @@map("licenses")
+}
+
+enum LicenseStatus {
+  ACTIVE
+  EXPIRED
+  REVOKED
+}
+
+// =====================================================
+// Templates (Pre-configured bundles)
+// =====================================================
+
+model Template {
+  id              String    @id @default(cuid())
+  slug            String    @unique
+  name            String
+  description     String
+  shortDescription String?
+
+  // Pricing
+  price           Int       // in cents
+  compareAtPrice  Int?      // Original price for "save $X" display
+
+  // Configuration
+  tier            String    // Minimum tier required
+  includedFeatures String[] // Array of feature IDs included
+
+  // Display
+  previewImageUrl String?
+  previewUrl      String?   // Live preview URL
+  iconName        String?   // Lucide icon name
+  color           String?   // Theme color
+  displayOrder    Int       @default(0)
+
+  // Status
+  isActive        Boolean   @default(true)
+  isFeatured      Boolean   @default(false)
+
+  // Relations
+  orders          Order[]
+
+  // Timestamps
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@map("templates")
+}
+
+// =====================================================
+// Modules & Features
+// =====================================================
+
+model Module {
+  id              String    @id @default(cuid())
+  slug            String    @unique
+  name            String
+  description     String
+
+  // Display
+  category        String    // auth, security, payments, storage, comms, ui, analytics, mobile
+  iconName        String?
+  displayOrder    Int       @default(0)
+
+  // Status
+  isActive        Boolean   @default(true)
+
+  // Relations
+  features        Feature[]
+
+  // Timestamps
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@map("modules")
+}
+
+model Feature {
+  id              String    @id @default(cuid())
+  slug            String    @unique
+  name            String
+  description     String
+
+  // Module relation
+  moduleId        String
+  module          Module    @relation(fields: [moduleId], references: [id])
+
+  // Pricing
+  price           Int       @default(0) // in cents, 0 = included in tier
+  tier            String?   // Minimum tier required (null = available in all)
+
+  // Dependencies
+  requires        String[]  // Array of feature slugs this depends on
+  conflicts       String[]  // Array of feature slugs this conflicts with
+
+  // Code generation mapping
+  fileMappings    Json?     // Array of {source, destination, transform?}
+  schemaMappings  Json?     // Array of {model, source}
+  envVars         Json?     // Array of {key, description, required, default?}
+  npmPackages     Json?     // Array of {name, version, dev?}
+
+  // Display
+  iconName        String?
+  displayOrder    Int       @default(0)
+
+  // Status
+  isActive        Boolean   @default(true)
+  isNew           Boolean   @default(false) // Show "NEW" badge
+  isPopular       Boolean   @default(false) // Show "POPULAR" badge
+
+  // Timestamps
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@map("features")
+}
+
+// =====================================================
+// Pricing Tiers
+// =====================================================
+
+model PricingTier {
+  id              String    @id @default(cuid())
+  slug            String    @unique // basic, starter, pro, business, enterprise
+  name            String
+  description     String
+
+  // Pricing
+  price           Int       // in cents
+
+  // What's included
+  includedFeatures String[] // Array of feature slugs
+
+  // Display
+  isPopular       Boolean   @default(false)
+  displayOrder    Int       @default(0)
+  color           String?
+
+  // Status
+  isActive        Boolean   @default(true)
+
+  // Timestamps
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@map("pricing_tiers")
+}
+
+// =====================================================
+// Coupons (Platform-level discounts)
+// =====================================================
+
+model StudioCoupon {
+  id              String    @id @default(cuid())
+  code            String    @unique
+
+  // Discount
+  type            CouponType // PERCENTAGE or FIXED
+  value           Int       // Percentage (0-100) or fixed amount in cents
+
+  // Limits
+  maxUses         Int?      // null = unlimited
+  usedCount       Int       @default(0)
+  minPurchase     Int?      // Minimum order amount in cents
+
+  // Restrictions
+  applicableTiers String[]  // Empty = all tiers
+  applicableTemplates String[] // Empty = all templates
+
+  // Validity
+  startsAt        DateTime?
+  expiresAt       DateTime?
+  isActive        Boolean   @default(true)
+
+  // Relations
+  orders          Order[]
+
+  // Timestamps
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@map("studio_coupons")
+}
+
+enum CouponType {
+  PERCENTAGE
+  FIXED
+}
+
+// =====================================================
+// Analytics
+// =====================================================
+
+model StudioAnalytics {
+  id              String    @id @default(cuid())
+
+  // Event info
+  event           String    // page_view, feature_toggle, preview_start, checkout_start, purchase, etc.
+  category        String?   // navigation, configuration, conversion
+
+  // Context
+  sessionId       String?
+  userId          String?
+
+  // Data
+  data            Json?     // Event-specific data
+
+  // Request info
+  ipAddress       String?
+  userAgent       String?
+  referrer        String?
+
+  // Timestamps
+  createdAt       DateTime  @default(now())
+
+  @@index([event])
+  @@index([sessionId])
+  @@index([createdAt])
+  @@map("studio_analytics")
+}
+
+// =====================================================
+// Preview Sessions
+// =====================================================
+
+model PreviewSession {
+  id              String    @id @default(cuid())
+  sessionId       String    @unique
+
+  // Configuration being previewed
+  tier            String?
+  templateId      String?
+  selectedFeatures String[]
+
+  // User (if logged in)
+  userId          String?
+
+  // Stats
+  pageViews       Int       @default(0)
+  duration        Int       @default(0) // seconds
+
+  // Timestamps
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  lastActivityAt  DateTime  @default(now())
+
+  @@map("preview_sessions")
+}
+
+// =====================================================
+// Platform Settings
+// =====================================================
+
+model StudioSetting {
+  id              String    @id @default(cuid())
+  key             String    @unique
+  value           String
+  type            String    @default("string") // string, number, boolean, json
+  description     String?
+  isPublic        Boolean   @default(false)
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@map("studio_settings")
+}
+
+// =====================================================
+// Audit Log (for admin actions)
+// =====================================================
+
+model StudioAuditLog {
+  id              String    @id @default(cuid())
+
+  // Who
+  adminId         String?
+  adminEmail      String?
+
+  // What
+  action          String    // CREATE, UPDATE, DELETE, etc.
+  entityType      String    // order, template, feature, coupon, etc.
+  entityId        String?
+
+  // Details
+  oldValues       Json?
+  newValues       Json?
+  metadata        Json?
+
+  // Request info
+  ipAddress       String?
+  userAgent       String?
+
+  // Timestamps
+  createdAt       DateTime  @default(now())
+
+  @@index([action])
+  @@index([entityType])
+  @@index([createdAt])
+  @@map("studio_audit_logs")
+}

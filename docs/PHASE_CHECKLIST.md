@@ -11,6 +11,7 @@
 ### Backend Infrastructure
 
 #### Database Schema (Prisma)
+
 - [x] User model with auth fields
 - [x] Password reset token model
 - [x] Email verification token model
@@ -26,6 +27,7 @@
 - [x] Order model (revenue tracking)
 
 #### Authentication System
+
 - [x] JWT token service (access + refresh)
 - [x] Auth controller (register, login, logout)
 - [x] Auth middleware (token validation)
@@ -36,6 +38,7 @@
 - [x] Account lockout service (brute force protection)
 
 #### Core Services
+
 - [x] User service (CRUD, profile)
 - [x] Auth service (tokens, validation)
 - [x] Email service (Resend integration)
@@ -46,6 +49,7 @@
 - [x] Export service (CSV generation)
 
 #### Security Middleware
+
 - [x] CSRF protection middleware
 - [x] Rate limiting middleware
 - [x] Request sanitization middleware
@@ -54,12 +58,14 @@
 - [x] File upload middleware
 
 #### API Response Utilities
+
 - [x] Success response helper
 - [x] Paginated response helper
 - [x] Error response helper with codes
 - [x] Zod validation integration
 
 #### Testing & Documentation
+
 - [x] Test framework setup (Vitest)
 - [x] Unit tests for response utilities
 - [ ] Unit tests for services (in progress)
@@ -69,6 +75,7 @@
 ### Frontend Infrastructure
 
 #### UI Component Library (38+ components)
+
 - [x] Button (variants, sizes, loading)
 - [x] Input (with label, error states)
 - [x] Textarea
@@ -109,6 +116,7 @@
 - [x] VisuallyHidden
 
 #### Layout Components
+
 - [x] DashboardLayout (sidebar + header)
 - [x] DashboardSidebar
 - [x] DashboardHeader
@@ -116,6 +124,7 @@
 - [x] PublicLayout
 
 #### Auth Pages
+
 - [x] Login page
 - [x] Register page
 - [x] Forgot password page
@@ -123,6 +132,7 @@
 - [x] Email verification page
 
 #### Loading States (Route Groups)
+
 - [x] Root loading.tsx
 - [x] (auth) group loading.tsx
 - [x] (public) group loading.tsx
@@ -130,6 +140,7 @@
 - [x] (protected)/admin group loading.tsx
 
 #### Public Pages
+
 - [x] Landing/Home page
 - [x] About page
 - [x] FAQ page (with accordion)
@@ -138,6 +149,7 @@
 - [x] Privacy policy page
 
 #### User Dashboard
+
 - [x] Dashboard home page
 - [x] Profile page (edit profile)
 - [x] Notifications page
@@ -146,6 +158,7 @@
 - [x] Active sessions page
 
 #### Core Contexts & Hooks
+
 - [x] AuthContext (user, login, logout)
 - [x] useAuth hook
 - [x] API client with interceptors
@@ -160,6 +173,7 @@
 ### Admin Backend APIs
 
 #### User Management
+
 - [x] Get all users (paginated, filtered)
 - [x] Get user by ID
 - [x] Update user (role, status)
@@ -169,6 +183,7 @@
 - [ ] Bulk delete users
 
 #### Contact Messages
+
 - [x] Get all messages (paginated)
 - [x] Get message by ID
 - [x] Update message status
@@ -177,12 +192,14 @@
 - [ ] Bulk delete messages
 
 #### Audit Logs
+
 - [x] Get all logs (paginated, filtered)
 - [x] Get log by ID
 - [x] Get entity types
 - [x] Export logs to CSV
 
 #### FAQ Management
+
 - [x] CRUD for FAQ categories
 - [x] CRUD for FAQ items
 - [x] Reorder FAQs
@@ -190,6 +207,7 @@
 - [x] Export FAQs to CSV
 
 #### Announcements
+
 - [x] CRUD for announcements
 - [x] Filter by type, status
 - [x] Schedule start/end dates
@@ -197,12 +215,14 @@
 - [x] Export announcements to CSV
 
 #### Settings
+
 - [x] CRUD for settings
 - [x] Support for types (string, number, boolean, JSON)
 - [x] Public/private settings
 - [x] Export settings to CSV
 
 #### Content Pages (CMS)
+
 - [x] CRUD for content pages
 - [x] Slug-based routing
 - [x] SEO meta fields
@@ -210,6 +230,7 @@
 - [x] Export content pages to CSV
 
 #### Coupons
+
 - [x] CRUD for coupons
 - [x] Percentage and fixed discounts
 - [x] Validity dates
@@ -218,6 +239,7 @@
 - [x] Export coupons to CSV
 
 #### Orders
+
 - [x] Get all orders (paginated, filtered)
 - [x] Get order by ID
 - [x] Update order status
@@ -228,18 +250,21 @@
 ### Admin Frontend Pages
 
 #### Admin Layout
+
 - [x] Admin sidebar navigation
 - [x] Admin header with user menu
 - [x] Role-based access (ADMIN only)
 - [x] Mobile responsive menu
 
 #### Dashboard
+
 - [x] Admin dashboard home
 - [x] Stats cards (users, orders, revenue)
 - [x] Recent activity
 - [x] Loading skeleton
 
 #### User Management
+
 - [x] Users table with pagination
 - [x] Search and filter
 - [x] Sorting by columns
@@ -250,6 +275,7 @@
 - [ ] Bulk selection/delete
 
 #### Contact Messages
+
 - [x] Messages table
 - [x] Status filter
 - [x] Search messages
@@ -260,6 +286,7 @@
 - [ ] Bulk selection/delete
 
 #### Audit Logs
+
 - [x] Logs table with pagination
 - [x] Filter by action, entity
 - [x] Date range filter
@@ -268,6 +295,7 @@
 - [x] Loading skeleton
 
 #### FAQ Management
+
 - [x] FAQs table
 - [x] Add/edit FAQ modal
 - [x] Category management
@@ -279,6 +307,7 @@
 - [x] Export to CSV
 
 #### Announcements
+
 - [x] Announcements table
 - [x] Add/edit modal
 - [x] Type badges
@@ -290,6 +319,7 @@
 - [x] Export to CSV
 
 #### Settings
+
 - [x] Settings table
 - [x] Add/edit modal
 - [x] Type-specific inputs
@@ -299,6 +329,7 @@
 - [x] Export to CSV
 
 #### Content Pages
+
 - [x] Content pages table
 - [x] Add/edit modal with SEO fields
 - [x] Preview link
@@ -310,6 +341,7 @@
 - [x] Export to CSV
 
 #### Coupons
+
 - [x] Coupons table
 - [x] Add/edit modal
 - [x] Usage statistics
@@ -321,6 +353,7 @@
 - [x] Export to CSV
 
 #### Orders
+
 - [x] Orders table with pagination
 - [x] Filter by status, date
 - [x] Search orders
@@ -332,11 +365,277 @@
 
 ---
 
+## Phase 0.2: Studio Foundation & Platform Admin (~2 weeks)
+
+> Set up the Starter Studio platform directory structure and Company Admin panel for managing the platform.
+
+### Studio Project Setup
+
+#### Directory Structure
+
+- [ ] Create `/studio` directory
+- [ ] Create `/studio/web` (Next.js for Studio frontend)
+- [ ] Create `/studio/backend` (Express for Studio API)
+- [ ] Create `/studio/shared` (Shared types and utilities)
+- [ ] Create `/templates` directory for template presets
+- [ ] Configure path aliases (`@studio/`, `@templates/`)
+- [ ] Set up monorepo scripts for studio development
+- [ ] Configure separate Prisma schema for studio database
+
+#### Studio Database Schema
+
+- [ ] StudioUser model (platform customers)
+- [ ] Order model (purchases, features, status)
+- [ ] Template model (preset configurations)
+- [ ] Feature model (registry with pricing)
+- [ ] Module model (available modules)
+- [ ] License model (download tokens, expiry)
+- [ ] StudioCoupon model (platform discounts)
+- [ ] PreviewSession model (analytics)
+- [ ] StudioAnalytics model (events tracking)
+
+### Platform Admin (Company Admin)
+
+#### Admin Layout & Navigation
+
+- [ ] Create `/studio/web/src/app/(admin)` route group
+- [ ] Platform admin layout (sidebar + header)
+- [ ] Admin navigation menu
+- [ ] Role-based access (PLATFORM_ADMIN role)
+- [ ] Mobile responsive design
+
+#### Dashboard
+
+- [ ] Platform admin dashboard home
+- [ ] Revenue stats cards (today, week, month, all-time)
+- [ ] Order count and trends
+- [ ] Preview session count
+- [ ] Active users count
+- [ ] Revenue chart (line/bar)
+- [ ] Recent orders list
+- [ ] Top selling items
+- [ ] Conversion funnel stats
+
+#### Order Management
+
+- [ ] Orders table with pagination
+- [ ] Filter by status (pending, completed, refunded)
+- [ ] Filter by tier (Basic, Starter, Pro, Business, Enterprise)
+- [ ] Filter by date range
+- [ ] Search orders
+- [ ] Order detail modal
+  - [ ] Customer info
+  - [ ] Selected features list
+  - [ ] Template (if applicable)
+  - [ ] Payment details
+  - [ ] Download history
+- [ ] Regenerate download link
+- [ ] Process refund
+- [ ] Export orders to CSV
+
+#### Template Management
+
+- [ ] Templates table
+- [ ] Create template modal
+  - [ ] Name and description
+  - [ ] Slug (URL-friendly)
+  - [ ] Price
+  - [ ] Select included features
+  - [ ] Preview image upload
+- [ ] Edit template
+- [ ] Enable/disable template
+- [ ] Delete template
+- [ ] Template analytics (sales, previews)
+- [ ] Reorder templates (display order)
+
+#### Module & Feature Management
+
+- [ ] Modules table (grouped features)
+- [ ] Create/edit module
+  - [ ] Name and description
+  - [ ] Category
+  - [ ] Icon
+- [ ] Features table within modules
+- [ ] Create/edit feature
+  - [ ] Name and description
+  - [ ] Price
+  - [ ] Minimum tier required
+  - [ ] Dependencies (other features)
+  - [ ] Conflicts (incompatible features)
+  - [ ] File mappings (for code generator)
+  - [ ] Environment variables required
+- [ ] Enable/disable features
+- [ ] Bulk pricing update
+- [ ] Feature usage analytics
+
+#### Pricing Management
+
+- [ ] Tier configuration page
+  - [ ] Edit tier prices
+  - [ ] Edit tier included features
+  - [ ] Edit tier descriptions
+- [ ] Bundle discount configuration
+- [ ] Upgrade recommendation rules
+- [ ] Price history tracking
+
+#### Customer Management
+
+- [ ] Customers table (StudioUser)
+- [ ] Search customers
+- [ ] Customer detail page
+  - [ ] Profile info
+  - [ ] Order history
+  - [ ] Download history
+  - [ ] Total spent
+- [ ] Block/unblock customer
+- [ ] Export customers to CSV
+
+#### License Management
+
+- [ ] Licenses table
+- [ ] Filter by status (active, expired, revoked)
+- [ ] License detail modal
+- [ ] Extend license expiry
+- [ ] Revoke license
+- [ ] Regenerate download token
+
+#### Platform Coupons
+
+- [ ] Coupons table
+- [ ] Create coupon
+  - [ ] Code
+  - [ ] Discount type (percentage/fixed)
+  - [ ] Discount value
+  - [ ] Applicable tiers
+  - [ ] Applicable templates
+  - [ ] Max uses
+  - [ ] Expiry date
+- [ ] Edit coupon
+- [ ] Enable/disable coupon
+- [ ] Coupon usage stats
+- [ ] Export coupons to CSV
+
+#### Reports & Analytics
+
+- [ ] Revenue reports page
+  - [ ] By day/week/month
+  - [ ] By tier
+  - [ ] By template
+  - [ ] By feature
+- [ ] Sales funnel report
+  - [ ] Visits → Configures → Previews → Purchases
+- [ ] Feature popularity report
+- [ ] Template performance report
+- [ ] Geographic distribution
+- [ ] Export reports to CSV/PDF
+
+#### Platform Settings
+
+- [ ] General settings
+  - [ ] Platform name
+  - [ ] Support email
+  - [ ] Default currency
+- [ ] Payment settings
+  - [ ] Stripe configuration
+  - [ ] Tax settings
+- [ ] Email settings
+  - [ ] Notification templates
+  - [ ] Sender details
+- [ ] Download settings
+  - [ ] Token expiry duration
+  - [ ] Max downloads per order
+
+#### Manual App Generation
+
+- [ ] Generate app page (for platform admin)
+- [ ] Select features/template
+- [ ] Enter customer details
+- [ ] Generate without payment (internal use)
+- [ ] Download or send link to customer
+
+### Studio Backend APIs
+
+#### Orders API
+
+- [ ] GET /api/admin/orders (list with filters)
+- [ ] GET /api/admin/orders/:id
+- [ ] PATCH /api/admin/orders/:id (update status)
+- [ ] POST /api/admin/orders/:id/refund
+- [ ] POST /api/admin/orders/:id/regenerate-download
+- [ ] GET /api/admin/orders/stats
+
+#### Templates API
+
+- [ ] GET /api/admin/templates
+- [ ] POST /api/admin/templates
+- [ ] GET /api/admin/templates/:id
+- [ ] PUT /api/admin/templates/:id
+- [ ] DELETE /api/admin/templates/:id
+- [ ] PATCH /api/admin/templates/:id/toggle
+
+#### Features API
+
+- [ ] GET /api/admin/features
+- [ ] POST /api/admin/features
+- [ ] GET /api/admin/features/:id
+- [ ] PUT /api/admin/features/:id
+- [ ] DELETE /api/admin/features/:id
+- [ ] PATCH /api/admin/features/:id/toggle
+
+#### Modules API
+
+- [ ] GET /api/admin/modules
+- [ ] POST /api/admin/modules
+- [ ] GET /api/admin/modules/:id
+- [ ] PUT /api/admin/modules/:id
+- [ ] DELETE /api/admin/modules/:id
+
+#### Customers API
+
+- [ ] GET /api/admin/customers
+- [ ] GET /api/admin/customers/:id
+- [ ] PATCH /api/admin/customers/:id (block/unblock)
+- [ ] GET /api/admin/customers/:id/orders
+
+#### Licenses API
+
+- [ ] GET /api/admin/licenses
+- [ ] GET /api/admin/licenses/:id
+- [ ] PATCH /api/admin/licenses/:id (extend/revoke)
+- [ ] POST /api/admin/licenses/:id/regenerate
+
+#### Coupons API
+
+- [ ] GET /api/admin/coupons
+- [ ] POST /api/admin/coupons
+- [ ] GET /api/admin/coupons/:id
+- [ ] PUT /api/admin/coupons/:id
+- [ ] DELETE /api/admin/coupons/:id
+- [ ] PATCH /api/admin/coupons/:id/toggle
+
+#### Analytics API
+
+- [ ] GET /api/admin/analytics/revenue
+- [ ] GET /api/admin/analytics/funnel
+- [ ] GET /api/admin/analytics/features
+- [ ] GET /api/admin/analytics/templates
+- [ ] GET /api/admin/analytics/geo
+
+#### Settings API
+
+- [ ] GET /api/admin/settings
+- [ ] PUT /api/admin/settings
+- [ ] GET /api/admin/settings/:key
+- [ ] PUT /api/admin/settings/:key
+
+---
+
 ## Phase 1: MVP (~4 weeks)
 
 ### Week 1: Foundation & Showcase
 
 #### Project Setup
+
 - [ ] Create `/studio` directory structure
 - [ ] Set up Next.js for studio web
 - [ ] Set up Express for studio backend
@@ -346,6 +645,7 @@
 - [ ] Set up development scripts
 
 #### Component Showcase
+
 - [ ] Create `/showcase` route
 - [ ] Build showcase page layout (sidebar + main)
 - [ ] Create component category navigation
@@ -373,6 +673,7 @@
 ### Week 2: Feature Registry & Pricing
 
 #### Feature Registry
+
 - [ ] Create `lib/features/types.ts`
   - [ ] Feature interface
   - [ ] Category types
@@ -399,6 +700,7 @@
   - [ ] Check tier requirements
 
 #### Pricing Engine
+
 - [ ] Create `lib/pricing/types.ts`
   - [ ] Tier definitions
   - [ ] PricingResult interface
@@ -424,6 +726,7 @@
 ### Week 3: Configurator UI
 
 #### Configurator Page
+
 - [ ] Create `/pricing` route (or `/configure`)
 - [ ] Build page layout (3-column: nav, features, summary)
 - [ ] Create category accordion component
@@ -453,6 +756,7 @@
   - [ ] Show included features
 
 #### User Flow
+
 - [ ] Create landing page
   - [ ] Hero section
   - [ ] Value proposition
@@ -473,6 +777,7 @@
 ### Week 4: Basic Preview
 
 #### Preview Engine (Basic)
+
 - [ ] Create `lib/preview/types.ts`
   - [ ] PreviewConfig interface
   - [ ] FeatureFlags type
@@ -485,6 +790,7 @@
 - [ ] Create FeatureGate component
 
 #### Preview UI
+
 - [ ] Create `/preview` route
 - [ ] Build preview container
   - [ ] Iframe for preview app
@@ -501,6 +807,7 @@
   - [ ] Page navigation
 
 #### Preview App
+
 - [ ] Create preview app routes
 - [ ] Implement conditional rendering
   - [ ] Show/hide auth pages
@@ -520,6 +827,7 @@
 ### Week 5: Payment & Checkout
 
 #### Stripe Integration
+
 - [ ] Set up Stripe account
 - [ ] Create Stripe products for tiers
 - [ ] Create Stripe prices
@@ -534,6 +842,7 @@
 - [ ] Send receipt email
 
 #### Order System
+
 - [ ] Create Order model (Prisma)
 - [ ] Create order creation API
 - [ ] Create order lookup API
@@ -546,6 +855,7 @@
 ### Week 6: Code Generation
 
 #### Generator Engine
+
 - [ ] Create `lib/generator/types.ts`
 - [ ] Create `lib/generator/index.ts`
   - [ ] Main generator class
@@ -565,6 +875,7 @@
 - [ ] Test generation with all feature combos
 
 #### Download System
+
 - [ ] Create download token generation
 - [ ] Create `/api/download` endpoint
 - [ ] Implement download expiry (7 days)
@@ -578,6 +889,7 @@
 ### Week 7: Admin & First Template
 
 #### Company Admin (Basic)
+
 - [ ] Create `/admin` route group
 - [ ] Create admin layout
 - [ ] Create admin navigation
@@ -595,6 +907,7 @@
 - [ ] Create basic user list
 
 #### LMS Template
+
 - [ ] Define LMS feature configuration
 - [ ] Create LMS-specific modules
   - [ ] Course management
@@ -615,6 +928,7 @@
 ### Week 8: Full Preview Engine
 
 #### Advanced Preview
+
 - [ ] Implement full app preview (not just pages)
 - [ ] Create auth simulation
   - [ ] Demo login
@@ -629,6 +943,7 @@
 - [ ] Analytics preview (demo data)
 
 #### Preview Features
+
 - [ ] Theme customization preview
 - [ ] Color scheme selector
 - [ ] Logo upload preview
@@ -640,6 +955,7 @@
 ### Week 9: All Core Features
 
 #### Complete Feature Registry
+
 - [ ] Verify all auth features work
 - [ ] Verify all security features work
 - [ ] Verify all payment features work
@@ -650,6 +966,7 @@
 - [ ] Verify mobile features work
 
 #### Testing
+
 - [ ] Test every feature individually
 - [ ] Test common feature combinations
 - [ ] Test edge cases
@@ -665,6 +982,7 @@
 ### Week 10: Templates & Admin
 
 #### Additional Templates
+
 - [ ] Booking Template
   - [ ] Service management
   - [ ] Availability calendar
@@ -682,6 +1000,7 @@
   - [ ] Check-in (QR)
 
 #### Company Admin (Full)
+
 - [ ] Template management page
   - [ ] Create/edit templates
   - [ ] Enable/disable templates
@@ -705,6 +1024,7 @@
   - [ ] Account status
 
 #### Documentation
+
 - [ ] User documentation
   - [ ] Getting started
   - [ ] Feature guide
@@ -723,11 +1043,13 @@
 ### Week 11-12: Templates & Mobile
 
 #### More Templates
+
 - [ ] Task Management Template
 - [ ] Helpdesk Template
 - [ ] CRM Template
 
 #### Mobile Generation
+
 - [ ] Flutter project structure
 - [ ] Mobile feature mapping
 - [ ] Mobile file generation
@@ -739,12 +1061,14 @@
 ### Week 13-14: Analytics & Marketing
 
 #### Advanced Analytics
+
 - [ ] Funnel analytics (view → configure → preview → purchase)
 - [ ] Feature popularity tracking
 - [ ] Conversion rate tracking
 - [ ] A/B testing framework
 
 #### Marketing
+
 - [ ] Landing page redesign
 - [ ] Customer testimonials
 - [ ] Case studies
@@ -766,17 +1090,19 @@
 
 ## Quick Status
 
-| Phase | Status | Progress | Target Date |
-|-------|--------|----------|-------------|
-| Phase 0: Foundation | ✅ Completed | 98% | Done |
-| Phase 0.1: Admin Platform | ✅ Completed | 100% | Done |
-| Phase 1: MVP | ⬜ Not Started | 0% | TBD |
-| Phase 2: Pilot | ⬜ Not Started | 0% | TBD |
-| Phase 3: Release | ⬜ Not Started | 0% | TBD |
-| Phase 4: Growth | ⬜ Not Started | 0% | TBD |
-| Phase 5: Scale | ⬜ Not Started | 0% | TBD |
+| Phase                                | Status         | Progress | Target Date |
+| ------------------------------------ | -------------- | -------- | ----------- |
+| Phase 0: Foundation                  | ✅ Completed   | 98%      | Done        |
+| Phase 0.1: Admin Platform (Customer) | ✅ Completed   | 100%     | Done        |
+| Phase 0.2: Studio & Platform Admin   | ⬜ Not Started | 0%       | TBD         |
+| Phase 1: MVP                         | ⬜ Not Started | 0%       | TBD         |
+| Phase 2: Pilot                       | ⬜ Not Started | 0%       | TBD         |
+| Phase 3: Release                     | ⬜ Not Started | 0%       | TBD         |
+| Phase 4: Growth                      | ⬜ Not Started | 0%       | TBD         |
+| Phase 5: Scale                       | ⬜ Not Started | 0%       | TBD         |
 
 ### Status Legend
+
 - ⬜ Not Started
 - 🟡 In Progress
 - ✅ Completed
@@ -791,9 +1117,38 @@
 
 - [ ] Bulk delete endpoints
 
+### Phase 0.2 Key Deliverables
+
+**Directory Structure:**
+
+- `/studio/web` - Next.js studio platform
+- `/studio/backend` - Express API for studio
+- `/studio/shared` - Shared types
+- `/templates/` - Template presets (LMS, Booking, etc.)
+
+**Company Admin Panel:**
+
+- Platform dashboard with revenue/sales stats
+- Order management (view, refund, regenerate download)
+- Template management (CRUD, enable/disable)
+- Module & Feature management (pricing, dependencies)
+- Customer management (view history, block/unblock)
+- License management (extend, revoke)
+- Platform coupons (separate from customer app coupons)
+- Reports & analytics
+- Manual app generation for platform admin
+
+**Why Phase 0.2 Before MVP:**
+
+- MVP needs templates and features to exist in a registry
+- Platform admin allows managing what's available for sale
+- Manual generation lets platform admin sell outside the system
+- Analytics infrastructure needed before public launch
+
 ### Completed Summary
 
 **Backend (13 controllers, 13 services):**
+
 - Authentication (JWT, sessions, OAuth-ready)
 - User management with roles
 - Complete CRUD for all admin entities
@@ -802,6 +1157,7 @@
 - Comprehensive logging & request tracing
 
 **Frontend (38+ UI components, 32 pages):**
+
 - Comprehensive UI component library
 - Auth flow (login, register, password reset, email verification)
 - User dashboard (profile, settings, notifications)
@@ -809,6 +1165,7 @@
 - Public pages (about, FAQ, contact, terms, privacy)
 
 **Database (14 models):**
+
 - User, Session, PasswordResetToken, EmailVerificationToken
 - AuditLog, Notification, ContactMessage
 - FAQ, FaqCategory, Announcement
@@ -816,4 +1173,4 @@
 
 ---
 
-*Last Updated: 2026-02-08*
+_Last Updated: 2026-02-09_
