@@ -12,6 +12,7 @@ import type { Feature, Module, PricingTier, PriceCalculation, Template } from "@
 import type { ResolvedSelection } from "@/lib/features";
 import { DependencyResolver } from "@/lib/features";
 import { PricingCalculator } from "@/lib/pricing";
+import { API_CONFIG } from "@/lib/constants";
 
 // ============================================================================
 // Types
@@ -275,9 +276,9 @@ export function ConfiguratorProvider({
 
     try {
       const [featuresRes, tiersRes, templatesRes] = await Promise.all([
-        fetch("/api/features"),
-        fetch("/api/pricing/tiers"),
-        fetch("/api/templates"),
+        fetch(`${API_CONFIG.BASE_URL}/features`),
+        fetch(`${API_CONFIG.BASE_URL}/pricing/tiers`),
+        fetch(`${API_CONFIG.BASE_URL}/templates`),
       ]);
 
       if (!featuresRes.ok || !tiersRes.ok || !templatesRes.ok) {

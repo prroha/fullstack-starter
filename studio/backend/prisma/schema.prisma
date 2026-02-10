@@ -87,6 +87,8 @@ model Order {
   paymentMethod   String?       // stripe, razorpay, etc.
   paymentId       String?       // Stripe payment intent ID
   paidAt          DateTime?
+  refundId        String?       // Stripe refund ID
+  refundedAt      DateTime?
 
   // Download
   license         License?

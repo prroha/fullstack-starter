@@ -244,6 +244,52 @@ export interface GetTemplatesParams {
   [key: string]: string | number | boolean | undefined;
 }
 
+/**
+ * Create checkout session request
+ */
+export interface CreateCheckoutSessionRequest {
+  tier: string;
+  selectedFeatures: string[];
+  templateId?: string;
+  email: string;
+  couponCode?: string;
+  customerName?: string;
+  successUrl?: string;
+  cancelUrl?: string;
+}
+
+/**
+ * Checkout session response
+ */
+export interface CheckoutSessionResponse {
+  sessionId: string;
+  url: string;
+}
+
+/**
+ * Validate coupon response
+ */
+export interface ValidateCouponResponse {
+  valid: boolean;
+  coupon?: {
+    id: string;
+    code: string;
+    type: "PERCENTAGE" | "FIXED";
+    value: number;
+    discountAmount?: number;
+  };
+  error?: string;
+}
+
+/**
+ * Session status response
+ */
+export interface SessionStatusResponse {
+  status: "pending" | "complete" | "expired";
+  orderNumber?: string;
+  customerEmail?: string;
+}
+
 // =====================================================
 // Helper Functions
 // =====================================================
@@ -550,6 +596,39 @@ class StudioPublicApi {
    */
   async getPreviewConfig(tier: string): Promise<PreviewConfigResponse> {
     return this.get<PreviewConfigResponse>(`/preview/config/${tier}`);
+  }
+
+  // =====================================================
+  // Checkout API
+  // =====================================================
+
+  /**
+   * Create a Stripe Checkout Session
+   */
+  async createCheckoutSession(
+    request: CreateCheckoutSessionRequest
+  ): Promise<CheckoutSessionResponse> {
+    return this.post<CheckoutSessionResponse>("/checkout/create-session", request);
+  }
+
+  /**
+   * Validate a coupon code
+   */
+  async validateCoupon(
+    code: string,
+    subtotal?: number
+  ): Promise<ValidateCouponResponse> {
+    return this.post<ValidateCouponResponse>("/checkout/validate-coupon", {
+      code,
+      subtotal,
+    });
+  }
+
+  /**
+   * Get checkout session status
+   */
+  async getSessionStatus(sessionId: string): Promise<SessionStatusResponse> {
+    return this.get<SessionStatusResponse>(`/checkout/session/${sessionId}`);
   }
 }
 

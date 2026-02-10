@@ -12,6 +12,7 @@ import {
   Check,
   AlertCircle,
   Gift,
+  ExternalLink,
 } from "lucide-react";
 import {
   Button,
@@ -31,38 +32,19 @@ import {
 import { useConfigurator } from "@/components/configurator";
 import { parseURLConfig } from "@/lib/config";
 import { getTierName, TIER_INFO } from "@/lib/pricing";
+import { studioApi, type ValidateCouponResponse } from "@/lib/api/studio-client";
 
-// Payment method options
-const PAYMENT_METHODS = [
-  { id: "card", name: "Credit Card", icon: CreditCard, description: "Visa, Mastercard, Amex" },
-  { id: "paypal", name: "PayPal", icon: Package, description: "Pay with PayPal" },
-] as const;
-
-type PaymentMethod = typeof PAYMENT_METHODS[number]["id"];
-
-// Billing form state
+// Billing form state - simplified for Stripe Checkout
 interface BillingInfo {
   email: string;
   firstName: string;
   lastName: string;
-  company: string;
-  country: string;
-  address: string;
-  city: string;
-  state: string;
-  zip: string;
 }
 
 const initialBillingInfo: BillingInfo = {
   email: "",
   firstName: "",
   lastName: "",
-  company: "",
-  country: "US",
-  address: "",
-  city: "",
-  state: "",
-  zip: "",
 };
 
 export default function CheckoutPage() {
@@ -72,7 +54,6 @@ export default function CheckoutPage() {
     loading,
     error,
     features,
-    tiers,
     selectedTier,
     selectedFeatures,
     selectedTemplate,
@@ -89,12 +70,21 @@ export default function CheckoutPage() {
   const [initialized, setInitialized] = useState(false);
   const [couponCode, setCouponCode] = useState("");
   const [couponApplied, setCouponApplied] = useState(false);
+  const [couponData, setCouponData] = useState<ValidateCouponResponse["coupon"] | null>(null);
   const [couponError, setCouponError] = useState<string | null>(null);
   const [couponLoading, setCouponLoading] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("card");
   const [billingInfo, setBillingInfo] = useState<BillingInfo>(initialBillingInfo);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof BillingInfo, string>>>({});
+
+  // Check for cancelled checkout
+  useEffect(() => {
+    const cancelled = searchParams.get("cancelled");
+    if (cancelled === "true") {
+      setSubmitError("Checkout was cancelled. You can try again when ready.");
+    }
+  }, [searchParams]);
 
   // Initialize from URL on mount
   useEffect(() => {
@@ -136,7 +126,16 @@ export default function CheckoutPage() {
       .join(" ");
   }, [selectedTemplate]);
 
-  // Handle coupon code application
+  // Calculate coupon discount display
+  const couponDiscountDisplay = useMemo(() => {
+    if (!couponData) return null;
+    if (couponData.type === "PERCENTAGE") {
+      return `-${couponData.value}%`;
+    }
+    return `-${formatPrice(couponData.value)}`;
+  }, [couponData, formatPrice]);
+
+  // Handle coupon code validation via API
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) {
       setCouponError("Please enter a coupon code");
@@ -147,23 +146,24 @@ export default function CheckoutPage() {
     setCouponError(null);
 
     try {
-      // TODO: Replace with actual API call to validate coupon
-      // const response = await fetch(`/api/coupons/validate?code=${couponCode}`);
-      // const data = await response.json();
+      const result = await studioApi.validateCoupon(
+        couponCode,
+        pricing?.subtotal
+      );
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // For demo purposes, accept specific codes
-      if (couponCode.toUpperCase() === "SAVE10" || couponCode.toUpperCase() === "LAUNCH") {
+      if (result.valid && result.coupon) {
         setCouponApplied(true);
+        setCouponData(result.coupon);
         setCouponError(null);
       } else {
-        setCouponError("Invalid or expired coupon code");
+        setCouponError(result.error || "Invalid or expired coupon code");
         setCouponApplied(false);
+        setCouponData(null);
       }
-    } catch {
+    } catch (err) {
       setCouponError("Failed to validate coupon. Please try again.");
+      setCouponApplied(false);
+      setCouponData(null);
     } finally {
       setCouponLoading(false);
     }
@@ -173,6 +173,7 @@ export default function CheckoutPage() {
   const handleRemoveCoupon = () => {
     setCouponCode("");
     setCouponApplied(false);
+    setCouponData(null);
     setCouponError(null);
   };
 
@@ -182,6 +183,10 @@ export default function CheckoutPage() {
     // Clear field error when user types
     if (formErrors[field]) {
       setFormErrors((prev) => ({ ...prev, [field]: undefined }));
+    }
+    // Clear submit error
+    if (submitError) {
+      setSubmitError(null);
     }
   };
 
@@ -203,45 +208,38 @@ export default function CheckoutPage() {
       errors.lastName = "Last name is required";
     }
 
-    if (!billingInfo.country.trim()) {
-      errors.country = "Country is required";
-    }
-
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
-  // Handle order submission
+  // Handle order submission - redirects to Stripe Checkout
   const handleSubmitOrder = async () => {
     if (!validateForm()) {
       return;
     }
 
     setIsSubmitting(true);
+    setSubmitError(null);
 
     try {
-      // TODO: Replace with actual Stripe/payment integration
-      // const response = await fetch("/api/orders", {
-      //   method: "POST",
-      //   body: JSON.stringify({
-      //     tier: selectedTier,
-      //     features: selectedFeatures,
-      //     template: selectedTemplate,
-      //     couponCode: couponApplied ? couponCode : undefined,
-      //     billing: billingInfo,
-      //     paymentMethod,
-      //   }),
-      // });
+      const result = await studioApi.createCheckoutSession({
+        tier: selectedTier,
+        selectedFeatures,
+        templateId: selectedTemplate || undefined,
+        email: billingInfo.email,
+        customerName: `${billingInfo.firstName} ${billingInfo.lastName}`.trim(),
+        couponCode: couponApplied ? couponCode : undefined,
+      });
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      // Redirect to success page
-      router.push("/checkout/success");
-    } catch {
-      // Handle error
-      console.error("Order submission failed");
-    } finally {
+      // Redirect to Stripe Checkout
+      window.location.href = result.url;
+    } catch (err) {
+      console.error("Checkout session creation failed:", err);
+      setSubmitError(
+        err instanceof Error
+          ? err.message
+          : "Failed to start checkout. Please try again."
+      );
       setIsSubmitting(false);
     }
   };
@@ -323,19 +321,34 @@ export default function CheckoutPage() {
         </Link>
         <h1 className="text-3xl font-bold">Checkout</h1>
         <p className="text-muted-foreground mt-2">
-          Review your order and complete your purchase
+          Review your order and proceed to secure payment
         </p>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-8">
         {/* Left Column - Forms */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Billing Information */}
+          {/* Submit Error Alert */}
+          {submitError && (
+            <Card className="border-destructive bg-destructive/5">
+              <CardContent className="py-4">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium text-destructive">Checkout Error</p>
+                    <p className="text-sm text-muted-foreground mt-1">{submitError}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Contact Information */}
           <Card>
             <CardHeader>
-              <CardTitle>Billing Information</CardTitle>
+              <CardTitle>Contact Information</CardTitle>
               <CardDescription>
-                Enter your billing details for the invoice
+                We&apos;ll send your license and download links to this email
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -390,76 +403,6 @@ export default function CheckoutPage() {
                   )}
                 </div>
               </div>
-
-              {/* Company (optional) */}
-              <div className="space-y-2">
-                <Label htmlFor="company">Company (optional)</Label>
-                <Input
-                  id="company"
-                  placeholder="Acme Inc."
-                  value={billingInfo.company}
-                  onChange={(e) => handleBillingChange("company", e.target.value)}
-                />
-              </div>
-
-              {/* Country */}
-              <div className="space-y-2">
-                <Label htmlFor="country">
-                  Country <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="country"
-                  placeholder="United States"
-                  value={billingInfo.country}
-                  onChange={(e) => handleBillingChange("country", e.target.value)}
-                  aria-invalid={!!formErrors.country}
-                />
-                {formErrors.country && (
-                  <p className="text-sm text-destructive">{formErrors.country}</p>
-                )}
-              </div>
-
-              {/* Address (optional for digital products) */}
-              <div className="space-y-2">
-                <Label htmlFor="address">Address (optional)</Label>
-                <Input
-                  id="address"
-                  placeholder="123 Main St"
-                  value={billingInfo.address}
-                  onChange={(e) => handleBillingChange("address", e.target.value)}
-                />
-              </div>
-
-              {/* City, State, Zip Row */}
-              <div className="grid sm:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="city">City</Label>
-                  <Input
-                    id="city"
-                    placeholder="San Francisco"
-                    value={billingInfo.city}
-                    onChange={(e) => handleBillingChange("city", e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="state">State/Province</Label>
-                  <Input
-                    id="state"
-                    placeholder="CA"
-                    value={billingInfo.state}
-                    onChange={(e) => handleBillingChange("state", e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="zip">ZIP/Postal Code</Label>
-                  <Input
-                    id="zip"
-                    placeholder="94102"
-                    value={billingInfo.zip}
-                    onChange={(e) => handleBillingChange("zip", e.target.value)}
-                  />
-                </div>
-              </div>
             </CardContent>
           </Card>
 
@@ -473,15 +416,15 @@ export default function CheckoutPage() {
               <CardDescription>Have a discount code? Enter it here</CardDescription>
             </CardHeader>
             <CardContent>
-              {couponApplied ? (
+              {couponApplied && couponData ? (
                 <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900 rounded-lg">
                   <div className="flex items-center gap-2">
                     <Check className="h-5 w-5 text-green-600" />
                     <span className="font-medium text-green-700 dark:text-green-400">
-                      {couponCode.toUpperCase()}
+                      {couponData.code}
                     </span>
                     <Badge variant="success" size="sm">
-                      Applied
+                      {couponDiscountDisplay} off
                     </Badge>
                   </div>
                   <Button
@@ -503,6 +446,12 @@ export default function CheckoutPage() {
                         setCouponCode(e.target.value);
                         setCouponError(null);
                       }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleApplyCoupon();
+                        }
+                      }}
                       aria-invalid={!!couponError}
                     />
                     {couponError && (
@@ -521,78 +470,37 @@ export default function CheckoutPage() {
             </CardContent>
           </Card>
 
-          {/* Payment Method */}
+          {/* Payment Info */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <CreditCard className="h-5 w-5" />
-                Payment Method
+                Payment
               </CardTitle>
-              <CardDescription>Select how you would like to pay</CardDescription>
+              <CardDescription>
+                Secure payment processing powered by Stripe
+              </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid sm:grid-cols-2 gap-4">
-                {PAYMENT_METHODS.map((method) => {
-                  const Icon = method.icon;
-                  const isSelected = paymentMethod === method.id;
-                  return (
-                    <button
-                      key={method.id}
-                      type="button"
-                      onClick={() => setPaymentMethod(method.id)}
-                      className={`
-                        flex items-center gap-3 p-4 rounded-lg border-2 transition-colors text-left
-                        ${
-                          isSelected
-                            ? "border-primary bg-primary/5"
-                            : "border-border hover:border-muted-foreground/30"
-                        }
-                      `}
-                    >
-                      <div
-                        className={`
-                          flex items-center justify-center w-10 h-10 rounded-full
-                          ${isSelected ? "bg-primary text-primary-foreground" : "bg-muted"}
-                        `}
-                      >
-                        <Icon className="h-5 w-5" />
-                      </div>
-                      <div>
-                        <div className="font-medium">{method.name}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {method.description}
-                        </div>
-                      </div>
-                      {isSelected && (
-                        <Check className="h-5 w-5 text-primary ml-auto" />
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Stripe Card Element Placeholder */}
-              {paymentMethod === "card" && (
-                <div className="mt-4 p-4 border border-dashed border-muted-foreground/30 rounded-lg bg-muted/30">
-                  <div className="flex items-center gap-2 text-muted-foreground mb-2">
-                    <Lock className="h-4 w-4" />
-                    <span className="text-sm font-medium">Secure Payment via Stripe</span>
+            <CardContent>
+              <div className="p-4 border border-dashed border-muted-foreground/30 rounded-lg bg-muted/30">
+                <div className="flex items-center gap-2 text-muted-foreground mb-2">
+                  <Lock className="h-4 w-4" />
+                  <span className="text-sm font-medium">Secure Checkout</span>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  You will be securely redirected to Stripe to complete your payment.
+                  Stripe accepts all major credit cards, debit cards, and digital wallets.
+                </p>
+                <div className="flex items-center gap-4 mt-4">
+                  <div className="flex gap-2 text-muted-foreground">
+                    <span className="text-xs bg-muted px-2 py-1 rounded">Visa</span>
+                    <span className="text-xs bg-muted px-2 py-1 rounded">Mastercard</span>
+                    <span className="text-xs bg-muted px-2 py-1 rounded">Amex</span>
+                    <span className="text-xs bg-muted px-2 py-1 rounded">Apple Pay</span>
+                    <span className="text-xs bg-muted px-2 py-1 rounded">Google Pay</span>
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    Card payment form will be loaded here via Stripe Elements.
-                    Your payment information is securely processed by Stripe.
-                  </p>
                 </div>
-              )}
-
-              {paymentMethod === "paypal" && (
-                <div className="mt-4 p-4 border border-dashed border-muted-foreground/30 rounded-lg bg-muted/30">
-                  <p className="text-sm text-muted-foreground">
-                    You will be redirected to PayPal to complete your payment after clicking
-                    &quot;Complete Order&quot;.
-                  </p>
-                </div>
-              )}
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -694,25 +602,31 @@ export default function CheckoutPage() {
                       ))}
 
                     {/* Coupon Discount */}
-                    {couponApplied && (
+                    {couponApplied && couponData && (
                       <div className="flex justify-between text-green-600">
                         <span className="flex items-center gap-1">
                           <Gift className="h-3 w-3" />
-                          Coupon: {couponCode.toUpperCase()}
+                          Coupon: {couponData.code}
                         </span>
-                        <span>-10%</span>
+                        <span>
+                          {couponData.discountAmount
+                            ? `-${formatPrice(couponData.discountAmount)}`
+                            : couponDiscountDisplay}
+                        </span>
                       </div>
                     )}
 
                     {/* Total Savings */}
-                    {(pricing.totalDiscount > 0 || couponApplied) && (
+                    {(pricing.totalDiscount > 0 || (couponApplied && couponData)) && (
                       <>
                         <Divider className="my-2" />
                         <div className="flex justify-between text-green-600 font-medium">
                           <span>You Save</span>
                           <span>
-                            -{formatPrice(pricing.totalDiscount)}
-                            {couponApplied && " + 10%"}
+                            -{formatPrice(
+                              pricing.totalDiscount +
+                                (couponData?.discountAmount || 0)
+                            )}
                           </span>
                         </div>
                       </>
@@ -731,7 +645,14 @@ export default function CheckoutPage() {
                     {/* Total */}
                     <div className="flex justify-between text-xl font-bold">
                       <span>Total</span>
-                      <span>{formatPrice(pricing.total)}</span>
+                      <span>
+                        {formatPrice(
+                          Math.max(
+                            0,
+                            pricing.total - (couponData?.discountAmount || 0)
+                          )
+                        )}
+                      </span>
                     </div>
                   </div>
                 )}
@@ -752,12 +673,12 @@ export default function CheckoutPage() {
                   {isSubmitting ? (
                     <>
                       <Spinner size="sm" className="mr-2" />
-                      Processing...
+                      Redirecting to Stripe...
                     </>
                   ) : (
                     <>
-                      <Lock className="mr-2 h-4 w-4" />
-                      Complete Order
+                      <ExternalLink className="mr-2 h-4 w-4" />
+                      Proceed to Payment
                     </>
                   )}
                 </Button>

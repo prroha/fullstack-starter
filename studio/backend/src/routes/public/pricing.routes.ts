@@ -23,7 +23,7 @@ const calculatePriceSchema = z.object({
  * GET /api/pricing/tiers
  * List all active pricing tiers
  */
-router.get("/tiers", async (req, res, next) => {
+router.get("/tiers", async (_req, res, next) => {
   try {
     const tiers = await prisma.pricingTier.findMany({
       where: { isActive: true },
@@ -34,7 +34,6 @@ router.get("/tiers", async (req, res, next) => {
         name: true,
         description: true,
         price: true,
-        compareAtPrice: true,
         includedFeatures: true,
         isPopular: true,
         displayOrder: true,
@@ -170,20 +169,15 @@ router.post("/calculate", async (req, res, next) => {
         continue;
       }
 
-      // Check minimum features
-      if (bundle.minFeatures && input.selectedFeatures.length < bundle.minFeatures) {
+      // Check minimum items (features)
+      if (bundle.minItems && input.selectedFeatures.length < bundle.minItems) {
         continue;
       }
 
-      // Check minimum amount
-      if (bundle.minAmount && subtotal < bundle.minAmount) {
-        continue;
-      }
-
-      // Check required features
-      if (bundle.requiredFeatures.length > 0) {
-        const hasAll = bundle.requiredFeatures.every((f) => selectedSet.has(f));
-        if (!hasAll) {
+      // Check applicable features (if specified, at least one must be selected)
+      if (bundle.applicableFeatures.length > 0) {
+        const hasAny = bundle.applicableFeatures.some((f: string) => selectedSet.has(f));
+        if (!hasAny) {
           continue;
         }
       }
@@ -199,7 +193,7 @@ router.post("/calculate", async (req, res, next) => {
 
       // Calculate discount
       let amount = 0;
-      if (bundle.type === "percentage") {
+      if (bundle.type === "PERCENTAGE") {
         amount = Math.round(subtotal * (bundle.value / 100));
       } else {
         amount = bundle.value;
@@ -221,28 +215,27 @@ router.post("/calculate", async (req, res, next) => {
     let couponDiscount: { id: string; name: string; type: string; value: number; amount: number } | undefined;
 
     if (input.couponCode) {
-      const coupon = await prisma.coupon.findFirst({
+      const coupon = await prisma.studioCoupon.findFirst({
         where: {
           code: input.couponCode.toUpperCase(),
           isActive: true,
-          expiresAt: { gte: new Date() },
+          OR: [
+            { expiresAt: null },
+            { expiresAt: { gte: new Date() } },
+          ],
         },
       });
 
       if (coupon) {
         // Check usage limit
         const usageOk = !coupon.maxUses || coupon.usedCount < coupon.maxUses;
-        // Check minimum amount
-        const minAmountOk = !coupon.minAmount || subtotal >= coupon.minAmount;
+        // Check minimum purchase amount
+        const minPurchaseOk = !coupon.minPurchase || subtotal >= coupon.minPurchase;
 
-        if (usageOk && minAmountOk) {
+        if (usageOk && minPurchaseOk) {
           let amount = 0;
-          if (coupon.type === "percentage") {
+          if (coupon.type === "PERCENTAGE") {
             amount = Math.round(subtotal * (coupon.value / 100));
-            // Apply max discount if set
-            if (coupon.maxDiscount && amount > coupon.maxDiscount) {
-              amount = coupon.maxDiscount;
-            }
           } else {
             amount = coupon.value;
           }

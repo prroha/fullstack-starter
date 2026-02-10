@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "../../config/db.js";
 import { sendSuccess, sendPaginated, parsePaginationParams, createPaginationInfo } from "../../utils/response.js";
 import { ApiError } from "../../utils/errors.js";
+import { stripeService } from "../../services/stripe.service.js";
 
 const router = Router();
 
@@ -213,6 +214,11 @@ router.patch("/:id/status", async (req, res, next) => {
  */
 router.post("/:id/refund", async (req, res, next) => {
   try {
+    const schema = z.object({
+      reason: z.string().max(500).optional(),
+    });
+    const { reason } = schema.parse(req.body);
+
     const order = await prisma.order.findUnique({
       where: { id: req.params.id },
       include: { license: true },
@@ -226,15 +232,31 @@ router.post("/:id/refund", async (req, res, next) => {
       throw ApiError.badRequest("Can only refund completed orders");
     }
 
+    // Process Stripe refund if payment was made via Stripe
+    let refundResult: { refundId: string; status: string } | null = null;
+    if (order.paymentId && stripeService.isConfigured()) {
+      try {
+        refundResult = await stripeService.processRefund(order.paymentId, reason);
+      } catch (stripeError) {
+        throw ApiError.badRequest(
+          stripeError instanceof Error ? stripeError.message : "Failed to process refund"
+        );
+      }
+    }
+
     // Update order and revoke license
     const [updatedOrder] = await prisma.$transaction([
       prisma.order.update({
         where: { id: req.params.id },
-        data: { status: "REFUNDED" },
+        data: {
+          status: "REFUNDED",
+          refundedAt: new Date(),
+          refundId: refundResult?.refundId || null,
+        },
       }),
       ...(order.license ? [prisma.license.update({
         where: { id: order.license.id },
-        data: { status: "REVOKED", revokedAt: new Date(), revokedReason: "Refund" },
+        data: { status: "REVOKED", revokedAt: new Date(), revokedReason: reason || "Refund" },
       })] : []),
     ]);
 
@@ -246,10 +268,9 @@ router.post("/:id/refund", async (req, res, next) => {
         action: "REFUND",
         entityType: "order",
         entityId: order.id,
+        newValues: { reason, refundId: refundResult?.refundId },
       },
     });
-
-    // TODO: Process actual refund via Stripe
 
     sendSuccess(res, updatedOrder, "Order refunded successfully");
   } catch (error) {

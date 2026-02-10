@@ -20,14 +20,11 @@ const createSessionSchema = z.object({
   tier: z.string().min(1).max(50),
   features: z.array(z.string().max(100)).max(100),
   templateId: z.string().max(100).optional(),
-  referrer: z.string().max(500).optional(),
-  userAgent: z.string().max(500).optional(),
 });
 
 const updateSessionSchema = z.object({
-  duration: z.number().int().min(0).max(86400000).optional(), // Max 24 hours in ms
-  interactionCount: z.number().int().min(0).max(10000).optional(),
-  convertedToCheckout: z.boolean().optional(),
+  duration: z.number().int().min(0).max(86400).optional(), // Max 24 hours in seconds
+  pageViews: z.number().int().min(0).max(10000).optional(),
 });
 
 /**
@@ -44,22 +41,22 @@ router.post("/session", async (req, res, next) => {
     }
     const input = parseResult.data;
 
+    // Generate a unique session ID
+    const sessionId = `preview_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+
     // Create preview session record
     const session = await prisma.previewSession.create({
       data: {
+        sessionId,
         tier: input.tier,
-        features: input.features,
+        selectedFeatures: input.features,
         templateId: input.templateId,
-        referrer: input.referrer || req.headers.referer,
-        userAgent: input.userAgent || req.headers["user-agent"],
-        ipAddress: req.ip,
-        startedAt: new Date(),
       },
     });
 
     sendSuccess(res, {
-      sessionId: session.id,
-      createdAt: session.startedAt,
+      sessionId: session.sessionId,
+      createdAt: session.createdAt,
     }, "Preview session created", 201);
   } catch (error) {
     next(error);
@@ -97,15 +94,14 @@ router.patch("/session/:id", async (req, res, next) => {
     const session = await prisma.previewSession.update({
       where: { id: paramResult.data.id },
       data: {
-        endedAt: new Date(),
+        lastActivityAt: new Date(),
         duration: input.duration,
-        interactionCount: input.interactionCount,
-        convertedToCheckout: input.convertedToCheckout,
+        pageViews: input.pageViews,
       },
     });
 
     sendSuccess(res, {
-      sessionId: session.id,
+      sessionId: session.sessionId,
       duration: session.duration,
     }, "Preview session updated");
   } catch (error) {

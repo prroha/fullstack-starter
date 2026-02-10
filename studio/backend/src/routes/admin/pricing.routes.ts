@@ -74,6 +74,35 @@ router.get("/tiers", async (_req, res, next) => {
 });
 
 /**
+ * PUT /api/admin/pricing/tiers/reorder
+ * Reorder pricing tiers
+ * NOTE: Must be defined BEFORE /tiers/:tier routes to avoid "reorder" being matched as a tier
+ */
+router.put("/tiers/reorder", async (req, res, next) => {
+  try {
+    const schema = z.object({
+      orders: z.array(
+        z.object({
+          slug: z.string(),
+          displayOrder: z.number().int(),
+        })
+      ),
+    });
+    const { orders } = schema.parse(req.body);
+
+    await prisma.$transaction(
+      orders.map(({ slug, displayOrder }) =>
+        prisma.pricingTier.update({ where: { slug }, data: { displayOrder } })
+      )
+    );
+
+    sendSuccess(res, null, "Tiers reordered");
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
  * GET /api/admin/pricing/tiers/:tier
  * Get single pricing tier
  */
@@ -183,34 +212,6 @@ router.patch("/tiers/:tier/toggle", async (req, res, next) => {
     });
 
     sendSuccess(res, updated, `Tier ${updated.isActive ? "activated" : "deactivated"}`);
-  } catch (error) {
-    next(error);
-  }
-});
-
-/**
- * PUT /api/admin/pricing/tiers/reorder
- * Reorder pricing tiers
- */
-router.put("/tiers/reorder", async (req, res, next) => {
-  try {
-    const schema = z.object({
-      orders: z.array(
-        z.object({
-          slug: z.string(),
-          displayOrder: z.number().int(),
-        })
-      ),
-    });
-    const { orders } = schema.parse(req.body);
-
-    await prisma.$transaction(
-      orders.map(({ slug, displayOrder }) =>
-        prisma.pricingTier.update({ where: { slug }, data: { displayOrder } })
-      )
-    );
-
-    sendSuccess(res, null, "Tiers reordered");
   } catch (error) {
     next(error);
   }

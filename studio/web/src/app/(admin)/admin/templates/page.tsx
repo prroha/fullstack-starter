@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { formatCurrency, formatNumber } from "@/lib/utils";
+import { API_CONFIG } from "@/lib/constants";
 
 // Core UI Components
 import {
@@ -387,8 +388,7 @@ function TemplateFormModal({
       const formDataUpload = new FormData();
       formDataUpload.append("image", file);
 
-      // TODO: Replace with actual API URL from environment
-      const response = await fetch("/api/admin/uploads/image", {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/admin/uploads/image`, {
         method: "POST",
         body: formDataUpload,
         credentials: "include",

@@ -573,6 +573,49 @@ export default function OrdersPage() {
     alert("Download link regenerated successfully!");
   };
 
+  // Handle download package
+  const handleDownloadPackage = async (orderId: string) => {
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
+      const downloadUrl = `${apiUrl}/orders/${orderId}/download`;
+
+      // Use fetch to get the file with credentials
+      const response = await fetch(downloadUrl, {
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error?.message || "Download failed");
+      }
+
+      // Get the blob and create download link
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+
+      // Get filename from Content-Disposition header or use default
+      const contentDisposition = response.headers.get("Content-Disposition");
+      let filename = `starter-studio-${orderId}.zip`;
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename="?([^"]+)"?/);
+        if (match) {
+          filename = match[1];
+        }
+      }
+
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error("Download error:", error);
+      alert(error instanceof Error ? error.message : "Download failed. Please try again.");
+    }
+  };
+
   // Handle export
   const handleExport = async () => {
     // TODO: Replace with actual API call
@@ -838,8 +881,14 @@ export default function OrdersPage() {
                             onClick: () => handleOpenStatusModal(order),
                           },
                           {
+                            key: "download-package",
+                            label: "Download Package",
+                            onClick: () => handleDownloadPackage(order.id),
+                            disabled: order.status !== "COMPLETED",
+                          },
+                          {
                             key: "regenerate-download",
-                            label: "Regenerate Download",
+                            label: "Regenerate Download Link",
                             onClick: () => handleRegenerateDownload(order.id),
                             disabled: order.status !== "COMPLETED",
                           },

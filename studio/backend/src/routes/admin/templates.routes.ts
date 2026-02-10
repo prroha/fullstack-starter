@@ -72,6 +72,33 @@ router.get("/", async (req, res, next) => {
 });
 
 /**
+ * PUT /api/admin/templates/reorder
+ * Reorder templates
+ * NOTE: Must be defined BEFORE /:id routes to avoid "reorder" being matched as an id
+ */
+router.put("/reorder", async (req, res, next) => {
+  try {
+    const schema = z.object({
+      orders: z.array(z.object({
+        id: z.string(),
+        displayOrder: z.number().int(),
+      })),
+    });
+    const { orders } = schema.parse(req.body);
+
+    await prisma.$transaction(
+      orders.map(({ id, displayOrder }) =>
+        prisma.template.update({ where: { id }, data: { displayOrder } })
+      )
+    );
+
+    sendSuccess(res, null, "Templates reordered");
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
  * GET /api/admin/templates/:id
  * Get single template
  */
@@ -234,32 +261,6 @@ router.delete("/:id", async (req, res, next) => {
     });
 
     sendSuccess(res, null, "Template deleted");
-  } catch (error) {
-    next(error);
-  }
-});
-
-/**
- * PUT /api/admin/templates/reorder
- * Reorder templates
- */
-router.put("/reorder", async (req, res, next) => {
-  try {
-    const schema = z.object({
-      orders: z.array(z.object({
-        id: z.string(),
-        displayOrder: z.number().int(),
-      })),
-    });
-    const { orders } = schema.parse(req.body);
-
-    await prisma.$transaction(
-      orders.map(({ id, displayOrder }) =>
-        prisma.template.update({ where: { id }, data: { displayOrder } })
-      )
-    );
-
-    sendSuccess(res, null, "Templates reordered");
   } catch (error) {
     next(error);
   }

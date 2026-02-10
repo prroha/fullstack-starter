@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Starter Studio Platform API",
   "main": "dist/index.js",
+  "prisma": {
+    "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
+  },
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
@@ -20,6 +23,7 @@
   },
   "dependencies": {
     "@prisma/client": "^6.2.1",
+    "archiver": "^7.0.1",
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
@@ -30,10 +34,12 @@
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.2",
     "pdfkit": "^0.17.2",
+    "stripe": "^20.3.1",
     "uuid": "^11.0.5",
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@types/archiver": "^7.0.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/cookie-parser": "^1.4.8",
     "@types/cors": "^2.8.17",
@@ -44,6 +50,7 @@
     "@types/pdfkit": "^0.17.4",
     "@types/uuid": "^10.0.0",
     "prisma": "^6.2.1",
+    "ts-node": "^10.9.2",
     "tsx": "^4.19.2",
     "typescript": "^5.7.3"
   }

@@ -500,7 +500,7 @@ describe("StudioPublicApi", () => {
       });
 
       expect(result.totalDiscount).toBe(1980);
-      expect(result.couponDiscount?.code).toBeUndefined(); // code is in 'name'
+      expect(result.couponDiscount?.name).toBeDefined();
       expect(result.total).toBe(7920);
     });
   });

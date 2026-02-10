@@ -48,20 +48,21 @@ router.get("/", async (req, res, next) => {
         where,
         skip,
         take: limit,
-        orderBy: [{ isPopular: "desc" }, { displayOrder: "asc" }],
+        orderBy: [{ isFeatured: "desc" }, { displayOrder: "asc" }],
         select: {
           id: true,
           slug: true,
           name: true,
           description: true,
+          shortDescription: true,
           price: true,
           compareAtPrice: true,
           includedFeatures: true,
-          baseTier: true,
+          tier: true,
           iconName: true,
-          imageUrl: true,
+          previewImageUrl: true,
           displayOrder: true,
-          isPopular: true,
+          isFeatured: true,
           isActive: true,
           createdAt: true,
           updatedAt: true,
@@ -121,7 +122,7 @@ router.get("/:slug", async (req, res, next) => {
     // Get base tier info
     const baseTier = await prisma.pricingTier.findFirst({
       where: {
-        slug: template.baseTier,
+        slug: template.tier,
         isActive: true,
       },
       select: {
@@ -136,7 +137,7 @@ router.get("/:slug", async (req, res, next) => {
     sendSuccess(res, {
       ...template,
       features,
-      baseTierInfo: baseTier,
+      tierInfo: baseTier,
     });
   } catch (error) {
     next(error);
