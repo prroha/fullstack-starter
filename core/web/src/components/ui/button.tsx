@@ -11,37 +11,58 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
   size?: "default" | "sm" | "lg" | "icon";
   isLoading?: boolean;
+  /** Render as child element (e.g., Link) with button styling */
+  asChild?: boolean;
+}
+
+// Button style utilities for use with asChild
+const buttonVariants = {
+  default: "bg-primary text-primary-foreground hover:bg-primary/90",
+  destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+  outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
+  secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+  ghost: "hover:bg-accent hover:text-accent-foreground",
+  link: "text-primary underline-offset-4 hover:underline",
+};
+
+// Content-first sizing: slightly tighter padding while maintaining touch-friendliness
+const buttonSizes = {
+  default: "h-9 px-3 py-1.5",  // 36px height (was 40px), 12px horizontal (was 16px)
+  sm: "h-8 rounded-md px-2.5", // 32px height (was 36px), 10px horizontal (was 12px)
+  lg: "h-10 rounded-md px-6",  // 40px height (was 44px), 24px horizontal (was 32px)
+  icon: "h-9 w-9",             // 36px (was 40px)
+};
+
+function getButtonClasses(
+  variant: keyof typeof buttonVariants = "default",
+  size: keyof typeof buttonSizes = "default",
+  className?: string
+) {
+  return cn(
+    "inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+    "disabled:pointer-events-none disabled:opacity-50",
+    buttonVariants[variant],
+    buttonSizes[size],
+    className
+  );
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = "default", size = "default", isLoading, children, disabled, ...props }, ref) => {
-    const variants = {
-      default: "bg-primary text-primary-foreground hover:bg-primary/90",
-      destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-      outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
-      secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-      ghost: "hover:bg-accent hover:text-accent-foreground",
-      link: "text-primary underline-offset-4 hover:underline",
-    };
+  ({ className, variant = "default", size = "default", isLoading, asChild, children, disabled, ...props }, ref) => {
+    const buttonClasses = getButtonClasses(variant, size, className);
 
-    // Content-first sizing: slightly tighter padding while maintaining touch-friendliness
-    const sizes = {
-      default: "h-9 px-3 py-1.5",  // 36px height (was 40px), 12px horizontal (was 16px)
-      sm: "h-8 rounded-md px-2.5", // 32px height (was 36px), 10px horizontal (was 12px)
-      lg: "h-10 rounded-md px-6",  // 40px height (was 44px), 24px horizontal (was 32px)
-      icon: "h-9 w-9",             // 36px (was 40px)
-    };
+    // If asChild, clone the child element with button styles
+    if (asChild && React.isValidElement(children)) {
+      const childElement = children as React.ReactElement<Record<string, unknown>>;
+      return React.cloneElement(childElement, {
+        className: cn(buttonClasses, childElement.props.className as string | undefined),
+      } as Record<string, unknown>);
+    }
 
     return (
       <button
-        className={cn(
-          "inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-          "disabled:pointer-events-none disabled:opacity-50",
-          variants[variant],
-          sizes[size],
-          className
-        )}
+        className={buttonClasses}
         ref={ref}
         disabled={disabled || isLoading}
         aria-busy={isLoading || undefined}

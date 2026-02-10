@@ -306,11 +306,12 @@ function Popover({
   }, [disabled, isOpen, setIsOpen]);
 
   // Clone the trigger element to add event handlers and refs
-  const triggerElement = React.cloneElement(trigger, {
+  const triggerProps = trigger.props as Record<string, unknown>;
+  const triggerElement = React.cloneElement(trigger as React.ReactElement<Record<string, unknown>>, {
     ref: triggerRef,
     onClick: (e: React.MouseEvent) => {
       togglePopover();
-      trigger.props.onClick?.(e);
+      (triggerProps.onClick as ((e: React.MouseEvent) => void) | undefined)?.(e);
     },
     "aria-expanded": isOpen,
     "aria-haspopup": "dialog",

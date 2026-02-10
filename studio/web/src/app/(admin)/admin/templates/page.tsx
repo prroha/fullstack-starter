@@ -23,6 +23,7 @@ import {
   TableCell,
   EmptySearch,
   EmptyList,
+  ImageUpload,
 } from "@/components/ui";
 
 // Admin Components
@@ -48,6 +49,7 @@ interface Template {
   tier: Tier;
   basePriceCents: number;
   includedFeatureIds: string[];
+  previewImageUrl?: string | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -60,6 +62,7 @@ interface TemplateFormData {
   tier: Tier;
   basePriceDollars: string;
   includedFeatureIds: string[];
+  previewImageUrl: string | null;
   isActive: boolean;
 }
 
@@ -308,6 +311,7 @@ const DEFAULT_FORM_DATA: TemplateFormData = {
   tier: "STARTER",
   basePriceDollars: "",
   includedFeatureIds: [],
+  previewImageUrl: null,
   isActive: true,
 };
 
@@ -322,6 +326,7 @@ function TemplateFormModal({
   const isEditing = !!initialData;
   const [formData, setFormData] = React.useState<TemplateFormData>(DEFAULT_FORM_DATA);
   const [autoSlug, setAutoSlug] = React.useState(true);
+  const [isUploadingImage, setIsUploadingImage] = React.useState(false);
 
   // Reset form when modal opens/closes or initialData changes
   React.useEffect(() => {
@@ -334,6 +339,7 @@ function TemplateFormModal({
           tier: initialData.tier,
           basePriceDollars: (initialData.basePriceCents / 100).toFixed(2),
           includedFeatureIds: [...initialData.includedFeatureIds],
+          previewImageUrl: initialData.previewImageUrl || null,
           isActive: initialData.isActive,
         });
         setAutoSlug(false);
@@ -373,6 +379,38 @@ function TemplateFormModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit(formData);
+  };
+
+  const handleImageUpload = async (file: File): Promise<string> => {
+    setIsUploadingImage(true);
+    try {
+      const formDataUpload = new FormData();
+      formDataUpload.append("image", file);
+
+      // TODO: Replace with actual API URL from environment
+      const response = await fetch("/api/admin/uploads/image", {
+        method: "POST",
+        body: formDataUpload,
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to upload image");
+      }
+
+      const data = await response.json();
+      const imageUrl = data.data.url;
+
+      setFormData((prev) => ({ ...prev, previewImageUrl: imageUrl }));
+      return imageUrl;
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
+
+  const handleImageRemove = () => {
+    setFormData((prev) => ({ ...prev, previewImageUrl: null }));
   };
 
   const tierOptions = [
@@ -440,6 +478,19 @@ function TemplateFormModal({
             onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
             placeholder="Brief description of what this template includes..."
             rows={3}
+          />
+        </div>
+
+        {/* Preview Image */}
+        <div className="space-y-1.5">
+          <Label>Preview Image</Label>
+          <ImageUpload
+            currentImageUrl={formData.previewImageUrl}
+            onUpload={handleImageUpload}
+            onRemove={handleImageRemove}
+            isUploading={isUploadingImage}
+            disabled={isSubmitting}
+            aspectRatio="video"
           />
         </div>
 
@@ -686,6 +737,7 @@ export default function TemplatesPage() {
                 tier: formData.tier,
                 basePriceCents,
                 includedFeatureIds: formData.includedFeatureIds,
+                previewImageUrl: formData.previewImageUrl,
                 isActive: formData.isActive,
                 updatedAt: new Date().toISOString(),
               }
@@ -709,6 +761,7 @@ export default function TemplatesPage() {
         tier: formData.tier,
         basePriceCents,
         includedFeatureIds: formData.includedFeatureIds,
+        previewImageUrl: formData.previewImageUrl,
         isActive: formData.isActive,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),

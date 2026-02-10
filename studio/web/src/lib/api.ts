@@ -1001,6 +1001,10 @@ class StudioAdminApi {
     return this.get<TemplateStats[]>("/admin/analytics/templates");
   }
 
+  getAnalyticsPdfExportUrl(type: "revenue" | "funnel" | "features" | "templates", period: AnalyticsPeriod): string {
+    return `${this.config.baseUrl}/admin/analytics/export/pdf?type=${type}&period=${period}`;
+  }
+
   // =====================================================
   // Settings API
   // =====================================================

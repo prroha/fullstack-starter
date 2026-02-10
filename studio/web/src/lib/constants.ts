@@ -97,3 +97,29 @@ export const ANALYTICS_PERIOD = {
   NINETY_DAYS: "90d",
   ONE_YEAR: "1y",
 } as const;
+
+/**
+ * Preview feature list for displaying in the preview panel
+ * This should match the features available in the feature registry
+ */
+export const PREVIEW_FEATURES = [
+  { slug: "auth.basic", name: "Basic Auth", category: "auth" },
+  { slug: "auth.social", name: "Social Login", category: "auth" },
+  { slug: "auth.mfa", name: "Two-Factor Auth", category: "auth" },
+  { slug: "security.csrf", name: "CSRF Protection", category: "security" },
+  { slug: "security.rateLimit", name: "Rate Limiting", category: "security" },
+  { slug: "payments.oneTime", name: "One-Time Payments", category: "payments" },
+  { slug: "payments.subscription", name: "Subscriptions", category: "payments" },
+  { slug: "storage.upload", name: "File Uploads", category: "storage" },
+  { slug: "storage.images", name: "Image Processing", category: "storage" },
+  { slug: "comms.email", name: "Email", category: "comms" },
+  { slug: "comms.push", name: "Push Notifications", category: "comms" },
+  { slug: "ui.components", name: "UI Components", category: "ui" },
+  { slug: "ui.dashboard", name: "Dashboard Layout", category: "ui" },
+  { slug: "ui.admin", name: "Admin Panel", category: "ui" },
+  { slug: "analytics.basic", name: "Basic Analytics", category: "analytics" },
+  { slug: "analytics.dashboard", name: "Analytics Dashboard", category: "analytics" },
+  { slug: "mobile.flutter", name: "Flutter App", category: "mobile" },
+] as const;
+
+export type PreviewFeature = (typeof PREVIEW_FEATURES)[number];

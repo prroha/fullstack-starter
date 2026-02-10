@@ -166,23 +166,24 @@ function Tooltip({
   }, []);
 
   // Clone the child element to add event handlers and refs
-  const trigger = React.cloneElement(children, {
+  const childProps = children.props as Record<string, unknown>;
+  const trigger = React.cloneElement(children as React.ReactElement<Record<string, unknown>>, {
     ref: triggerRef,
     onMouseEnter: (e: React.MouseEvent) => {
       showTooltip();
-      children.props.onMouseEnter?.(e);
+      (childProps.onMouseEnter as ((e: React.MouseEvent) => void) | undefined)?.(e);
     },
     onMouseLeave: (e: React.MouseEvent) => {
       hideTooltip();
-      children.props.onMouseLeave?.(e);
+      (childProps.onMouseLeave as ((e: React.MouseEvent) => void) | undefined)?.(e);
     },
     onFocus: (e: React.FocusEvent) => {
       showTooltip();
-      children.props.onFocus?.(e);
+      (childProps.onFocus as ((e: React.FocusEvent) => void) | undefined)?.(e);
     },
     onBlur: (e: React.FocusEvent) => {
       hideTooltip();
-      children.props.onBlur?.(e);
+      (childProps.onBlur as ((e: React.FocusEvent) => void) | undefined)?.(e);
     },
     "aria-describedby": isVisible ? tooltipId : undefined,
   });

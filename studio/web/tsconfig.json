@@ -16,7 +16,10 @@
     "plugins": [{ "name": "next" }],
     "paths": {
       "@/*": ["./src/*"],
-      "@core/*": ["../../core/web/src/*"]
+      "@core/*": ["../../core/web/src/*"],
+      "@shared/*": ["../shared/*"],
+      "@studio/shared": ["../shared/types/index.ts"],
+      "@templates/*": ["../../templates/*"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],

@@ -1,0 +1,32 @@
+{
+  "id": "tpl_saas_starter_001",
+  "slug": "saas-starter",
+  "name": "SaaS Starter",
+  "description": "Minimal SaaS application starter with authentication, user management, and essential security features. Perfect starting point for MVPs and small SaaS products. Includes protected routes, session management, and basic user settings.",
+  "shortDescription": "Basic SaaS starter with auth and user management",
+  "price": 4900,
+  "tier": "STARTER",
+  "includedFeatures": [
+    "core.setup",
+    "core.crud",
+    "core.database",
+    "core.env",
+    "core.errors",
+    "core.logging",
+    "auth.basic",
+    "auth.emailVerify",
+    "auth.passwordReset",
+    "security.csrf",
+    "security.rateLimit",
+    "ui.components",
+    "ui.layouts",
+    "ui.authPages",
+    "ui.dashboard"
+  ],
+  "previewImageUrl": "/images/templates/saas-starter.png",
+  "iconName": "Rocket",
+  "color": "#10B981",
+  "displayOrder": 2,
+  "isActive": true,
+  "isFeatured": true
+}

@@ -373,177 +373,178 @@
 
 #### Directory Structure
 
-- [ ] Create `/studio` directory
-- [ ] Create `/studio/web` (Next.js for Studio frontend)
-- [ ] Create `/studio/backend` (Express for Studio API)
-- [ ] Create `/studio/shared` (Shared types and utilities)
-- [ ] Create `/templates` directory for template presets
-- [ ] Configure path aliases (`@studio/`, `@templates/`)
-- [ ] Set up monorepo scripts for studio development
-- [ ] Configure separate Prisma schema for studio database
+- [x] Create `/studio` directory
+- [x] Create `/studio/web` (Next.js for Studio frontend)
+- [x] Create `/studio/backend` (Express for Studio API)
+- [x] Create `/studio/shared` (Shared types and utilities)
+- [x] Create `/templates` directory for template presets
+- [x] Configure path aliases (`@studio/`, `@templates/`)
+- [x] Set up monorepo scripts for studio development
+- [x] Configure separate Prisma schema for studio database
 
 #### Studio Database Schema
 
-- [ ] StudioUser model (platform customers)
-- [ ] Order model (purchases, features, status)
-- [ ] Template model (preset configurations)
-- [ ] Feature model (registry with pricing)
-- [ ] Module model (available modules)
-- [ ] License model (download tokens, expiry)
-- [ ] StudioCoupon model (platform discounts)
-- [ ] PreviewSession model (analytics)
-- [ ] StudioAnalytics model (events tracking)
+- [x] StudioUser model (platform customers)
+- [x] Order model (purchases, features, status)
+- [x] Template model (preset configurations)
+- [x] Feature model (registry with pricing)
+- [x] Module model (available modules)
+- [x] License model (download tokens, expiry)
+- [x] StudioCoupon model (platform discounts)
+- [x] PreviewSession model (analytics)
+- [x] StudioAnalytics model (events tracking)
 
 ### Platform Admin (Company Admin)
 
 #### Admin Layout & Navigation
 
-- [ ] Create `/studio/web/src/app/(admin)` route group
-- [ ] Platform admin layout (sidebar + header)
-- [ ] Admin navigation menu
-- [ ] Role-based access (PLATFORM_ADMIN role)
-- [ ] Mobile responsive design
+- [x] Create `/studio/web/src/app/(admin)` route group
+- [x] Platform admin layout (sidebar + header)
+- [x] Admin navigation menu
+- [x] Role-based access (PLATFORM_ADMIN role)
+- [x] Mobile responsive design
 
 #### Dashboard
 
-- [ ] Platform admin dashboard home
-- [ ] Revenue stats cards (today, week, month, all-time)
-- [ ] Order count and trends
-- [ ] Preview session count
-- [ ] Active users count
-- [ ] Revenue chart (line/bar)
-- [ ] Recent orders list
-- [ ] Top selling items
-- [ ] Conversion funnel stats
+- [x] Platform admin dashboard home
+- [x] Revenue stats cards (today, week, month, all-time)
+- [x] Order count and trends
+- [x] Preview session count
+- [x] Active users count
+- [x] Revenue chart (line/bar)
+- [x] Recent orders list
+- [x] Top selling items
+- [x] Conversion funnel stats
 
 #### Order Management
 
-- [ ] Orders table with pagination
-- [ ] Filter by status (pending, completed, refunded)
-- [ ] Filter by tier (Basic, Starter, Pro, Business, Enterprise)
-- [ ] Filter by date range
-- [ ] Search orders
-- [ ] Order detail modal
-  - [ ] Customer info
-  - [ ] Selected features list
-  - [ ] Template (if applicable)
-  - [ ] Payment details
-  - [ ] Download history
-- [ ] Regenerate download link
-- [ ] Process refund
-- [ ] Export orders to CSV
+- [x] Orders table with pagination
+- [x] Filter by status (pending, completed, refunded)
+- [x] Filter by tier (Basic, Starter, Pro, Business, Enterprise)
+- [x] Filter by date range
+- [x] Search orders
+- [x] Order detail modal
+  - [x] Customer info
+  - [x] Selected features list
+  - [x] Template (if applicable)
+  - [x] Payment details
+  - [x] Download history
+- [x] Regenerate download link
+- [x] Process refund
+- [x] Export orders to CSV
 
 #### Template Management
 
-- [ ] Templates table
-- [ ] Create template modal
-  - [ ] Name and description
-  - [ ] Slug (URL-friendly)
-  - [ ] Price
-  - [ ] Select included features
-  - [ ] Preview image upload
-- [ ] Edit template
-- [ ] Enable/disable template
-- [ ] Delete template
-- [ ] Template analytics (sales, previews)
-- [ ] Reorder templates (display order)
+- [x] Templates table
+- [x] Create template modal
+  - [x] Name and description
+  - [x] Slug (URL-friendly)
+  - [x] Price
+  - [x] Select included features
+  - [x] Preview image upload
+- [x] Edit template
+- [x] Enable/disable template
+- [x] Delete template
+- [x] Template analytics (sales, previews)
+- [x] Reorder templates (display order)
 
 #### Module & Feature Management
 
-- [ ] Modules table (grouped features)
-- [ ] Create/edit module
-  - [ ] Name and description
-  - [ ] Category
-  - [ ] Icon
-- [ ] Features table within modules
-- [ ] Create/edit feature
-  - [ ] Name and description
-  - [ ] Price
-  - [ ] Minimum tier required
-  - [ ] Dependencies (other features)
-  - [ ] Conflicts (incompatible features)
-  - [ ] File mappings (for code generator)
-  - [ ] Environment variables required
-- [ ] Enable/disable features
-- [ ] Bulk pricing update
-- [ ] Feature usage analytics
+- [x] Modules table (grouped features)
+- [x] Create/edit module
+  - [x] Name and description
+  - [x] Category
+  - [x] Icon
+- [x] Features table within modules
+- [x] Create/edit feature
+  - [x] Name and description
+  - [x] Price
+  - [x] Minimum tier required
+  - [x] Dependencies (other features)
+  - [x] Conflicts (incompatible features)
+  - [x] File mappings (for code generator)
+  - [x] Environment variables required
+- [x] Enable/disable features
+- [x] Bulk pricing update
+- [x] Feature usage analytics
 
 #### Pricing Management
 
-- [ ] Tier configuration page
-  - [ ] Edit tier prices
-  - [ ] Edit tier included features
-  - [ ] Edit tier descriptions
-- [ ] Bundle discount configuration
+- [x] Tier configuration page
+  - [x] Edit tier prices
+  - [x] Edit tier included features
+  - [x] Edit tier descriptions
+- [x] Bundle discount configuration
 - [ ] Upgrade recommendation rules
 - [ ] Price history tracking
 
 #### Customer Management
 
-- [ ] Customers table (StudioUser)
-- [ ] Search customers
-- [ ] Customer detail page
-  - [ ] Profile info
-  - [ ] Order history
-  - [ ] Download history
-  - [ ] Total spent
-- [ ] Block/unblock customer
-- [ ] Export customers to CSV
+- [x] Customers table (StudioUser)
+- [x] Search customers
+- [x] Customer detail page
+  - [x] Profile info
+  - [x] Order history
+  - [x] Download history
+  - [x] Total spent
+- [x] Block/unblock customer
+- [x] Export customers to CSV
 
 #### License Management
 
-- [ ] Licenses table
-- [ ] Filter by status (active, expired, revoked)
-- [ ] License detail modal
-- [ ] Extend license expiry
-- [ ] Revoke license
-- [ ] Regenerate download token
+- [x] Licenses table
+- [x] Filter by status (active, expired, revoked)
+- [x] License detail modal
+- [x] Extend license expiry
+- [x] Revoke license
+- [x] Regenerate download token
 
 #### Platform Coupons
 
-- [ ] Coupons table
-- [ ] Create coupon
-  - [ ] Code
-  - [ ] Discount type (percentage/fixed)
-  - [ ] Discount value
-  - [ ] Applicable tiers
-  - [ ] Applicable templates
-  - [ ] Max uses
-  - [ ] Expiry date
-- [ ] Edit coupon
-- [ ] Enable/disable coupon
-- [ ] Coupon usage stats
-- [ ] Export coupons to CSV
+- [x] Coupons table
+- [x] Create coupon
+  - [x] Code
+  - [x] Discount type (percentage/fixed)
+  - [x] Discount value
+  - [x] Applicable tiers
+  - [x] Applicable templates
+  - [x] Max uses
+  - [x] Expiry date
+- [x] Edit coupon
+- [x] Enable/disable coupon
+- [x] Coupon usage stats
+- [x] Export coupons to CSV
 
 #### Reports & Analytics
 
-- [ ] Revenue reports page
-  - [ ] By day/week/month
-  - [ ] By tier
-  - [ ] By template
-  - [ ] By feature
-- [ ] Sales funnel report
-  - [ ] Visits → Configures → Previews → Purchases
-- [ ] Feature popularity report
-- [ ] Template performance report
+- [x] Revenue reports page
+  - [x] By day/week/month
+  - [x] By tier
+  - [x] By template
+  - [x] By feature
+- [x] Sales funnel report
+  - [x] Visits → Configures → Previews → Purchases
+- [x] Feature popularity report
+- [x] Template performance report
 - [ ] Geographic distribution
-- [ ] Export reports to CSV/PDF
+- [x] Export reports to CSV
+- [x] Export reports to PDF
 
 #### Platform Settings
 
-- [ ] General settings
-  - [ ] Platform name
-  - [ ] Support email
-  - [ ] Default currency
-- [ ] Payment settings
-  - [ ] Stripe configuration
-  - [ ] Tax settings
-- [ ] Email settings
-  - [ ] Notification templates
-  - [ ] Sender details
-- [ ] Download settings
-  - [ ] Token expiry duration
-  - [ ] Max downloads per order
+- [x] General settings
+  - [x] Platform name
+  - [x] Support email
+  - [x] Default currency
+- [x] Payment settings
+  - [x] Stripe configuration
+  - [x] Tax settings
+- [x] Email settings
+  - [x] Notification templates
+  - [x] Sender details
+- [x] Download settings
+  - [x] Token expiry duration
+  - [x] Max downloads per order
 
 #### Manual App Generation
 
@@ -557,76 +558,76 @@
 
 #### Orders API
 
-- [ ] GET /api/admin/orders (list with filters)
-- [ ] GET /api/admin/orders/:id
-- [ ] PATCH /api/admin/orders/:id (update status)
-- [ ] POST /api/admin/orders/:id/refund
-- [ ] POST /api/admin/orders/:id/regenerate-download
-- [ ] GET /api/admin/orders/stats
+- [x] GET /api/admin/orders (list with filters)
+- [x] GET /api/admin/orders/:id
+- [x] PATCH /api/admin/orders/:id (update status)
+- [x] POST /api/admin/orders/:id/refund
+- [x] POST /api/admin/orders/:id/regenerate-download
+- [x] GET /api/admin/orders/stats
 
 #### Templates API
 
-- [ ] GET /api/admin/templates
-- [ ] POST /api/admin/templates
-- [ ] GET /api/admin/templates/:id
-- [ ] PUT /api/admin/templates/:id
-- [ ] DELETE /api/admin/templates/:id
-- [ ] PATCH /api/admin/templates/:id/toggle
+- [x] GET /api/admin/templates
+- [x] POST /api/admin/templates
+- [x] GET /api/admin/templates/:id
+- [x] PUT /api/admin/templates/:id
+- [x] DELETE /api/admin/templates/:id
+- [x] PATCH /api/admin/templates/:id/toggle
 
 #### Features API
 
-- [ ] GET /api/admin/features
-- [ ] POST /api/admin/features
-- [ ] GET /api/admin/features/:id
-- [ ] PUT /api/admin/features/:id
-- [ ] DELETE /api/admin/features/:id
-- [ ] PATCH /api/admin/features/:id/toggle
+- [x] GET /api/admin/features
+- [x] POST /api/admin/features
+- [x] GET /api/admin/features/:id
+- [x] PUT /api/admin/features/:id
+- [x] DELETE /api/admin/features/:id
+- [x] PATCH /api/admin/features/:id/toggle
 
 #### Modules API
 
-- [ ] GET /api/admin/modules
-- [ ] POST /api/admin/modules
-- [ ] GET /api/admin/modules/:id
-- [ ] PUT /api/admin/modules/:id
-- [ ] DELETE /api/admin/modules/:id
+- [x] GET /api/admin/modules
+- [x] POST /api/admin/modules
+- [x] GET /api/admin/modules/:id
+- [x] PUT /api/admin/modules/:id
+- [x] DELETE /api/admin/modules/:id
 
 #### Customers API
 
-- [ ] GET /api/admin/customers
-- [ ] GET /api/admin/customers/:id
-- [ ] PATCH /api/admin/customers/:id (block/unblock)
-- [ ] GET /api/admin/customers/:id/orders
+- [x] GET /api/admin/customers
+- [x] GET /api/admin/customers/:id
+- [x] PATCH /api/admin/customers/:id (block/unblock)
+- [x] GET /api/admin/customers/:id/orders
 
 #### Licenses API
 
-- [ ] GET /api/admin/licenses
-- [ ] GET /api/admin/licenses/:id
-- [ ] PATCH /api/admin/licenses/:id (extend/revoke)
-- [ ] POST /api/admin/licenses/:id/regenerate
+- [x] GET /api/admin/licenses
+- [x] GET /api/admin/licenses/:id
+- [x] PATCH /api/admin/licenses/:id (extend/revoke)
+- [x] POST /api/admin/licenses/:id/regenerate
 
 #### Coupons API
 
-- [ ] GET /api/admin/coupons
-- [ ] POST /api/admin/coupons
-- [ ] GET /api/admin/coupons/:id
-- [ ] PUT /api/admin/coupons/:id
-- [ ] DELETE /api/admin/coupons/:id
-- [ ] PATCH /api/admin/coupons/:id/toggle
+- [x] GET /api/admin/coupons
+- [x] POST /api/admin/coupons
+- [x] GET /api/admin/coupons/:id
+- [x] PUT /api/admin/coupons/:id
+- [x] DELETE /api/admin/coupons/:id
+- [x] PATCH /api/admin/coupons/:id/toggle
 
 #### Analytics API
 
-- [ ] GET /api/admin/analytics/revenue
-- [ ] GET /api/admin/analytics/funnel
-- [ ] GET /api/admin/analytics/features
-- [ ] GET /api/admin/analytics/templates
-- [ ] GET /api/admin/analytics/geo
+- [x] GET /api/admin/analytics/revenue
+- [x] GET /api/admin/analytics/funnel
+- [x] GET /api/admin/analytics/features
+- [x] GET /api/admin/analytics/templates
+- [ ] GET /api/admin/analytics/geo (needs IP geolocation service)
 
 #### Settings API
 
-- [ ] GET /api/admin/settings
-- [ ] PUT /api/admin/settings
-- [ ] GET /api/admin/settings/:key
-- [ ] PUT /api/admin/settings/:key
+- [x] GET /api/admin/settings
+- [x] PUT /api/admin/settings
+- [x] GET /api/admin/settings/:key
+- [x] PUT /api/admin/settings/:key
 
 ---
 
@@ -1094,7 +1095,7 @@
 | ------------------------------------ | -------------- | -------- | ----------- |
 | Phase 0: Foundation                  | ✅ Completed   | 98%      | Done        |
 | Phase 0.1: Admin Platform (Customer) | ✅ Completed   | 100%     | Done        |
-| Phase 0.2: Studio & Platform Admin   | ⬜ Not Started | 0%       | TBD         |
+| Phase 0.2: Studio & Platform Admin   | 🟡 In Progress | 95%      | TBD         |
 | Phase 1: MVP                         | ⬜ Not Started | 0%       | TBD         |
 | Phase 2: Pilot                       | ⬜ Not Started | 0%       | TBD         |
 | Phase 3: Release                     | ⬜ Not Started | 0%       | TBD         |
@@ -1173,4 +1174,4 @@
 
 ---
 
-_Last Updated: 2026-02-09_
+_Last Updated: 2026-02-10_

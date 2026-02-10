@@ -1,0 +1,26 @@
+{
+  "name": "@studio/shared",
+  "version": "1.0.0",
+  "description": "Shared TypeScript types for Studio web and backend",
+  "main": "types/index.ts",
+  "types": "types/index.ts",
+  "exports": {
+    ".": "./types/index.ts",
+    "./order": "./types/order.ts",
+    "./template": "./types/template.ts",
+    "./feature": "./types/feature.ts",
+    "./customer": "./types/customer.ts",
+    "./license": "./types/license.ts",
+    "./coupon": "./types/coupon.ts",
+    "./analytics": "./types/analytics.ts",
+    "./settings": "./types/settings.ts",
+    "./pricing": "./types/pricing.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0"
+  },
+  "license": "MIT"
+}

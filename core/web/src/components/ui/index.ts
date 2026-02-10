@@ -455,6 +455,33 @@ export type {
   BreadcrumbSeparator,
 } from "./breadcrumb";
 
+// Tooltip - Hover-triggered overlay with positioning and arrow
+export { Tooltip, TooltipTrigger } from "./tooltip";
+export type {
+  TooltipProps,
+  TooltipPosition,
+  TooltipVariant,
+  TooltipTriggerProps,
+} from "./tooltip";
+
+// Popover - Click-triggered overlay with content sections
+export {
+  Popover,
+  PopoverContent,
+  PopoverHeader,
+  PopoverFooter,
+  PopoverClose,
+} from "./popover";
+export type {
+  PopoverProps,
+  PopoverPosition,
+  PopoverAlignment,
+  PopoverContentProps,
+  PopoverHeaderProps,
+  PopoverFooterProps,
+  PopoverCloseProps,
+} from "./popover";
+
 // =============================================================================
 // LAYOUTS - Page Structure Components
 // =============================================================================

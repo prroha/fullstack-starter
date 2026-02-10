@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 // Types
 // =====================================================
 
-type ResponsiveValue<T> = T | { sm?: T; md?: T; lg?: T; xl?: T };
+type ResponsiveValue<T> = T | { base?: T; sm?: T; md?: T; lg?: T; xl?: T };
 
 type GapSize = "none" | "sm" | "md" | "lg" | "xl";
 type AlignItems = "start" | "center" | "end" | "stretch";
@@ -161,12 +161,12 @@ function getColsClasses(cols: ResponsiveValue<number>): string {
   const classes: string[] = [];
 
   // Determine the base (mobile-first) column count
-  // Priority: sm > md > lg > xl (use smallest defined breakpoint as base)
-  const baseColCount = cols.sm ?? cols.md ?? cols.lg ?? cols.xl ?? 1;
+  // Priority: base > sm > md > lg > xl (use explicit base or smallest defined breakpoint)
+  const baseColCount = cols.base ?? cols.sm ?? cols.md ?? cols.lg ?? cols.xl ?? 1;
   classes.push(colsClassMap[baseColCount] || `grid-cols-${baseColCount}`);
 
-  // Add responsive breakpoint classes (only if different from base or if explicitly set)
-  if (cols.sm !== undefined && cols.sm !== baseColCount) {
+  // Add responsive breakpoint classes (only if different from computed base or if explicitly set)
+  if (cols.sm !== undefined) {
     classes.push(smColsClassMap[cols.sm] || `sm:grid-cols-${cols.sm}`);
   }
   if (cols.md !== undefined) {

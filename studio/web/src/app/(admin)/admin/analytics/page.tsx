@@ -20,6 +20,8 @@ import {
   formatPercentage,
   formatDate,
 } from "@/lib/utils";
+import { downloadFile } from "@/lib/export";
+import { adminApi } from "@/lib/api";
 import {
   Button,
   Card,
@@ -677,10 +679,20 @@ export default function AnalyticsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [period]);
 
-  const handleExport = (type: "csv" | "pdf") => {
-    // In production, this would call an API endpoint
-    const filename = `analytics-report-${period}-${new Date().toISOString().split("T")[0]}.${type}`;
-    alert(`Exporting ${filename}...\n\nIn production, this would download the report.`);
+  const [exporting, setExporting] = useState(false);
+
+  const handleExportPdf = async (reportType: "revenue" | "funnel" | "features" | "templates") => {
+    setExporting(true);
+    try {
+      const exportPeriod = period === "custom" ? "30d" : period;
+      const url = adminApi.getAnalyticsPdfExportUrl(reportType, exportPeriod);
+      await downloadFile(url);
+    } catch (error) {
+      console.error("Export failed:", error);
+      alert("Failed to export PDF. Please try again.");
+    } finally {
+      setExporting(false);
+    }
   };
 
   if (loading) {
@@ -733,14 +745,16 @@ export default function AnalyticsPage() {
             </Button>
             <DropdownMenu
               trigger={
-                <Button variant="outline" size="sm">
-                  <Download className="h-4 w-4 mr-2" />
-                  Export
+                <Button variant="outline" size="sm" disabled={exporting}>
+                  <Download className={cn("h-4 w-4 mr-2", exporting && "animate-pulse")} />
+                  {exporting ? "Exporting..." : "Export PDF"}
                 </Button>
               }
               content={[
-                { key: "csv", label: "Export as CSV", onClick: () => handleExport("csv") },
-                { key: "pdf", label: "Export as PDF", onClick: () => handleExport("pdf") },
+                { key: "revenue", label: "Revenue Report", onClick: () => handleExportPdf("revenue") },
+                { key: "funnel", label: "Conversion Funnel Report", onClick: () => handleExportPdf("funnel") },
+                { key: "features", label: "Feature Popularity Report", onClick: () => handleExportPdf("features") },
+                { key: "templates", label: "Template Performance Report", onClick: () => handleExportPdf("templates") },
               ]}
             />
           </>

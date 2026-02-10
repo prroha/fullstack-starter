@@ -8,8 +8,10 @@ import { featuresRoutes } from "./features.routes.js";
 import { customersRoutes } from "./customers.routes.js";
 import { licensesRoutes } from "./licenses.routes.js";
 import { couponsRoutes } from "./coupons.routes.js";
+import { pricingRoutes } from "./pricing.routes.js";
 import { analyticsRoutes } from "./analytics.routes.js";
 import { settingsRoutes } from "./settings.routes.js";
+import { uploadsRoutes } from "./uploads.routes.js";
 
 const router = Router();
 
@@ -25,7 +27,9 @@ router.use("/features", featuresRoutes);
 router.use("/customers", customersRoutes);
 router.use("/licenses", licensesRoutes);
 router.use("/coupons", couponsRoutes);
+router.use("/pricing", pricingRoutes);
 router.use("/analytics", analyticsRoutes);
 router.use("/settings", settingsRoutes);
+router.use("/uploads", uploadsRoutes);
 
 export { router as adminRoutes };

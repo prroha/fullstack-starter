@@ -11,6 +11,7 @@ import {
   Users,
   Key,
   Ticket,
+  Tag,
   BarChart3,
   Settings,
   Menu,
@@ -27,6 +28,7 @@ const navItems = [
   { href: "/admin/customers", label: "Customers", icon: Users },
   { href: "/admin/licenses", label: "Licenses", icon: Key },
   { href: "/admin/coupons", label: "Coupons", icon: Ticket },
+  { href: "/admin/pricing", label: "Pricing", icon: Tag },
   { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ];

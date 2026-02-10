@@ -284,6 +284,36 @@ model PricingTier {
 }
 
 // =====================================================
+// Bundle Discounts
+// =====================================================
+
+model BundleDiscount {
+  id              String    @id @default(cuid())
+  name            String
+  description     String?
+
+  // Discount configuration
+  type            CouponType // PERCENTAGE or FIXED
+  value           Int       // Percentage (0-100) or fixed amount in cents
+
+  // Bundle requirements
+  minItems        Int       @default(2)  // Minimum items required for discount
+  applicableTiers String[]  // Empty = all tiers eligible
+  applicableFeatures String[] // Empty = all features eligible
+
+  // Validity
+  isActive        Boolean   @default(true)
+  startsAt        DateTime?
+  expiresAt       DateTime?
+
+  // Timestamps
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@map("bundle_discounts")
+}
+
+// =====================================================
 // Coupons (Platform-level discounts)
 // =====================================================
 
