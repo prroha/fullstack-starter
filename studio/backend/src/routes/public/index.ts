@@ -5,6 +5,7 @@ import { publicPricingRoutes } from "./pricing.routes.js";
 import { publicPreviewRoutes } from "./preview.routes.js";
 import { checkoutRoutes } from "./checkout.routes.js";
 import { publicOrdersRoutes } from "./orders.routes.js";
+import { authRoutes } from "./auth.routes.js";
 
 const router = Router();
 
@@ -20,6 +21,7 @@ router.get("/", (_req, res) => {
       preview: "/api/preview",
       checkout: "/api/checkout",
       orders: "/api/orders",
+      auth: "/api/auth",
     },
   });
 });
@@ -31,5 +33,6 @@ router.use("/pricing", publicPricingRoutes);
 router.use("/preview", publicPreviewRoutes);
 router.use("/checkout", checkoutRoutes);
 router.use("/orders", publicOrdersRoutes);
+router.use("/auth", authRoutes);
 
 export { router as publicRoutes };

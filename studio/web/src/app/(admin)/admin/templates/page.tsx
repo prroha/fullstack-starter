@@ -3,6 +3,8 @@
 import * as React from "react";
 import { formatCurrency, formatNumber } from "@/lib/utils";
 import { API_CONFIG } from "@/lib/constants";
+import { showSuccess, showError } from "@/lib/toast";
+import { validators, validate, hasErrors, type FormErrors } from "@/lib/validation";
 
 // Core UI Components
 import {
@@ -15,7 +17,6 @@ import {
   Modal,
   SearchInput,
   Label,
-  Spinner,
   Table,
   TableHeader,
   TableBody,
@@ -25,10 +26,11 @@ import {
   EmptySearch,
   EmptyList,
   ImageUpload,
+  FormError,
 } from "@/components/ui";
 
 // Admin Components
-import { AdminPageHeader, TierBadge } from "@/components/admin";
+import { AdminPageHeader, TierBadge, AdminTableSkeleton } from "@/components/admin";
 
 // =====================================================
 // Types
@@ -38,116 +40,49 @@ type Tier = "STARTER" | "PRO" | "BUSINESS" | "ENTERPRISE";
 
 interface Feature {
   id: string;
+  slug: string;
   name: string;
-  key: string;
+  description: string;
+  price: number;
+  moduleId: string;
 }
 
 interface Template {
   id: string;
-  name: string;
   slug: string;
+  name: string;
   description: string;
+  shortDescription: string;
+  price: number;
+  compareAtPrice: number;
   tier: Tier;
-  basePriceCents: number;
-  includedFeatureIds: string[];
-  previewImageUrl?: string | null;
+  includedFeatures: string[];
+  iconName: string;
+  color: string;
+  previewImageUrl: string | null;
+  displayOrder: number;
+  isFeatured: boolean;
   isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
 }
 
 interface TemplateFormData {
   name: string;
   slug: string;
   description: string;
+  shortDescription: string;
   tier: Tier;
-  basePriceDollars: string;
-  includedFeatureIds: string[];
+  price: string;
+  compareAtPrice: string;
+  includedFeatures: string[];
+  iconName: string;
+  color: string;
   previewImageUrl: string | null;
+  displayOrder: number;
+  isFeatured: boolean;
   isActive: boolean;
 }
 
 type StatusFilter = "ALL" | "ACTIVE" | "INACTIVE";
-
-// =====================================================
-// Mock Data
-// =====================================================
-
-const MOCK_FEATURES: Feature[] = [
-  { id: "f1", name: "User Authentication", key: "auth" },
-  { id: "f2", name: "Payment Processing", key: "payments" },
-  { id: "f3", name: "Real-time Updates", key: "realtime" },
-  { id: "f4", name: "File Uploads", key: "file-upload" },
-  { id: "f5", name: "Admin Dashboard", key: "admin" },
-  { id: "f6", name: "Analytics", key: "analytics" },
-  { id: "f7", name: "Email Notifications", key: "email" },
-  { id: "f8", name: "API Access", key: "api" },
-  { id: "f9", name: "Multi-tenancy", key: "multitenancy" },
-  { id: "f10", name: "SSO Integration", key: "sso" },
-];
-
-const INITIAL_TEMPLATES: Template[] = [
-  {
-    id: "t1",
-    name: "Starter Bundle",
-    slug: "starter-bundle",
-    description: "Essential features for small projects and MVPs.",
-    tier: "STARTER",
-    basePriceCents: 4900,
-    includedFeatureIds: ["f1", "f2", "f7"],
-    isActive: true,
-    createdAt: "2024-01-15T10:00:00Z",
-    updatedAt: "2024-01-15T10:00:00Z",
-  },
-  {
-    id: "t2",
-    name: "Pro Suite",
-    slug: "pro-suite",
-    description: "Advanced features for growing businesses with real-time capabilities.",
-    tier: "PRO",
-    basePriceCents: 14900,
-    includedFeatureIds: ["f1", "f2", "f3", "f4", "f6", "f7"],
-    isActive: true,
-    createdAt: "2024-01-16T10:00:00Z",
-    updatedAt: "2024-01-20T15:30:00Z",
-  },
-  {
-    id: "t3",
-    name: "Business Complete",
-    slug: "business-complete",
-    description: "Full-featured solution for established businesses with admin tools.",
-    tier: "BUSINESS",
-    basePriceCents: 29900,
-    includedFeatureIds: ["f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8"],
-    isActive: true,
-    createdAt: "2024-01-17T10:00:00Z",
-    updatedAt: "2024-01-25T09:15:00Z",
-  },
-  {
-    id: "t4",
-    name: "Enterprise Platform",
-    slug: "enterprise-platform",
-    description: "Enterprise-grade solution with SSO, multi-tenancy, and priority support.",
-    tier: "ENTERPRISE",
-    basePriceCents: 99900,
-    includedFeatureIds: ["f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "f10"],
-    isActive: true,
-    createdAt: "2024-01-18T10:00:00Z",
-    updatedAt: "2024-02-01T11:45:00Z",
-  },
-  {
-    id: "t5",
-    name: "Legacy Basic",
-    slug: "legacy-basic",
-    description: "Deprecated basic template - no longer available for new purchases.",
-    tier: "STARTER",
-    basePriceCents: 2900,
-    includedFeatureIds: ["f1"],
-    isActive: false,
-    createdAt: "2023-06-01T10:00:00Z",
-    updatedAt: "2024-01-01T00:00:00Z",
-  },
-];
 
 // =====================================================
 // Helper Functions
@@ -309,12 +244,20 @@ const DEFAULT_FORM_DATA: TemplateFormData = {
   name: "",
   slug: "",
   description: "",
+  shortDescription: "",
   tier: "STARTER",
-  basePriceDollars: "",
-  includedFeatureIds: [],
+  price: "",
+  compareAtPrice: "",
+  includedFeatures: [],
+  iconName: "",
+  color: "#000000",
   previewImageUrl: null,
+  displayOrder: 0,
+  isFeatured: false,
   isActive: true,
 };
+
+type TemplateFormErrors = FormErrors<"name" | "slug" | "price">;
 
 function TemplateFormModal({
   isOpen,
@@ -328,6 +271,43 @@ function TemplateFormModal({
   const [formData, setFormData] = React.useState<TemplateFormData>(DEFAULT_FORM_DATA);
   const [autoSlug, setAutoSlug] = React.useState(true);
   const [isUploadingImage, setIsUploadingImage] = React.useState(false);
+  const [errors, setErrors] = React.useState<TemplateFormErrors>({});
+
+  // Validate form fields
+  const validateForm = React.useCallback((): boolean => {
+    const newErrors: TemplateFormErrors = {};
+
+    // Name validation: required, minLength 2
+    const nameError = validate(formData.name, validators.required, validators.minLength(2));
+    if (nameError) newErrors.name = nameError;
+
+    // Slug validation: required, slug format
+    const slugRequired = validate(formData.slug, validators.required);
+    if (slugRequired) {
+      newErrors.slug = slugRequired;
+    } else {
+      const slugFormat = validate(formData.slug, validators.slug);
+      if (slugFormat) newErrors.slug = slugFormat;
+    }
+
+    // Price validation: required, positive number
+    const priceRequired = validate(formData.price, validators.required);
+    if (priceRequired) {
+      newErrors.price = priceRequired;
+    } else {
+      const priceValid = validate(formData.price, validators.positiveNumericString);
+      if (priceValid) newErrors.price = priceValid;
+    }
+
+    setErrors(newErrors);
+    return !hasErrors(newErrors);
+  }, [formData.name, formData.slug, formData.price]);
+
+  // Check if form has validation errors (for disabling submit button)
+  const formHasErrors = React.useMemo(() => {
+    // Only show as having errors if user has interacted and there are actual errors
+    return hasErrors(errors);
+  }, [errors]);
 
   // Reset form when modal opens/closes or initialData changes
   React.useEffect(() => {
@@ -337,10 +317,16 @@ function TemplateFormModal({
           name: initialData.name,
           slug: initialData.slug,
           description: initialData.description,
+          shortDescription: initialData.shortDescription || "",
           tier: initialData.tier,
-          basePriceDollars: (initialData.basePriceCents / 100).toFixed(2),
-          includedFeatureIds: [...initialData.includedFeatureIds],
+          price: (initialData.price / 100).toFixed(2),
+          compareAtPrice: initialData.compareAtPrice ? (initialData.compareAtPrice / 100).toFixed(2) : "",
+          includedFeatures: [...initialData.includedFeatures],
+          iconName: initialData.iconName || "",
+          color: initialData.color || "#000000",
           previewImageUrl: initialData.previewImageUrl || null,
+          displayOrder: initialData.displayOrder || 0,
+          isFeatured: initialData.isFeatured || false,
           isActive: initialData.isActive,
         });
         setAutoSlug(false);
@@ -348,6 +334,8 @@ function TemplateFormModal({
         setFormData(DEFAULT_FORM_DATA);
         setAutoSlug(true);
       }
+      // Clear errors when modal opens/closes
+      setErrors({});
     }
   }, [isOpen, initialData]);
 
@@ -358,6 +346,14 @@ function TemplateFormModal({
       name,
       slug: autoSlug ? generateSlug(name) : prev.slug,
     }));
+    // Clear name error when user types
+    if (errors.name) {
+      setErrors((prev) => ({ ...prev, name: undefined }));
+    }
+    // Also clear slug error if auto-generating
+    if (autoSlug && errors.slug) {
+      setErrors((prev) => ({ ...prev, slug: undefined }));
+    }
   };
 
   const handleSlugChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -366,19 +362,36 @@ function TemplateFormModal({
       ...prev,
       slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""),
     }));
+    // Clear slug error when user types
+    if (errors.slug) {
+      setErrors((prev) => ({ ...prev, slug: undefined }));
+    }
   };
 
-  const handleFeatureToggle = (featureId: string, checked: boolean) => {
+  const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData((prev) => ({ ...prev, price: e.target.value }));
+    // Clear price error when user types
+    if (errors.price) {
+      setErrors((prev) => ({ ...prev, price: undefined }));
+    }
+  };
+
+  const handleFeatureToggle = (featureSlug: string, checked: boolean) => {
     setFormData((prev) => ({
       ...prev,
-      includedFeatureIds: checked
-        ? [...prev.includedFeatureIds, featureId]
-        : prev.includedFeatureIds.filter((id) => id !== featureId),
+      includedFeatures: checked
+        ? [...prev.includedFeatures, featureSlug]
+        : prev.includedFeatures.filter((slug) => slug !== featureSlug),
     }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // Validate before submit
+    if (!validateForm()) {
+      showError("Please fix the form errors before submitting");
+      return;
+    }
     onSubmit(formData);
   };
 
@@ -431,7 +444,12 @@ function TemplateFormModal({
           <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
             Cancel
           </Button>
-          <Button type="submit" form="template-form" isLoading={isSubmitting}>
+          <Button
+            type="submit"
+            form="template-form"
+            isLoading={isSubmitting}
+            disabled={formHasErrors || isSubmitting}
+          >
             {isEditing ? "Save Changes" : "Create Template"}
           </Button>
         </>
@@ -448,8 +466,10 @@ function TemplateFormModal({
             value={formData.name}
             onChange={handleNameChange}
             placeholder="e.g., Starter Bundle"
-            required
+            aria-invalid={!!errors.name}
+            aria-describedby={errors.name ? "name-error" : undefined}
           />
+          <FormError message={errors.name} />
         </div>
 
         {/* Slug */}
@@ -462,11 +482,16 @@ function TemplateFormModal({
             value={formData.slug}
             onChange={handleSlugChange}
             placeholder="e.g., starter-bundle"
-            required
+            aria-invalid={!!errors.slug}
+            aria-describedby={errors.slug ? "slug-error" : "slug-help"}
           />
-          <p className="text-xs text-muted-foreground">
-            URL-friendly identifier. Auto-generated from name if not edited.
-          </p>
+          {errors.slug ? (
+            <FormError message={errors.slug} />
+          ) : (
+            <p id="slug-help" className="text-xs text-muted-foreground">
+              URL-friendly identifier. Auto-generated from name if not edited.
+            </p>
+          )}
         </div>
 
         {/* Description */}
@@ -510,29 +535,29 @@ function TemplateFormModal({
             />
           </div>
 
-          {/* Base Price */}
+          {/* Price */}
           <div className="space-y-1.5">
-            <Label htmlFor="basePriceDollars" required>
-              Base Price (USD)
+            <Label htmlFor="price" required>
+              Price (USD)
             </Label>
             <div className="relative">
               <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
                 $
               </span>
               <Input
-                id="basePriceDollars"
+                id="price"
                 type="number"
                 step="0.01"
                 min="0"
-                value={formData.basePriceDollars}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, basePriceDollars: e.target.value }))
-                }
+                value={formData.price}
+                onChange={handlePriceChange}
                 placeholder="49.00"
                 className="pl-6"
-                required
+                aria-invalid={!!errors.price}
+                aria-describedby={errors.price ? "price-error" : undefined}
               />
             </div>
+            <FormError message={errors.price} />
           </div>
         </div>
 
@@ -546,15 +571,15 @@ function TemplateFormModal({
                   key={feature.id}
                   id={`feature-${feature.id}`}
                   label={feature.name}
-                  checked={formData.includedFeatureIds.includes(feature.id)}
-                  onChange={(e) => handleFeatureToggle(feature.id, e.target.checked)}
+                  checked={formData.includedFeatures.includes(feature.slug)}
+                  onChange={(e) => handleFeatureToggle(feature.slug, e.target.checked)}
                   size="sm"
                 />
               ))}
             </div>
           </div>
           <p className="text-xs text-muted-foreground">
-            {formData.includedFeatureIds.length} feature(s) selected
+            {formData.includedFeatures.length} feature(s) selected
           </p>
         </div>
 
@@ -569,6 +594,7 @@ function TemplateFormModal({
           <Switch
             checked={formData.isActive}
             onChange={(checked) => setFormData((prev) => ({ ...prev, isActive: checked }))}
+            aria-label="Toggle template active status"
           />
         </div>
       </form>
@@ -615,10 +641,12 @@ function EmptyState({ onAddClick, hasFilters }: EmptyStateProps) {
 
 function LoadingState() {
   return (
-    <div className="flex flex-col items-center justify-center py-16 px-4 bg-background rounded-lg border">
-      <Spinner size="lg" />
-      <p className="text-sm text-muted-foreground mt-4">Loading templates...</p>
-    </div>
+    <AdminTableSkeleton
+      columns={8}
+      rows={5}
+      showStats={false}
+      filterCount={2}
+    />
   );
 }
 
@@ -628,9 +656,9 @@ function LoadingState() {
 
 export default function TemplatesPage() {
   // State
-  const [templates, setTemplates] = React.useState<Template[]>(INITIAL_TEMPLATES);
-  const [features] = React.useState<Feature[]>(MOCK_FEATURES);
-  const [isLoading, setIsLoading] = React.useState(false);
+  const [templates, setTemplates] = React.useState<Template[]>([]);
+  const [features, setFeatures] = React.useState<Feature[]>([]);
+  const [isLoading, setIsLoading] = React.useState(true);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [isDeleting, setIsDeleting] = React.useState(false);
 
@@ -644,6 +672,42 @@ export default function TemplatesPage() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
   const [editingTemplate, setEditingTemplate] = React.useState<Template | undefined>();
   const [deletingTemplate, setDeletingTemplate] = React.useState<Template | null>(null);
+
+  // Fetch templates and features on mount
+  React.useEffect(() => {
+    async function fetchData() {
+      setIsLoading(true);
+      try {
+        const [templatesRes, featuresRes] = await Promise.all([
+          fetch(`${API_CONFIG.BASE_URL}/admin/templates`, {
+            credentials: "include",
+          }),
+          fetch(`${API_CONFIG.BASE_URL}/admin/features`, {
+            credentials: "include",
+          }),
+        ]);
+
+        if (!templatesRes.ok) {
+          throw new Error("Failed to fetch templates");
+        }
+        if (!featuresRes.ok) {
+          throw new Error("Failed to fetch features");
+        }
+
+        const templatesData = await templatesRes.json();
+        const featuresData = await featuresRes.json();
+
+        setTemplates(templatesData.data?.items || []);
+        setFeatures(featuresData.data?.items || []);
+      } catch (error) {
+        console.error("Failed to fetch data:", error);
+        showError("Failed to load templates and features");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
 
   // Filter options
   const statusOptions = [
@@ -712,66 +776,77 @@ export default function TemplatesPage() {
   const handleFormSubmit = async (formData: TemplateFormData) => {
     setIsSubmitting(true);
 
-    // Simulate API delay
-    await new Promise((resolve) => setTimeout(resolve, 800));
+    const priceInCents = Math.round(parseFloat(formData.price) * 100);
+    const compareAtPriceInCents = formData.compareAtPrice
+      ? Math.round(parseFloat(formData.compareAtPrice) * 100)
+      : null;
 
-    const basePriceCents = Math.round(parseFloat(formData.basePriceDollars) * 100);
+    const payload = {
+      name: formData.name,
+      slug: formData.slug,
+      description: formData.description,
+      shortDescription: formData.shortDescription,
+      tier: formData.tier,
+      price: priceInCents,
+      compareAtPrice: compareAtPriceInCents,
+      includedFeatures: formData.includedFeatures,
+      iconName: formData.iconName,
+      color: formData.color,
+      previewImageUrl: formData.previewImageUrl,
+      displayOrder: formData.displayOrder,
+      isFeatured: formData.isFeatured,
+      isActive: formData.isActive,
+    };
 
-    if (editingTemplate) {
-      // TODO: Replace with API call - PATCH /api/admin/templates/:id
-      // const response = await fetch(`/api/admin/templates/${editingTemplate.id}`, {
-      //   method: 'PATCH',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ ...formData, basePriceCents }),
-      // });
-      // const updatedTemplate = await response.json();
+    try {
+      if (editingTemplate) {
+        const response = await fetch(`${API_CONFIG.BASE_URL}/admin/templates/${editingTemplate.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(payload),
+        });
 
-      setTemplates((prev) =>
-        prev.map((t) =>
-          t.id === editingTemplate.id
-            ? {
-                ...t,
-                name: formData.name,
-                slug: formData.slug,
-                description: formData.description,
-                tier: formData.tier,
-                basePriceCents,
-                includedFeatureIds: formData.includedFeatureIds,
-                previewImageUrl: formData.previewImageUrl,
-                isActive: formData.isActive,
-                updatedAt: new Date().toISOString(),
-              }
-            : t
-        )
-      );
-    } else {
-      // TODO: Replace with API call - POST /api/admin/templates
-      // const response = await fetch('/api/admin/templates', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ ...formData, basePriceCents }),
-      // });
-      // const newTemplate = await response.json();
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "Failed to update template");
+        }
 
-      const newTemplate: Template = {
-        id: `t${Date.now()}`,
-        name: formData.name,
-        slug: formData.slug,
-        description: formData.description,
-        tier: formData.tier,
-        basePriceCents,
-        includedFeatureIds: formData.includedFeatureIds,
-        previewImageUrl: formData.previewImageUrl,
-        isActive: formData.isActive,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      setTemplates((prev) => [newTemplate, ...prev]);
+        const result = await response.json();
+        const updatedTemplate = result.data;
+
+        setTemplates((prev) =>
+          prev.map((t) => (t.id === editingTemplate.id ? updatedTemplate : t))
+        );
+        showSuccess("Template updated successfully");
+      } else {
+        const response = await fetch(`${API_CONFIG.BASE_URL}/admin/templates`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "Failed to create template");
+        }
+
+        const result = await response.json();
+        const newTemplate = result.data;
+
+        setTemplates((prev) => [newTemplate, ...prev]);
+        showSuccess("Template created successfully");
+      }
+
+      setIsFormModalOpen(false);
+      setEditingTemplate(undefined);
+    } catch (error) {
+      console.error("Failed to save template:", error);
+      showError("Failed to save template", error instanceof Error ? error.message : undefined);
+    } finally {
+      setIsSubmitting(false);
     }
-
-    setIsSubmitting(false);
-    setIsFormModalOpen(false);
-    setEditingTemplate(undefined);
   };
 
   const handleDeleteConfirm = async () => {
@@ -779,63 +854,65 @@ export default function TemplatesPage() {
 
     setIsDeleting(true);
 
-    // Simulate API delay
-    await new Promise((resolve) => setTimeout(resolve, 800));
+    try {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/admin/templates/${deletingTemplate.id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
 
-    // TODO: Replace with API call - DELETE /api/admin/templates/:id
-    // await fetch(`/api/admin/templates/${deletingTemplate.id}`, {
-    //   method: 'DELETE',
-    // });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to delete template");
+      }
 
-    setTemplates((prev) => prev.filter((t) => t.id !== deletingTemplate.id));
-    setIsDeleting(false);
-    setIsDeleteModalOpen(false);
-    setDeletingTemplate(null);
+      setTemplates((prev) => prev.filter((t) => t.id !== deletingTemplate.id));
+      showSuccess("Template deleted successfully");
+      setIsDeleteModalOpen(false);
+      setDeletingTemplate(null);
+    } catch (error) {
+      console.error("Failed to delete template:", error);
+      showError("Failed to delete template", error instanceof Error ? error.message : undefined);
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const handleToggleActive = async (template: Template) => {
     // Optimistic update
+    const previousState = template.isActive;
     setTemplates((prev) =>
       prev.map((t) =>
-        t.id === template.id
-          ? { ...t, isActive: !t.isActive, updatedAt: new Date().toISOString() }
-          : t
+        t.id === template.id ? { ...t, isActive: !t.isActive } : t
       )
     );
 
-    // TODO: Replace with API call - PATCH /api/admin/templates/:id/toggle
-    // try {
-    //   await fetch(`/api/admin/templates/${template.id}/toggle`, {
-    //     method: 'PATCH',
-    //   });
-    // } catch (error) {
-    //   // Revert on error
-    //   setTemplates((prev) =>
-    //     prev.map((t) =>
-    //       t.id === template.id
-    //         ? { ...t, isActive: template.isActive }
-    //         : t
-    //     )
-    //   );
-    // }
-  };
+    try {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/admin/templates/${template.id}/toggle`, {
+        method: "PATCH",
+        credentials: "include",
+      });
 
-  // TODO: Replace with API call - GET /api/admin/templates
-  // React.useEffect(() => {
-  //   async function fetchTemplates() {
-  //     setIsLoading(true);
-  //     try {
-  //       const response = await fetch('/api/admin/templates');
-  //       const data = await response.json();
-  //       setTemplates(data);
-  //     } catch (error) {
-  //       console.error('Failed to fetch templates:', error);
-  //     } finally {
-  //       setIsLoading(false);
-  //     }
-  //   }
-  //   fetchTemplates();
-  // }, []);
+      if (!response.ok) {
+        throw new Error("Failed to toggle template status");
+      }
+
+      const result = await response.json();
+      // Update with server response to ensure consistency
+      setTemplates((prev) =>
+        prev.map((t) => (t.id === template.id ? result.data : t))
+      );
+      showSuccess(`Template ${!previousState ? "activated" : "deactivated"} successfully`);
+    } catch (error) {
+      // Revert on error
+      setTemplates((prev) =>
+        prev.map((t) =>
+          t.id === template.id ? { ...t, isActive: previousState } : t
+        )
+      );
+      console.error("Failed to toggle template:", error);
+      showError("Failed to toggle template status");
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -852,27 +929,30 @@ export default function TemplatesPage() {
       />
 
       {/* Filter Bar */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="flex-1 max-w-sm">
+      <div className="flex flex-col gap-3 sm:flex-row" role="search" aria-label="Filter templates">
+        <div className="w-full sm:flex-1 sm:max-w-sm">
           <SearchInput
             placeholder="Search templates..."
             value={searchQuery}
             onChange={setSearchQuery}
             onClear={() => setSearchQuery("")}
+            aria-label="Search templates"
           />
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row">
           <Select
             options={statusOptions}
             value={statusFilter}
             onChange={(value) => setStatusFilter(value as StatusFilter)}
-            className="w-32"
+            className="w-full sm:w-32"
+            aria-label="Filter by status"
           />
           <Select
             options={tierOptions}
             value={tierFilter}
             onChange={setTierFilter}
-            className="w-36"
+            className="w-full sm:w-36"
+            aria-label="Filter by tier"
           />
         </div>
       </div>
@@ -883,8 +963,9 @@ export default function TemplatesPage() {
       ) : filteredTemplates.length === 0 ? (
         <EmptyState onAddClick={handleAddTemplate} hasFilters={hasFilters} />
       ) : (
-        <div className="bg-background rounded-lg border overflow-hidden">
-          <Table>
+        <div className="bg-background rounded-lg border">
+          <div className="overflow-x-auto">
+            <Table className="min-w-[700px]">
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
@@ -899,7 +980,7 @@ export default function TemplatesPage() {
             </TableHeader>
             <TableBody>
               {filteredTemplates.map((template) => {
-                const featureCount = template.includedFeatureIds.length;
+                const featureCount = template.includedFeatures?.length || 0;
                 return (
                   <TableRow key={template.id}>
                     <TableCell className="font-medium">{template.name}</TableCell>
@@ -915,7 +996,7 @@ export default function TemplatesPage() {
                       <TierBadge tier={template.tier} />
                     </TableCell>
                     <TableCell className="text-right font-medium">
-                      {formatCurrency(template.basePriceCents)}
+                      {formatCurrency(template.price)}
                     </TableCell>
                     <TableCell className="text-center hidden sm:table-cell">
                       <span className="text-sm text-muted-foreground">
@@ -927,6 +1008,7 @@ export default function TemplatesPage() {
                         checked={template.isActive}
                         onChange={() => handleToggleActive(template)}
                         size="sm"
+                        aria-label={`${template.isActive ? "Deactivate" : "Activate"} ${template.name}`}
                       />
                     </TableCell>
                     <TableCell className="text-right">
@@ -955,12 +1037,13 @@ export default function TemplatesPage() {
               })}
             </TableBody>
           </Table>
+          </div>
         </div>
       )}
 
       {/* Summary */}
       {!isLoading && filteredTemplates.length > 0 && (
-        <div className="flex items-center justify-between text-sm text-muted-foreground">
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between text-sm text-muted-foreground">
           <span>
             Showing {formatNumber(filteredTemplates.length)} of {formatNumber(templates.length)}{" "}
             templates

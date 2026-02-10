@@ -35,7 +35,7 @@ import {
   Textarea,
 } from "@/components/ui";
 import { EmptySearch, EmptyList } from "@/components/ui";
-import { AdminPageHeader, AdminFilters } from "@/components/admin";
+import { AdminPageHeader, AdminFilters, AdminTableSkeleton } from "@/components/admin";
 
 // ============================================================================
 // Types
@@ -472,27 +472,14 @@ function CustomerDetailsDrawer({
 // Loading Skeleton Component
 // ============================================================================
 
-function TableSkeleton() {
+function CustomersTableSkeleton() {
   return (
-    <div className="space-y-3">
-      {[...Array(5)].map((_, i) => (
-        <div
-          key={i}
-          className="flex items-center gap-4 p-4 bg-background rounded-lg border animate-pulse"
-        >
-          <div className="h-10 w-10 rounded-full bg-muted" />
-          <div className="flex-1 space-y-2">
-            <div className="h-4 bg-muted rounded w-32" />
-            <div className="h-3 bg-muted rounded w-48" />
-          </div>
-          <div className="h-4 bg-muted rounded w-24" />
-          <div className="h-4 bg-muted rounded w-16" />
-          <div className="h-4 bg-muted rounded w-20" />
-          <div className="h-6 bg-muted rounded-full w-16" />
-          <div className="h-8 bg-muted rounded w-20" />
-        </div>
-      ))}
-    </div>
+    <AdminTableSkeleton
+      columns={7}
+      rows={5}
+      statsCount={4}
+      filterCount={2}
+    />
   );
 }
 
@@ -771,7 +758,7 @@ export default function CustomersPage() {
 
       {/* Data Table */}
       {loading ? (
-        <TableSkeleton />
+        <CustomersTableSkeleton />
       ) : filteredCustomers.length === 0 ? (
         hasActiveFilters ? (
           <EmptySearch

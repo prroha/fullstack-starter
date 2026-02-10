@@ -1,7 +1,7 @@
 # CLAUDE.md - Fullstack Starter Template
 
-> **Last Updated**: 2026-02-09
-> **Codebase Version**: 1.1.0
+> **Last Updated**: 2026-02-10
+> **Codebase Version**: 1.2.0
 > **Maintainer**: AI-assisted documentation (auto-update on changes)
 
 AI-optimized documentation for quick codebase navigation and understanding.
@@ -28,11 +28,13 @@ Use these to quickly find what you need:
 
 <!-- Add new entries at the top -->
 
-| Date       | Change                                                                                       | Files                                                                                       |
-| ---------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| 2026-02-09 | Documentation updates, ESLint configuration, skeleton composites                             | `CLAUDE.md`, `eslint.config.mjs`, `skeleton-composites.tsx`                                 |
-| 2026-02-08 | Admin platform expansion with FAQ, Announcements, Settings, Content, Coupons, Orders modules | `backend/src/routes/*.routes.ts`, `prisma/schema.prisma`, `web/src/app/(protected)/admin/*` |
-| 2026-02-06 | Initial documentation                                                                        | CLAUDE.md                                                                                   |
+| Date       | Change                                                                                            | Files                                                                                       |
+| ---------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| 2026-02-10 | Studio MVP: Admin auth, API integration, toast notifications, validation, mobile responsive, a11y | `studio/backend/src/routes/`, `studio/web/src/app/(admin)/`, `studio/web/src/lib/`          |
+| 2026-02-10 | Studio bug fixes: Route ordering, Stripe refunds, API path fixes                                  | `studio/backend/src/routes/admin/`, `studio/backend/src/services/stripe.service.ts`         |
+| 2026-02-09 | Documentation updates, ESLint configuration, skeleton composites                                  | `CLAUDE.md`, `eslint.config.mjs`, `skeleton-composites.tsx`                                 |
+| 2026-02-08 | Admin platform expansion with FAQ, Announcements, Settings, Content, Coupons, Orders modules      | `backend/src/routes/*.routes.ts`, `prisma/schema.prisma`, `web/src/app/(protected)/admin/*` |
+| 2026-02-06 | Initial documentation                                                                             | CLAUDE.md                                                                                   |
 
 ---
 
@@ -114,6 +116,12 @@ fullstack-starter/
 │   ├── payments/
 │   └── real-time/
 │
+├── studio/                    # Starter Studio - Configuration & Pricing Platform
+│   ├── backend/               # Express API (port 3001)
+│   ├── web/                   # Next.js frontend (port 3002)
+│   ├── shared/                # Shared TypeScript types
+│   └── CLAUDE.md              # Studio-specific documentation
+│
 └── CLAUDE.md                  # This file
 ```
 
@@ -179,6 +187,34 @@ flutter run                    # Run on connected device
 flutter build apk              # Build Android APK
 flutter pub run build_runner build --delete-conflicting-outputs  # Generate code
 ```
+
+### Studio (Configuration Platform)
+
+| Item               | Location                                      |
+| ------------------ | --------------------------------------------- |
+| Backend entry      | `studio/backend/src/index.ts`                 |
+| Frontend entry     | `studio/web/src/app/layout.tsx`               |
+| Configurator       | `studio/web/src/components/configurator/`     |
+| Admin dashboard    | `studio/web/src/app/(admin)/admin/`           |
+| Feature resolver   | `studio/web/src/lib/features/dependencies.ts` |
+| Pricing calculator | `studio/web/src/lib/pricing/calculator.ts`    |
+| Shared types       | `studio/shared/types/`                        |
+
+**Key Commands:**
+
+```bash
+cd studio
+npm run dev              # Start both backend (3001) and frontend (3002)
+
+cd studio/backend
+npm run dev              # Backend only
+npm run db:seed          # Seed features, tiers, templates
+
+cd studio/web
+npm run dev              # Frontend only
+```
+
+**Documentation:** See `studio/CLAUDE.md` for detailed Studio documentation.
 
 ---
 

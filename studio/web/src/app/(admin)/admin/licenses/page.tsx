@@ -21,7 +21,7 @@ import { cn, formatNumber, formatDate, formatDateTime } from "@/lib/utils";
 import { Button, Modal, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, StatCard, CopyButton } from "@/components/ui";
 import { EmptyList } from "@/components/ui";
 import { EmptyState } from "@core/components/shared";
-import { AdminPageHeader, AdminFilters, LicenseStatusBadge } from "@/components/admin";
+import { AdminPageHeader, AdminFilters, LicenseStatusBadge, AdminTableSkeleton } from "@/components/admin";
 
 // Types
 type LicenseStatus = "ACTIVE" | "EXPIRED" | "REVOKED";
@@ -667,55 +667,12 @@ function Pagination({
 // Loading Skeleton
 function LoadingSkeleton() {
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <div className="h-8 bg-muted rounded w-32 animate-pulse" />
-        <div className="h-4 bg-muted rounded w-48 mt-2 animate-pulse" />
-      </div>
-
-      {/* Filter Bar */}
-      <div className="flex gap-4">
-        <div className="h-10 bg-muted rounded flex-1 max-w-md animate-pulse" />
-        <div className="h-10 bg-muted rounded w-40 animate-pulse" />
-      </div>
-
-      {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-4">
-        {[...Array(4)].map((_, i) => (
-          <div key={i} className="bg-background rounded-lg border p-4 animate-pulse">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-muted" />
-              <div>
-                <div className="h-4 bg-muted rounded w-16 mb-1" />
-                <div className="h-6 bg-muted rounded w-12" />
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Table */}
-      <div className="bg-background rounded-lg border">
-        <div className="p-4 border-b">
-          <div className="h-5 bg-muted rounded w-24 animate-pulse" />
-        </div>
-        <div className="divide-y">
-          {[...Array(5)].map((_, i) => (
-            <div key={i} className="px-4 py-3 flex items-center gap-4 animate-pulse">
-              <div className="h-4 bg-muted rounded w-40" />
-              <div className="h-4 bg-muted rounded w-24" />
-              <div className="h-4 bg-muted rounded w-32" />
-              <div className="h-4 bg-muted rounded w-16" />
-              <div className="h-4 bg-muted rounded w-12" />
-              <div className="h-4 bg-muted rounded w-24" />
-              <div className="h-4 bg-muted rounded w-24" />
-              <div className="h-4 bg-muted rounded w-8" />
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
+    <AdminTableSkeleton
+      columns={8}
+      rows={5}
+      statsCount={4}
+      filterCount={1}
+    />
   );
 }
 

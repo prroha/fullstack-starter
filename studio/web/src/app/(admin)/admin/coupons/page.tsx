@@ -30,11 +30,10 @@ import {
   Dialog,
   DialogBody,
   DialogFooter,
-  SkeletonTable,
   EmptySearch,
   EmptyList,
 } from "@/components/ui";
-import { AdminPageHeader, AdminFilters, TierBadge } from "@/components/admin";
+import { AdminPageHeader, AdminFilters, TierBadge, TableSkeleton } from "@/components/admin";
 import { cn, formatCurrency, formatDate, formatNumber } from "@/lib/utils";
 
 // =============================================================================
@@ -609,9 +608,7 @@ export default function CouponsPage() {
       {/* Data Table */}
       <div className="rounded-lg border bg-card">
         {loading ? (
-          <div className="p-6">
-            <SkeletonTable rows={5} columns={8} />
-          </div>
+          <TableSkeleton rows={5} columns={8} showHeader showFilters={false} />
         ) : filteredCoupons.length === 0 ? (
           <div className="p-6">
             {hasActiveFilters ? (

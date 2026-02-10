@@ -12,8 +12,10 @@ import {
   AlertTriangle,
   Info,
 } from "lucide-react";
-import { toast } from "sonner";
+import { showSuccess, showError, showInfo } from "@/lib/toast";
 import { cn, formatCurrency } from "@/lib/utils";
+import { API_CONFIG } from "@/lib/constants";
+import { validators, validate } from "@/lib/validation";
 import {
   Button,
   Input,
@@ -174,8 +176,8 @@ function SectionCard({
 }: SectionCardProps) {
   return (
     <Card className="bg-background">
-      <CardHeader bordered className="p-6">
-        <div className="flex items-start justify-between">
+      <CardHeader bordered className="p-4 sm:p-6">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h2 className="text-lg font-semibold">{title}</h2>
             {description && (
@@ -183,23 +185,24 @@ function SectionCard({
             )}
           </div>
           {hasChanges && (
-            <Badge variant="warning" className="flex items-center gap-1.5">
-              <AlertCircle className="h-3 w-3" />
+            <Badge variant="warning" className="flex items-center gap-1.5 self-start" role="status" aria-live="polite">
+              <AlertCircle className="h-3 w-3" aria-hidden="true" />
               Unsaved changes
             </Badge>
           )}
         </div>
       </CardHeader>
-      <CardContent className="p-6 space-y-6">{children}</CardContent>
+      <CardContent className="p-4 sm:p-6 space-y-6">{children}</CardContent>
       {(onSave || onReset) && (
-        <CardFooter bordered className="px-6 py-4 bg-muted/30 flex items-center justify-end gap-3">
+        <CardFooter bordered className="px-4 sm:px-6 py-4 bg-muted/30 flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3">
           {onReset && (
             <Button
               type="button"
               variant="ghost"
               onClick={onReset}
+              className="w-full sm:w-auto"
             >
-              <RotateCcw className="h-4 w-4 mr-2" />
+              <RotateCcw className="h-4 w-4 mr-2" aria-hidden="true" />
               Reset to defaults
             </Button>
           )}
@@ -209,8 +212,9 @@ function SectionCard({
               onClick={onSave}
               disabled={saving || !hasChanges}
               isLoading={saving}
+              className="w-full sm:w-auto"
             >
-              {!saving && <Save className="h-4 w-4 mr-2" />}
+              {!saving && <Save className="h-4 w-4 mr-2" aria-hidden="true" />}
               Save changes
             </Button>
           )}
@@ -230,22 +234,29 @@ interface FormFieldProps {
 }
 
 function FormField({ label, htmlFor, helpText, error, required, children }: FormFieldProps) {
+  const helpId = helpText ? `${htmlFor}-help` : undefined;
+  const errorId = error ? `${htmlFor}-error` : undefined;
+  const describedBy = [helpId, errorId].filter(Boolean).join(" ") || undefined;
+
   return (
     <div className="space-y-2">
       <label htmlFor={htmlFor} className="block text-sm font-medium">
         {label}
-        {required && <span className="text-destructive ml-1">*</span>}
+        {required && <span className="text-destructive ml-1" aria-hidden="true">*</span>}
+        {required && <span className="sr-only">(required)</span>}
       </label>
-      {children}
+      <div aria-describedby={describedBy}>
+        {children}
+      </div>
       {helpText && !error && (
-        <p className="text-xs text-muted-foreground flex items-center gap-1">
-          <Info className="h-3 w-3" />
+        <p id={helpId} className="text-xs text-muted-foreground flex items-center gap-1">
+          <Info className="h-3 w-3" aria-hidden="true" />
           {helpText}
         </p>
       )}
       {error && (
-        <p className="text-xs text-destructive flex items-center gap-1">
-          <AlertCircle className="h-3 w-3" />
+        <p id={errorId} className="text-xs text-destructive flex items-center gap-1" role="alert">
+          <AlertCircle className="h-3 w-3" aria-hidden="true" />
           {error}
         </p>
       )}
@@ -268,9 +279,10 @@ function MaskedInput({ className, ...props }: MaskedInputProps) {
       <button
         type="button"
         onClick={() => setShowValue(!showValue)}
-        className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground"
+        className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded"
+        aria-label={showValue ? "Hide value" : "Show value"}
       >
-        {showValue ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        {showValue ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}
       </button>
     </div>
   );
@@ -405,20 +417,64 @@ export default function SettingsPage() {
   useEffect(() => {
     const loadSettings = async () => {
       try {
-        // In production, this would be:
-        // const response = await fetch('/api/admin/settings');
-        // const data = await response.json();
-        // Convert settings array to state object
+        const response = await fetch(`${API_CONFIG.BASE_URL}/admin/settings`, {
+          credentials: "include",
+        });
 
-        // For now, simulating API call with mock data
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        if (!response.ok) {
+          throw new Error(`Failed to load settings: ${response.statusText}`);
+        }
 
-        // The mock data is already set in DEFAULT_SETTINGS
-        setSettings(DEFAULT_SETTINGS);
-        setOriginalSettings(DEFAULT_SETTINGS);
+        const data = await response.json();
+
+        if (data.success && data.data?.items) {
+          // Convert settings array to state object
+          const loadedSettings: SettingsState = { ...DEFAULT_SETTINGS };
+
+          // Helper to safely set setting value
+          const setSetting = (settings: SettingsState, key: keyof SettingsState, value: unknown) => {
+            (settings as unknown as Record<string, unknown>)[key] = value;
+          };
+
+          for (const item of data.data.items) {
+            const key = item.key as keyof SettingsState;
+            if (key in loadedSettings) {
+              // Convert value based on type
+              switch (item.type) {
+                case "NUMBER":
+                  setSetting(loadedSettings, key, parseFloat(item.value) || 0);
+                  break;
+                case "BOOLEAN":
+                  setSetting(loadedSettings, key, item.value === "true");
+                  break;
+                case "JSON":
+                  try {
+                    setSetting(loadedSettings, key, JSON.parse(item.value));
+                  } catch {
+                    setSetting(loadedSettings, key, item.value);
+                  }
+                  break;
+                case "STRING":
+                default:
+                  setSetting(loadedSettings, key, item.value);
+                  break;
+              }
+            }
+          }
+
+          setSettings(loadedSettings);
+          setOriginalSettings(loadedSettings);
+        } else {
+          // Use defaults if no settings returned
+          setSettings(DEFAULT_SETTINGS);
+          setOriginalSettings(DEFAULT_SETTINGS);
+        }
       } catch (error) {
         console.error("Failed to load settings:", error);
-        toast.error("Failed to load settings");
+        showError("Failed to load settings");
+        // Fall back to defaults on error
+        setSettings(DEFAULT_SETTINGS);
+        setOriginalSettings(DEFAULT_SETTINGS);
       } finally {
         setLoading(false);
       }
@@ -428,27 +484,34 @@ export default function SettingsPage() {
   }, []);
 
   // Validation
-  const validateEmail = (email: string): boolean => {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  };
-
   const validateSettings = useCallback(
     (section: string): boolean => {
       const newErrors: Partial<Record<keyof SettingsState, string>> = {};
 
       if (section === "general") {
-        if (!settings.siteName.trim()) {
-          newErrors.siteName = "Site name is required";
+        // Site name is required
+        const siteNameError = validate(settings.siteName, validators.required);
+        if (siteNameError) newErrors.siteName = siteNameError;
+
+        // Support email - validate format if provided
+        if (settings.supportEmail) {
+          const emailError = validate(settings.supportEmail, validators.email);
+          if (emailError) newErrors.supportEmail = emailError;
         }
-        if (settings.supportEmail && !validateEmail(settings.supportEmail)) {
-          newErrors.supportEmail = "Invalid email address";
+
+        // Logo URL - validate format if provided
+        if (settings.logoUrl) {
+          const urlError = validate(settings.logoUrl, validators.url);
+          if (urlError) newErrors.logoUrl = urlError;
         }
       }
 
       if (section === "payment") {
-        if (settings.taxRate < 0 || settings.taxRate > 100) {
-          newErrors.taxRate = "Tax rate must be between 0 and 100";
-        }
+        // Tax rate must be a valid percentage
+        const taxRateError = validate(settings.taxRate, validators.percentage);
+        if (taxRateError) newErrors.taxRate = taxRateError;
+
+        // Stripe key validation for live mode
         if (settings.enableStripe && settings.stripeLiveMode) {
           if (!settings.stripePublicKey.startsWith("pk_live")) {
             newErrors.stripePublicKey = "Live mode requires a live public key (pk_live_...)";
@@ -457,24 +520,40 @@ export default function SettingsPage() {
             newErrors.stripeSecretKey = "Live mode requires a live secret key (sk_live_...)";
           }
         }
+
+        // Stripe keys are required when Stripe is enabled
+        if (settings.enableStripe) {
+          const publicKeyError = validate(settings.stripePublicKey, validators.required);
+          if (publicKeyError) newErrors.stripePublicKey = "Stripe public key is required";
+
+          const secretKeyError = validate(settings.stripeSecretKey, validators.required);
+          if (secretKeyError) newErrors.stripeSecretKey = "Stripe secret key is required";
+        }
       }
 
       if (section === "download") {
-        if (settings.downloadLinkExpiryDays < 1) {
-          newErrors.downloadLinkExpiryDays = "Expiry must be at least 1 day";
-        }
-        if (settings.maxDownloadsPerLicense < 1) {
-          newErrors.maxDownloadsPerLicense = "Must allow at least 1 download";
-        }
+        // Download link expiry must be at least 1 day
+        const expiryError = validate(settings.downloadLinkExpiryDays, validators.greaterThanZero);
+        if (expiryError) newErrors.downloadLinkExpiryDays = "Expiry must be at least 1 day";
+
+        // Max downloads must be at least 1
+        const maxDownloadsError = validate(settings.maxDownloadsPerLicense, validators.greaterThanZero);
+        if (maxDownloadsError) newErrors.maxDownloadsPerLicense = "Must allow at least 1 download";
       }
 
       if (section === "email") {
-        if (!settings.fromEmail || !validateEmail(settings.fromEmail)) {
-          newErrors.fromEmail = "Valid email address is required";
+        // From email is required and must be valid
+        const fromEmailRequired = validate(settings.fromEmail, validators.required);
+        if (fromEmailRequired) {
+          newErrors.fromEmail = "From email is required";
+        } else {
+          const fromEmailFormat = validate(settings.fromEmail, validators.email);
+          if (fromEmailFormat) newErrors.fromEmail = fromEmailFormat;
         }
-        if (!settings.fromName.trim()) {
-          newErrors.fromName = "From name is required";
-        }
+
+        // From name is required
+        const fromNameError = validate(settings.fromName, validators.required);
+        if (fromNameError) newErrors.fromName = "From name is required";
       }
 
       setErrors(newErrors);
@@ -483,10 +562,34 @@ export default function SettingsPage() {
     [settings]
   );
 
+  // Helper to determine setting type
+  const getSettingType = (key: keyof SettingsState): SettingType => {
+    const value = settings[key];
+    if (typeof value === "boolean") return "BOOLEAN";
+    if (typeof value === "number") return "NUMBER";
+    if (typeof value === "object") return "JSON";
+    return "STRING";
+  };
+
+  // Helper to convert value to string for API
+  const valueToString = (value: unknown, type: SettingType): string => {
+    switch (type) {
+      case "BOOLEAN":
+        return value ? "true" : "false";
+      case "NUMBER":
+        return String(value);
+      case "JSON":
+        return JSON.stringify(value);
+      case "STRING":
+      default:
+        return String(value);
+    }
+  };
+
   // Save section settings
   const saveSection = async (section: string) => {
     if (!validateSettings(section)) {
-      toast.error("Please fix the errors before saving");
+      showError("Please fix the errors before saving");
       return;
     }
 
@@ -520,20 +623,22 @@ export default function SettingsPage() {
 
       const keys = sectionKeys[section] || [];
 
-      // In production, save each setting via API:
-      // for (const key of keys) {
-      //   await fetch(`/api/admin/settings/${key}`, {
-      //     method: 'PUT',
-      //     headers: { 'Content-Type': 'application/json' },
-      //     body: JSON.stringify({
-      //       value: String(settings[key]),
-      //       type: getSettingType(settings[key]),
-      //     }),
-      //   });
-      // }
+      // Save each setting via API
+      for (const key of keys) {
+        const type = getSettingType(key);
+        const value = valueToString(settings[key], type);
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 800));
+        const response = await fetch(`${API_CONFIG.BASE_URL}/admin/settings/${key}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ value, type }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to save setting ${key}: ${response.statusText}`);
+        }
+      }
 
       // Update original settings for the saved section
       const newOriginal = { ...originalSettings };
@@ -542,10 +647,10 @@ export default function SettingsPage() {
       }
       setOriginalSettings(newOriginal);
 
-      toast.success(`${section.charAt(0).toUpperCase() + section.slice(1)} settings saved`);
+      showSuccess(`${section.charAt(0).toUpperCase() + section.slice(1)} settings saved`);
     } catch (error) {
       console.error("Failed to save settings:", error);
-      toast.error("Failed to save settings. Please try again.");
+      showError("Failed to save settings", "Please try again.");
     } finally {
       setSavingSection(null);
     }
@@ -586,7 +691,7 @@ export default function SettingsPage() {
 
     setSettings(newSettings);
     setErrors({});
-    toast.info("Settings reset to defaults (not yet saved)");
+    showInfo("Settings reset to defaults (not yet saved)");
   };
 
   // Update a single setting
@@ -633,8 +738,8 @@ export default function SettingsPage() {
         description="Configure your platform settings and preferences"
         actions={
           hasAnyChanges && (
-            <Badge variant="warning" className="flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4" />
+            <Badge variant="warning" className="flex items-center gap-2" role="status">
+              <AlertTriangle className="h-4 w-4" aria-hidden="true" />
               You have unsaved changes
             </Badge>
           )
@@ -643,8 +748,8 @@ export default function SettingsPage() {
 
       {/* Maintenance Mode Warning */}
       {settings.maintenanceMode && (
-        <div className="flex items-center gap-3 p-4 bg-warning/10 border border-warning/30 rounded-lg">
-          <AlertTriangle className="h-5 w-5 text-warning shrink-0" />
+        <div className="flex items-center gap-3 p-4 bg-warning/10 border border-warning/30 rounded-lg" role="alert" aria-live="polite">
+          <AlertTriangle className="h-5 w-5 text-warning shrink-0" aria-hidden="true" />
           <div>
             <p className="font-medium text-warning">Maintenance Mode is Active</p>
             <p className="text-sm text-muted-foreground">
@@ -826,8 +931,8 @@ export default function SettingsPage() {
               </div>
 
               {settings.stripeLiveMode && (
-                <div className="flex items-center gap-2 p-3 bg-warning/10 rounded-md">
-                  <AlertTriangle className="h-4 w-4 text-warning shrink-0" />
+                <div className="flex items-center gap-2 p-3 bg-warning/10 rounded-md" role="alert">
+                  <AlertTriangle className="h-4 w-4 text-warning shrink-0" aria-hidden="true" />
                   <p className="text-sm text-warning">
                     Live mode is enabled. Real payments will be processed.
                   </p>
@@ -1082,8 +1187,8 @@ export default function SettingsPage() {
             </div>
 
             {settings.maintenanceMode && (
-              <div className="mt-3 flex items-center gap-2 p-3 bg-destructive/10 rounded-md">
-                <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
+              <div className="mt-3 flex items-center gap-2 p-3 bg-destructive/10 rounded-md" role="alert">
+                <AlertTriangle className="h-4 w-4 text-destructive shrink-0" aria-hidden="true" />
                 <p className="text-sm text-destructive">
                   When enabled, only admins can access the store. All customer-facing pages will
                   show a maintenance message.
@@ -1099,7 +1204,7 @@ export default function SettingsPage() {
         title="Pricing Tiers"
         description="Current pricing configuration (read-only reference)"
       >
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
           {MOCK_PRICING_TIERS.map((tier) => (
             <Card
               key={tier.name}
@@ -1134,9 +1239,9 @@ export default function SettingsPage() {
 
       {/* Global Save All Button (sticky at bottom when there are changes) */}
       {hasAnyChanges && (
-        <div className="sticky bottom-6 flex justify-end">
-          <Card className="p-4 flex items-center gap-4 shadow-lg">
-            <span className="text-sm text-muted-foreground">
+        <div className="sticky bottom-4 sm:bottom-6 flex justify-center sm:justify-end">
+          <Card className="p-3 sm:p-4 flex flex-col sm:flex-row items-center gap-3 sm:gap-4 shadow-lg w-full sm:w-auto mx-4 sm:mx-0">
+            <span className="text-sm text-muted-foreground text-center sm:text-left">
               {[
                 generalHasChanges && "General",
                 paymentHasChanges && "Payment",
@@ -1150,6 +1255,7 @@ export default function SettingsPage() {
             </span>
             <Button
               type="button"
+              className="w-full sm:w-auto"
               onClick={async () => {
                 if (generalHasChanges) await saveSection("general");
                 if (paymentHasChanges) await saveSection("payment");

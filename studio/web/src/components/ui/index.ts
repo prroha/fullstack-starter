@@ -11,3 +11,4 @@ export { EmptySearch, EmptyList, EmptyState } from "@core/components/shared";
 
 // Studio-specific components
 export { ImageUpload } from "./image-upload";
+export { FormError } from "./form-error";

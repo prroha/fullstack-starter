@@ -13,13 +13,15 @@ import {
   ChevronRight,
   AlertTriangle,
 } from "lucide-react";
-import { cn, formatCurrency, formatNumber, formatDateTime, formatDate } from "@/lib/utils";
+import { formatCurrency, formatNumber, formatDateTime, formatDate } from "@/lib/utils";
+import { API_CONFIG } from "@/lib/constants";
+import { showSuccess, showError, showLoading, dismissToast } from "@/lib/toast";
 
 // Shared UI components
 import { Button, Modal, StatCard, DropdownMenu } from "@/components/ui";
 import { EmptyList } from "@/components/ui";
 import { EmptyState } from "@core/components/shared";
-import { AdminPageHeader, OrderStatusBadge } from "@/components/admin";
+import { AdminPageHeader, OrderStatusBadge, AdminTableSkeleton } from "@/components/admin";
 
 // Types
 interface Order {
@@ -105,19 +107,19 @@ function OrderDetailsModal({
         </div>
 
         {/* Customer Info */}
-        <div className="border rounded-lg p-4 space-y-2">
-          <h3 className="font-medium">Customer Information</h3>
+        <section className="border rounded-lg p-4 space-y-2" aria-labelledby="customer-info-heading">
+          <h3 id="customer-info-heading" className="font-medium">Customer Information</h3>
           <div className="grid grid-cols-2 gap-2 text-sm">
             <span className="text-muted-foreground">Email</span>
             <span>{order.customerEmail}</span>
             <span className="text-muted-foreground">Name</span>
             <span>{order.customerName || "-"}</span>
           </div>
-        </div>
+        </section>
 
         {/* Order Info */}
-        <div className="border rounded-lg p-4 space-y-2">
-          <h3 className="font-medium">Order Details</h3>
+        <section className="border rounded-lg p-4 space-y-2" aria-labelledby="order-details-heading">
+          <h3 id="order-details-heading" className="font-medium">Order Details</h3>
           <div className="grid grid-cols-2 gap-2 text-sm">
             <span className="text-muted-foreground">Tier</span>
             <span>{order.tier}</span>
@@ -132,11 +134,11 @@ function OrderDetailsModal({
               </>
             )}
           </div>
-        </div>
+        </section>
 
         {/* Payment Info */}
-        <div className="border rounded-lg p-4 space-y-2">
-          <h3 className="font-medium">Payment Information</h3>
+        <section className="border rounded-lg p-4 space-y-2" aria-labelledby="payment-info-heading">
+          <h3 id="payment-info-heading" className="font-medium">Payment Information</h3>
           <div className="grid grid-cols-2 gap-2 text-sm">
             <span className="text-muted-foreground">Created</span>
             <span>{formatDateTime(order.createdAt)}</span>
@@ -147,19 +149,19 @@ function OrderDetailsModal({
               {order.stripePaymentIntentId || "-"}
             </span>
           </div>
-        </div>
+        </section>
 
         {/* License Info */}
         {order.license && (
-          <div className="border rounded-lg p-4 space-y-2">
-            <h3 className="font-medium">License Information</h3>
+          <section className="border rounded-lg p-4 space-y-2" aria-labelledby="license-info-heading">
+            <h3 id="license-info-heading" className="font-medium">License Information</h3>
             <div className="grid grid-cols-2 gap-2 text-sm">
               <span className="text-muted-foreground">License Status</span>
               <span>{order.license.status}</span>
               <span className="text-muted-foreground">Downloads</span>
               <span>{order.license.downloadCount}</span>
             </div>
-          </div>
+          </section>
         )}
       </div>
     </Modal>
@@ -222,13 +224,15 @@ function StatusUpdateModal({
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium mb-2">
+          <label htmlFor="order-status-select" className="block text-sm font-medium mb-2">
             Order: {order.orderNumber}
           </label>
           <select
+            id="order-status-select"
             value={status}
             onChange={(e) => setStatus(e.target.value as OrderStatus)}
-            className="w-full px-3 py-2 border rounded-lg bg-background"
+            className="w-full px-3 py-2 border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            aria-label="Select order status"
           >
             {ORDER_STATUSES.filter(s => s.value).map((s) => (
               <option key={s.value} value={s.value}>
@@ -286,8 +290,8 @@ function RefundConfirmModal({
       }
     >
       <div className="space-y-4">
-        <div className="flex items-start gap-3 p-4 bg-destructive/10 rounded-lg">
-          <AlertTriangle className="h-5 w-5 text-destructive mt-0.5" />
+        <div className="flex items-start gap-3 p-4 bg-destructive/10 rounded-lg" role="alert">
+          <AlertTriangle className="h-5 w-5 text-destructive mt-0.5" aria-hidden="true" />
           <div>
             <p className="font-medium text-destructive">This action cannot be undone</p>
             <p className="text-sm text-muted-foreground mt-1">
@@ -335,187 +339,65 @@ export default function OrdersPage() {
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [statusModalOpen, setStatusModalOpen] = useState(false);
   const [refundModalOpen, setRefundModalOpen] = useState(false);
-
-  // Mock data generator
-  const generateMockOrders = useCallback((page: number, filters: Filters): Order[] => {
-    const mockOrders: Order[] = [
-      {
-        id: "1",
-        orderNumber: "ORD-2024-001",
-        customerEmail: "john.doe@example.com",
-        customerName: "John Doe",
-        tier: "Pro",
-        total: 14900,
-        status: "COMPLETED",
-        createdAt: new Date().toISOString(),
-        paidAt: new Date().toISOString(),
-        stripePaymentIntentId: "pi_1234567890",
-        template: { name: "LMS Template", slug: "lms" },
-        license: { id: "lic-1", status: "ACTIVE", downloadCount: 3 },
-      },
-      {
-        id: "2",
-        orderNumber: "ORD-2024-002",
-        customerEmail: "jane.smith@example.com",
-        customerName: "Jane Smith",
-        tier: "Business",
-        total: 29900,
-        status: "PENDING",
-        createdAt: new Date(Date.now() - 86400000).toISOString(),
-        paidAt: null,
-        stripePaymentIntentId: null,
-        template: { name: "E-Commerce", slug: "ecommerce" },
-      },
-      {
-        id: "3",
-        orderNumber: "ORD-2024-003",
-        customerEmail: "bob.wilson@example.com",
-        customerName: "Bob Wilson",
-        tier: "Starter",
-        total: 4900,
-        status: "COMPLETED",
-        createdAt: new Date(Date.now() - 172800000).toISOString(),
-        paidAt: new Date(Date.now() - 172800000).toISOString(),
-        stripePaymentIntentId: "pi_0987654321",
-        template: { name: "Blog Template", slug: "blog" },
-        license: { id: "lic-2", status: "ACTIVE", downloadCount: 1 },
-      },
-      {
-        id: "4",
-        orderNumber: "ORD-2024-004",
-        customerEmail: "alice.johnson@example.com",
-        customerName: "Alice Johnson",
-        tier: "Enterprise",
-        total: 99900,
-        status: "PROCESSING",
-        createdAt: new Date(Date.now() - 259200000).toISOString(),
-        paidAt: null,
-        stripePaymentIntentId: "pi_1111111111",
-        template: { name: "SaaS Starter", slug: "saas" },
-      },
-      {
-        id: "5",
-        orderNumber: "ORD-2024-005",
-        customerEmail: "charlie.brown@example.com",
-        customerName: "Charlie Brown",
-        tier: "Pro",
-        total: 14900,
-        status: "FAILED",
-        createdAt: new Date(Date.now() - 345600000).toISOString(),
-        paidAt: null,
-        stripePaymentIntentId: null,
-      },
-      {
-        id: "6",
-        orderNumber: "ORD-2024-006",
-        customerEmail: "diana.prince@example.com",
-        customerName: "Diana Prince",
-        tier: "Business",
-        total: 29900,
-        status: "REFUNDED",
-        createdAt: new Date(Date.now() - 432000000).toISOString(),
-        paidAt: new Date(Date.now() - 432000000).toISOString(),
-        stripePaymentIntentId: "pi_2222222222",
-        template: { name: "Agency Template", slug: "agency" },
-        license: { id: "lic-3", status: "REVOKED", downloadCount: 2 },
-      },
-      {
-        id: "7",
-        orderNumber: "ORD-2024-007",
-        customerEmail: "edward.stark@example.com",
-        customerName: "Edward Stark",
-        tier: "Pro",
-        total: 14900,
-        status: "COMPLETED",
-        createdAt: new Date(Date.now() - 518400000).toISOString(),
-        paidAt: new Date(Date.now() - 518400000).toISOString(),
-        stripePaymentIntentId: "pi_3333333333",
-        template: { name: "Portfolio", slug: "portfolio" },
-        license: { id: "lic-4", status: "ACTIVE", downloadCount: 5 },
-      },
-      {
-        id: "8",
-        orderNumber: "ORD-2024-008",
-        customerEmail: "fiona.green@example.com",
-        customerName: "Fiona Green",
-        tier: "Starter",
-        total: 4900,
-        status: "CANCELLED",
-        createdAt: new Date(Date.now() - 604800000).toISOString(),
-        paidAt: null,
-        stripePaymentIntentId: null,
-      },
-    ];
-
-    // Apply filters
-    let filtered = [...mockOrders];
-
-    if (filters.search) {
-      const searchLower = filters.search.toLowerCase();
-      filtered = filtered.filter(
-        (o) =>
-          o.orderNumber.toLowerCase().includes(searchLower) ||
-          o.customerEmail.toLowerCase().includes(searchLower) ||
-          o.customerName?.toLowerCase().includes(searchLower)
-      );
-    }
-
-    if (filters.status) {
-      filtered = filtered.filter((o) => o.status === filters.status);
-    }
-
-    if (filters.tier) {
-      filtered = filtered.filter((o) => o.tier === filters.tier);
-    }
-
-    return filtered;
-  }, []);
+  const [error, setError] = useState<string | null>(null);
 
   // Fetch orders
   const fetchOrders = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
-      // TODO: Replace with actual API call
-      // const response = await fetch(`/api/admin/orders?page=${pagination.page}&limit=${pagination.limit}&status=${filters.status}&tier=${filters.tier}&search=${filters.search}&from=${filters.from}&to=${filters.to}`);
-      // const data = await response.json();
-      // setOrders(data.data);
-      // setPagination(data.pagination);
+      const params = new URLSearchParams();
+      params.set("page", pagination.page.toString());
+      params.set("limit", pagination.limit.toString());
+      if (filters.status) params.set("status", filters.status);
+      if (filters.tier) params.set("tier", filters.tier);
+      if (filters.search) params.set("search", filters.search);
+      if (filters.from) params.set("from", filters.from);
+      if (filters.to) params.set("to", filters.to);
 
-      // Mock implementation
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      const mockOrders = generateMockOrders(pagination.page, filters);
-      setOrders(mockOrders);
-      setPagination((prev) => ({
-        ...prev,
-        total: mockOrders.length,
-        totalPages: Math.ceil(mockOrders.length / prev.limit),
-      }));
-    } catch (error) {
-      console.error("Failed to fetch orders:", error);
+      const response = await fetch(
+        `${API_CONFIG.BASE_URL}/admin/orders?${params.toString()}`,
+        {
+          credentials: "include",
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error?.message || "Failed to fetch orders");
+      }
+
+      const data = await response.json();
+      setOrders(data.data?.items || data.data || []);
+      if (data.pagination) {
+        setPagination(data.pagination);
+      }
+    } catch (err) {
+      console.error("Failed to fetch orders:", err);
+      const errorMessage = err instanceof Error ? err.message : "Failed to fetch orders";
+      setError(errorMessage);
+      showError("Failed to load orders", errorMessage);
     } finally {
       setLoading(false);
     }
-  }, [pagination.page, pagination.limit, filters, generateMockOrders]);
+  }, [pagination.page, pagination.limit, filters]);
 
   // Fetch stats
   const fetchStats = useCallback(async () => {
     try {
-      // TODO: Replace with actual API call
-      // const response = await fetch('/api/admin/orders/stats');
-      // const data = await response.json();
-      // setStats(data.data);
-
-      // Mock implementation
-      setStats({
-        total: 156,
-        completed: 89,
-        pending: 12,
-        refunded: 8,
-        revenue: 1245600,
-        averageOrderValue: 14000,
+      const response = await fetch(`${API_CONFIG.BASE_URL}/admin/orders/stats`, {
+        credentials: "include",
       });
-    } catch (error) {
-      console.error("Failed to fetch stats:", error);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error?.message || "Failed to fetch stats");
+      }
+
+      const data = await response.json();
+      setStats(data.data);
+    } catch (err) {
+      console.error("Failed to fetch stats:", err);
     }
   }, []);
 
@@ -533,51 +415,100 @@ export default function OrdersPage() {
 
   // Handle status update
   const handleStatusUpdate = async (orderId: string, newStatus: OrderStatus) => {
-    // TODO: Replace with actual API call
-    // await fetch(`/api/admin/orders/${orderId}/status`, {
-    //   method: 'PATCH',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify({ status: newStatus }),
-    // });
+    const loadingId = showLoading("Updating order status...");
+    try {
+      const response = await fetch(
+        `${API_CONFIG.BASE_URL}/admin/orders/${orderId}/status`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ status: newStatus }),
+        }
+      );
 
-    // Mock implementation
-    setOrders((prev) =>
-      prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o))
-    );
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error?.message || "Failed to update status");
+      }
+
+      // Update local state on success
+      setOrders((prev) =>
+        prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o))
+      );
+      dismissToast(loadingId);
+      showSuccess("Order status updated");
+    } catch (err) {
+      console.error("Failed to update order status:", err);
+      dismissToast(loadingId);
+      showError("Failed to update order status", err instanceof Error ? err.message : undefined);
+      throw err;
+    }
   };
 
   // Handle refund
   const handleRefund = async (orderId: string) => {
-    // TODO: Replace with actual API call
-    // await fetch(`/api/admin/orders/${orderId}/refund`, {
-    //   method: 'POST',
-    // });
+    const loadingId = showLoading("Processing refund...");
+    try {
+      const response = await fetch(
+        `${API_CONFIG.BASE_URL}/admin/orders/${orderId}/refund`,
+        {
+          method: "POST",
+          credentials: "include",
+        }
+      );
 
-    // Mock implementation
-    setOrders((prev) =>
-      prev.map((o) => (o.id === orderId ? { ...o, status: "REFUNDED" } : o))
-    );
-    fetchStats();
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error?.message || "Failed to process refund");
+      }
+
+      // Update local state on success
+      setOrders((prev) =>
+        prev.map((o) => (o.id === orderId ? { ...o, status: "REFUNDED" } : o))
+      );
+      fetchStats();
+      dismissToast(loadingId);
+      showSuccess("Refund processed successfully");
+    } catch (err) {
+      console.error("Failed to process refund:", err);
+      dismissToast(loadingId);
+      showError("Failed to process refund", err instanceof Error ? err.message : undefined);
+      throw err;
+    }
   };
 
   // Handle regenerate download
   const handleRegenerateDownload = async (orderId: string) => {
-    // TODO: Replace with actual API call
-    // const response = await fetch(`/api/admin/orders/${orderId}/regenerate-download`, {
-    //   method: 'POST',
-    // });
-    // const data = await response.json();
-    // alert(`New download token: ${data.data.downloadToken}`);
+    const loadingId = showLoading("Regenerating download link...");
+    try {
+      const response = await fetch(
+        `${API_CONFIG.BASE_URL}/admin/orders/${orderId}/regenerate-download`,
+        {
+          method: "POST",
+          credentials: "include",
+        }
+      );
 
-    // Mock implementation
-    alert("Download link regenerated successfully!");
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error?.message || "Failed to regenerate download link");
+      }
+
+      dismissToast(loadingId);
+      showSuccess("Download link regenerated successfully");
+    } catch (err) {
+      console.error("Failed to regenerate download link:", err);
+      dismissToast(loadingId);
+      showError("Failed to regenerate download link", err instanceof Error ? err.message : undefined);
+    }
   };
 
   // Handle download package
   const handleDownloadPackage = async (orderId: string) => {
+    const loadingId = showLoading("Preparing download...");
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
-      const downloadUrl = `${apiUrl}/orders/${orderId}/download`;
+      const downloadUrl = `${API_CONFIG.BASE_URL}/orders/${orderId}/download`;
 
       // Use fetch to get the file with credentials
       const response = await fetch(downloadUrl, {
@@ -610,19 +541,27 @@ export default function OrdersPage() {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
+      dismissToast(loadingId);
+      showSuccess("Download started");
     } catch (error) {
       console.error("Download error:", error);
-      alert(error instanceof Error ? error.message : "Download failed. Please try again.");
+      dismissToast(loadingId);
+      showError("Download failed", error instanceof Error ? error.message : "Please try again.");
     }
   };
 
   // Handle export
-  const handleExport = async () => {
-    // TODO: Replace with actual API call
-    // window.location.href = `/api/admin/orders/export/csv?status=${filters.status}&tier=${filters.tier}&from=${filters.from}&to=${filters.to}`;
+  const handleExport = () => {
+    const params = new URLSearchParams();
+    if (filters.status) params.set("status", filters.status);
+    if (filters.tier) params.set("tier", filters.tier);
+    if (filters.search) params.set("search", filters.search);
+    if (filters.from) params.set("from", filters.from);
+    if (filters.to) params.set("to", filters.to);
 
-    // Mock implementation
-    alert("Export functionality will download a CSV file with filtered orders");
+    const queryString = params.toString();
+    const exportUrl = `${API_CONFIG.BASE_URL}/admin/orders/export/csv${queryString ? `?${queryString}` : ""}`;
+    window.location.href = exportUrl;
   };
 
   // View order details
@@ -646,44 +585,12 @@ export default function OrdersPage() {
   // Loading skeleton
   if (loading && orders.length === 0) {
     return (
-      <div className="space-y-6">
-        {/* Header skeleton */}
-        <div className="flex items-center justify-between">
-          <div className="h-8 bg-muted rounded w-32 animate-pulse" />
-          <div className="h-10 bg-muted rounded w-28 animate-pulse" />
-        </div>
-
-        {/* Filter bar skeleton */}
-        <div className="flex gap-4">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-10 bg-muted rounded w-40 animate-pulse" />
-          ))}
-        </div>
-
-        {/* Stats skeleton */}
-        <div className="grid gap-4 md:grid-cols-4">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="bg-background rounded-lg border p-4 animate-pulse">
-              <div className="h-4 bg-muted rounded w-24 mb-2" />
-              <div className="h-6 bg-muted rounded w-20" />
-            </div>
-          ))}
-        </div>
-
-        {/* Table skeleton */}
-        <div className="bg-background rounded-lg border">
-          <div className="p-4 border-b">
-            <div className="h-5 bg-muted rounded w-32 animate-pulse" />
-          </div>
-          {[...Array(5)].map((_, i) => (
-            <div key={i} className="p-4 border-b flex gap-4">
-              {[...Array(6)].map((_, j) => (
-                <div key={j} className="h-4 bg-muted rounded flex-1 animate-pulse" />
-              ))}
-            </div>
-          ))}
-        </div>
-      </div>
+      <AdminTableSkeleton
+        columns={7}
+        rows={5}
+        statsCount={4}
+        filterCount={4}
+      />
     );
   }
 
@@ -702,97 +609,117 @@ export default function OrdersPage() {
       />
 
       {/* Filter Bar */}
-      <div className="flex flex-wrap gap-4">
-        {/* Search */}
-        <div className="relative flex-1 min-w-[240px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-4" role="search" aria-label="Filter orders">
+        {/* Search - Full width on mobile */}
+        <div className="relative w-full sm:flex-1 sm:min-w-[240px]">
+          <label htmlFor="orders-search" className="sr-only">Search orders</label>
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
           <input
-            type="text"
+            id="orders-search"
+            type="search"
             placeholder="Search by order number or email..."
             value={filters.search}
             onChange={(e) => handleFilterChange("search", e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border rounded-lg bg-background"
+            className="w-full pl-10 pr-4 py-2 border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
           />
         </div>
 
-        {/* Status Filter */}
-        <select
-          value={filters.status}
-          onChange={(e) => handleFilterChange("status", e.target.value)}
-          className="px-4 py-2 border rounded-lg bg-background min-w-[150px]"
-        >
-          {ORDER_STATUSES.map((s) => (
-            <option key={s.value} value={s.value}>
-              {s.label}
-            </option>
-          ))}
-        </select>
+        {/* Filters row - Stack on mobile */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
+          {/* Status Filter */}
+          <div className="w-full sm:w-auto">
+            <label htmlFor="status-filter" className="sr-only">Filter by status</label>
+            <select
+              id="status-filter"
+              value={filters.status}
+              onChange={(e) => handleFilterChange("status", e.target.value)}
+              className="w-full sm:w-auto px-4 py-2 border rounded-lg bg-background sm:min-w-[150px] focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            >
+              {ORDER_STATUSES.map((s) => (
+                <option key={s.value} value={s.value}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+          </div>
 
-        {/* Tier Filter */}
-        <select
-          value={filters.tier}
-          onChange={(e) => handleFilterChange("tier", e.target.value)}
-          className="px-4 py-2 border rounded-lg bg-background min-w-[120px]"
-        >
-          {TIERS.map((t) => (
-            <option key={t.value} value={t.value}>
-              {t.label}
-            </option>
-          ))}
-        </select>
+          {/* Tier Filter */}
+          <div className="w-full sm:w-auto">
+            <label htmlFor="tier-filter" className="sr-only">Filter by tier</label>
+            <select
+              id="tier-filter"
+              value={filters.tier}
+              onChange={(e) => handleFilterChange("tier", e.target.value)}
+              className="w-full sm:w-auto px-4 py-2 border rounded-lg bg-background sm:min-w-[120px] focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            >
+              {TIERS.map((t) => (
+                <option key={t.value} value={t.value}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
 
-        {/* Date Range */}
-        <div className="flex items-center gap-2">
+        {/* Date Range - Stack on mobile */}
+        <fieldset className="flex flex-col gap-2 sm:flex-row sm:items-center w-full sm:w-auto">
+          <legend className="sr-only">Date range filter</legend>
+          <label htmlFor="date-from" className="sr-only">From date</label>
           <input
+            id="date-from"
             type="date"
             value={filters.from}
             onChange={(e) => handleFilterChange("from", e.target.value)}
-            className="px-3 py-2 border rounded-lg bg-background"
-            placeholder="From"
+            className="w-full sm:w-auto px-3 py-2 border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            aria-label="Start date"
           />
-          <span className="text-muted-foreground">to</span>
+          <span className="hidden sm:block text-muted-foreground" aria-hidden="true">to</span>
+          <label htmlFor="date-to" className="sr-only">To date</label>
           <input
+            id="date-to"
             type="date"
             value={filters.to}
             onChange={(e) => handleFilterChange("to", e.target.value)}
-            className="px-3 py-2 border rounded-lg bg-background"
-            placeholder="To"
+            className="w-full sm:w-auto px-3 py-2 border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            aria-label="End date"
           />
-        </div>
+        </fieldset>
       </div>
 
       {/* Stats Row */}
       {stats && (
-        <div className="grid gap-4 md:grid-cols-4">
-          <StatCard
-            label="Total Orders"
-            value={formatNumber(stats.total)}
-            icon={<ShoppingCart className="h-5 w-5" />}
-            trendLabel={`${stats.completed} completed`}
-          />
-          <StatCard
-            label="Total Revenue"
-            value={formatCurrency(stats.revenue)}
-            icon={<DollarSign className="h-5 w-5" />}
-          />
-          <StatCard
-            label="Avg Order Value"
-            value={formatCurrency(stats.averageOrderValue)}
-            icon={<TrendingUp className="h-5 w-5" />}
-          />
-          <StatCard
-            label="Pending Orders"
-            value={formatNumber(stats.pending)}
-            icon={<Clock className="h-5 w-5" />}
-            trendLabel={`${stats.refunded} refunded`}
-          />
-        </div>
+        <section aria-label="Order statistics" aria-live="polite">
+          <div className="grid gap-4 md:grid-cols-4">
+            <StatCard
+              label="Total Orders"
+              value={formatNumber(stats.total)}
+              icon={<ShoppingCart className="h-5 w-5" aria-hidden="true" />}
+              trendLabel={`${stats.completed} completed`}
+            />
+            <StatCard
+              label="Total Revenue"
+              value={formatCurrency(stats.revenue)}
+              icon={<DollarSign className="h-5 w-5" aria-hidden="true" />}
+            />
+            <StatCard
+              label="Avg Order Value"
+              value={formatCurrency(stats.averageOrderValue)}
+              icon={<TrendingUp className="h-5 w-5" aria-hidden="true" />}
+            />
+            <StatCard
+              label="Pending Orders"
+              value={formatNumber(stats.pending)}
+              icon={<Clock className="h-5 w-5" aria-hidden="true" />}
+              trendLabel={`${stats.refunded} refunded`}
+            />
+          </div>
+        </section>
       )}
 
       {/* Data Table */}
       <div className="bg-background rounded-lg border">
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full min-w-[800px]">
             <thead className="bg-muted/50">
               <tr>
                 <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
@@ -801,7 +728,7 @@ export default function OrdersPage() {
                 <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
                   Customer
                 </th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
+                <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground hidden md:table-cell">
                   Tier / Template
                 </th>
                 <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
@@ -810,7 +737,7 @@ export default function OrdersPage() {
                 <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
                   Status
                 </th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
+                <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground hidden sm:table-cell">
                   Date
                 </th>
                 <th className="px-4 py-3 text-right text-sm font-medium text-muted-foreground">
@@ -837,7 +764,7 @@ export default function OrdersPage() {
                     </td>
                     <td className="px-4 py-3">
                       <div>
-                        <p className="text-sm">{order.customerEmail}</p>
+                        <p className="text-sm truncate max-w-[200px]">{order.customerEmail}</p>
                         {order.customerName && (
                           <p className="text-xs text-muted-foreground">
                             {order.customerName}
@@ -845,7 +772,7 @@ export default function OrdersPage() {
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-sm">
+                    <td className="px-4 py-3 text-sm hidden md:table-cell">
                       <span className="font-medium">{order.tier}</span>
                       {order.template && (
                         <span className="text-muted-foreground">
@@ -859,14 +786,17 @@ export default function OrdersPage() {
                     <td className="px-4 py-3">
                       <OrderStatusBadge status={order.status} />
                     </td>
-                    <td className="px-4 py-3 text-sm text-muted-foreground">
+                    <td className="px-4 py-3 text-sm text-muted-foreground hidden sm:table-cell">
                       {formatDate(order.createdAt)}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <DropdownMenu
                         trigger={
-                          <button className="p-2 hover:bg-muted rounded">
-                            <MoreHorizontal className="h-4 w-4" />
+                          <button
+                            className="p-2 hover:bg-muted rounded focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                            aria-label={`Actions for order ${order.orderNumber}`}
+                          >
+                            <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
                           </button>
                         }
                         content={[
@@ -911,23 +841,24 @@ export default function OrdersPage() {
 
         {/* Pagination */}
         {orders.length > 0 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t">
-            <div className="text-sm text-muted-foreground">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between px-4 py-3 border-t">
+            <div className="text-sm text-muted-foreground text-center sm:text-left">
               Showing {(pagination.page - 1) * pagination.limit + 1} to{" "}
               {Math.min(pagination.page * pagination.limit, pagination.total)} of{" "}
               {pagination.total} orders
             </div>
-            <div className="flex items-center gap-2">
+            <nav className="flex items-center justify-center sm:justify-end gap-2" aria-label="Pagination">
               <button
                 onClick={() =>
                   setPagination((prev) => ({ ...prev, page: prev.page - 1 }))
                 }
                 disabled={pagination.page === 1}
-                className="p-2 border rounded hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+                className="p-2 border rounded hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                aria-label="Go to previous page"
               >
-                <ChevronLeft className="h-4 w-4" />
+                <ChevronLeft className="h-4 w-4" aria-hidden="true" />
               </button>
-              <span className="text-sm">
+              <span className="text-sm" aria-current="page">
                 Page {pagination.page} of {pagination.totalPages || 1}
               </span>
               <button
@@ -935,11 +866,12 @@ export default function OrdersPage() {
                   setPagination((prev) => ({ ...prev, page: prev.page + 1 }))
                 }
                 disabled={pagination.page >= pagination.totalPages}
-                className="p-2 border rounded hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+                className="p-2 border rounded hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                aria-label="Go to next page"
               >
-                <ChevronRight className="h-4 w-4" />
+                <ChevronRight className="h-4 w-4" aria-hidden="true" />
               </button>
-            </div>
+            </nav>
           </div>
         )}
       </div>

@@ -801,6 +801,246 @@ Return final total with breakdown
 
 ---
 
+## Admin Dashboard
+
+### Authentication
+
+The admin dashboard requires authentication. Configure credentials in backend `.env`:
+
+```env
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASSWORD=your-secure-password
+JWT_SECRET=your-jwt-secret
+```
+
+**Auth Flow:**
+
+1. Navigate to `/login` to access admin login
+2. JWT token stored in HTTP-only cookie
+3. All `/api/admin/*` routes require authentication
+4. Session automatically checked on page load
+
+**Key Files:**
+
+| File                                       | Description                            |
+| ------------------------------------------ | -------------------------------------- |
+| `backend/src/routes/public/auth.routes.ts` | Login, logout, session check endpoints |
+| `web/src/contexts/auth-context.tsx`        | Auth context provider with user state  |
+| `web/src/app/(admin)/login/page.tsx`       | Admin login page                       |
+| `web/src/app/(admin)/layout.tsx`           | Auth guard wrapper for admin pages     |
+
+**API Endpoints:**
+
+| Method | Endpoint                | Description                    |
+| ------ | ----------------------- | ------------------------------ |
+| `POST` | `/api/auth/admin/login` | Login with email/password      |
+| `GET`  | `/api/auth/me`          | Get current authenticated user |
+| `POST` | `/api/auth/logout`      | Clear session                  |
+
+### Admin Pages
+
+All admin pages are connected to real backend APIs:
+
+| Page      | Route              | Features                                         |
+| --------- | ------------------ | ------------------------------------------------ |
+| Orders    | `/admin/orders`    | List, filter, status update, refund, export CSV  |
+| Templates | `/admin/templates` | CRUD, feature selection, toggle active           |
+| Settings  | `/admin/settings`  | General, payment, download, email, feature flags |
+| Customers | `/admin/customers` | List, search, view orders                        |
+| Licenses  | `/admin/licenses`  | List, revoke, regenerate download                |
+| Coupons   | `/admin/coupons`   | CRUD, usage tracking                             |
+| Analytics | `/admin/analytics` | Revenue, orders, customer metrics                |
+
+---
+
+## Frontend Utilities
+
+### Toast Notifications
+
+**Location:** `/studio/web/src/lib/toast.ts`
+
+Consistent toast notifications using Sonner:
+
+```typescript
+import {
+  showSuccess,
+  showError,
+  showWarning,
+  showInfo,
+  showLoading,
+  dismissToast,
+} from "@/lib/toast";
+
+// Simple notifications
+showSuccess("Order updated successfully");
+showError("Failed to save", "Please try again");
+showWarning("Unsaved changes");
+showInfo("Settings reset to defaults");
+
+// Loading state
+const toastId = showLoading("Processing...");
+// ... async operation
+dismissToast(toastId);
+showSuccess("Done!");
+```
+
+### Form Validation
+
+**Location:** `/studio/web/src/lib/validation.ts`
+
+Reusable validation utilities:
+
+```typescript
+import { validators, validate, hasErrors } from "@/lib/validation";
+
+// Single validator
+const error = validators.required(value);
+// => "This field is required" or null
+
+// Chained validation
+const error = validate(email, validators.required, validators.email);
+// => First error or null
+
+// Available validators
+validators.required; // Non-empty
+validators.email; // Email format
+validators.url; // URL format (http/https)
+validators.slug; // Lowercase letters, numbers, hyphens
+validators.minLength(n); // Minimum length
+validators.maxLength(n); // Maximum length
+validators.positiveNumber; // >= 0
+validators.greaterThanZero; // > 0
+validators.percentage; // 0-100
+```
+
+### API Configuration
+
+**Location:** `/studio/web/src/lib/constants.ts`
+
+```typescript
+import { API_CONFIG } from "@/lib/constants";
+
+// Use in fetch calls
+const response = await fetch(`${API_CONFIG.BASE_URL}/admin/orders`, {
+  credentials: "include",
+});
+```
+
+---
+
+## UI Components
+
+### Admin Components
+
+**Location:** `/studio/web/src/components/admin/`
+
+| Component            | Description                                 |
+| -------------------- | ------------------------------------------- |
+| `AdminPageHeader`    | Page title, description, and action buttons |
+| `TableSkeleton`      | Loading skeleton for tables                 |
+| `AdminTableSkeleton` | Full-page skeleton with stats and filters   |
+| `OrderStatusBadge`   | Color-coded order status badge              |
+| `TierBadge`          | Pricing tier badge                          |
+
+**TableSkeleton Usage:**
+
+```tsx
+import { TableSkeleton, AdminTableSkeleton } from "@/components/admin";
+
+// Simple table skeleton
+<TableSkeleton columns={5} rows={10} showHeader showFilters />
+
+// Full admin page skeleton with stats
+<AdminTableSkeleton
+  columns={7}
+  rows={5}
+  showStats
+  statsCount={4}
+  showFilters
+  filterCount={3}
+/>
+```
+
+### FormError Component
+
+**Location:** `/studio/web/src/components/ui/form-error.tsx`
+
+```tsx
+import { FormError } from "@/components/ui";
+
+<Input
+  value={value}
+  onChange={handleChange}
+  aria-invalid={!!error}
+/>
+<FormError message={error} />
+```
+
+---
+
+## Accessibility (a11y)
+
+The admin dashboard follows WCAG guidelines:
+
+### Focus Management
+
+- All interactive elements have visible focus indicators
+- Focus trapped in modals when open
+- Logical tab order throughout
+
+### ARIA Labels
+
+- Icon-only buttons have `aria-label`
+- Form fields connected to help text via `aria-describedby`
+- Dynamic content uses `aria-live` for announcements
+- Modals have `role="dialog"` and `aria-modal="true"`
+
+### Screen Reader Support
+
+- Proper heading hierarchy (h1 → h2 → h3)
+- Decorative icons hidden with `aria-hidden="true"`
+- Required fields indicated with `aria-required="true"`
+- Error states use `aria-invalid="true"`
+
+### Keyboard Navigation
+
+- Arrow key navigation in dropdown menus
+- Escape key closes modals
+- Enter/Space activates buttons and toggles
+
+---
+
+## Mobile Responsiveness
+
+The admin dashboard is fully responsive:
+
+### Breakpoints
+
+- `sm:` (640px) - Stack to row layouts
+- `md:` (768px) - Sidebar visibility, column hiding
+- `lg:` (1024px) - Extended layouts
+
+### Sidebar
+
+- Hidden by default on mobile
+- Hamburger menu to toggle
+- Overlay backdrop when open
+- Slide-in animation
+
+### Tables
+
+- Horizontally scrollable with `overflow-x-auto`
+- Less important columns hidden on mobile
+- Pagination stacks vertically on small screens
+
+### Forms
+
+- Single column on mobile, two columns on tablet+
+- Full-width buttons on mobile
+- Stacked filter bars
+
+---
+
 ## Related Documentation
 
 - [Fullstack Starter Main CLAUDE.md](/home/proha/.worspace/fullstack-starter/CLAUDE.md)
