@@ -189,7 +189,7 @@ router.get("/templates", async (_req, res, next) => {
             _count: { id: true },
           }),
           prisma.previewSession.count({
-            where: { templateId: template.id },
+            where: { templateSlug: template.slug },
           }),
         ]);
 
@@ -507,7 +507,7 @@ router.get("/export/pdf", async (req, res, next) => {
               _count: { id: true },
             }),
             prisma.previewSession.count({
-              where: { templateId: template.id, createdAt: { gte: startDate } },
+              where: { templateSlug: template.slug, createdAt: { gte: startDate } },
             }),
           ]);
 

@@ -254,6 +254,17 @@ const modules = [
 // =====================================================
 // FEATURES
 // =====================================================
+interface FileMappingConfig {
+  source: string;
+  destination: string;
+  transform?: "none" | "template";
+}
+
+interface SchemaMappingConfig {
+  model: string;
+  source: string;
+}
+
 interface FeatureData {
   slug: string;
   name: string;
@@ -269,6 +280,8 @@ interface FeatureData {
   isPopular: boolean;
   envVars?: { key: string; description: string; required: boolean; default?: string }[];
   npmPackages?: { name: string; version: string; dev?: boolean }[];
+  fileMappings?: FileMappingConfig[];
+  schemaMappings?: SchemaMappingConfig[];
 }
 
 const features: FeatureData[] = [
@@ -294,6 +307,14 @@ const features: FeatureData[] = [
       { name: "jsonwebtoken", version: "^9.0.0" },
       { name: "bcryptjs", version: "^2.4.3" },
     ],
+    fileMappings: [
+      { source: "core/backend/src/routes/auth.routes.ts", destination: "backend/src/routes/auth.routes.ts" },
+      { source: "core/backend/src/controllers/auth.controller.ts", destination: "backend/src/controllers/auth.controller.ts" },
+      { source: "core/backend/src/services/auth.service.ts", destination: "backend/src/services/auth.service.ts" },
+      { source: "core/backend/src/middleware/auth.middleware.ts", destination: "backend/src/middleware/auth.middleware.ts" },
+      { source: "core/web/src/app/(auth)", destination: "web/src/app/(auth)" },
+      { source: "core/web/src/lib/auth-context.tsx", destination: "web/src/lib/auth-context.tsx" },
+    ],
   },
   {
     slug: "auth.social",
@@ -315,6 +336,11 @@ const features: FeatureData[] = [
       { key: "GITHUB_CLIENT_SECRET", description: "GitHub OAuth client secret", required: false },
     ],
     npmPackages: [{ name: "passport", version: "^0.7.0" }],
+    fileMappings: [
+      { source: "modules/social-auth/backend/src/routes/oauth.routes.ts", destination: "backend/src/routes/oauth.routes.ts" },
+      { source: "modules/social-auth/backend/src/services/oauth.service.ts", destination: "backend/src/services/oauth.service.ts" },
+      { source: "modules/social-auth/web/src/components/social-login-buttons.tsx", destination: "web/src/components/social-login-buttons.tsx" },
+    ],
   },
   {
     slug: "auth.mfa",
@@ -329,6 +355,9 @@ const features: FeatureData[] = [
     displayOrder: 3,
     isNew: false,
     isPopular: false,
+    envVars: [
+      { key: "MFA_ISSUER", description: "App name displayed in authenticator apps", required: true },
+    ],
     npmPackages: [{ name: "otplib", version: "^12.0.1" }],
   },
   {
@@ -344,7 +373,15 @@ const features: FeatureData[] = [
     displayOrder: 4,
     isNew: true,
     isPopular: false,
-    npmPackages: [{ name: "passport-saml", version: "^4.0.0" }],
+    envVars: [
+      { key: "SSO_DOMAIN", description: "SSO identity provider domain", required: true },
+      { key: "SSO_CLIENT_ID", description: "SSO client ID", required: true },
+      { key: "SSO_CLIENT_SECRET", description: "SSO client secret", required: true },
+    ],
+    npmPackages: [
+      { name: "passport", version: "^0.7.0" },
+      { name: "passport-saml", version: "^4.0.0" },
+    ],
   },
   {
     slug: "auth.magic-link",
@@ -359,6 +396,10 @@ const features: FeatureData[] = [
     displayOrder: 5,
     isNew: true,
     isPopular: false,
+    envVars: [
+      { key: "MAGIC_LINK_SECRET", description: "Secret key for signing magic link tokens", required: true },
+      { key: "MAGIC_LINK_EXPIRY", description: "Magic link expiration time", required: false, default: "15m" },
+    ],
   },
 
   // SECURITY MODULE
@@ -375,6 +416,10 @@ const features: FeatureData[] = [
     displayOrder: 1,
     isNew: false,
     isPopular: true,
+    envVars: [
+      { key: "DEFAULT_ADMIN_EMAIL", description: "Default admin user email for seeding", required: false },
+      { key: "DEFAULT_ADMIN_PASSWORD", description: "Default admin user password for seeding", required: false },
+    ],
   },
   {
     slug: "security.audit",
@@ -389,6 +434,13 @@ const features: FeatureData[] = [
     displayOrder: 2,
     isNew: false,
     isPopular: false,
+    fileMappings: [
+      { source: "modules/audit-log/backend/src/routes/audit.routes.ts", destination: "backend/src/routes/audit.routes.ts" },
+      { source: "modules/audit-log/backend/src/services/audit.service.ts", destination: "backend/src/services/audit.service.ts" },
+      { source: "modules/audit-log/backend/src/middleware/audit.middleware.ts", destination: "backend/src/middleware/audit.middleware.ts" },
+      { source: "modules/audit-log/web/src/app/admin/audit-logs/page.tsx", destination: "web/src/app/(protected)/admin/audit-logs/page.tsx" },
+    ],
+    // Note: AuditLog model is already included in core schema, no separate schema mapping needed
   },
   {
     slug: "security.encryption",
@@ -403,6 +455,11 @@ const features: FeatureData[] = [
     displayOrder: 3,
     isNew: false,
     isPopular: false,
+    envVars: [
+      { key: "ENCRYPTION_KEY", description: "Master encryption key for data encryption", required: true },
+      { key: "ENCRYPTION_ALGORITHM", description: "Encryption algorithm to use", required: false, default: "aes-256-gcm" },
+    ],
+    npmPackages: [{ name: "crypto-js", version: "^4.2.0" }],
   },
 
   // PAYMENTS MODULE
@@ -424,6 +481,11 @@ const features: FeatureData[] = [
       { key: "STRIPE_PUBLISHABLE_KEY", description: "Stripe publishable key", required: true },
     ],
     npmPackages: [{ name: "stripe", version: "^14.0.0" }],
+    fileMappings: [
+      { source: "modules/payments/backend/src/routes/payment.routes.ts", destination: "backend/src/routes/payment.routes.ts" },
+      { source: "modules/payments/backend/src/services/payment.service.ts", destination: "backend/src/services/payment.service.ts" },
+      { source: "modules/payments/web/src/app/payment", destination: "web/src/app/payment" },
+    ],
   },
   {
     slug: "payments.webhooks",
@@ -455,6 +517,13 @@ const features: FeatureData[] = [
     displayOrder: 3,
     isNew: false,
     isPopular: true,
+    envVars: [
+      { key: "STRIPE_PRICE_ID_MONTHLY", description: "Stripe price ID for monthly subscription", required: false },
+      { key: "STRIPE_PRICE_ID_YEARLY", description: "Stripe price ID for yearly subscription", required: false },
+      { key: "STRIPE_CUSTOMER_PORTAL_URL", description: "Stripe customer portal configuration URL", required: false },
+      { key: "SUBSCRIPTION_TRIAL_DAYS", description: "Number of trial days for new subscriptions", required: false, default: "14" },
+    ],
+    npmPackages: [{ name: "stripe", version: "^14.0.0" }],
   },
   {
     slug: "payments.multi-currency",
@@ -500,6 +569,14 @@ const features: FeatureData[] = [
     isNew: false,
     isPopular: true,
     npmPackages: [{ name: "multer", version: "^2.0.0" }],
+    fileMappings: [
+      { source: "modules/file-upload/backend/src/routes/upload.routes.ts", destination: "backend/src/routes/upload.routes.ts" },
+      { source: "modules/file-upload/backend/src/services/storage.service.ts", destination: "backend/src/services/storage.service.ts" },
+      { source: "modules/file-upload/backend/src/middleware/upload.middleware.ts", destination: "backend/src/middleware/upload.middleware.ts" },
+      { source: "modules/file-upload/web/src/components/file-upload.tsx", destination: "web/src/components/file-upload.tsx" },
+      { source: "modules/file-upload/web/src/components/file-list.tsx", destination: "web/src/components/file-list.tsx" },
+      { source: "modules/file-upload/web/src/lib/upload.ts", destination: "web/src/lib/upload.ts" },
+    ],
   },
   {
     slug: "storage.s3",
@@ -535,7 +612,10 @@ const features: FeatureData[] = [
     displayOrder: 4,
     isNew: false,
     isPopular: false,
-    envVars: [{ key: "CDN_BASE_URL", description: "CDN base URL", required: true }],
+    envVars: [
+      { key: "CDN_URL", description: "CDN base URL for serving assets", required: true },
+      { key: "CDN_API_KEY", description: "CDN provider API key for cache invalidation", required: false },
+    ],
   },
   {
     slug: "storage.backup",
@@ -550,6 +630,11 @@ const features: FeatureData[] = [
     displayOrder: 5,
     isNew: false,
     isPopular: false,
+    envVars: [
+      { key: "BACKUP_SCHEDULE", description: "Cron expression for backup schedule", required: false, default: "0 2 * * *" },
+      { key: "BACKUP_RETENTION_DAYS", description: "Number of days to retain backups", required: false, default: "30" },
+      { key: "BACKUP_S3_BUCKET", description: "S3 bucket name for storing backups", required: true },
+    ],
   },
 
   // COMMUNICATIONS MODULE
@@ -573,6 +658,12 @@ const features: FeatureData[] = [
       { key: "SMTP_PASS", description: "SMTP password", required: true },
     ],
     npmPackages: [{ name: "nodemailer", version: "^6.9.0" }],
+    fileMappings: [
+      { source: "modules/email/backend/src/routes/email.routes.ts", destination: "backend/src/routes/email.routes.ts" },
+      { source: "modules/email/backend/src/services/email.service.ts", destination: "backend/src/services/email.service.ts" },
+      { source: "modules/email/web/src/components/email-template-preview.tsx", destination: "web/src/components/email-template-preview.tsx" },
+      { source: "modules/email/web/src/lib/email.ts", destination: "web/src/lib/email.ts" },
+    ],
   },
   {
     slug: "comms.push",
@@ -588,6 +679,12 @@ const features: FeatureData[] = [
     isNew: false,
     isPopular: false,
     npmPackages: [{ name: "web-push", version: "^3.6.0" }],
+    fileMappings: [
+      { source: "modules/push-notifications/backend/src/routes/notifications.routes.ts", destination: "backend/src/routes/notifications.routes.ts" },
+      { source: "modules/push-notifications/backend/src/services/push.service.ts", destination: "backend/src/services/push.service.ts" },
+      { source: "modules/push-notifications/backend/src/services/device.service.ts", destination: "backend/src/services/device.service.ts" },
+      { source: "modules/push-notifications/web/src/lib/push-notifications.ts", destination: "web/src/lib/push-notifications.ts" },
+    ],
   },
   {
     slug: "comms.sms",
@@ -623,6 +720,13 @@ const features: FeatureData[] = [
     isNew: true,
     isPopular: true,
     npmPackages: [{ name: "socket.io", version: "^4.7.0" }],
+    fileMappings: [
+      { source: "modules/real-time/backend/src/lib/socket.ts", destination: "backend/src/lib/socket.ts" },
+      { source: "modules/real-time/web/src/lib/socket.ts", destination: "web/src/lib/socket.ts" },
+      { source: "modules/real-time/web/src/hooks/use-socket.ts", destination: "web/src/hooks/use-socket.ts" },
+      { source: "modules/real-time/web/src/components/chat-widget.tsx", destination: "web/src/components/chat-widget.tsx" },
+      { source: "modules/real-time/web/src/components/presence-indicator.tsx", destination: "web/src/components/presence-indicator.tsx" },
+    ],
   },
 
   // UI MODULE
@@ -685,6 +789,13 @@ const features: FeatureData[] = [
     displayOrder: 4,
     isNew: false,
     isPopular: true,
+    fileMappings: [
+      { source: "modules/admin-dashboard/backend/src/routes/admin.routes.ts", destination: "backend/src/routes/admin.routes.ts" },
+      { source: "modules/admin-dashboard/backend/src/controllers/admin.controller.ts", destination: "backend/src/controllers/admin.controller.ts" },
+      { source: "modules/admin-dashboard/web/src/app/admin", destination: "web/src/app/(protected)/admin" },
+      { source: "modules/admin-dashboard/web/src/components", destination: "web/src/components/admin" },
+      { source: "modules/admin-dashboard/web/src/lib", destination: "web/src/lib/admin" },
+    ],
   },
   {
     slug: "ui.charts",
@@ -716,6 +827,15 @@ const features: FeatureData[] = [
     displayOrder: 1,
     isNew: false,
     isPopular: false,
+    fileMappings: [
+      { source: "modules/analytics/backend/src/routes/analytics.routes.ts", destination: "backend/src/routes/analytics.routes.ts" },
+      { source: "modules/analytics/backend/src/services/analytics.service.ts", destination: "backend/src/services/analytics.service.ts" },
+      { source: "modules/analytics/backend/src/services/error-tracking.service.ts", destination: "backend/src/services/error-tracking.service.ts" },
+      { source: "modules/analytics/backend/src/middleware/sentry.middleware.ts", destination: "backend/src/middleware/sentry.middleware.ts" },
+      { source: "modules/analytics/web/src/lib/analytics.ts", destination: "web/src/lib/analytics.ts" },
+      { source: "modules/analytics/web/src/lib/error-tracking.ts", destination: "web/src/lib/error-tracking.ts" },
+      { source: "modules/analytics/web/src/components/error-boundary-sentry.tsx", destination: "web/src/components/error-boundary-sentry.tsx" },
+    ],
   },
   {
     slug: "analytics.dashboard",
@@ -730,6 +850,14 @@ const features: FeatureData[] = [
     displayOrder: 2,
     isNew: false,
     isPopular: true,
+    envVars: [
+      { key: "ANALYTICS_DASHBOARD_REFRESH_INTERVAL", description: "Dashboard data refresh interval in seconds", required: false, default: "60" },
+      { key: "ANALYTICS_RETENTION_DAYS", description: "Number of days to retain analytics data", required: false, default: "90" },
+    ],
+    fileMappings: [
+      { source: "modules/analytics/web/src/lib/analytics.ts", destination: "web/src/lib/analytics.ts" },
+      { source: "modules/analytics/web/src/components/error-boundary-sentry.tsx", destination: "web/src/components/error-boundary-sentry.tsx" },
+    ],
   },
   {
     slug: "analytics.reports",
@@ -744,6 +872,11 @@ const features: FeatureData[] = [
     displayOrder: 3,
     isNew: false,
     isPopular: false,
+    envVars: [
+      { key: "REPORTS_SCHEDULE_TIMEZONE", description: "Default timezone for scheduled reports", required: false, default: "UTC" },
+      { key: "REPORTS_EMAIL_FROM", description: "Email address for sending scheduled reports", required: false },
+      { key: "REPORTS_MAX_ROWS", description: "Maximum number of rows in exported reports", required: false, default: "10000" },
+    ],
   },
   {
     slug: "analytics.export",
@@ -819,6 +952,10 @@ const features: FeatureData[] = [
     displayOrder: 1,
     isNew: false,
     isPopular: true,
+    envVars: [
+      { key: "DOCKER_REGISTRY", description: "Docker registry URL for pushing images", required: false },
+      { key: "DOCKER_IMAGE_TAG", description: "Docker image tag for builds", required: false, default: "latest" },
+    ],
   },
   {
     slug: "infra.kubernetes",
@@ -833,6 +970,10 @@ const features: FeatureData[] = [
     displayOrder: 2,
     isNew: false,
     isPopular: false,
+    envVars: [
+      { key: "K8S_NAMESPACE", description: "Kubernetes namespace for deployment", required: false, default: "default" },
+      { key: "K8S_CLUSTER_NAME", description: "Kubernetes cluster name", required: false },
+    ],
   },
   {
     slug: "infra.ci-cd",
@@ -877,6 +1018,10 @@ const features: FeatureData[] = [
     displayOrder: 2,
     isNew: false,
     isPopular: true,
+    envVars: [
+      { key: "API_RATE_LIMIT", description: "API rate limit per minute", required: false, default: "100" },
+      { key: "API_KEY_PREFIX", description: "Prefix for generated API keys", required: false, default: "sk_" },
+    ],
   },
   {
     slug: "integrations.zapier",
@@ -891,6 +1036,9 @@ const features: FeatureData[] = [
     displayOrder: 3,
     isNew: true,
     isPopular: false,
+    envVars: [
+      { key: "ZAPIER_WEBHOOK_SECRET", description: "Secret for validating Zapier webhook requests", required: true },
+    ],
   },
 ];
 
@@ -1153,6 +1301,8 @@ async function main() {
         isPopular: feature.isPopular,
         envVars: feature.envVars ? feature.envVars : undefined,
         npmPackages: feature.npmPackages ? feature.npmPackages : undefined,
+        fileMappings: feature.fileMappings ? feature.fileMappings : undefined,
+        schemaMappings: feature.schemaMappings ? feature.schemaMappings : undefined,
       },
     });
     console.log(`  Created feature: ${feature.slug}`);

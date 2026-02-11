@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
+import { useFeatureFlags } from "@/lib/feature-flags";
 import { cn } from "@/lib/utils";
 import {
   Spinner,
@@ -17,16 +18,26 @@ import {
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { NotificationBell } from "@/components/notifications";
 import { EmailVerificationBanner } from "@/components/shared";
+import { FeatureGate } from "@/components";
 
 // =====================================================
 // Navigation Configuration
 // =====================================================
 
-const userNavItems = [
-  { href: "/dashboard", label: "Home", iconName: "House" as const, exact: true },
-  { href: "/dashboard/profile", label: "Profile", iconName: "User" as const },
-  { href: "/dashboard/notifications", label: "Notifications", iconName: "Bell" as const },
-  { href: "/dashboard/settings", label: "Settings", iconName: "Settings" as const },
+interface UserNavItem {
+  href: string;
+  label: string;
+  iconName: "House" | "User" | "Bell" | "Settings";
+  exact?: boolean;
+  /** Feature slug(s) required for this nav item to be visible */
+  feature?: string | string[];
+}
+
+const userNavItems: UserNavItem[] = [
+  { href: "/dashboard", label: "Home", iconName: "House", exact: true },
+  { href: "/dashboard/profile", label: "Profile", iconName: "User" },
+  { href: "/dashboard/notifications", label: "Notifications", iconName: "Bell", feature: "comms.email" },
+  { href: "/dashboard/settings", label: "Settings", iconName: "Settings" },
 ];
 
 // =====================================================
@@ -45,7 +56,15 @@ export default function UserDashboardLayout({
   const router = useRouter();
   const pathname = usePathname();
   const { user, isAuthenticated, isLoading, isEmailVerified, logout } = useAuth();
+  const { hasAnyFeature } = useFeatureFlags();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Filter nav items based on feature flags
+  const visibleNavItems = userNavItems.filter((item) => {
+    if (!item.feature) return true;
+    const features = Array.isArray(item.feature) ? item.feature : [item.feature];
+    return hasAnyFeature(features);
+  });
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -122,7 +141,7 @@ export default function UserDashboardLayout({
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-1 ml-6">
-            {userNavItems.map((item) => (
+            {visibleNavItems.map((item) => (
               <NavLink
                 key={item.href}
                 href={item.href}
@@ -139,7 +158,9 @@ export default function UserDashboardLayout({
           {/* Right side actions */}
           <div className="flex items-center gap-2">
             <ThemeToggle variant="dropdown" size="sm" />
-            <NotificationBell />
+            <FeatureGate feature="comms.email">
+              <NotificationBell />
+            </FeatureGate>
 
             {/* User info (hidden on small screens) */}
             <Text size="sm" color="muted" className="hidden lg:inline max-w-[150px] truncate">
@@ -180,7 +201,7 @@ export default function UserDashboardLayout({
       >
         <nav className="flex flex-col h-full p-4">
           <div className="flex-1 space-y-1">
-            {userNavItems.map((item) => (
+            {visibleNavItems.map((item) => (
               <NavLink
                 key={item.href}
                 href={item.href}

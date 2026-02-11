@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
+import { useFeatureFlags } from "@/lib/feature-flags";
 import {
   Spinner,
   DashboardLayout,
@@ -22,57 +23,69 @@ import {
 // Navigation Items Configuration
 // =====================================================
 
-const adminNavItems = [
+interface AdminNavItem {
+  href: string;
+  label: string;
+  iconName: "LayoutDashboard" | "ShoppingCart" | "Users" | "Mail" | "Info" | "Bell" | "Ticket" | "FileText" | "Settings" | "ClipboardList";
+  exact?: boolean;
+  /** Feature slug(s) required for this nav item to be visible */
+  feature?: string | string[];
+}
+
+const adminNavItems: AdminNavItem[] = [
   {
     href: "/admin",
     label: "Dashboard",
-    iconName: "LayoutDashboard" as const,
+    iconName: "LayoutDashboard",
     exact: true,
   },
   {
     href: "/admin/orders",
     label: "Orders",
-    iconName: "ShoppingCart" as const,
+    iconName: "ShoppingCart",
+    feature: "payments.stripe",
   },
   {
     href: "/admin/users",
     label: "Users",
-    iconName: "Users" as const,
+    iconName: "Users",
   },
   {
     href: "/admin/messages",
     label: "Messages",
-    iconName: "Mail" as const,
+    iconName: "Mail",
   },
   {
     href: "/admin/faqs",
     label: "FAQs",
-    iconName: "Info" as const,
+    iconName: "Info",
   },
   {
     href: "/admin/announcements",
     label: "Announcements",
-    iconName: "Bell" as const,
+    iconName: "Bell",
   },
   {
     href: "/admin/coupons",
     label: "Coupons",
-    iconName: "Ticket" as const,
+    iconName: "Ticket",
+    feature: "payments.stripe",
   },
   {
     href: "/admin/content",
     label: "Content Pages",
-    iconName: "FileText" as const,
+    iconName: "FileText",
   },
   {
     href: "/admin/settings",
     label: "Settings",
-    iconName: "Settings" as const,
+    iconName: "Settings",
   },
   {
     href: "/admin/audit-logs",
     label: "Audit Logs",
-    iconName: "ClipboardList" as const,
+    iconName: "ClipboardList",
+    feature: "security.audit",
   },
 ];
 
@@ -87,10 +100,19 @@ function AdminSidebar({
   collapsed: boolean;
   onClose?: () => void;
 }) {
+  const { hasAnyFeature } = useFeatureFlags();
+
   const handleNavClick = () => {
     // Close mobile menu when navigating
     onClose?.();
   };
+
+  // Filter nav items based on feature flags
+  const visibleNavItems = adminNavItems.filter((item) => {
+    if (!item.feature) return true;
+    const features = Array.isArray(item.feature) ? item.feature : [item.feature];
+    return hasAnyFeature(features);
+  });
 
   return (
     <DashboardSidebar
@@ -121,7 +143,7 @@ function AdminSidebar({
       }
     >
       <div className="space-y-1">
-        {adminNavItems.map((item) => (
+        {visibleNavItems.map((item) => (
           <div key={item.href} onClick={handleNavClick}>
             <NavLink
               href={item.href}

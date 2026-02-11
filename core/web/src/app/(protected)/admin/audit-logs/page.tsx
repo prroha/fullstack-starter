@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { api, AuditLog, AuditAction } from "@/lib/api";
 import { Button, Input, Badge, Text, Select } from "@/components/ui";
 import { Alert } from "@/components/feedback";
+import { FeatureGate } from "@/components";
 import { Icon } from "@/components/ui/icon";
 import { AdminPageHeader, AdminTableContainer } from "@/components/admin";
 import { useAdminList } from "@/lib/hooks";
@@ -317,6 +318,20 @@ export default function AdminAuditLogsPage() {
   ];
 
   return (
+    <FeatureGate
+      feature="security.audit"
+      fallback={
+        <div className="space-y-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Audit Logs</h1>
+            <Text color="muted">Audit logging is not available in this configuration.</Text>
+          </div>
+          <Alert variant="warning">
+            The audit logging feature is not enabled. Enable the &quot;Audit Logging&quot; feature to track system activity.
+          </Alert>
+        </div>
+      }
+    >
     <div className="space-y-4">
       {/* Header */}
       <AdminPageHeader
@@ -436,5 +451,7 @@ export default function AdminAuditLogsPage() {
         </table>
       </AdminTableContainer>
     </div>
+    </FeatureGate>
   );
 }
+

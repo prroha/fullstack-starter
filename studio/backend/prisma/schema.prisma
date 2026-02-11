@@ -393,26 +393,16 @@ model StudioAnalytics {
 // =====================================================
 
 model PreviewSession {
-  id              String    @id @default(cuid())
-  sessionId       String    @unique
-
-  // Configuration being previewed
-  tier            String?
-  templateId      String?
+  id              String   @id @default(cuid())
+  sessionToken    String   @unique @default(cuid())
   selectedFeatures String[]
+  tier            String
+  templateSlug    String?
+  createdAt       DateTime @default(now())
+  expiresAt       DateTime
 
-  // User (if logged in)
-  userId          String?
-
-  // Stats
-  pageViews       Int       @default(0)
-  duration        Int       @default(0) // seconds
-
-  // Timestamps
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  lastActivityAt  DateTime  @default(now())
-
+  @@index([sessionToken])
+  @@index([expiresAt])
   @@map("preview_sessions")
 }
 

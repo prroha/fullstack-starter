@@ -1,9 +1,15 @@
 import { Router, Request } from "express";
 import { couponController } from "../controllers/coupon.controller";
 import { authMiddleware, adminMiddleware } from "../middleware/auth.middleware";
+import { requireFeature } from "../middleware/preview.middleware";
 import { AuthenticatedRequest } from "../types";
 
 const router = Router();
+
+// ============================================================================
+// Feature Gate: Coupons require payments.stripe feature
+// ============================================================================
+router.use(requireFeature("payments.stripe"));
 
 // ============================================================================
 // Public routes

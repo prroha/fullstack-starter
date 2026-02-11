@@ -10,6 +10,7 @@ import announcementRoutes from "./announcement.routes";
 import settingRoutes from "./setting.routes";
 import contentRoutes from "./content.routes";
 import couponRoutes from "./coupon.routes";
+import configRoutes from "./config.routes";
 import { orderRoutes, adminOrderRoutes } from "./order.routes";
 
 const router = Router();
@@ -29,6 +30,7 @@ v1Router.use("/content", contentRoutes);
 v1Router.use("/coupons", couponRoutes);
 v1Router.use("/orders", orderRoutes);
 v1Router.use("/admin/orders", adminOrderRoutes);
+v1Router.use("/config", configRoutes);
 
 router.use("/v1", v1Router);
 

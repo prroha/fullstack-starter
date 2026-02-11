@@ -1,20 +1,57 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { ShoppingCart, ArrowRight, Tag, Sparkles } from "lucide-react";
 import { Button, Card, CardContent, CardHeader, CardTitle, Badge, Divider } from "@/components/ui";
 import { useConfigurator } from "./context";
 import { TierSelector } from "./tier-selector";
+import { API_CONFIG } from "@/lib/constants";
 
 export function CartSummary() {
   const {
     selectedTier,
     selectedFeatures,
+    selectedTemplate,
+    templates,
     resolvedFeatures,
     pricing,
     getCurrentTier,
     formatPrice,
   } = useConfigurator();
+
+  const [isCreatingPreview, setIsCreatingPreview] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+
+  const template = templates.find((t) => t.slug === selectedTemplate);
+
+  async function handlePreview() {
+    setIsCreatingPreview(true);
+    setPreviewError(null);
+    try {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/preview/sessions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          selectedFeatures,
+          tier: selectedTier,
+          templateSlug: template?.slug,
+        }),
+      });
+
+      const data = await response.json();
+      if (data.success && data.data?.previewUrl) {
+        window.open(data.data.previewUrl, "_blank");
+      } else {
+        setPreviewError(data.error?.message || "Failed to create preview");
+      }
+    } catch (error) {
+      console.error("Failed to create preview:", error);
+      setPreviewError("Failed to create preview. Please try again.");
+    } finally {
+      setIsCreatingPreview(false);
+    }
+  }
 
   const currentTier = getCurrentTier();
   const tierIncluded = currentTier?.includedFeatures.length || 0;
@@ -155,13 +192,20 @@ export function CartSummary() {
 
       {/* Actions */}
       <div className="space-y-2 pt-4 border-t">
-        <Button asChild className="w-full" disabled={hasConflicts}>
-          <Link href={`/preview?tier=${selectedTier}&features=${selectedFeatures.join(",")}`}>
-            <Sparkles className="mr-2 h-4 w-4" />
-            Preview App
-          </Link>
+        <Button
+          variant="secondary"
+          className="w-full"
+          disabled={hasConflicts || isCreatingPreview}
+          isLoading={isCreatingPreview}
+          onClick={handlePreview}
+        >
+          {!isCreatingPreview && <Sparkles className="mr-2 h-4 w-4" />}
+          {isCreatingPreview ? "Creating Preview..." : "Preview App"}
         </Button>
-        <Button asChild variant="outline" className="w-full" disabled={hasConflicts}>
+        {previewError && (
+          <p className="text-xs text-destructive text-center">{previewError}</p>
+        )}
+        <Button asChild variant="default" className="w-full" disabled={hasConflicts}>
           <Link href="/checkout">
             <ShoppingCart className="mr-2 h-4 w-4" />
             Proceed to Checkout

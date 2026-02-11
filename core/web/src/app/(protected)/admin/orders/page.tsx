@@ -15,6 +15,7 @@ import {
 } from "@/components/ui";
 import { Alert } from "@/components/feedback";
 import { EmptySearch, EmptyList } from "@/components/shared";
+import { FeatureGate } from "@/components";
 import { toast } from "sonner";
 import { api, Order, OrderStatus, OrderStats } from "@/lib/api";
 import type { PaginationInfo } from "@/types/api";
@@ -554,184 +555,199 @@ export default function AdminOrdersPage() {
   ];
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Orders</h1>
-          <Text color="muted">Manage orders and revenue</Text>
+    <FeatureGate
+      feature="payments.stripe"
+      fallback={
+        <div className="space-y-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Orders</h1>
+            <Text color="muted">Order management is not available in this configuration.</Text>
+          </div>
+          <Alert variant="warning">
+            The payments feature is not enabled. Enable the &quot;Stripe Payments&quot; feature to access order management.
+          </Alert>
         </div>
-        <ExportCsvButton
-          label="Export Orders"
-          onExport={handleExportCsv}
-          onSuccess={() => toast.success("Orders exported successfully")}
-          onError={(error) => toast.error(error.message || "Export failed")}
-        />
-      </div>
-
-      {/* Stats Cards */}
-      {stats && (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <StatsCard
-            title="Total Revenue"
-            value={formatCurrency(stats.totalRevenue)}
-            description="All time earnings"
-            icon={<Icon name="DollarSign" size="md" />}
-          />
-          <StatsCard
-            title="Total Orders"
-            value={stats.totalOrders}
-            description="All orders placed"
-            icon={<Icon name="ShoppingCart" size="md" />}
-          />
-          <StatsCard
-            title="Avg Order Value"
-            value={formatCurrency(stats.avgOrderValue)}
-            description="Per order average"
-            icon={<Icon name="TrendingUp" size="md" />}
-          />
-          <StatsCard
-            title="Recent Orders"
-            value={stats.recentOrders}
-            description="Last 7 days"
-            icon={<Icon name="Clock" size="md" />}
-          />
-        </div>
-      )}
-
-      {/* Filters */}
+      }
+    >
       <div className="space-y-4">
-        <div className="flex flex-wrap gap-4">
-          <div className="flex-1 min-w-[200px]">
-            <Input
-              type="search"
-              placeholder="Search by order ID, customer..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Orders</h1>
+            <Text color="muted">Manage orders and revenue</Text>
           </div>
-          <div className="w-40">
-            <Select
-              options={statusOptions}
-              value={statusFilter}
-              onChange={(value) => setStatusFilter(value as "" | OrderStatus)}
-            />
-          </div>
+          <ExportCsvButton
+            label="Export Orders"
+            onExport={handleExportCsv}
+            onSuccess={() => toast.success("Orders exported successfully")}
+            onError={(error) => toast.error(error.message || "Export failed")}
+          />
         </div>
 
-        {/* Date Range Filters */}
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Label className="text-sm text-muted-foreground">From:</Label>
-            <Input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="w-auto"
+        {/* Stats Cards */}
+        {stats && (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <StatsCard
+              title="Total Revenue"
+              value={formatCurrency(stats.totalRevenue)}
+              description="All time earnings"
+              icon={<Icon name="DollarSign" size="md" />}
+            />
+            <StatsCard
+              title="Total Orders"
+              value={stats.totalOrders}
+              description="All orders placed"
+              icon={<Icon name="ShoppingCart" size="md" />}
+            />
+            <StatsCard
+              title="Avg Order Value"
+              value={formatCurrency(stats.avgOrderValue)}
+              description="Per order average"
+              icon={<Icon name="TrendingUp" size="md" />}
+            />
+            <StatsCard
+              title="Recent Orders"
+              value={stats.recentOrders}
+              description="Last 7 days"
+              icon={<Icon name="Clock" size="md" />}
             />
           </div>
-          <div className="flex items-center gap-2">
-            <Label className="text-sm text-muted-foreground">To:</Label>
-            <Input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="w-auto"
-            />
-          </div>
-          {hasActiveFilters && (
-            <Button variant="ghost" size="sm" onClick={clearFilters}>
-              Clear Filters
-            </Button>
-          )}
-        </div>
-      </div>
+        )}
 
-      {/* Error Alert */}
-      {error && <Alert variant="destructive">{error}</Alert>}
-
-      {/* Orders Table */}
-      <div className="rounded-lg border bg-card">
-        {isLoading ? (
-          <div className="p-6">
-            <SkeletonTable rows={10} columns={6} />
+        {/* Filters */}
+        <div className="space-y-4">
+          <div className="flex flex-wrap gap-4">
+            <div className="flex-1 min-w-[200px]">
+              <Input
+                type="search"
+                placeholder="Search by order ID, customer..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            <div className="w-40">
+              <Select
+                options={statusOptions}
+                value={statusFilter}
+                onChange={(value) => setStatusFilter(value as "" | OrderStatus)}
+              />
+            </div>
           </div>
-        ) : orders.length === 0 ? (
-          <div className="p-6">
-            {hasActiveFilters ? (
-              <EmptySearch
-                searchQuery={searchDebounced}
-                action={{
-                  label: "Clear filters",
-                  onClick: clearFilters,
-                  variant: "outline",
-                }}
+
+          {/* Date Range Filters */}
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Label className="text-sm text-muted-foreground">From:</Label>
+              <Input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-auto"
               />
-            ) : (
-              <EmptyList
-                title="No orders yet"
-                description="Orders will appear here once customers start making purchases."
+            </div>
+            <div className="flex items-center gap-2">
+              <Label className="text-sm text-muted-foreground">To:</Label>
+              <Input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="w-auto"
               />
+            </div>
+            {hasActiveFilters && (
+              <Button variant="ghost" size="sm" onClick={clearFilters}>
+                Clear Filters
+              </Button>
             )}
           </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b bg-muted/50">
-                  <th className="px-4 py-3 text-left text-sm font-medium">
-                    Order ID
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">
-                    Customer
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">
-                    Items
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">
-                    Total
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">
-                    Status
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">
-                    Date
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {orders.map((order) => (
-                  <OrderRow
-                    key={order.id}
-                    order={order}
-                    onViewDetails={setSelectedOrder}
-                  />
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        </div>
 
-        {/* Pagination */}
-        {pagination && pagination.totalPages > 1 && (
-          <div className="border-t p-4">
-            <Pagination
-              pagination={pagination}
-              onPageChange={handlePageChange}
-            />
-          </div>
+        {/* Error Alert */}
+        {error && <Alert variant="destructive">{error}</Alert>}
+
+        {/* Orders Table */}
+        <div className="rounded-lg border bg-card">
+          {isLoading ? (
+            <div className="p-6">
+              <SkeletonTable rows={10} columns={6} />
+            </div>
+          ) : orders.length === 0 ? (
+            <div className="p-6">
+              {hasActiveFilters ? (
+                <EmptySearch
+                  searchQuery={searchDebounced}
+                  action={{
+                    label: "Clear filters",
+                    onClick: clearFilters,
+                    variant: "outline",
+                  }}
+                />
+              ) : (
+                <EmptyList
+                  title="No orders yet"
+                  description="Orders will appear here once customers start making purchases."
+                />
+              )}
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b bg-muted/50">
+                    <th className="px-4 py-3 text-left text-sm font-medium">
+                      Order ID
+                    </th>
+                    <th className="px-4 py-3 text-left text-sm font-medium">
+                      Customer
+                    </th>
+                    <th className="px-4 py-3 text-left text-sm font-medium">
+                      Items
+                    </th>
+                    <th className="px-4 py-3 text-left text-sm font-medium">
+                      Total
+                    </th>
+                    <th className="px-4 py-3 text-left text-sm font-medium">
+                      Status
+                    </th>
+                    <th className="px-4 py-3 text-left text-sm font-medium">
+                      Date
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {orders.map((order) => (
+                    <OrderRow
+                      key={order.id}
+                      order={order}
+                      onViewDetails={setSelectedOrder}
+                    />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Pagination */}
+          {pagination && pagination.totalPages > 1 && (
+            <div className="border-t p-4">
+              <Pagination
+                pagination={pagination}
+                onPageChange={handlePageChange}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Order Details Modal */}
+        {selectedOrder && (
+          <OrderDetailsModal
+            order={selectedOrder}
+            onClose={() => setSelectedOrder(null)}
+            onStatusUpdate={handleStatusUpdate}
+            isUpdating={isUpdating}
+          />
         )}
       </div>
-
-      {/* Order Details Modal */}
-      {selectedOrder && (
-        <OrderDetailsModal
-          order={selectedOrder}
-          onClose={() => setSelectedOrder(null)}
-          onStatusUpdate={handleStatusUpdate}
-          isUpdating={isUpdating}
-        />
-      )}
-    </div>
+    </FeatureGate>
   );
 }

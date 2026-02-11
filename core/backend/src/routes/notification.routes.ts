@@ -1,8 +1,12 @@
 import { Router } from "express";
 import { notificationController } from "../controllers/notification.controller";
 import { authMiddleware } from "../middleware/auth.middleware";
+import { requireFeature } from "../middleware/preview.middleware";
 
 const router = Router();
+
+// Feature Gate: Notifications require comms.push or comms.email feature
+router.use(requireFeature("comms.email"));
 
 // All notification routes require authentication
 router.use(authMiddleware);

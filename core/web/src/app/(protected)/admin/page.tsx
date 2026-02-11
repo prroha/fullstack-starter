@@ -6,6 +6,7 @@ import { api, ApiError } from "@/lib/api";
 import { SkeletonDashboard, Badge, Text } from "@/components/ui";
 import { Alert } from "@/components/feedback";
 import { Icon } from "@/components/ui/icon";
+import { FeatureGate } from "@/components";
 import type { AdminStats } from "@/types/api";
 
 /**
@@ -262,18 +263,16 @@ function ActivityFeed({
  * Quick Actions Grid
  */
 function QuickActions() {
-  const actions = [
+  const baseActions = [
     { label: "Add User", href: "/admin/users", icon: "UserPlus" },
     { label: "New Announcement", href: "/admin/announcements", icon: "Megaphone" },
     { label: "Add FAQ", href: "/admin/faqs", icon: "CircleQuestionMark" },
-    { label: "Create Coupon", href: "/admin/coupons", icon: "Ticket" },
     { label: "New Content", href: "/admin/content", icon: "FileText" },
-    { label: "View Logs", href: "/admin/audit-logs", icon: "ScrollText" },
   ];
 
   return (
     <div className="grid grid-cols-3 gap-2">
-      {actions.map((action) => (
+      {baseActions.map((action) => (
         <Link
           key={action.label}
           href={action.href}
@@ -283,6 +282,24 @@ function QuickActions() {
           <span className="text-xs font-medium">{action.label}</span>
         </Link>
       ))}
+      <FeatureGate feature="payments.stripe">
+        <Link
+          href="/admin/coupons"
+          className="flex flex-col items-center gap-2 p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors text-center"
+        >
+          <Icon name="Ticket" size="md" color="primary" />
+          <span className="text-xs font-medium">Create Coupon</span>
+        </Link>
+      </FeatureGate>
+      <FeatureGate feature="security.audit">
+        <Link
+          href="/admin/audit-logs"
+          className="flex flex-col items-center gap-2 p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors text-center"
+        >
+          <Icon name="ScrollText" size="md" color="primary" />
+          <span className="text-xs font-medium">View Logs</span>
+        </Link>
+      </FeatureGate>
     </div>
   );
 }
@@ -361,14 +378,16 @@ export default function AdminDashboardPage() {
           icon={<Icon name="Users" size="md" />}
           color="primary"
         />
-        <StatsCard
-          title="Total Revenue"
-          value={`$${(stats.orders?.totalRevenue ?? 0).toLocaleString()}`}
-          description={`${stats.orders?.total ?? 0} orders`}
-          href="/admin/orders"
-          icon={<Icon name="DollarSign" size="md" />}
-          color="success"
-        />
+        <FeatureGate feature="payments.stripe">
+          <StatsCard
+            title="Total Revenue"
+            value={`$${(stats.orders?.totalRevenue ?? 0).toLocaleString()}`}
+            description={`${stats.orders?.total ?? 0} orders`}
+            href="/admin/orders"
+            icon={<Icon name="DollarSign" size="md" />}
+            color="success"
+          />
+        </FeatureGate>
         <StatsCard
           title="Pending Messages"
           value={stats.messages?.pending ?? 0}
@@ -377,14 +396,16 @@ export default function AdminDashboardPage() {
           icon={<Icon name="Mail" size="md" />}
           color={(stats.messages?.pending ?? 0) > 0 ? "warning" : "muted"}
         />
-        <StatsCard
-          title="Active Coupons"
-          value={stats.coupons?.active ?? 0}
-          description={`${stats.coupons?.expired ?? 0} expired`}
-          href="/admin/coupons"
-          icon={<Icon name="Ticket" size="md" />}
-          color="primary"
-        />
+        <FeatureGate feature="payments.stripe">
+          <StatsCard
+            title="Active Coupons"
+            value={stats.coupons?.active ?? 0}
+            description={`${stats.coupons?.expired ?? 0} expired`}
+            href="/admin/coupons"
+            icon={<Icon name="Ticket" size="md" />}
+            color="primary"
+          />
+        </FeatureGate>
       </div>
 
       {/* Main Content Grid */}
@@ -406,23 +427,25 @@ export default function AdminDashboardPage() {
               </div>
             </SectionCard>
 
-            <SectionCard
-              title="Orders"
-              href="/admin/orders"
-              icon={<Icon name="ShoppingCart" size="sm" />}
-            >
-              <MiniStat label="Completed" value={stats.orders?.completed ?? 0} color="success" />
-              <MiniStat label="Pending" value={stats.orders?.pending ?? 0} color="warning" />
-              <MiniStat label="Recent (7 days)" value={stats.orders?.recentOrders ?? 0} />
-              <div className="mt-4 pt-3 border-t">
-                <div className="flex items-center justify-between">
-                  <Text variant="caption" color="muted">Total Revenue</Text>
-                  <Text className="text-lg font-bold text-green-600 dark:text-green-400">
-                    ${(stats.orders?.totalRevenue ?? 0).toLocaleString()}
-                  </Text>
+            <FeatureGate feature="payments.stripe">
+              <SectionCard
+                title="Orders"
+                href="/admin/orders"
+                icon={<Icon name="ShoppingCart" size="sm" />}
+              >
+                <MiniStat label="Completed" value={stats.orders?.completed ?? 0} color="success" />
+                <MiniStat label="Pending" value={stats.orders?.pending ?? 0} color="warning" />
+                <MiniStat label="Recent (7 days)" value={stats.orders?.recentOrders ?? 0} />
+                <div className="mt-4 pt-3 border-t">
+                  <div className="flex items-center justify-between">
+                    <Text variant="caption" color="muted">Total Revenue</Text>
+                    <Text className="text-lg font-bold text-green-600 dark:text-green-400">
+                      ${(stats.orders?.totalRevenue ?? 0).toLocaleString()}
+                    </Text>
+                  </div>
                 </div>
-              </div>
-            </SectionCard>
+              </SectionCard>
+            </FeatureGate>
           </div>
 
           {/* Content & Engagement Row */}
@@ -468,20 +491,22 @@ export default function AdminDashboardPage() {
           </div>
 
           {/* Recent Activity */}
-          <div className="rounded-lg border bg-card shadow-sm">
-            <div className="flex items-center justify-between p-4 border-b">
-              <h3 className="font-semibold">Recent Activity</h3>
-              <Link
-                href="/admin/audit-logs"
-                className="text-sm text-primary hover:underline"
-              >
-                View all
-              </Link>
+          <FeatureGate feature="security.audit">
+            <div className="rounded-lg border bg-card shadow-sm">
+              <div className="flex items-center justify-between p-4 border-b">
+                <h3 className="font-semibold">Recent Activity</h3>
+                <Link
+                  href="/admin/audit-logs"
+                  className="text-sm text-primary hover:underline"
+                >
+                  View all
+                </Link>
+              </div>
+              <div className="p-2 max-h-80 overflow-y-auto">
+                <ActivityFeed activities={stats.recentActivity ?? []} />
+              </div>
             </div>
-            <div className="p-2 max-h-80 overflow-y-auto">
-              <ActivityFeed activities={stats.recentActivity ?? []} />
-            </div>
-          </div>
+          </FeatureGate>
 
           {/* Messages Summary */}
           <SectionCard

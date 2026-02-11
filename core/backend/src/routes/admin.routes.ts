@@ -3,6 +3,7 @@ import { adminController } from "../controllers/admin.controller";
 import { contactController } from "../controllers/contact.controller";
 import { auditController } from "../controllers/audit.controller";
 import { authMiddleware, adminMiddleware } from "../middleware/auth.middleware";
+import { requireFeature } from "../middleware/preview.middleware";
 import { AuthenticatedRequest } from "../types";
 
 const router = Router();
@@ -39,23 +40,23 @@ router.delete("/users/:id", (req, res, next) =>
 );
 
 // Audit logs management
-router.get("/audit-logs/entity-types", (req, res, next) =>
+router.get("/audit-logs/entity-types", requireFeature("security.audit"), (req, res, next) =>
   auditController.getEntityTypes(req as unknown as AuthenticatedRequest, res, next)
 );
 
-router.get("/audit-logs/action-types", (req, res, next) =>
+router.get("/audit-logs/action-types", requireFeature("security.audit"), (req, res, next) =>
   auditController.getActionTypes(req as unknown as AuthenticatedRequest, res, next)
 );
 
-router.get("/audit-logs/export", (req, res, next) =>
+router.get("/audit-logs/export", requireFeature("security.audit"), (req, res, next) =>
   adminController.exportAuditLogs(req as unknown as AuthenticatedRequest, res, next)
 );
 
-router.get("/audit-logs/:id", (req, res, next) =>
+router.get("/audit-logs/:id", requireFeature("security.audit"), (req, res, next) =>
   auditController.getLogById(req as unknown as AuthenticatedRequest, res, next)
 );
 
-router.get("/audit-logs", (req, res, next) =>
+router.get("/audit-logs", requireFeature("security.audit"), (req, res, next) =>
   auditController.getLogs(req as unknown as AuthenticatedRequest, res, next)
 );
 

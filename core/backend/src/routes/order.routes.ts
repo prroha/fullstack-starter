@@ -1,9 +1,15 @@
 import { Router } from "express";
 import { orderController } from "../controllers/order.controller";
 import { authMiddleware, adminMiddleware } from "../middleware/auth.middleware";
+import { requireFeature } from "../middleware/preview.middleware";
 import { AuthenticatedRequest } from "../types";
 
 const router = Router();
+
+// ============================================================================
+// Feature Gate: Orders require payments.stripe feature
+// ============================================================================
+router.use(requireFeature("payments.stripe"));
 
 // ============================================================================
 // USER ROUTES (authenticated users can view their own orders)
@@ -24,6 +30,9 @@ router.get("/:id", authMiddleware, (req, res, next) =>
 // ============================================================================
 
 const adminRouter = Router();
+
+// Feature Gate: Admin orders require payments.stripe feature
+adminRouter.use(requireFeature("payments.stripe"));
 
 // All admin routes require authentication and admin role
 adminRouter.use(authMiddleware);

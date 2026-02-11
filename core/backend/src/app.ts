@@ -11,6 +11,7 @@ import { csrfProtection } from "./middleware/csrf.middleware";
 import { sanitizeInput } from "./middleware/sanitize.middleware";
 import { generalRateLimiter } from "./middleware/rate-limit.middleware";
 import { requestIdMiddleware, REQUEST_ID_HEADER } from "./middleware/request-id.middleware";
+import { previewMiddleware } from "./middleware/preview.middleware";
 import { UPLOAD_DIR as _UPLOAD_DIR } from "./middleware/upload.middleware";
 import { logger, requestContext } from "./lib/logger";
 import routes from "./routes";
@@ -53,6 +54,7 @@ app.use(cors({
     "X-CSRF-Token",
     "X-XSRF-Token",
     "X-API-Key",
+    "X-Preview-Session",
     REQUEST_ID_HEADER,
   ],
   exposedHeaders: [
@@ -82,6 +84,12 @@ app.use(cookieParser());
 
 // Input sanitization (XSS prevention) - after body parsing
 app.use(sanitizeInput);
+
+// Preview/Feature flag middleware
+// - In preview mode: fetches feature config from Studio API
+// - In deployed mode: reads from starter-config.json
+// - In development mode: all features enabled
+app.use(previewMiddleware);
 
 // General rate limiting
 app.use(generalRateLimiter);

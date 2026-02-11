@@ -17,6 +17,8 @@ import {
   IconButton,
   Label,
 } from "@/components/ui";
+import { Alert } from "@/components/feedback";
+import { FeatureGate } from "@/components";
 import {
   api,
   Coupon,
@@ -304,172 +306,187 @@ export default function AdminCouponsPage() {
   ];
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <AdminPageHeader
-        title="Coupons"
-        description="Manage discount coupons and promo codes"
-        exportConfig={{
-          label: "Export",
-          onExport: async () => {
-            await downloadFile(api.getCouponsExportUrl());
-          },
-          successMessage: "Coupons exported successfully",
-        }}
-        actions={
-          <Button onClick={() => openModal()}>
-            <Icon name="Plus" size="sm" className="mr-2" />
-            Add Coupon
-          </Button>
-        }
-      />
-
-      {/* Filters */}
-      <div className="flex flex-wrap gap-4">
-        <div className="flex-1 min-w-[200px]">
-          <Input
-            type="search"
-            placeholder="Search by coupon code..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-        <Select
-          value={filters.discountType}
-          onChange={(val) => setFilter("discountType", val)}
-          className="w-48"
-          options={typeFilterOptions}
-        />
-        <Select
-          value={filters.isActive}
-          onChange={(val) => setFilter("isActive", val)}
-          className="w-40"
-          options={statusFilterOptions}
-        />
-        <Select
-          value={filters.sortBy}
-          onChange={(val) => setFilter("sortBy", val)}
-          className="w-40"
-          options={sortOptions}
-        />
-      </div>
-
-      {/* Table */}
-      <Card>
-        <CardContent className="p-0">
-          <DataTable
-            columns={columns}
-            data={coupons}
-            keyExtractor={(coupon) => coupon.id}
-            isLoading={isLoading}
-            emptyMessage="No coupons found"
-            hasActiveFilters={hasActiveFilters}
-            onClearFilters={() => {
-              setSearch("");
-              setFilter("discountType", "");
-              setFilter("isActive", "");
-            }}
-            pagination={pagination}
-            onPageChange={handlePageChange}
-            itemLabel="coupons"
-          />
-        </CardContent>
-      </Card>
-
-      {/* Modal */}
-      <Modal
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
-        title={editing ? "Edit Coupon" : "Add Coupon"}
-      >
+    <FeatureGate
+      feature="payments.stripe"
+      fallback={
         <div className="space-y-4">
           <div>
-            <Label className="mb-1 block">Code</Label>
-            <Input
-              value={form.code}
-              onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })}
-              placeholder="e.g., SUMMER2024"
-              className="font-mono"
-            />
+            <h1 className="text-3xl font-bold tracking-tight">Coupons</h1>
+            <Text color="muted">Coupon management is not available in this configuration.</Text>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label className="mb-1 block">Discount Type</Label>
-              <Select
-                value={form.discountType}
-                onChange={(val) => setForm({ ...form, discountType: val as typeof form.discountType })}
-                options={discountTypeOptions}
-              />
-            </div>
-            <div>
-              <Label className="mb-1 block">
-                Discount Value {form.discountType === "PERCENTAGE" ? "(%)" : "($)"}
-              </Label>
-              <Input
-                type="number"
-                value={form.discountValue}
-                onChange={(e) => setForm({ ...form, discountValue: parseFloat(e.target.value) || 0 })}
-                min={0}
-                max={form.discountType === "PERCENTAGE" ? 100 : undefined}
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label className="mb-1 block">Min Purchase (Optional)</Label>
-              <Input
-                type="number"
-                value={form.minPurchase}
-                onChange={(e) => setForm({ ...form, minPurchase: e.target.value })}
-                placeholder="No minimum"
-                min={0}
-              />
-            </div>
-            <div>
-              <Label className="mb-1 block">Max Uses (Optional)</Label>
-              <Input
-                type="number"
-                value={form.maxUses}
-                onChange={(e) => setForm({ ...form, maxUses: e.target.value })}
-                placeholder="Unlimited"
-                min={0}
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label className="mb-1 block">Valid From (Optional)</Label>
-              <Input
-                type="date"
-                value={form.validFrom}
-                onChange={(e) => setForm({ ...form, validFrom: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label className="mb-1 block">Valid Until (Optional)</Label>
-              <Input
-                type="date"
-                value={form.validUntil}
-                onChange={(e) => setForm({ ...form, validUntil: e.target.value })}
-              />
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Switch
-              checked={form.isActive}
-              onChange={(checked) => setForm({ ...form, isActive: checked })}
-            />
-            <Text size="sm">Active</Text>
-          </div>
-          <div className="flex justify-end gap-2 pt-4">
-            <Button variant="outline" onClick={() => setShowModal(false)}>Cancel</Button>
-            <Button onClick={save} disabled={saving || !form.code || form.discountValue <= 0}>
-              {saving ? <Spinner size="sm" className="mr-2" /> : null}
-              {editing ? "Save Changes" : "Create Coupon"}
-            </Button>
-          </div>
+          <Alert variant="warning">
+            The payments feature is not enabled. Enable the &quot;Stripe Payments&quot; feature to access coupon management.
+          </Alert>
         </div>
-      </Modal>
-    </div>
+      }
+    >
+      <div className="space-y-4">
+        {/* Header */}
+        <AdminPageHeader
+          title="Coupons"
+          description="Manage discount coupons and promo codes"
+          exportConfig={{
+            label: "Export",
+            onExport: async () => {
+              await downloadFile(api.getCouponsExportUrl());
+            },
+            successMessage: "Coupons exported successfully",
+          }}
+          actions={
+            <Button onClick={() => openModal()}>
+              <Icon name="Plus" size="sm" className="mr-2" />
+              Add Coupon
+            </Button>
+          }
+        />
+
+        {/* Filters */}
+        <div className="flex flex-wrap gap-4">
+          <div className="flex-1 min-w-[200px]">
+            <Input
+              type="search"
+              placeholder="Search by coupon code..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          <Select
+            value={filters.discountType}
+            onChange={(val) => setFilter("discountType", val)}
+            className="w-48"
+            options={typeFilterOptions}
+          />
+          <Select
+            value={filters.isActive}
+            onChange={(val) => setFilter("isActive", val)}
+            className="w-40"
+            options={statusFilterOptions}
+          />
+          <Select
+            value={filters.sortBy}
+            onChange={(val) => setFilter("sortBy", val)}
+            className="w-40"
+            options={sortOptions}
+          />
+        </div>
+
+        {/* Table */}
+        <Card>
+          <CardContent className="p-0">
+            <DataTable
+              columns={columns}
+              data={coupons}
+              keyExtractor={(coupon) => coupon.id}
+              isLoading={isLoading}
+              emptyMessage="No coupons found"
+              hasActiveFilters={hasActiveFilters}
+              onClearFilters={() => {
+                setSearch("");
+                setFilter("discountType", "");
+                setFilter("isActive", "");
+              }}
+              pagination={pagination}
+              onPageChange={handlePageChange}
+              itemLabel="coupons"
+            />
+          </CardContent>
+        </Card>
+
+        {/* Modal */}
+        <Modal
+          isOpen={showModal}
+          onClose={() => setShowModal(false)}
+          title={editing ? "Edit Coupon" : "Add Coupon"}
+        >
+          <div className="space-y-4">
+            <div>
+              <Label className="mb-1 block">Code</Label>
+              <Input
+                value={form.code}
+                onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })}
+                placeholder="e.g., SUMMER2024"
+                className="font-mono"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="mb-1 block">Discount Type</Label>
+                <Select
+                  value={form.discountType}
+                  onChange={(val) => setForm({ ...form, discountType: val as typeof form.discountType })}
+                  options={discountTypeOptions}
+                />
+              </div>
+              <div>
+                <Label className="mb-1 block">
+                  Discount Value {form.discountType === "PERCENTAGE" ? "(%)" : "($)"}
+                </Label>
+                <Input
+                  type="number"
+                  value={form.discountValue}
+                  onChange={(e) => setForm({ ...form, discountValue: parseFloat(e.target.value) || 0 })}
+                  min={0}
+                  max={form.discountType === "PERCENTAGE" ? 100 : undefined}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="mb-1 block">Min Purchase (Optional)</Label>
+                <Input
+                  type="number"
+                  value={form.minPurchase}
+                  onChange={(e) => setForm({ ...form, minPurchase: e.target.value })}
+                  placeholder="No minimum"
+                  min={0}
+                />
+              </div>
+              <div>
+                <Label className="mb-1 block">Max Uses (Optional)</Label>
+                <Input
+                  type="number"
+                  value={form.maxUses}
+                  onChange={(e) => setForm({ ...form, maxUses: e.target.value })}
+                  placeholder="Unlimited"
+                  min={0}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="mb-1 block">Valid From (Optional)</Label>
+                <Input
+                  type="date"
+                  value={form.validFrom}
+                  onChange={(e) => setForm({ ...form, validFrom: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label className="mb-1 block">Valid Until (Optional)</Label>
+                <Input
+                  type="date"
+                  value={form.validUntil}
+                  onChange={(e) => setForm({ ...form, validUntil: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch
+                checked={form.isActive}
+                onChange={(checked) => setForm({ ...form, isActive: checked })}
+              />
+              <Text size="sm">Active</Text>
+            </div>
+            <div className="flex justify-end gap-2 pt-4">
+              <Button variant="outline" onClick={() => setShowModal(false)}>Cancel</Button>
+              <Button onClick={save} disabled={saving || !form.code || form.discountValue <= 0}>
+                {saving ? <Spinner size="sm" className="mr-2" /> : null}
+                {editing ? "Save Changes" : "Create Coupon"}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      </div>
+    </FeatureGate>
   );
 }

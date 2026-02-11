@@ -39,3 +39,6 @@ export * from "./shared";
 
 // Provider Components
 export * from "./providers";
+
+// Feature Flag Components
+export * from "./feature-gate";

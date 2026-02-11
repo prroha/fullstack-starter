@@ -1,191 +1,151 @@
-import { Router } from "express";
+/**
+ * Preview Session Routes
+ * Manages preview sessions for the configurator
+ */
+
+import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
+import rateLimit from "express-rate-limit";
 import { prisma } from "../../config/db.js";
-import { sendSuccess } from "../../utils/response.js";
-import { ApiError } from "../../utils/errors.js";
+import { validateRequest } from "../../middleware/validate.middleware.js";
 
 const router = Router();
 
-// Parameter validation schemas
-const sessionIdParamSchema = z.object({
-  id: z.string().uuid(),
+// Rate limiter for session creation: 100 requests per hour per IP
+const createSessionLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 100, // 100 requests per hour per IP
+  message: {
+    success: false,
+    error: "Too many preview sessions created. Please try again later.",
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 
-const tierParamSchema = z.object({
-  tier: z.string().min(1).max(50).regex(/^[a-z0-9-_]+$/),
-});
+// Token format validation middleware
+// Token must be at least 20 characters, alphanumeric with dashes
+const TOKEN_REGEX = /^[a-zA-Z0-9-]{20,}$/;
 
-// Request body validation schemas
-const createSessionSchema = z.object({
-  tier: z.string().min(1).max(50),
-  features: z.array(z.string().max(100)).max(100),
-  templateId: z.string().max(100).optional(),
-});
+const validateTokenFormat = (req: Request<{ token: string }>, res: Response, next: NextFunction): void => {
+  const { token } = req.params;
 
-const updateSessionSchema = z.object({
-  duration: z.number().int().min(0).max(86400).optional(), // Max 24 hours in seconds
-  pageViews: z.number().int().min(0).max(10000).optional(),
-});
-
-/**
- * POST /api/preview/session
- * Create a preview session (for analytics tracking)
- * Note: Consider adding rate limiting middleware to prevent abuse
- */
-router.post("/session", async (req, res, next) => {
-  try {
-    // Validate request body
-    const parseResult = createSessionSchema.safeParse(req.body);
-    if (!parseResult.success) {
-      throw ApiError.validation(parseResult.error.flatten().fieldErrors);
-    }
-    const input = parseResult.data;
-
-    // Generate a unique session ID
-    const sessionId = `preview_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
-
-    // Create preview session record
-    const session = await prisma.previewSession.create({
-      data: {
-        sessionId,
-        tier: input.tier,
-        selectedFeatures: input.features,
-        templateId: input.templateId,
-      },
+  if (!token || !TOKEN_REGEX.test(token)) {
+    res.status(400).json({
+      success: false,
+      error: "Invalid token format. Token must be at least 20 characters and contain only alphanumeric characters and dashes.",
     });
-
-    sendSuccess(res, {
-      sessionId: session.sessionId,
-      createdAt: session.createdAt,
-    }, "Preview session created", 201);
-  } catch (error) {
-    next(error);
+    return;
   }
+
+  next();
+};
+
+// Schema for creating a preview session
+const createPreviewSessionSchema = z.object({
+  body: z.object({
+    selectedFeatures: z.array(z.string()).min(1),
+    tier: z.string(),
+    templateSlug: z.string().optional(),
+  }),
 });
 
-/**
- * PATCH /api/preview/session/:id
- * Update preview session (end session, track duration)
- */
-router.patch("/session/:id", async (req, res, next) => {
-  try {
-    // Validate session ID parameter
-    const paramResult = sessionIdParamSchema.safeParse(req.params);
-    if (!paramResult.success) {
-      throw ApiError.validation(paramResult.error.flatten().fieldErrors);
+// POST /api/preview/sessions - Create a new preview session
+router.post(
+  "/sessions",
+  createSessionLimiter,
+  validateRequest(createPreviewSessionSchema),
+  async (req, res, next) => {
+    try {
+      const { selectedFeatures, tier, templateSlug } = req.body;
+
+      // Session expires in 24 hours
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+      const session = await prisma.previewSession.create({
+        data: {
+          selectedFeatures,
+          tier,
+          templateSlug,
+          expiresAt,
+        },
+      });
+
+      // Generate preview URL
+      const previewBaseUrl = process.env.PREVIEW_APP_URL || "http://localhost:3000";
+      const previewUrl = `${previewBaseUrl}?preview=${session.sessionToken}`;
+
+      res.status(201).json({
+        success: true,
+        data: {
+          sessionId: session.id,
+          sessionToken: session.sessionToken,
+          previewUrl,
+          expiresAt: session.expiresAt,
+        },
+      });
+    } catch (error) {
+      next(error);
     }
-
-    // Validate request body
-    const parseResult = updateSessionSchema.safeParse(req.body);
-    if (!parseResult.success) {
-      throw ApiError.validation(parseResult.error.flatten().fieldErrors);
-    }
-    const input = parseResult.data;
-
-    // Check if session exists before updating
-    const existingSession = await prisma.previewSession.findUnique({
-      where: { id: paramResult.data.id },
-    });
-
-    if (!existingSession) {
-      throw ApiError.notFound("Preview session");
-    }
-
-    const session = await prisma.previewSession.update({
-      where: { id: paramResult.data.id },
-      data: {
-        lastActivityAt: new Date(),
-        duration: input.duration,
-        pageViews: input.pageViews,
-      },
-    });
-
-    sendSuccess(res, {
-      sessionId: session.sessionId,
-      duration: session.duration,
-    }, "Preview session updated");
-  } catch (error) {
-    next(error);
   }
-});
+);
 
-/**
- * GET /api/preview/config/:tier
- * Get preview configuration for a tier
- */
-router.get("/config/:tier", async (req, res, next) => {
+// GET /api/preview/sessions/:token - Get session configuration
+router.get<{ token: string }>("/sessions/:token", validateTokenFormat, async (req, res, next) => {
   try {
-    // Validate tier parameter
-    const paramResult = tierParamSchema.safeParse(req.params);
-    if (!paramResult.success) {
-      throw ApiError.validation(paramResult.error.flatten().fieldErrors);
-    }
+    const { token } = req.params;
 
-    const tier = await prisma.pricingTier.findFirst({
-      where: {
-        slug: paramResult.data.tier,
-        isActive: true,
-      },
-      select: {
-        id: true,
-        slug: true,
-        name: true,
-        includedFeatures: true,
-      },
+    const session = await prisma.previewSession.findUnique({
+      where: { sessionToken: token },
     });
 
-    if (!tier) {
-      // Return default config for unknown tier
-      sendSuccess(res, {
-        tier: paramResult.data.tier,
-        features: [],
-        modules: [],
+    if (!session) {
+      res.status(404).json({
+        success: false,
+        error: "Preview session not found",
       });
       return;
     }
 
-    // Get feature details
-    const features = await prisma.feature.findMany({
-      where: {
-        slug: { in: tier.includedFeatures },
-        isActive: true,
-      },
-      select: {
-        slug: true,
-        name: true,
-        iconName: true,
-        module: {
-          select: {
-            category: true,
-            name: true,
-          },
-        },
-      },
-    });
-
-    // Group by category
-    const byCategory: Record<string, typeof features> = {};
-    for (const feature of features) {
-      const category = feature.module?.category || "other";
-      if (!byCategory[category]) {
-        byCategory[category] = [];
-      }
-      byCategory[category].push(feature);
+    // Check if expired
+    if (new Date() > session.expiresAt) {
+      res.status(410).json({
+        success: false,
+        error: "Preview session has expired",
+      });
+      return;
     }
 
-    sendSuccess(res, {
-      tier: tier.slug,
-      tierName: tier.name,
-      features: features.map((f) => ({
-        slug: f.slug,
-        name: f.name,
-        category: f.module?.category,
-      })),
-      byCategory,
+    res.json({
+      success: true,
+      data: {
+        selectedFeatures: session.selectedFeatures,
+        tier: session.tier,
+        templateSlug: session.templateSlug,
+        expiresAt: session.expiresAt,
+      },
     });
   } catch (error) {
     next(error);
   }
 });
 
-export { router as publicPreviewRoutes };
+// DELETE /api/preview/sessions/:token - Delete a session
+router.delete<{ token: string }>("/sessions/:token", validateTokenFormat, async (req, res, next) => {
+  try {
+    const { token } = req.params;
+
+    await prisma.previewSession.delete({
+      where: { sessionToken: token },
+    });
+
+    res.json({
+      success: true,
+      message: "Preview session deleted",
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+export default router;

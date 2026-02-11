@@ -2,7 +2,7 @@ import { Router } from "express";
 import { publicFeaturesRoutes } from "./features.routes.js";
 import { publicTemplatesRoutes } from "./templates.routes.js";
 import { publicPricingRoutes } from "./pricing.routes.js";
-import { publicPreviewRoutes } from "./preview.routes.js";
+import previewRoutes from "./preview.routes.js";
 import { checkoutRoutes } from "./checkout.routes.js";
 import { publicOrdersRoutes } from "./orders.routes.js";
 import { authRoutes } from "./auth.routes.js";
@@ -30,7 +30,7 @@ router.get("/", (_req, res) => {
 router.use("/features", publicFeaturesRoutes);
 router.use("/templates", publicTemplatesRoutes);
 router.use("/pricing", publicPricingRoutes);
-router.use("/preview", publicPreviewRoutes);
+router.use("/preview", previewRoutes);
 router.use("/checkout", checkoutRoutes);
 router.use("/orders", publicOrdersRoutes);
 router.use("/auth", authRoutes);

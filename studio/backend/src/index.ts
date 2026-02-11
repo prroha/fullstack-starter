@@ -7,6 +7,7 @@ import { env } from "./config/env.js";
 import { errorHandler, notFoundHandler } from "./middleware/error.middleware.js";
 import { adminRoutes } from "./routes/admin/index.js";
 import { publicRoutes } from "./routes/public/index.js";
+import { startCleanupJob } from "./jobs/cleanup.job.js";
 
 const app = express();
 
@@ -43,6 +44,9 @@ const port = parseInt(env.PORT, 10);
 app.listen(port, () => {
   console.log(`🚀 Studio API running on http://localhost:${port}`);
   console.log(`   Environment: ${env.NODE_ENV}`);
+
+  // Start background jobs
+  startCleanupJob();
 });
 
 export default app;
