@@ -1,9 +1,11 @@
 import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../../config/db.js";
+import { env } from "../../config/env.js";
 import { sendSuccess, sendPaginated, parsePaginationParams, createPaginationInfo } from "../../utils/response.js";
 import { ApiError } from "../../utils/errors.js";
 import { stripeService } from "../../services/stripe.service.js";
+import { emailService } from "../../services/email.service.js";
 
 const router = Router();
 
@@ -272,6 +274,20 @@ router.post("/:id/refund", async (req, res, next) => {
       },
     });
 
+    // Send refund confirmation email
+    try {
+      await emailService.sendRefundConfirmation({
+        customerEmail: order.customerEmail,
+        customerName: order.customerName,
+        orderNumber: order.orderNumber,
+        refundAmount: order.total,
+        reason,
+      });
+    } catch (emailError) {
+      console.error("Failed to send refund confirmation email:", emailError);
+      // Don't throw - refund is already processed
+    }
+
     sendSuccess(res, updatedOrder, "Order refunded successfully");
   } catch (error) {
     next(error);
@@ -332,7 +348,100 @@ router.post("/:id/regenerate-download", async (req, res, next) => {
       },
     });
 
+    // Send new download link email
+    const downloadUrl = `${env.CORS_ORIGIN}/download/${license.downloadToken}`;
+    try {
+      await emailService.sendDownloadLink({
+        customerEmail: order.customerEmail,
+        customerName: order.customerName,
+        orderNumber: order.orderNumber,
+        licenseKey: license.licenseKey,
+        downloadUrl,
+        expiresAt: license.expiresAt || undefined,
+      });
+    } catch (emailError) {
+      console.error("Failed to send download link email:", emailError);
+    }
+
     sendSuccess(res, { downloadToken: license.downloadToken }, "Download link regenerated");
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /api/admin/orders/:id/resend-email
+ * Resend order confirmation or download link email
+ */
+router.post("/:id/resend-email", async (req, res, next) => {
+  try {
+    const schema = z.object({
+      type: z.enum(["confirmation", "download"]).default("download"),
+    });
+    const { type } = schema.parse(req.body);
+
+    const order = await prisma.order.findUnique({
+      where: { id: req.params.id },
+      include: { license: true },
+    });
+
+    if (!order) {
+      throw ApiError.notFound("Order");
+    }
+
+    if (order.status !== "COMPLETED") {
+      throw ApiError.badRequest("Order must be completed to resend emails");
+    }
+
+    if (!order.license) {
+      throw ApiError.badRequest("Order has no license - regenerate download first");
+    }
+
+    const downloadUrl = `${env.CORS_ORIGIN}/download/${order.license.downloadToken}`;
+
+    if (type === "confirmation") {
+      // Get tier name
+      const tier = await prisma.pricingTier.findFirst({
+        where: { slug: order.tier },
+      });
+
+      await emailService.sendOrderConfirmation({
+        customerEmail: order.customerEmail,
+        customerName: order.customerName,
+        orderNumber: order.orderNumber,
+        tier: order.tier,
+        tierName: tier?.name || order.tier,
+        selectedFeatures: order.selectedFeatures,
+        subtotal: order.subtotal,
+        discount: order.discount,
+        total: order.total,
+        licenseKey: order.license.licenseKey,
+        downloadUrl,
+      });
+    } else {
+      await emailService.sendDownloadLink({
+        customerEmail: order.customerEmail,
+        customerName: order.customerName,
+        orderNumber: order.orderNumber,
+        licenseKey: order.license.licenseKey,
+        downloadUrl,
+        expiresAt: order.license.expiresAt || undefined,
+      });
+    }
+
+    // Log the action
+    await prisma.studioAuditLog.create({
+      data: {
+        adminId: req.user?.id,
+        adminEmail: req.user?.email,
+        action: "RESEND_EMAIL",
+        entityType: "order",
+        entityId: order.id,
+        newValues: { type },
+      },
+    });
+
+    sendSuccess(res, { sent: true }, `${type === "confirmation" ? "Order confirmation" : "Download link"} email sent`);
   } catch (error) {
     next(error);
   }

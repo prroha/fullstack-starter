@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "../../config/db.js";
 import { sendSuccess, sendPaginated, parsePaginationParams, createPaginationInfo } from "../../utils/response.js";
 import { ApiError } from "../../utils/errors.js";
+import { emailService } from "../../services/email.service.js";
 
 const router = Router();
 
@@ -12,6 +13,66 @@ const settingSchema = z.object({
   type: z.enum(["string", "number", "boolean", "json"]).default("string"),
   description: z.string().optional(),
   isPublic: z.boolean().default(false),
+});
+
+/**
+ * GET /api/admin/settings/email/status
+ * Check email service configuration status
+ */
+router.get("/email/status", async (_req, res, next) => {
+  try {
+    sendSuccess(res, {
+      configured: emailService.isConfigured(),
+      provider: "resend",
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /api/admin/settings/email/test
+ * Send a test email to verify configuration
+ */
+router.post("/email/test", async (req, res, next) => {
+  try {
+    const schema = z.object({
+      email: z.string().email(),
+    });
+    const { email } = schema.parse(req.body);
+
+    if (!emailService.isConfigured()) {
+      throw ApiError.badRequest("Email service is not configured. Set RESEND_API_KEY in environment variables.");
+    }
+
+    const result = await emailService.sendWelcome({
+      email,
+      name: "Test User",
+      loginUrl: "https://starterstudio.com",
+    });
+
+    if (!result.success) {
+      throw ApiError.badRequest(`Failed to send test email: ${result.error}`);
+    }
+
+    await prisma.studioAuditLog.create({
+      data: {
+        adminId: req.user?.id,
+        adminEmail: req.user?.email,
+        action: "TEST_EMAIL",
+        entityType: "settings",
+        entityId: "email",
+        newValues: { testEmail: email, messageId: result.messageId },
+      },
+    });
+
+    sendSuccess(res, {
+      sent: true,
+      messageId: result.messageId,
+    }, "Test email sent successfully");
+  } catch (error) {
+    next(error);
+  }
 });
 
 /**

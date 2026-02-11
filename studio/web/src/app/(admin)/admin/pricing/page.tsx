@@ -16,7 +16,6 @@ import {
   Package,
   AlertCircle,
 } from "lucide-react";
-import { toast } from "sonner";
 import {
   Button,
   Input,
@@ -38,7 +37,9 @@ import {
   EmptyList,
 } from "@/components/ui";
 import { AdminPageHeader, TierBadge } from "@/components/admin";
-import { cn, formatCurrency, formatDate, formatNumber } from "@/lib/utils";
+import { cn, formatCurrency, formatNumber } from "@/lib/utils";
+import { API_CONFIG } from "@/lib/constants";
+import { showSuccess, showError } from "@/lib/toast";
 
 // =============================================================================
 // Types
@@ -155,120 +156,6 @@ const INITIAL_BUNDLE_FORM: BundleFormData = {
   expiresAt: "",
 };
 
-// =============================================================================
-// Mock Data
-// =============================================================================
-
-const MOCK_TIERS: PricingTier[] = [
-  {
-    id: "1",
-    slug: "starter",
-    name: "STARTER",
-    description: "Perfect for exploring the platform. Get started with core features at no cost.",
-    price: 0,
-    includedFeatures: ["Basic authentication", "Core UI components", "Email support", "Community access"],
-    isPopular: false,
-    displayOrder: 0,
-    color: "emerald",
-    isActive: true,
-    stats: { totalOrders: 1234, totalRevenue: 0 },
-    createdAt: "2024-01-01T00:00:00Z",
-    updatedAt: "2024-01-01T00:00:00Z",
-  },
-  {
-    id: "2",
-    slug: "pro",
-    name: "PRO",
-    description: "For professional developers who need advanced features and priority support.",
-    price: 14900,
-    includedFeatures: ["Everything in Starter", "Premium modules", "Priority support", "1 year updates", "API access"],
-    isPopular: true,
-    displayOrder: 1,
-    color: "blue",
-    isActive: true,
-    stats: { totalOrders: 567, totalRevenue: 8434300 },
-    createdAt: "2024-01-01T00:00:00Z",
-    updatedAt: "2024-01-01T00:00:00Z",
-  },
-  {
-    id: "3",
-    slug: "business",
-    name: "BUSINESS",
-    description: "Scale your business with advanced features, team collaboration, and dedicated support.",
-    price: 29900,
-    includedFeatures: ["Everything in Pro", "Custom branding", "Team licenses", "White-label option", "Dedicated support"],
-    isPopular: false,
-    displayOrder: 2,
-    color: "purple",
-    isActive: true,
-    stats: { totalOrders: 234, totalRevenue: 6996600 },
-    createdAt: "2024-01-01T00:00:00Z",
-    updatedAt: "2024-01-01T00:00:00Z",
-  },
-  {
-    id: "4",
-    slug: "enterprise",
-    name: "ENTERPRISE",
-    description: "Full enterprise solution with custom integrations, SLA, and white-glove onboarding.",
-    price: 49900,
-    includedFeatures: ["Everything in Business", "Custom integrations", "SLA guarantee", "White-glove onboarding", "Source code access"],
-    isPopular: false,
-    displayOrder: 3,
-    color: "amber",
-    isActive: true,
-    stats: { totalOrders: 45, totalRevenue: 2245500 },
-    createdAt: "2024-01-01T00:00:00Z",
-    updatedAt: "2024-01-01T00:00:00Z",
-  },
-];
-
-const MOCK_BUNDLES: BundleDiscount[] = [
-  {
-    id: "1",
-    name: "Multi-Module Discount",
-    description: "Save 15% when purchasing 3 or more modules",
-    type: "PERCENTAGE",
-    value: 15,
-    minItems: 3,
-    applicableTiers: ["pro", "business", "enterprise"],
-    applicableFeatures: [],
-    isActive: true,
-    startsAt: null,
-    expiresAt: null,
-    createdAt: "2024-01-01T00:00:00Z",
-    updatedAt: "2024-01-01T00:00:00Z",
-  },
-  {
-    id: "2",
-    name: "Enterprise Bundle",
-    description: "Get $100 off when buying 5+ features with Enterprise tier",
-    type: "FIXED",
-    value: 10000,
-    minItems: 5,
-    applicableTiers: ["enterprise"],
-    applicableFeatures: [],
-    isActive: true,
-    startsAt: null,
-    expiresAt: null,
-    createdAt: "2024-01-01T00:00:00Z",
-    updatedAt: "2024-01-01T00:00:00Z",
-  },
-  {
-    id: "3",
-    name: "Holiday Bundle Special",
-    description: "Limited time: 20% off any bundle of 2+ items",
-    type: "PERCENTAGE",
-    value: 20,
-    minItems: 2,
-    applicableTiers: [],
-    applicableFeatures: [],
-    isActive: false,
-    startsAt: "2024-12-01T00:00:00Z",
-    expiresAt: "2024-12-31T23:59:59Z",
-    createdAt: "2024-01-01T00:00:00Z",
-    updatedAt: "2024-01-01T00:00:00Z",
-  },
-];
 
 // =============================================================================
 // Helper Functions
@@ -503,11 +390,34 @@ export default function PricingPage() {
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      setTiers(MOCK_TIERS);
-      setBundles(MOCK_BUNDLES);
-      setLoading(false);
+      try {
+        const [tiersRes, bundlesRes] = await Promise.all([
+          fetch(`${API_CONFIG.BASE_URL}/admin/pricing/tiers`, {
+            credentials: "include",
+          }),
+          fetch(`${API_CONFIG.BASE_URL}/admin/pricing/bundles`, {
+            credentials: "include",
+          }),
+        ]);
+
+        if (!tiersRes.ok) {
+          throw new Error("Failed to fetch pricing tiers");
+        }
+        if (!bundlesRes.ok) {
+          throw new Error("Failed to fetch bundle discounts");
+        }
+
+        const tiersData = await tiersRes.json();
+        const bundlesData = await bundlesRes.json();
+
+        setTiers(tiersData.data || []);
+        setBundles(bundlesData.data?.items || []);
+      } catch (error) {
+        console.error("Failed to fetch pricing data:", error);
+        showError("Failed to load pricing data");
+      } finally {
+        setLoading(false);
+      }
     };
 
     loadData();
@@ -552,11 +462,7 @@ export default function PricingPage() {
 
     setIsSaving(true);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    const updatedTier: PricingTier = {
-      ...editingTier,
+    const payload = {
       name: tierFormData.name,
       description: tierFormData.description,
       price: Math.round(tierFormData.price * 100),
@@ -567,16 +473,47 @@ export default function PricingPage() {
       isPopular: tierFormData.isPopular,
       color: tierFormData.color || null,
       isActive: tierFormData.isActive,
-      updatedAt: new Date().toISOString(),
     };
 
-    setTiers((prev) =>
-      prev.map((t) => (t.id === editingTier.id ? updatedTier : t))
-    );
+    try {
+      const response = await fetch(
+        `${API_CONFIG.BASE_URL}/admin/pricing/tiers/${editingTier.slug}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(payload),
+        }
+      );
 
-    setIsSaving(false);
-    handleCloseTierModal();
-    toast.success("Pricing tier updated successfully");
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to update tier");
+      }
+
+      const result = await response.json();
+      const updatedTier = result.data;
+
+      // Preserve stats from the original tier
+      setTiers((prev) =>
+        prev.map((t) =>
+          t.id === editingTier.id
+            ? { ...updatedTier, stats: t.stats }
+            : t
+        )
+      );
+
+      handleCloseTierModal();
+      showSuccess("Pricing tier updated successfully");
+    } catch (error) {
+      console.error("Failed to update tier:", error);
+      showError(
+        "Failed to update pricing tier",
+        error instanceof Error ? error.message : undefined
+      );
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // =============================================================================
@@ -614,10 +551,7 @@ export default function PricingPage() {
   const handleSaveBundle = async () => {
     setIsSaving(true);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    const bundleData: Omit<BundleDiscount, "id" | "createdAt" | "updatedAt"> = {
+    const payload = {
       name: bundleFormData.name,
       description: bundleFormData.description || null,
       type: bundleFormData.type,
@@ -636,40 +570,103 @@ export default function PricingPage() {
         : null,
     };
 
-    if (editingBundle) {
-      setBundles((prev) =>
-        prev.map((b) =>
-          b.id === editingBundle.id
-            ? { ...b, ...bundleData, updatedAt: new Date().toISOString() }
-            : b
-        )
-      );
-      toast.success("Bundle discount updated successfully");
-    } else {
-      const newBundle: BundleDiscount = {
-        ...bundleData,
-        id: String(Date.now()),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      setBundles((prev) => [newBundle, ...prev]);
-      toast.success("Bundle discount created successfully");
-    }
+    try {
+      if (editingBundle) {
+        const response = await fetch(
+          `${API_CONFIG.BASE_URL}/admin/pricing/bundles/${editingBundle.id}`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify(payload),
+          }
+        );
 
-    setIsSaving(false);
-    handleCloseBundleModal();
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "Failed to update bundle");
+        }
+
+        const result = await response.json();
+        const updatedBundle = result.data;
+
+        setBundles((prev) =>
+          prev.map((b) => (b.id === editingBundle.id ? updatedBundle : b))
+        );
+        showSuccess("Bundle discount updated successfully");
+      } else {
+        const response = await fetch(
+          `${API_CONFIG.BASE_URL}/admin/pricing/bundles`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify(payload),
+          }
+        );
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "Failed to create bundle");
+        }
+
+        const result = await response.json();
+        const newBundle = result.data;
+
+        setBundles((prev) => [newBundle, ...prev]);
+        showSuccess("Bundle discount created successfully");
+      }
+
+      handleCloseBundleModal();
+    } catch (error) {
+      console.error("Failed to save bundle:", error);
+      showError(
+        "Failed to save bundle discount",
+        error instanceof Error ? error.message : undefined
+      );
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleToggleBundle = async (bundle: BundleDiscount) => {
-    // Simulate API call
+    // Optimistic update
+    const previousState = bundle.isActive;
     setBundles((prev) =>
       prev.map((b) =>
-        b.id === bundle.id
-          ? { ...b, isActive: !b.isActive, updatedAt: new Date().toISOString() }
-          : b
+        b.id === bundle.id ? { ...b, isActive: !b.isActive } : b
       )
     );
-    toast.success(`Bundle ${bundle.isActive ? "deactivated" : "activated"}`);
+
+    try {
+      const response = await fetch(
+        `${API_CONFIG.BASE_URL}/admin/pricing/bundles/${bundle.id}/toggle`,
+        {
+          method: "PATCH",
+          credentials: "include",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to toggle bundle status");
+      }
+
+      const result = await response.json();
+      // Update with server response to ensure consistency
+      setBundles((prev) =>
+        prev.map((b) => (b.id === bundle.id ? result.data : b))
+      );
+      showSuccess(`Bundle ${!previousState ? "activated" : "deactivated"}`);
+    } catch (error) {
+      // Revert on error
+      setBundles((prev) =>
+        prev.map((b) =>
+          b.id === bundle.id ? { ...b, isActive: previousState } : b
+        )
+      );
+      console.error("Failed to toggle bundle:", error);
+      showError("Failed to toggle bundle status");
+    }
   };
 
   const handleOpenDeleteDialog = (bundle: BundleDiscount) => {
@@ -687,14 +684,32 @@ export default function PricingPage() {
 
     setIsSaving(true);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    try {
+      const response = await fetch(
+        `${API_CONFIG.BASE_URL}/admin/pricing/bundles/${deletingBundle.id}`,
+        {
+          method: "DELETE",
+          credentials: "include",
+        }
+      );
 
-    setBundles((prev) => prev.filter((b) => b.id !== deletingBundle.id));
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to delete bundle");
+      }
 
-    setIsSaving(false);
-    handleCloseDeleteDialog();
-    toast.success("Bundle discount deleted");
+      setBundles((prev) => prev.filter((b) => b.id !== deletingBundle.id));
+      handleCloseDeleteDialog();
+      showSuccess("Bundle discount deleted");
+    } catch (error) {
+      console.error("Failed to delete bundle:", error);
+      showError(
+        "Failed to delete bundle discount",
+        error instanceof Error ? error.message : undefined
+      );
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleToggleTier = (tier: string) => {

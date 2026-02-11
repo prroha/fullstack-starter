@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Ticket,
   Percent,
@@ -34,7 +34,9 @@ import {
   EmptyList,
 } from "@/components/ui";
 import { AdminPageHeader, AdminFilters, TierBadge, TableSkeleton } from "@/components/admin";
-import { cn, formatCurrency, formatDate, formatNumber } from "@/lib/utils";
+import { formatCurrency, formatDate, formatNumber } from "@/lib/utils";
+import { API_CONFIG } from "@/lib/constants";
+import { showError, showSuccess, showLoading, dismissToast } from "@/lib/toast";
 
 // =============================================================================
 // Types
@@ -46,28 +48,36 @@ type CouponStatus = "ACTIVE" | "INACTIVE" | "EXPIRED";
 interface Coupon {
   id: string;
   code: string;
-  discountType: DiscountType;
-  discountValue: number; // percentage (0-100) or cents for fixed
+  type: DiscountType;
+  value: number; // percentage (0-100) or cents for fixed
   maxUses: number | null; // null = unlimited
   usedCount: number;
   minPurchase: number | null; // in cents, null = no minimum
   applicableTiers: string[];
-  validFrom: string;
-  validUntil: string;
+  applicableTemplates: string[];
+  startsAt: string | null;
+  expiresAt: string | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
 }
 
+interface PaginationInfo {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
 interface CouponFormData {
   code: string;
-  discountType: DiscountType;
-  discountValue: number;
+  type: DiscountType;
+  value: number;
   maxUses: number;
   minPurchase: number;
   applicableTiers: string[];
-  validFrom: string;
-  validUntil: string;
+  startsAt: string;
+  expiresAt: string;
   isActive: boolean;
 }
 
@@ -104,99 +114,18 @@ const STATUS_FILTER_OPTIONS = [
 
 const INITIAL_FORM_DATA: CouponFormData = {
   code: "",
-  discountType: "PERCENTAGE",
-  discountValue: 10,
+  type: "PERCENTAGE",
+  value: 10,
   maxUses: 0,
   minPurchase: 0,
   applicableTiers: [],
-  validFrom: new Date().toISOString().split("T")[0],
-  validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+  startsAt: new Date().toISOString().split("T")[0],
+  expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
     .toISOString()
     .split("T")[0],
   isActive: true,
 };
 
-// =============================================================================
-// Mock Data
-// =============================================================================
-
-const MOCK_COUPONS: Coupon[] = [
-  {
-    id: "1",
-    code: "WELCOME20",
-    discountType: "PERCENTAGE",
-    discountValue: 20,
-    maxUses: 100,
-    usedCount: 45,
-    minPurchase: 5000, // $50
-    applicableTiers: ["Starter", "Pro"],
-    validFrom: "2024-01-01",
-    validUntil: "2024-12-31",
-    isActive: true,
-    createdAt: "2024-01-01T00:00:00Z",
-    updatedAt: "2024-01-01T00:00:00Z",
-  },
-  {
-    id: "2",
-    code: "SAVE10",
-    discountType: "FIXED",
-    discountValue: 1000, // $10
-    maxUses: null,
-    usedCount: 234,
-    minPurchase: null,
-    applicableTiers: ["Starter", "Pro", "Business", "Enterprise"],
-    validFrom: "2024-01-01",
-    validUntil: "2024-06-30",
-    isActive: true,
-    createdAt: "2024-01-01T00:00:00Z",
-    updatedAt: "2024-01-01T00:00:00Z",
-  },
-  {
-    id: "3",
-    code: "BUSINESS50",
-    discountType: "PERCENTAGE",
-    discountValue: 50,
-    maxUses: 10,
-    usedCount: 10,
-    minPurchase: 10000, // $100
-    applicableTiers: ["Business", "Enterprise"],
-    validFrom: "2024-01-01",
-    validUntil: "2024-03-31",
-    isActive: false,
-    createdAt: "2024-01-01T00:00:00Z",
-    updatedAt: "2024-01-01T00:00:00Z",
-  },
-  {
-    id: "4",
-    code: "HOLIDAY25",
-    discountType: "PERCENTAGE",
-    discountValue: 25,
-    maxUses: 500,
-    usedCount: 123,
-    minPurchase: null,
-    applicableTiers: ["Starter", "Pro", "Business"],
-    validFrom: "2023-12-01",
-    validUntil: "2023-12-31",
-    isActive: false,
-    createdAt: "2023-12-01T00:00:00Z",
-    updatedAt: "2023-12-31T00:00:00Z",
-  },
-  {
-    id: "5",
-    code: "ENTERPRISE100",
-    discountType: "FIXED",
-    discountValue: 10000, // $100
-    maxUses: 5,
-    usedCount: 2,
-    minPurchase: 50000, // $500
-    applicableTiers: ["Enterprise"],
-    validFrom: "2024-01-01",
-    validUntil: "2024-12-31",
-    isActive: true,
-    createdAt: "2024-01-01T00:00:00Z",
-    updatedAt: "2024-01-01T00:00:00Z",
-  },
-];
 
 // =============================================================================
 // Helper Functions
@@ -204,18 +133,19 @@ const MOCK_COUPONS: Coupon[] = [
 
 function getCouponStatus(coupon: Coupon): CouponStatus {
   const now = new Date();
-  const validUntil = new Date(coupon.validUntil);
-
-  if (validUntil < now) return "EXPIRED";
+  if (coupon.expiresAt) {
+    const expiresAt = new Date(coupon.expiresAt);
+    if (expiresAt < now) return "EXPIRED";
+  }
   if (!coupon.isActive) return "INACTIVE";
   return "ACTIVE";
 }
 
 function formatDiscountValue(coupon: Coupon): string {
-  if (coupon.discountType === "PERCENTAGE") {
-    return `${coupon.discountValue}%`;
+  if (coupon.type === "PERCENTAGE") {
+    return `${coupon.value}%`;
   }
-  return formatCurrency(coupon.discountValue);
+  return formatCurrency(coupon.value);
 }
 
 function formatUsage(coupon: Coupon): string {
@@ -289,6 +219,12 @@ function TypeBadge({ type }: { type: DiscountType }) {
   );
 }
 
+// Helper to format date for display (handles null dates)
+function formatCouponDate(dateString: string | null): string {
+  if (!dateString) return "No limit";
+  return formatDate(dateString);
+}
+
 // Tier Badges Component
 function TierBadges({ tiers }: { tiers: string[] }) {
   if (tiers.length === AVAILABLE_TIERS.length) {
@@ -330,6 +266,13 @@ export default function CouponsPage() {
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState("ALL");
+  const [pagination, setPagination] = useState<PaginationInfo>({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 0,
+  });
+  const [error, setError] = useState<string | null>(null);
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -339,20 +282,52 @@ export default function CouponsPage() {
   const [formData, setFormData] = useState<CouponFormData>(INITIAL_FORM_DATA);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Load coupons (mock data for now)
-  useEffect(() => {
-    const loadCoupons = async () => {
-      setLoading(true);
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      setCoupons(MOCK_COUPONS);
+  // Fetch coupons from API
+  const fetchCoupons = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const params = new URLSearchParams();
+      params.set("page", pagination.page.toString());
+      params.set("limit", pagination.limit.toString());
+      if (search) params.set("search", search);
+      if (typeFilter !== "ALL") params.set("type", typeFilter);
+      if (statusFilter === "ACTIVE") params.set("isActive", "true");
+      if (statusFilter === "INACTIVE") params.set("isActive", "false");
+
+      const response = await fetch(
+        `${API_CONFIG.BASE_URL}/admin/coupons?${params.toString()}`,
+        {
+          credentials: "include",
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error?.message || "Failed to fetch coupons");
+      }
+
+      const data = await response.json();
+      setCoupons(data.data?.items || data.data || []);
+      if (data.pagination) {
+        setPagination(data.pagination);
+      }
+    } catch (err) {
+      console.error("Failed to fetch coupons:", err);
+      const errorMessage = err instanceof Error ? err.message : "Failed to fetch coupons";
+      setError(errorMessage);
+      showError("Failed to load coupons", errorMessage);
+    } finally {
       setLoading(false);
-    };
+    }
+  }, [pagination.page, pagination.limit, search, typeFilter, statusFilter]);
 
-    loadCoupons();
-  }, []);
+  // Load coupons on mount and when filters change
+  useEffect(() => {
+    fetchCoupons();
+  }, [fetchCoupons]);
 
-  // Computed Stats
+  // Computed Stats (calculated from loaded data)
   const stats: CouponStats = useMemo(() => {
     const activeCoupons = coupons.filter(
       (c) => getCouponStatus(c) === "ACTIVE"
@@ -360,48 +335,20 @@ export default function CouponsPage() {
     const totalRedemptions = coupons.reduce((sum, c) => sum + c.usedCount, 0);
     const totalDiscountGiven = coupons.reduce((sum, c) => {
       // Rough calculation - in real app this would come from orders
-      if (c.discountType === "FIXED") {
-        return sum + c.discountValue * c.usedCount;
+      if (c.type === "FIXED") {
+        return sum + c.value * c.usedCount;
       }
       // For percentage, assume average order of $100
-      return sum + (c.discountValue / 100) * 10000 * c.usedCount;
+      return sum + (c.value / 100) * 10000 * c.usedCount;
     }, 0);
 
     return {
-      total: coupons.length,
+      total: pagination.total || coupons.length,
       active: activeCoupons.length,
       totalRedemptions,
       totalDiscountGiven,
     };
-  }, [coupons]);
-
-  // Filtered Coupons
-  const filteredCoupons = useMemo(() => {
-    return coupons.filter((coupon) => {
-      // Search filter
-      if (
-        search &&
-        !coupon.code.toLowerCase().includes(search.toLowerCase())
-      ) {
-        return false;
-      }
-
-      // Type filter
-      if (typeFilter !== "ALL" && coupon.discountType !== typeFilter) {
-        return false;
-      }
-
-      // Status filter
-      if (statusFilter !== "ALL") {
-        const status = getCouponStatus(coupon);
-        if (status !== statusFilter) {
-          return false;
-        }
-      }
-
-      return true;
-    });
-  }, [coupons, search, typeFilter, statusFilter]);
+  }, [coupons, pagination.total]);
 
   // Check if filters are active
   const hasActiveFilters = !!search || typeFilter !== "ALL" || statusFilter !== "ALL";
@@ -411,6 +358,23 @@ export default function CouponsPage() {
     setSearch("");
     setTypeFilter("ALL");
     setStatusFilter("ALL");
+    setPagination((prev) => ({ ...prev, page: 1 }));
+  };
+
+  // Handle search/filter changes - reset to page 1
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+    setPagination((prev) => ({ ...prev, page: 1 }));
+  };
+
+  const handleTypeFilterChange = (value: string) => {
+    setTypeFilter(value);
+    setPagination((prev) => ({ ...prev, page: 1 }));
+  };
+
+  const handleStatusFilterChange = (value: string) => {
+    setStatusFilter(value);
+    setPagination((prev) => ({ ...prev, page: 1 }));
   };
 
   // Open create modal
@@ -425,16 +389,16 @@ export default function CouponsPage() {
     setEditingCoupon(coupon);
     setFormData({
       code: coupon.code,
-      discountType: coupon.discountType,
-      discountValue:
-        coupon.discountType === "FIXED"
-          ? coupon.discountValue / 100
-          : coupon.discountValue,
+      type: coupon.type,
+      value:
+        coupon.type === "FIXED"
+          ? coupon.value / 100
+          : coupon.value,
       maxUses: coupon.maxUses ?? 0,
       minPurchase: coupon.minPurchase ? coupon.minPurchase / 100 : 0,
       applicableTiers: coupon.applicableTiers,
-      validFrom: coupon.validFrom,
-      validUntil: coupon.validUntil,
+      startsAt: coupon.startsAt ? coupon.startsAt.split("T")[0] : "",
+      expiresAt: coupon.expiresAt ? coupon.expiresAt.split("T")[0] : "",
       isActive: coupon.isActive,
     });
     setIsModalOpen(true);
@@ -447,56 +411,59 @@ export default function CouponsPage() {
     setFormData(INITIAL_FORM_DATA);
   };
 
-  // Save coupon
+  // Save coupon (create or update)
   const handleSaveCoupon = async () => {
     setIsSaving(true);
+    const loadingId = showLoading(editingCoupon ? "Updating coupon..." : "Creating coupon...");
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    const couponData: Omit<Coupon, "id" | "createdAt" | "updatedAt"> = {
-      code: formData.code.toUpperCase(),
-      discountType: formData.discountType,
-      discountValue:
-        formData.discountType === "FIXED"
-          ? formData.discountValue * 100
-          : formData.discountValue,
-      maxUses: formData.maxUses === 0 ? null : formData.maxUses,
-      usedCount: editingCoupon?.usedCount ?? 0,
-      minPurchase:
-        formData.minPurchase === 0 ? null : formData.minPurchase * 100,
-      applicableTiers: formData.applicableTiers,
-      validFrom: formData.validFrom,
-      validUntil: formData.validUntil,
-      isActive: formData.isActive,
-    };
-
-    if (editingCoupon) {
-      // Update existing coupon
-      setCoupons((prev) =>
-        prev.map((c) =>
-          c.id === editingCoupon.id
-            ? {
-                ...c,
-                ...couponData,
-                updatedAt: new Date().toISOString(),
-              }
-            : c
-        )
-      );
-    } else {
-      // Create new coupon
-      const newCoupon: Coupon = {
-        ...couponData,
-        id: String(Date.now()),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+    try {
+      const couponData = {
+        code: formData.code.toUpperCase(),
+        type: formData.type,
+        value:
+          formData.type === "FIXED"
+            ? Math.round(formData.value * 100)
+            : formData.value,
+        maxUses: formData.maxUses === 0 ? null : formData.maxUses,
+        minPurchase:
+          formData.minPurchase === 0 ? null : Math.round(formData.minPurchase * 100),
+        applicableTiers: formData.applicableTiers,
+        startsAt: formData.startsAt ? new Date(formData.startsAt).toISOString() : null,
+        expiresAt: formData.expiresAt ? new Date(formData.expiresAt).toISOString() : null,
+        isActive: formData.isActive,
       };
-      setCoupons((prev) => [newCoupon, ...prev]);
-    }
 
-    setIsSaving(false);
-    handleCloseModal();
+      const url = editingCoupon
+        ? `${API_CONFIG.BASE_URL}/admin/coupons/${editingCoupon.id}`
+        : `${API_CONFIG.BASE_URL}/admin/coupons`;
+      const method = editingCoupon ? "PUT" : "POST";
+
+      const response = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(couponData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error?.message || `Failed to ${editingCoupon ? "update" : "create"} coupon`);
+      }
+
+      dismissToast(loadingId);
+      showSuccess(editingCoupon ? "Coupon updated successfully" : "Coupon created successfully");
+      handleCloseModal();
+      fetchCoupons(); // Refresh the list
+    } catch (err) {
+      console.error("Failed to save coupon:", err);
+      dismissToast(loadingId);
+      showError(
+        `Failed to ${editingCoupon ? "update" : "create"} coupon`,
+        err instanceof Error ? err.message : undefined
+      );
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // Open delete dialog
@@ -516,14 +483,36 @@ export default function CouponsPage() {
     if (!deletingCoupon) return;
 
     setIsSaving(true);
+    const loadingId = showLoading("Deleting coupon...");
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    try {
+      const response = await fetch(
+        `${API_CONFIG.BASE_URL}/admin/coupons/${deletingCoupon.id}`,
+        {
+          method: "DELETE",
+          credentials: "include",
+        }
+      );
 
-    setCoupons((prev) => prev.filter((c) => c.id !== deletingCoupon.id));
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error?.message || "Failed to delete coupon");
+      }
 
-    setIsSaving(false);
-    handleCloseDeleteDialog();
+      dismissToast(loadingId);
+      showSuccess("Coupon deleted successfully");
+      handleCloseDeleteDialog();
+      fetchCoupons(); // Refresh the list
+    } catch (err) {
+      console.error("Failed to delete coupon:", err);
+      dismissToast(loadingId);
+      showError(
+        "Failed to delete coupon",
+        err instanceof Error ? err.message : undefined
+      );
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // Toggle tier in form
@@ -587,19 +576,19 @@ export default function CouponsPage() {
       <AdminFilters
         search={search}
         searchPlaceholder="Search by code..."
-        onSearchChange={setSearch}
+        onSearchChange={handleSearchChange}
         hasActiveFilters={hasActiveFilters}
         onClearFilters={handleClearFilters}
       >
         <Select
           value={typeFilter}
-          onChange={setTypeFilter}
+          onChange={handleTypeFilterChange}
           options={TYPE_FILTER_OPTIONS}
           className="w-40"
         />
         <Select
           value={statusFilter}
-          onChange={setStatusFilter}
+          onChange={handleStatusFilterChange}
           options={STATUS_FILTER_OPTIONS}
           className="w-40"
         />
@@ -609,7 +598,7 @@ export default function CouponsPage() {
       <div className="rounded-lg border bg-card">
         {loading ? (
           <TableSkeleton rows={5} columns={8} showHeader showFilters={false} />
-        ) : filteredCoupons.length === 0 ? (
+        ) : coupons.length === 0 ? (
           <div className="p-6">
             {hasActiveFilters ? (
               <EmptySearch
@@ -643,7 +632,7 @@ export default function CouponsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredCoupons.map((coupon) => (
+                {coupons.map((coupon) => (
                   <TableRow key={coupon.id}>
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -654,7 +643,7 @@ export default function CouponsPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <TypeBadge type={coupon.discountType} />
+                      <TypeBadge type={coupon.type} />
                     </TableCell>
                     <TableCell className="font-medium">
                       {formatDiscountValue(coupon)}
@@ -667,9 +656,9 @@ export default function CouponsPage() {
                     </TableCell>
                     <TableCell>
                       <div className="text-sm">
-                        <div>{formatDate(coupon.validFrom)}</div>
+                        <div>{formatCouponDate(coupon.startsAt)}</div>
                         <div className="text-muted-foreground">
-                          to {formatDate(coupon.validUntil)}
+                          to {formatCouponDate(coupon.expiresAt)}
                         </div>
                       </div>
                     </TableCell>
@@ -733,11 +722,11 @@ export default function CouponsPage() {
             <div className="space-y-2">
               <Label>Discount Type</Label>
               <Select
-                value={formData.discountType}
+                value={formData.type}
                 onChange={(value) =>
                   setFormData((prev) => ({
                     ...prev,
-                    discountType: value as DiscountType,
+                    type: value as DiscountType,
                   }))
                 }
                 options={DISCOUNT_TYPE_OPTIONS}
@@ -746,17 +735,17 @@ export default function CouponsPage() {
             <div className="space-y-2">
               <Label>
                 Discount Value{" "}
-                {formData.discountType === "PERCENTAGE" ? "(%)" : "($)"}
+                {formData.type === "PERCENTAGE" ? "(%)" : "($)"}
               </Label>
               <Input
                 type="number"
                 min={0}
-                max={formData.discountType === "PERCENTAGE" ? 100 : undefined}
-                value={formData.discountValue}
+                max={formData.type === "PERCENTAGE" ? 100 : undefined}
+                value={formData.value}
                 onChange={(e) =>
                   setFormData((prev) => ({
                     ...prev,
-                    discountValue: Number(e.target.value),
+                    value: Number(e.target.value),
                   }))
                 }
               />
@@ -821,30 +810,36 @@ export default function CouponsPage() {
           {/* Valid Period */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Valid From</Label>
+              <Label>Starts At</Label>
               <Input
                 type="date"
-                value={formData.validFrom}
+                value={formData.startsAt}
                 onChange={(e) =>
                   setFormData((prev) => ({
                     ...prev,
-                    validFrom: e.target.value,
+                    startsAt: e.target.value,
                   }))
                 }
               />
+              <p className="text-xs text-muted-foreground">
+                Leave empty for no start date limit
+              </p>
             </div>
             <div className="space-y-2">
-              <Label>Valid Until</Label>
+              <Label>Expires At</Label>
               <Input
                 type="date"
-                value={formData.validUntil}
+                value={formData.expiresAt}
                 onChange={(e) =>
                   setFormData((prev) => ({
                     ...prev,
-                    validUntil: e.target.value,
+                    expiresAt: e.target.value,
                   }))
                 }
               />
+              <p className="text-xs text-muted-foreground">
+                Leave empty for no expiration
+              </p>
             </div>
           </div>
 
@@ -873,8 +868,7 @@ export default function CouponsPage() {
             isLoading={isSaving}
             disabled={
               !formData.code ||
-              formData.discountValue <= 0 ||
-              formData.applicableTiers.length === 0
+              formData.value <= 0
             }
           >
             {editingCoupon ? "Save Changes" : "Create Coupon"}

@@ -1,13 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   DollarSign,
   ShoppingCart,
   Users,
   Eye,
+  RefreshCw,
 } from "lucide-react";
 import { formatCurrency, formatNumber, formatDateTime } from "@/lib/utils";
+import { API_CONFIG } from "@/lib/constants";
+import { showError } from "@/lib/toast";
 import {
   StatCard,
   Table,
@@ -17,6 +20,7 @@ import {
   TableHead,
   TableCell,
   Card,
+  Button,
 } from "@/components/ui";
 import { AdminPageHeader, OrderStatusBadge } from "@/components/admin";
 import type { OrderStatus } from "@/components/admin/status-badges";
@@ -26,6 +30,7 @@ interface DashboardStats {
     total: number;
     today: number;
     thisMonth: number;
+    lastMonth: number;
     growth: number;
   };
   orders: {
@@ -37,6 +42,9 @@ interface DashboardStats {
     total: number;
     newToday: number;
   };
+  templates: {
+    active: number;
+  };
   previews: {
     total: number;
     today: number;
@@ -45,82 +53,60 @@ interface DashboardStats {
     id: string;
     orderNumber: string;
     customerEmail: string;
+    customerName: string | null;
     tier: string;
     total: number;
     status: OrderStatus;
     createdAt: string;
-    template?: { name: string };
+    template?: { name: string } | null;
+  }>;
+  topTemplates: Array<{
+    templateId: string | null;
+    _count: { id: number };
+    _sum: { total: number | null };
   }>;
 }
 
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchStats = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await fetch(`${API_CONFIG.BASE_URL}/admin/dashboard/stats`, {
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch dashboard stats");
+      }
+
+      const result = await response.json();
+      setStats(result.data);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to load dashboard";
+      setError(message);
+      showError(message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    // TODO: Replace with actual API call
-    // For now, using mock data
-    const mockStats: DashboardStats = {
-      revenue: {
-        total: 2459900, // in cents
-        today: 34900,
-        thisMonth: 459900,
-        growth: 12.5,
-      },
-      orders: {
-        total: 156,
-        today: 3,
-        pending: 5,
-      },
-      customers: {
-        total: 89,
-        newToday: 2,
-      },
-      previews: {
-        total: 1247,
-        today: 45,
-      },
-      recentOrders: [
-        {
-          id: "1",
-          orderNumber: "ORD-001",
-          customerEmail: "john@example.com",
-          tier: "Pro",
-          total: 14900,
-          status: "COMPLETED",
-          createdAt: new Date().toISOString(),
-          template: { name: "LMS" },
-        },
-        {
-          id: "2",
-          orderNumber: "ORD-002",
-          customerEmail: "jane@example.com",
-          tier: "Business",
-          total: 29900,
-          status: "PENDING",
-          createdAt: new Date(Date.now() - 86400000).toISOString(),
-        },
-        {
-          id: "3",
-          orderNumber: "ORD-003",
-          customerEmail: "bob@example.com",
-          tier: "Starter",
-          total: 4900,
-          status: "COMPLETED",
-          createdAt: new Date(Date.now() - 172800000).toISOString(),
-        },
-      ],
-    };
-
-    setTimeout(() => {
-      setStats(mockStats);
-      setLoading(false);
-    }, 500);
-  }, []);
+    fetchStats();
+  }, [fetchStats]);
 
   if (loading) {
     return (
       <div className="space-y-6">
+        <AdminPageHeader
+          title="Dashboard"
+          description="Welcome to Starter Studio Admin Panel"
+        />
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           {[...Array(4)].map((_, i) => (
             <div key={i} className="bg-background rounded-lg border p-6 animate-pulse">
@@ -133,13 +119,35 @@ export default function AdminDashboardPage() {
     );
   }
 
-  if (!stats) return null;
+  if (error || !stats) {
+    return (
+      <div className="space-y-6">
+        <AdminPageHeader
+          title="Dashboard"
+          description="Welcome to Starter Studio Admin Panel"
+        />
+        <Card className="p-8 text-center">
+          <p className="text-muted-foreground mb-4">{error || "Failed to load dashboard data"}</p>
+          <Button onClick={fetchStats}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Retry
+          </Button>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       <AdminPageHeader
         title="Dashboard"
         description="Welcome to Starter Studio Admin Panel"
+        actions={
+          <Button variant="outline" size="sm" onClick={fetchStats}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
+        }
       />
 
       {/* Stats Grid */}

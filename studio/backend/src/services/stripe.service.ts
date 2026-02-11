@@ -3,6 +3,7 @@ import { env } from "../config/env.js";
 import { prisma } from "../config/db.js";
 import { ApiError } from "../utils/errors.js";
 import { v4 as uuidv4 } from "uuid";
+import { emailService } from "./email.service.js";
 
 // =====================================================
 // Stripe Configuration
@@ -433,6 +434,33 @@ class StripeService {
     });
 
     console.log(`Order created: ${order.orderNumber} for ${metadata.email}`);
+
+    // Get tier name for email
+    const tierData = await prisma.pricingTier.findFirst({
+      where: { slug: metadata.tier },
+    });
+
+    // Send order confirmation email
+    const downloadUrl = `${env.CORS_ORIGIN}/download/${downloadToken}`;
+    try {
+      await emailService.sendOrderConfirmation({
+        customerEmail: metadata.email,
+        customerName: metadata.customerName || null,
+        orderNumber: order.orderNumber,
+        tier: metadata.tier,
+        tierName: tierData?.name || metadata.tier,
+        selectedFeatures: selectedFeatures,
+        subtotal: order.subtotal,
+        discount: order.discount,
+        total: order.total,
+        licenseKey,
+        downloadUrl,
+      });
+      console.log(`Order confirmation email sent to ${metadata.email}`);
+    } catch (emailError) {
+      console.error("Failed to send order confirmation email:", emailError);
+      // Don't throw - order is already created
+    }
 
     return order.id;
   }

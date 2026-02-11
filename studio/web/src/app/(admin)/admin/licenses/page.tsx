@@ -18,6 +18,8 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { cn, formatNumber, formatDate, formatDateTime } from "@/lib/utils";
+import { API_CONFIG } from "@/lib/constants";
+import { showSuccess, showError, showLoading, dismissToast } from "@/lib/toast";
 import { Button, Modal, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, StatCard, CopyButton } from "@/components/ui";
 import { EmptyList } from "@/components/ui";
 import { EmptyState } from "@core/components/shared";
@@ -30,18 +32,24 @@ interface License {
   id: string;
   licenseKey: string;
   downloadToken: string;
-  orderNumber: string;
-  orderId: string;
-  customerEmail: string;
-  customerName: string;
   status: LicenseStatus;
   downloadCount: number;
   maxDownloads: number;
-  expiresAt: string;
+  expiresAt: string | null;
   createdAt: string;
-  revokedAt?: string;
-  revokeReason?: string;
-  downloadHistory: DownloadRecord[];
+  revokedAt?: string | null;
+  revokedReason?: string | null;
+  order: {
+    orderNumber: string;
+    customerEmail: string;
+    customerName: string | null;
+    tier: string;
+    template?: { name: string } | null;
+  };
+}
+
+interface LicenseWithDetails extends License {
+  downloadHistory?: DownloadRecord[];
 }
 
 interface DownloadRecord {
@@ -58,53 +66,12 @@ interface LicenseStats {
   revoked: number;
 }
 
-// Mock Data
-const generateMockLicenses = (): License[] => {
-  const statuses: LicenseStatus[] = ["ACTIVE", "EXPIRED", "REVOKED"];
-  const names = [
-    "John Doe",
-    "Jane Smith",
-    "Bob Johnson",
-    "Alice Brown",
-    "Charlie Wilson",
-    "Diana Prince",
-    "Edward Norton",
-    "Fiona Green",
-    "George Harris",
-    "Helen Clark",
-  ];
-
-  return Array.from({ length: 47 }, (_, i) => {
-    const status = statuses[Math.floor(Math.random() * (i < 30 ? 2 : 3))] || "ACTIVE";
-    const createdDate = new Date(Date.now() - Math.random() * 180 * 24 * 60 * 60 * 1000);
-    const expiresDate = new Date(createdDate.getTime() + 365 * 24 * 60 * 60 * 1000);
-    const name = names[i % names.length];
-    const downloadCount = Math.floor(Math.random() * 5);
-
-    return {
-      id: `lic_${String(i + 1).padStart(6, "0")}`,
-      licenseKey: `LIC-${Math.random().toString(36).substring(2, 8).toUpperCase()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
-      downloadToken: `tok_${Math.random().toString(36).substring(2, 18)}${Math.random().toString(36).substring(2, 18)}`,
-      orderNumber: `ORD-${String(100 + i).padStart(6, "0")}`,
-      orderId: `ord_${String(i + 1).padStart(6, "0")}`,
-      customerEmail: `${name?.toLowerCase().replace(" ", ".")}@example.com`,
-      customerName: name || "Unknown",
-      status: status as LicenseStatus,
-      downloadCount,
-      maxDownloads: 5,
-      expiresAt: status === "EXPIRED" ? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString() : expiresDate.toISOString(),
-      createdAt: createdDate.toISOString(),
-      revokedAt: status === "REVOKED" ? new Date().toISOString() : undefined,
-      revokeReason: status === "REVOKED" ? "Policy violation" : undefined,
-      downloadHistory: Array.from({ length: downloadCount }, (_, j) => ({
-        id: `dl_${i}_${j}`,
-        downloadedAt: new Date(createdDate.getTime() + (j + 1) * 24 * 60 * 60 * 1000).toISOString(),
-        ipAddress: `192.168.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`,
-        userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
-      })),
-    };
-  });
-};
+interface PaginationInfo {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
 
 // Extend License Modal
 function ExtendLicenseModal({
@@ -116,17 +83,14 @@ function ExtendLicenseModal({
   license: License | null;
   open: boolean;
   onClose: () => void;
-  onExtend: (licenseId: string, newDate: string, reason: string) => void;
+  onExtend: (licenseId: string, days: number) => Promise<void>;
 }) {
-  const [newDate, setNewDate] = useState("");
-  const [reason, setReason] = useState("");
+  const [days, setDays] = useState(365);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (license) {
-      const currentExpiry = new Date(license.expiresAt);
-      const extendedDate = new Date(currentExpiry.getTime() + 365 * 24 * 60 * 60 * 1000);
-      setNewDate(extendedDate.toISOString().split("T")[0] || "");
+      setDays(365);
     }
   }, [license]);
 
@@ -135,15 +99,18 @@ function ExtendLicenseModal({
     if (!license) return;
 
     setLoading(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    onExtend(license.id, newDate, reason);
-    setLoading(false);
-    setReason("");
-    onClose();
+    try {
+      await onExtend(license.id, days);
+      onClose();
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (!license) return null;
+
+  const currentExpiry = license.expiresAt ? new Date(license.expiresAt) : new Date();
+  const newExpiry = new Date(currentExpiry.getTime() + days * 24 * 60 * 60 * 1000);
 
   return (
     <Modal
@@ -161,7 +128,7 @@ function ExtendLicenseModal({
           </Button>
           <Button
             type="submit"
-            disabled={loading || !newDate}
+            disabled={loading || days <= 0}
             onClick={handleSubmit}
           >
             {loading ? "Extending..." : "Extend License"}
@@ -177,36 +144,28 @@ function ExtendLicenseModal({
 
         <div>
           <label className="block text-sm font-medium mb-1">Current Expiration</label>
-          <p className="text-sm text-muted-foreground">{formatDateTime(license.expiresAt)}</p>
+          <p className="text-sm text-muted-foreground">
+            {license.expiresAt ? formatDateTime(license.expiresAt) : "No expiration set"}
+          </p>
         </div>
 
         <div>
-          <label htmlFor="newDate" className="block text-sm font-medium mb-1">
-            New Expiration Date <span className="text-red-500">*</span>
+          <label htmlFor="days" className="block text-sm font-medium mb-1">
+            Extend by (days) <span className="text-red-500">*</span>
           </label>
           <input
-            type="date"
-            id="newDate"
-            value={newDate}
-            onChange={(e) => setNewDate(e.target.value)}
-            min={new Date().toISOString().split("T")[0]}
+            type="number"
+            id="days"
+            value={days}
+            onChange={(e) => setDays(parseInt(e.target.value) || 0)}
+            min={1}
+            max={365}
             required
             className="w-full px-3 py-2 rounded-md border bg-background focus:outline-none focus:ring-2 focus:ring-primary"
           />
-        </div>
-
-        <div>
-          <label htmlFor="reason" className="block text-sm font-medium mb-1">
-            Reason (optional)
-          </label>
-          <textarea
-            id="reason"
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            placeholder="e.g., Customer request, promotional extension..."
-            rows={3}
-            className="w-full px-3 py-2 rounded-md border bg-background focus:outline-none focus:ring-2 focus:ring-primary resize-none"
-          />
+          <p className="text-xs text-muted-foreground mt-1">
+            New expiration: {formatDateTime(newExpiry.toISOString())}
+          </p>
         </div>
       </form>
     </Modal>
@@ -223,7 +182,7 @@ function RevokeLicenseModal({
   license: License | null;
   open: boolean;
   onClose: () => void;
-  onRevoke: (licenseId: string, reason: string) => void;
+  onRevoke: (licenseId: string, reason: string) => Promise<void>;
 }) {
   const [reason, setReason] = useState("");
   const [loading, setLoading] = useState(false);
@@ -233,11 +192,13 @@ function RevokeLicenseModal({
     if (!license) return;
 
     setLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    onRevoke(license.id, reason);
-    setLoading(false);
-    setReason("");
-    onClose();
+    try {
+      await onRevoke(license.id, reason);
+      setReason("");
+      onClose();
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (!license) return null;
@@ -288,7 +249,7 @@ function RevokeLicenseModal({
 
         <div>
           <label className="block text-sm font-medium mb-1">Customer</label>
-          <p className="text-sm text-muted-foreground">{license.customerEmail}</p>
+          <p className="text-sm text-muted-foreground">{license.order.customerEmail}</p>
         </div>
 
         <div>
@@ -320,7 +281,7 @@ function RegenerateTokenModal({
   license: License | null;
   open: boolean;
   onClose: () => void;
-  onRegenerate: (licenseId: string) => void;
+  onRegenerate: (licenseId: string) => Promise<void>;
 }) {
   const [loading, setLoading] = useState(false);
 
@@ -328,10 +289,12 @@ function RegenerateTokenModal({
     if (!license) return;
 
     setLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    onRegenerate(license.id);
-    setLoading(false);
-    onClose();
+    try {
+      await onRegenerate(license.id);
+      onClose();
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (!license) return null;
@@ -380,7 +343,7 @@ function RegenerateTokenModal({
 
         <div>
           <label className="block text-sm font-medium mb-1">Customer</label>
-          <p className="text-sm text-muted-foreground">{license.customerEmail}</p>
+          <p className="text-sm text-muted-foreground">{license.order.customerEmail}</p>
         </div>
       </div>
     </Modal>
@@ -471,51 +434,39 @@ function LicenseDetailsModal({
             </div>
             <div>
               <label className="block text-sm font-medium text-muted-foreground mb-1">Expires</label>
-              <p className="text-sm">{formatDateTime(license.expiresAt)}</p>
+              <p className="text-sm">{license.expiresAt ? formatDateTime(license.expiresAt) : "Never"}</p>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-muted-foreground mb-1">Order</label>
-              <a href={`/admin/orders/${license.orderId}`} className="text-sm text-primary hover:underline">
-                {license.orderNumber}
+              <a href={`/admin/orders/${license.id}`} className="text-sm text-primary hover:underline">
+                {license.order.orderNumber}
               </a>
             </div>
             <div>
               <label className="block text-sm font-medium text-muted-foreground mb-1">Customer</label>
-              <p className="text-sm">{license.customerEmail}</p>
+              <p className="text-sm">{license.order.customerEmail}</p>
             </div>
           </div>
 
           {license.revokedAt && (
             <div className="p-3 rounded-md bg-red-500/10 border border-red-500/20">
               <p className="text-sm font-medium text-red-600">Revoked on {formatDateTime(license.revokedAt)}</p>
-              {license.revokeReason && (
-                <p className="text-sm text-red-600/80 mt-1">Reason: {license.revokeReason}</p>
+              {license.revokedReason && (
+                <p className="text-sm text-red-600/80 mt-1">Reason: {license.revokedReason}</p>
               )}
             </div>
           )}
         </div>
 
-        {/* Download History */}
+        {/* Download History - Note: Download history is not included in API response for this view */}
         <div>
-          <h3 className="text-sm font-medium mb-3">Download History</h3>
-          {license.downloadHistory.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">No downloads yet</p>
-          ) : (
-            <div className="border rounded-md divide-y max-h-48 overflow-y-auto">
-              {license.downloadHistory.map((record) => (
-                <div key={record.id} className="px-3 py-2 text-sm">
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">{formatDateTime(record.downloadedAt)}</span>
-                    <span className="font-mono text-xs text-muted-foreground">{record.ipAddress}</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground truncate mt-1">{record.userAgent}</p>
-                </div>
-              ))}
-            </div>
-          )}
+          <h3 className="text-sm font-medium mb-3">Download Count</h3>
+          <p className="text-sm text-muted-foreground">
+            {license.downloadCount} / {license.maxDownloads} downloads used
+          </p>
         </div>
       </div>
     </Modal>
@@ -682,8 +633,12 @@ export default function LicensesPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<"ALL" | LicenseStatus>("ALL");
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const [pagination, setPagination] = useState<PaginationInfo>({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 0,
+  });
 
   // Modal states
   const [selectedLicense, setSelectedLicense] = useState<License | null>(null);
@@ -692,96 +647,174 @@ export default function LicensesPage() {
   const [regenerateModalOpen, setRegenerateModalOpen] = useState(false);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
 
-  // Fetch licenses
-  useEffect(() => {
-    // Simulate API call: GET /api/admin/licenses
-    const fetchLicenses = async () => {
-      setLoading(true);
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      setLicenses(generateMockLicenses());
+  // Fetch licenses from API
+  const fetchLicenses = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      params.set("page", pagination.page.toString());
+      params.set("limit", pagination.limit.toString());
+      if (statusFilter !== "ALL") params.set("status", statusFilter);
+      if (searchTerm) params.set("search", searchTerm);
+
+      const response = await fetch(
+        `${API_CONFIG.BASE_URL}/admin/licenses?${params.toString()}`,
+        {
+          credentials: "include",
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error?.message || "Failed to fetch licenses");
+      }
+
+      const data = await response.json();
+      setLicenses(data.data || []);
+      if (data.pagination) {
+        setPagination(data.pagination);
+      }
+    } catch (err) {
+      console.error("Failed to fetch licenses:", err);
+      const errorMessage = err instanceof Error ? err.message : "Failed to fetch licenses";
+      showError("Failed to load licenses", errorMessage);
+    } finally {
       setLoading(false);
-    };
+    }
+  }, [pagination.page, pagination.limit, statusFilter, searchTerm]);
 
+  // Initial load and refetch on filter changes
+  useEffect(() => {
     fetchLicenses();
-  }, []);
+  }, [fetchLicenses]);
 
-  // Calculate stats
+  // Reset page when filters change
+  useEffect(() => {
+    setPagination((prev) => ({ ...prev, page: 1 }));
+  }, [searchTerm, statusFilter]);
+
+  // Calculate stats from current data
   const stats = useMemo<LicenseStats>(() => {
     return {
-      total: licenses.length,
+      total: pagination.total,
       active: licenses.filter((l) => l.status === "ACTIVE").length,
       expired: licenses.filter((l) => l.status === "EXPIRED").length,
       revoked: licenses.filter((l) => l.status === "REVOKED").length,
     };
-  }, [licenses]);
-
-  // Filter licenses
-  const filteredLicenses = useMemo(() => {
-    return licenses.filter((license) => {
-      // Search filter
-      const searchLower = searchTerm.toLowerCase();
-      const matchesSearch =
-        !searchTerm ||
-        license.licenseKey.toLowerCase().includes(searchLower) ||
-        license.orderNumber.toLowerCase().includes(searchLower) ||
-        license.customerEmail.toLowerCase().includes(searchLower);
-
-      // Status filter
-      const matchesStatus = statusFilter === "ALL" || license.status === statusFilter;
-
-      return matchesSearch && matchesStatus;
-    });
-  }, [licenses, searchTerm, statusFilter]);
-
-  // Pagination
-  const totalPages = Math.ceil(filteredLicenses.length / itemsPerPage);
-  const paginatedLicenses = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
-    return filteredLicenses.slice(start, start + itemsPerPage);
-  }, [filteredLicenses, currentPage]);
-
-  // Reset page when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, statusFilter]);
+  }, [licenses, pagination.total]);
 
   // Action handlers
-  const handleExtend = useCallback((licenseId: string, newDate: string, reason: string) => {
-    // Simulate API call: PATCH /api/admin/licenses/:id/extend
-    setLicenses((prev) =>
-      prev.map((l) =>
-        l.id === licenseId
-          ? { ...l, expiresAt: new Date(newDate).toISOString(), status: "ACTIVE" as LicenseStatus }
-          : l
-      )
-    );
-    console.log("Extended license:", { licenseId, newDate, reason });
+  const handleExtend = useCallback(async (licenseId: string, days: number) => {
+    const loadingId = showLoading("Extending license...");
+    try {
+      const response = await fetch(
+        `${API_CONFIG.BASE_URL}/admin/licenses/${licenseId}/extend`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ days }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error?.message || "Failed to extend license");
+      }
+
+      const data = await response.json();
+
+      // Update local state with the response
+      setLicenses((prev) =>
+        prev.map((l) =>
+          l.id === licenseId
+            ? { ...l, expiresAt: data.data.expiresAt, status: "ACTIVE" as LicenseStatus }
+            : l
+        )
+      );
+      dismissToast(loadingId);
+      showSuccess(data.message || "License extended successfully");
+    } catch (err) {
+      console.error("Failed to extend license:", err);
+      dismissToast(loadingId);
+      showError("Failed to extend license", err instanceof Error ? err.message : undefined);
+      throw err;
+    }
   }, []);
 
-  const handleRevoke = useCallback((licenseId: string, reason: string) => {
-    // Simulate API call: PATCH /api/admin/licenses/:id/revoke
-    setLicenses((prev) =>
-      prev.map((l) =>
-        l.id === licenseId
-          ? {
-              ...l,
-              status: "REVOKED" as LicenseStatus,
-              revokedAt: new Date().toISOString(),
-              revokeReason: reason,
-            }
-          : l
-      )
-    );
-    console.log("Revoked license:", { licenseId, reason });
+  const handleRevoke = useCallback(async (licenseId: string, reason: string) => {
+    const loadingId = showLoading("Revoking license...");
+    try {
+      const response = await fetch(
+        `${API_CONFIG.BASE_URL}/admin/licenses/${licenseId}/revoke`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ reason }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error?.message || "Failed to revoke license");
+      }
+
+      const data = await response.json();
+
+      // Update local state
+      setLicenses((prev) =>
+        prev.map((l) =>
+          l.id === licenseId
+            ? {
+                ...l,
+                status: "REVOKED" as LicenseStatus,
+                revokedAt: data.data.revokedAt,
+                revokedReason: reason,
+              }
+            : l
+        )
+      );
+      dismissToast(loadingId);
+      showSuccess(data.message || "License revoked successfully");
+    } catch (err) {
+      console.error("Failed to revoke license:", err);
+      dismissToast(loadingId);
+      showError("Failed to revoke license", err instanceof Error ? err.message : undefined);
+      throw err;
+    }
   }, []);
 
-  const handleRegenerate = useCallback((licenseId: string) => {
-    // Simulate API call: POST /api/admin/licenses/:id/regenerate-token
-    const newToken = `tok_${Math.random().toString(36).substring(2, 18)}${Math.random().toString(36).substring(2, 18)}`;
-    setLicenses((prev) =>
-      prev.map((l) => (l.id === licenseId ? { ...l, downloadToken: newToken } : l))
-    );
-    console.log("Regenerated token for license:", licenseId);
+  const handleRegenerate = useCallback(async (licenseId: string) => {
+    const loadingId = showLoading("Regenerating download token...");
+    try {
+      const response = await fetch(
+        `${API_CONFIG.BASE_URL}/admin/licenses/${licenseId}/regenerate`,
+        {
+          method: "POST",
+          credentials: "include",
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error?.message || "Failed to regenerate token");
+      }
+
+      const data = await response.json();
+
+      // Update local state with new token
+      setLicenses((prev) =>
+        prev.map((l) => (l.id === licenseId ? { ...l, downloadToken: data.data.downloadToken } : l))
+      );
+      dismissToast(loadingId);
+      showSuccess(data.message || "Download token regenerated");
+    } catch (err) {
+      console.error("Failed to regenerate token:", err);
+      dismissToast(loadingId);
+      showError("Failed to regenerate token", err instanceof Error ? err.message : undefined);
+      throw err;
+    }
   }, []);
 
   // Truncate license key for display
@@ -799,7 +832,8 @@ export default function LicensesPage() {
   // Check if filters are active
   const hasActiveFilters = searchTerm !== "" || statusFilter !== "ALL";
 
-  if (loading) {
+  // Show loading skeleton only on initial load
+  if (loading && licenses.length === 0) {
     return <LoadingSkeleton />;
   }
 
@@ -840,7 +874,7 @@ export default function LicensesPage() {
       </div>
 
       {/* Data Table */}
-      {filteredLicenses.length === 0 ? (
+      {licenses.length === 0 ? (
         hasActiveFilters ? (
           <EmptyState
             title="No licenses found"
@@ -874,7 +908,7 @@ export default function LicensesPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paginatedLicenses.map((license) => (
+                {licenses.map((license) => (
                   <TableRow key={license.id}>
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -886,15 +920,15 @@ export default function LicensesPage() {
                     </TableCell>
                     <TableCell>
                       <a
-                        href={`/admin/orders/${license.orderId}`}
+                        href={`/admin/orders/${license.id}`}
                         className="text-sm text-primary hover:underline inline-flex items-center gap-1"
                       >
-                        {license.orderNumber}
+                        {license.order.orderNumber}
                         <ExternalLink className="h-3 w-3" />
                       </a>
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {license.customerEmail}
+                      {license.order.customerEmail}
                     </TableCell>
                     <TableCell>
                       <LicenseStatusBadge status={license.status} />
@@ -908,7 +942,7 @@ export default function LicensesPage() {
                       </div>
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {formatDate(license.expiresAt)}
+                      {license.expiresAt ? formatDate(license.expiresAt) : "Never"}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {formatDate(license.createdAt)}
@@ -941,11 +975,11 @@ export default function LicensesPage() {
           </div>
 
           {/* Pagination */}
-          {totalPages > 1 && (
+          {pagination.totalPages > 1 && (
             <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={setCurrentPage}
+              currentPage={pagination.page}
+              totalPages={pagination.totalPages}
+              onPageChange={(page) => setPagination((prev) => ({ ...prev, page }))}
             />
           )}
         </div>

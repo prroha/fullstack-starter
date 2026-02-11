@@ -21,6 +21,8 @@ import {
   DollarSign,
 } from "lucide-react";
 import { cn, formatCurrency, formatDate } from "@/lib/utils";
+import { API_CONFIG } from "@/lib/constants";
+import { showSuccess, showError } from "@/lib/toast";
 import {
   StatCard,
   Badge,
@@ -43,15 +45,15 @@ import { AdminPageHeader, AdminFilters, AdminTableSkeleton } from "@/components/
 
 interface Customer {
   id: string;
-  name: string;
+  name: string | null;
   email: string;
-  avatar?: string;
-  status: "ACTIVE" | "BLOCKED";
+  avatarUrl?: string | null;
+  emailVerified: boolean;
+  isBlocked: boolean;
   createdAt: string;
-  ordersCount: number;
+  lastLoginAt: string | null;
+  orderCount: number;
   totalSpent: number; // in cents
-  lastOrderDate: string | null;
-  blockReason?: string;
 }
 
 interface CustomerWithOrders extends Customer {
@@ -64,8 +66,9 @@ interface Order {
   total: number; // in cents
   status: string;
   createdAt: string;
-  templateName?: string;
+  template?: { name: string } | null;
   tier: string;
+  license?: { status: string; downloadCount: number } | null;
 }
 
 interface CustomerStats {
@@ -75,90 +78,23 @@ interface CustomerStats {
   newThisMonth: number;
 }
 
+interface PaginationInfo {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
 type StatusFilter = "ALL" | "ACTIVE" | "BLOCKED";
-type SortBy = "createdAt" | "ordersCount" | "totalSpent";
+type SortBy = "createdAt" | "orderCount" | "totalSpent";
 type SortOrder = "asc" | "desc";
-
-// ============================================================================
-// Mock Data
-// ============================================================================
-
-const generateMockCustomers = (): Customer[] => {
-  const names = [
-    "John Smith",
-    "Emma Wilson",
-    "Michael Brown",
-    "Sarah Davis",
-    "James Johnson",
-    "Emily Taylor",
-    "David Anderson",
-    "Jessica Martinez",
-    "Christopher Lee",
-    "Amanda White",
-    "Daniel Harris",
-    "Ashley Clark",
-    "Matthew Lewis",
-    "Jennifer Walker",
-    "Andrew Hall",
-    "Stephanie Allen",
-    "Joshua Young",
-    "Nicole King",
-    "Ryan Wright",
-    "Megan Scott",
-  ];
-
-  return names.map((name, index) => {
-    const isBlocked = index === 3 || index === 11;
-    const daysAgo = Math.floor(Math.random() * 365);
-    const ordersCount = Math.floor(Math.random() * 15);
-    const totalSpent = ordersCount * (Math.floor(Math.random() * 20000) + 5000);
-    const hasOrders = ordersCount > 0;
-    const lastOrderDaysAgo = hasOrders ? Math.floor(Math.random() * 60) : null;
-
-    return {
-      id: `cust_${index + 1}`,
-      name,
-      email: `${name.toLowerCase().replace(" ", ".")}@example.com`,
-      avatar: undefined,
-      status: isBlocked ? "BLOCKED" : "ACTIVE",
-      createdAt: new Date(Date.now() - daysAgo * 86400000).toISOString(),
-      ordersCount,
-      totalSpent,
-      lastOrderDate: lastOrderDaysAgo
-        ? new Date(Date.now() - lastOrderDaysAgo * 86400000).toISOString()
-        : null,
-      blockReason: isBlocked ? "Suspicious activity detected" : undefined,
-    };
-  });
-};
-
-const generateMockOrders = (customerId: string): Order[] => {
-  const count = Math.floor(Math.random() * 5) + 1;
-  const tiers = ["Starter", "Pro", "Business"];
-  const statuses = ["COMPLETED", "PENDING", "PROCESSING"];
-  const templates = ["LMS", "SaaS", "E-commerce", "Portfolio", "Blog"];
-
-  return Array.from({ length: count }, (_, i) => ({
-    id: `order_${customerId}_${i + 1}`,
-    orderNumber: `ORD-${String(Math.floor(Math.random() * 10000)).padStart(4, "0")}`,
-    total: Math.floor(Math.random() * 30000) + 5000,
-    status: statuses[Math.floor(Math.random() * statuses.length)],
-    createdAt: new Date(
-      Date.now() - Math.floor(Math.random() * 90) * 86400000
-    ).toISOString(),
-    templateName: templates[Math.floor(Math.random() * templates.length)],
-    tier: tiers[Math.floor(Math.random() * tiers.length)],
-  }));
-};
-
-const mockCustomers = generateMockCustomers();
 
 // ============================================================================
 // Status Badge Component (using shared Badge)
 // ============================================================================
 
-function CustomerStatusBadge({ status }: { status: "ACTIVE" | "BLOCKED" }) {
-  const isActive = status === "ACTIVE";
+function CustomerStatusBadge({ isBlocked }: { isBlocked: boolean }) {
+  const isActive = !isBlocked;
 
   return (
     <Badge
@@ -222,7 +158,7 @@ function BlockConfirmDialog({
 
   if (!isOpen || !customer) return null;
 
-  const isBlockAction = customer.status === "ACTIVE";
+  const isBlockAction = !customer.isBlocked;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -342,25 +278,22 @@ function CustomerDetailsDrawer({
         <div className="p-6 space-y-6">
           {/* Profile Section */}
           <div className="flex items-start gap-4">
-            <Avatar name={customer.name} src={customer.avatar} size="xl" />
+            <Avatar name={customer.name || customer.email} src={customer.avatarUrl || undefined} size="xl" />
             <div className="flex-1 min-w-0">
-              <h3 className="text-xl font-semibold truncate">{customer.name}</h3>
+              <h3 className="text-xl font-semibold truncate">{customer.name || "—"}</h3>
               <p className="text-muted-foreground truncate">{customer.email}</p>
               <div className="mt-2">
-                <CustomerStatusBadge status={customer.status} />
+                <CustomerStatusBadge isBlocked={customer.isBlocked} />
               </div>
             </div>
           </div>
 
-          {/* Block Reason */}
-          {customer.status === "BLOCKED" && customer.blockReason && (
+          {/* Blocked indicator */}
+          {customer.isBlocked && (
             <div className="bg-destructive/10 border border-destructive/20 rounded-md p-3">
               <p className="text-sm font-medium text-destructive flex items-center gap-2">
                 <AlertTriangle className="h-4 w-4" />
-                Block Reason
-              </p>
-              <p className="text-sm text-muted-foreground mt-1">
-                {customer.blockReason}
+                Customer is blocked
               </p>
             </div>
           )}
@@ -379,7 +312,7 @@ function CustomerDetailsDrawer({
                 <Package className="h-4 w-4" />
                 <span className="text-xs">Total Orders</span>
               </div>
-              <p className="font-medium">{customer.ordersCount}</p>
+              <p className="font-medium">{customer.orderCount}</p>
             </div>
             <div className="bg-muted/50 rounded-lg p-4">
               <div className="flex items-center gap-2 text-muted-foreground mb-1">
@@ -391,11 +324,11 @@ function CustomerDetailsDrawer({
             <div className="bg-muted/50 rounded-lg p-4">
               <div className="flex items-center gap-2 text-muted-foreground mb-1">
                 <Calendar className="h-4 w-4" />
-                <span className="text-xs">Last Order</span>
+                <span className="text-xs">Last Login</span>
               </div>
               <p className="font-medium">
-                {customer.lastOrderDate
-                  ? formatDate(customer.lastOrderDate)
+                {customer.lastLoginAt
+                  ? formatDate(customer.lastLoginAt)
                   : "Never"}
               </p>
             </div>
@@ -420,7 +353,7 @@ function CustomerDetailsDrawer({
                       <p className="font-medium text-sm">{order.orderNumber}</p>
                       <p className="text-xs text-muted-foreground">
                         {order.tier}
-                        {order.templateName && ` - ${order.templateName}`}
+                        {order.template?.name && ` - ${order.template.name}`}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {formatDate(order.createdAt)}
@@ -444,12 +377,12 @@ function CustomerDetailsDrawer({
               onClick={() => onBlockToggle(customer)}
               className={cn(
                 "w-full px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-2",
-                customer.status === "ACTIVE"
+                !customer.isBlocked
                   ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
                   : "bg-success text-success-foreground hover:bg-success/90"
               )}
             >
-              {customer.status === "ACTIVE" ? (
+              {!customer.isBlocked ? (
                 <>
                   <Ban className="h-4 w-4" />
                   Block Customer
@@ -496,6 +429,7 @@ export default function CustomersPage() {
   const [sortBy, setSortBy] = useState<SortBy>("createdAt");
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
   const [currentPage, setCurrentPage] = useState(1);
+  const [pagination, setPagination] = useState<PaginationInfo | null>(null);
   const [selectedCustomer, setSelectedCustomer] =
     useState<CustomerWithOrders | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -507,54 +441,58 @@ export default function CustomersPage() {
 
   const itemsPerPage = 10;
 
-  // Fetch customers (mock)
-  useEffect(() => {
-    const fetchCustomers = async () => {
+  // Fetch customers from API
+  const fetchCustomers = useCallback(async () => {
+    try {
       setLoading(true);
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      setCustomers(mockCustomers);
+      const params = new URLSearchParams();
+      params.set("page", String(currentPage));
+      params.set("limit", String(itemsPerPage));
+      if (searchQuery) params.set("search", searchQuery);
+      if (statusFilter === "BLOCKED") params.set("isBlocked", "true");
+      if (statusFilter === "ACTIVE") params.set("isBlocked", "false");
+
+      const response = await fetch(
+        `${API_CONFIG.BASE_URL}/admin/customers?${params.toString()}`,
+        { credentials: "include" }
+      );
+
+      if (!response.ok) throw new Error("Failed to fetch customers");
+
+      const result = await response.json();
+      setCustomers(result.data || []);
+      setPagination(result.pagination || null);
+    } catch (err) {
+      showError(err instanceof Error ? err.message : "Failed to load customers");
+    } finally {
       setLoading(false);
-    };
+    }
+  }, [currentPage, searchQuery, statusFilter]);
 
+  useEffect(() => {
     fetchCustomers();
-  }, []);
+  }, [fetchCustomers]);
 
-  // Calculate stats
+  // Calculate stats from current data (with pagination info)
   const stats: CustomerStats = useMemo(() => {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const total = pagination?.total || customers.length;
 
     return {
-      total: customers.length,
-      active: customers.filter((c) => c.status === "ACTIVE").length,
-      blocked: customers.filter((c) => c.status === "BLOCKED").length,
+      total,
+      active: customers.filter((c) => !c.isBlocked).length,
+      blocked: customers.filter((c) => c.isBlocked).length,
       newThisMonth: customers.filter(
         (c) => new Date(c.createdAt) >= startOfMonth
       ).length,
     };
-  }, [customers]);
+  }, [customers, pagination]);
 
-  // Filter and sort customers
-  const filteredCustomers = useMemo(() => {
-    let result = [...customers];
+  // Sort customers (client-side sorting of current page)
+  const sortedCustomers = useMemo(() => {
+    const result = [...customers];
 
-    // Search filter
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter(
-        (c) =>
-          c.name.toLowerCase().includes(query) ||
-          c.email.toLowerCase().includes(query)
-      );
-    }
-
-    // Status filter
-    if (statusFilter !== "ALL") {
-      result = result.filter((c) => c.status === statusFilter);
-    }
-
-    // Sort
     result.sort((a, b) => {
       let comparison = 0;
 
@@ -563,8 +501,8 @@ export default function CustomersPage() {
           comparison =
             new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
           break;
-        case "ordersCount":
-          comparison = a.ordersCount - b.ordersCount;
+        case "orderCount":
+          comparison = a.orderCount - b.orderCount;
           break;
         case "totalSpent":
           comparison = a.totalSpent - b.totalSpent;
@@ -575,31 +513,36 @@ export default function CustomersPage() {
     });
 
     return result;
-  }, [customers, searchQuery, statusFilter, sortBy, sortOrder]);
+  }, [customers, sortBy, sortOrder]);
 
-  // Pagination
-  const totalPages = Math.ceil(filteredCustomers.length / itemsPerPage);
-  const paginatedCustomers = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
-    return filteredCustomers.slice(start, start + itemsPerPage);
-  }, [filteredCustomers, currentPage]);
+  // Total pages from server pagination
+  const totalPages = pagination?.totalPages || 1;
 
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, statusFilter, sortBy, sortOrder]);
+  }, [searchQuery, statusFilter]);
 
   // Handlers
   const handleViewCustomer = useCallback(async (customer: Customer) => {
     setIsLoadingDetails(true);
     setIsDrawerOpen(true);
 
-    // Simulate API call to fetch customer details with orders
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    try {
+      const response = await fetch(
+        `${API_CONFIG.BASE_URL}/admin/customers/${customer.id}`,
+        { credentials: "include" }
+      );
 
-    const orders = generateMockOrders(customer.id);
-    setSelectedCustomer({ ...customer, orders });
-    setIsLoadingDetails(false);
+      if (!response.ok) throw new Error("Failed to fetch customer details");
+
+      const result = await response.json();
+      setSelectedCustomer(result.data);
+    } catch (err) {
+      showError(err instanceof Error ? err.message : "Failed to load customer details");
+    } finally {
+      setIsLoadingDetails(false);
+    }
   }, []);
 
   const handleBlockToggle = useCallback((customer: Customer) => {
@@ -613,41 +556,45 @@ export default function CustomersPage() {
 
       setIsBlocking(true);
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      try {
+        const newIsBlocked = !blockDialogCustomer.isBlocked;
 
-      const newStatus =
-        blockDialogCustomer.status === "ACTIVE" ? "BLOCKED" : "ACTIVE";
-
-      // Update customer in list
-      setCustomers((prev) =>
-        prev.map((c) =>
-          c.id === blockDialogCustomer.id
-            ? {
-                ...c,
-                status: newStatus,
-                blockReason: newStatus === "BLOCKED" ? reason || undefined : undefined,
-              }
-            : c
-        )
-      );
-
-      // Update selected customer if drawer is open
-      if (selectedCustomer?.id === blockDialogCustomer.id) {
-        setSelectedCustomer((prev) =>
-          prev
-            ? {
-                ...prev,
-                status: newStatus,
-                blockReason: newStatus === "BLOCKED" ? reason || undefined : undefined,
-              }
-            : null
+        const response = await fetch(
+          `${API_CONFIG.BASE_URL}/admin/customers/${blockDialogCustomer.id}/block`,
+          {
+            method: "PATCH",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ isBlocked: newIsBlocked, reason }),
+          }
         );
-      }
 
-      setIsBlocking(false);
-      setIsBlockDialogOpen(false);
-      setBlockDialogCustomer(null);
+        if (!response.ok) throw new Error("Failed to update customer status");
+
+        // Update customer in list
+        setCustomers((prev) =>
+          prev.map((c) =>
+            c.id === blockDialogCustomer.id
+              ? { ...c, isBlocked: newIsBlocked }
+              : c
+          )
+        );
+
+        // Update selected customer if drawer is open
+        if (selectedCustomer?.id === blockDialogCustomer.id) {
+          setSelectedCustomer((prev) =>
+            prev ? { ...prev, isBlocked: newIsBlocked } : null
+          );
+        }
+
+        showSuccess(`Customer ${newIsBlocked ? "blocked" : "unblocked"} successfully`);
+      } catch (err) {
+        showError(err instanceof Error ? err.message : "Failed to update customer");
+      } finally {
+        setIsBlocking(false);
+        setIsBlockDialogOpen(false);
+        setBlockDialogCustomer(null);
+      }
     },
     [blockDialogCustomer, selectedCustomer]
   );
@@ -736,7 +683,7 @@ export default function CustomersPage() {
               onChange={(value) => handleSortChange(value as SortBy)}
               options={[
                 { value: "createdAt", label: "Registration Date" },
-                { value: "ordersCount", label: "Order Count" },
+                { value: "orderCount", label: "Order Count" },
                 { value: "totalSpent", label: "Total Spent" },
               ]}
             />
@@ -759,7 +706,7 @@ export default function CustomersPage() {
       {/* Data Table */}
       {loading ? (
         <CustomersTableSkeleton />
-      ) : filteredCustomers.length === 0 ? (
+      ) : sortedCustomers.length === 0 ? (
         hasActiveFilters ? (
           <EmptySearch
             searchQuery={searchQuery}
@@ -785,19 +732,19 @@ export default function CustomersPage() {
                   <TableHead>Registration Date</TableHead>
                   <TableHead>Orders</TableHead>
                   <TableHead>Total Spent</TableHead>
-                  <TableHead>Last Order</TableHead>
+                  <TableHead>Last Login</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paginatedCustomers.map((customer) => (
+                {sortedCustomers.map((customer) => (
                   <TableRow key={customer.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <Avatar name={customer.name} src={customer.avatar} />
+                        <Avatar name={customer.name || customer.email} src={customer.avatarUrl || undefined} />
                         <div className="min-w-0">
-                          <p className="font-medium truncate">{customer.name}</p>
+                          <p className="font-medium truncate">{customer.name || "—"}</p>
                           <p className="text-sm text-muted-foreground truncate">
                             {customer.email}
                           </p>
@@ -808,18 +755,18 @@ export default function CustomersPage() {
                       {formatDate(customer.createdAt)}
                     </TableCell>
                     <TableCell className="font-medium">
-                      {customer.ordersCount}
+                      {customer.orderCount}
                     </TableCell>
                     <TableCell className="font-medium">
                       {formatCurrency(customer.totalSpent)}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {customer.lastOrderDate
-                        ? formatDate(customer.lastOrderDate)
-                        : "-"}
+                      {customer.lastLoginAt
+                        ? formatDate(customer.lastLoginAt)
+                        : "—"}
                     </TableCell>
                     <TableCell>
-                      <CustomerStatusBadge status={customer.status} />
+                      <CustomerStatusBadge isBlocked={customer.isBlocked} />
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center justify-end gap-2">
@@ -834,15 +781,15 @@ export default function CustomersPage() {
                           onClick={() => handleBlockToggle(customer)}
                           className={cn(
                             "p-2 rounded-md transition-colors",
-                            customer.status === "ACTIVE"
+                            !customer.isBlocked
                               ? "hover:bg-destructive/10 text-destructive"
                               : "hover:bg-success/10 text-success"
                           )}
                           title={
-                            customer.status === "ACTIVE" ? "Block" : "Unblock"
+                            !customer.isBlocked ? "Block" : "Unblock"
                           }
                         >
-                          {customer.status === "ACTIVE" ? (
+                          {!customer.isBlocked ? (
                             <Ban className="h-4 w-4" />
                           ) : (
                             <CheckCircle className="h-4 w-4" />
@@ -861,8 +808,8 @@ export default function CustomersPage() {
             <div className="flex items-center justify-between px-4 py-3 border-t">
               <p className="text-sm text-muted-foreground">
                 Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
-                {Math.min(currentPage * itemsPerPage, filteredCustomers.length)}{" "}
-                of {filteredCustomers.length} customers
+                {Math.min(currentPage * itemsPerPage, pagination?.total || sortedCustomers.length)}{" "}
+                of {pagination?.total || sortedCustomers.length} customers
               </p>
               <div className="flex items-center gap-2">
                 <button

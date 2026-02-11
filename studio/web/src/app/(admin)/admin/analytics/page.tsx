@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import {
   DollarSign,
   ShoppingCart,
@@ -21,7 +21,8 @@ import {
   formatDate,
 } from "@/lib/utils";
 import { downloadFile } from "@/lib/export";
-import { adminApi } from "@/lib/api";
+import { adminApi, type RevenueAnalytics, type FeatureStats, type FunnelAnalytics, type TemplateStats, type AnalyticsPeriod } from "@/lib/api";
+import { showError } from "@/lib/toast";
 import {
   Button,
   Card,
@@ -39,351 +40,36 @@ import {
 import { AdminPageHeader } from "@/components/admin";
 
 // Types
-type Period = "7d" | "30d" | "90d" | "custom";
+type Period = AnalyticsPeriod;
 type ViewMode = "daily" | "weekly" | "monthly";
 
-interface RevenueData {
-  byTier: Array<{ tier: string; revenue: number; orderCount: number }>;
-  byTemplate: Array<{
-    templateId: string;
-    templateName: string;
-    revenue: number;
-    orderCount: number;
-  }>;
-  daily: Array<{ date: string; revenue: number; orders: number }>;
-}
-
-interface FeatureData {
-  slug: string;
-  name: string;
-  price: number;
-  purchaseCount: number;
-  percentage: number;
-}
-
-interface FunnelData {
-  funnel: Array<{ stage: string; count: number; percentage: number }>;
-  conversionRate: string;
-  previewToCheckout: string;
-  checkoutToPurchase: string;
-}
-
-interface TemplateData {
-  id: string;
-  name: string;
-  slug: string;
-  price: number;
-  revenue: number;
-  orderCount: number;
-  previewCount: number;
-  conversionRate: string;
-  avgRating?: number;
-}
-
-interface GeoData {
-  country: string;
-  orders: number;
-  revenue: number;
-}
-
+// Re-use types from API but also define what we need locally
 interface KeyMetrics {
   totalRevenue: number;
   totalOrders: number;
   avgOrderValue: number;
   conversionRate: number;
-  revenueTrend: number;
-  ordersTrend: number;
-  aovTrend: number;
-  conversionTrend: number;
 }
 
-// Mock data generator
-function generateMockData(period: Period) {
-  const days = period === "7d" ? 7 : period === "90d" ? 90 : 30;
-  const baseMultiplier = days / 30;
+interface AnalyticsData {
+  revenueData: RevenueAnalytics;
+  featureData: FeatureStats[];
+  funnelData: FunnelAnalytics;
+  templateData: TemplateStats[];
+  keyMetrics: KeyMetrics;
+}
 
-  // Generate daily revenue data
-  const daily: Array<{ date: string; revenue: number; orders: number }> = [];
-  const today = new Date();
-  for (let i = days - 1; i >= 0; i--) {
-    const date = new Date(today);
-    date.setDate(date.getDate() - i);
-    const dayVariation = 0.5 + Math.random();
-    const weekendFactor = [0, 6].includes(date.getDay()) ? 0.6 : 1;
-    const revenue = Math.round(
-      (15000 + Math.random() * 25000) * dayVariation * weekendFactor
-    );
-    const orders = Math.round(
-      (3 + Math.random() * 8) * dayVariation * weekendFactor
-    );
-    daily.push({
-      date: date.toISOString().split("T")[0],
-      revenue,
-      orders,
-    });
-  }
+// Page-specific visualization components start below
 
-  const revenueData: RevenueData = {
-    byTier: [
-      {
-        tier: "Enterprise",
-        revenue: Math.round(489900 * baseMultiplier),
-        orderCount: Math.round(12 * baseMultiplier),
-      },
-      {
-        tier: "Business",
-        revenue: Math.round(359400 * baseMultiplier),
-        orderCount: Math.round(18 * baseMultiplier),
-      },
-      {
-        tier: "Pro",
-        revenue: Math.round(223500 * baseMultiplier),
-        orderCount: Math.round(45 * baseMultiplier),
-      },
-      {
-        tier: "Starter",
-        revenue: Math.round(68600 * baseMultiplier),
-        orderCount: Math.round(28 * baseMultiplier),
-      },
-    ],
-    byTemplate: [
-      {
-        templateId: "1",
-        templateName: "SaaS Starter",
-        revenue: Math.round(356700 * baseMultiplier),
-        orderCount: Math.round(42 * baseMultiplier),
-      },
-      {
-        templateId: "2",
-        templateName: "E-commerce Pro",
-        revenue: Math.round(289400 * baseMultiplier),
-        orderCount: Math.round(31 * baseMultiplier),
-      },
-      {
-        templateId: "3",
-        templateName: "LMS Platform",
-        revenue: Math.round(198200 * baseMultiplier),
-        orderCount: Math.round(18 * baseMultiplier),
-      },
-      {
-        templateId: "4",
-        templateName: "Blog & CMS",
-        revenue: Math.round(156800 * baseMultiplier),
-        orderCount: Math.round(24 * baseMultiplier),
-      },
-    ],
-    daily,
-  };
-
-  const featureData: FeatureData[] = [
-    {
-      slug: "auth",
-      name: "Authentication",
-      price: 4900,
-      purchaseCount: Math.round(89 * baseMultiplier),
-      percentage: 92,
-    },
-    {
-      slug: "payments",
-      name: "Payment Integration",
-      price: 7900,
-      purchaseCount: Math.round(76 * baseMultiplier),
-      percentage: 78,
-    },
-    {
-      slug: "analytics",
-      name: "Analytics Dashboard",
-      price: 5900,
-      purchaseCount: Math.round(65 * baseMultiplier),
-      percentage: 67,
-    },
-    {
-      slug: "notifications",
-      name: "Push Notifications",
-      price: 3900,
-      purchaseCount: Math.round(54 * baseMultiplier),
-      percentage: 56,
-    },
-    {
-      slug: "file-upload",
-      name: "File Upload & Storage",
-      price: 4900,
-      purchaseCount: Math.round(48 * baseMultiplier),
-      percentage: 49,
-    },
-    {
-      slug: "real-time",
-      name: "Real-time Updates",
-      price: 6900,
-      purchaseCount: Math.round(42 * baseMultiplier),
-      percentage: 43,
-    },
-    {
-      slug: "admin-dashboard",
-      name: "Admin Dashboard",
-      price: 8900,
-      purchaseCount: Math.round(38 * baseMultiplier),
-      percentage: 39,
-    },
-    {
-      slug: "multi-tenant",
-      name: "Multi-tenancy",
-      price: 12900,
-      purchaseCount: Math.round(28 * baseMultiplier),
-      percentage: 29,
-    },
-  ];
-
-  const funnelData: FunnelData = {
-    funnel: [
-      {
-        stage: "Visitors",
-        count: Math.round(12450 * baseMultiplier),
-        percentage: 100,
-      },
-      {
-        stage: "Previews",
-        count: Math.round(3456 * baseMultiplier),
-        percentage: 28,
-      },
-      {
-        stage: "Checkouts",
-        count: Math.round(892 * baseMultiplier),
-        percentage: 7.2,
-      },
-      {
-        stage: "Purchases",
-        count: Math.round(103 * baseMultiplier),
-        percentage: 0.83,
-      },
-    ],
-    conversionRate: "0.83",
-    previewToCheckout: "25.8",
-    checkoutToPurchase: "11.5",
-  };
-
-  const templateData: TemplateData[] = [
-    {
-      id: "1",
-      name: "SaaS Starter Kit",
-      slug: "saas-starter",
-      price: 14900,
-      revenue: Math.round(356700 * baseMultiplier),
-      orderCount: Math.round(42 * baseMultiplier),
-      previewCount: Math.round(1245 * baseMultiplier),
-      conversionRate: "3.37",
-      avgRating: 4.8,
-    },
-    {
-      id: "2",
-      name: "E-commerce Pro",
-      slug: "ecommerce-pro",
-      price: 19900,
-      revenue: Math.round(289400 * baseMultiplier),
-      orderCount: Math.round(31 * baseMultiplier),
-      previewCount: Math.round(987 * baseMultiplier),
-      conversionRate: "3.14",
-      avgRating: 4.6,
-    },
-    {
-      id: "3",
-      name: "LMS Platform",
-      slug: "lms-platform",
-      price: 24900,
-      revenue: Math.round(198200 * baseMultiplier),
-      orderCount: Math.round(18 * baseMultiplier),
-      previewCount: Math.round(654 * baseMultiplier),
-      conversionRate: "2.75",
-      avgRating: 4.9,
-    },
-    {
-      id: "4",
-      name: "Blog & CMS",
-      slug: "blog-cms",
-      price: 9900,
-      revenue: Math.round(156800 * baseMultiplier),
-      orderCount: Math.round(24 * baseMultiplier),
-      previewCount: Math.round(876 * baseMultiplier),
-      conversionRate: "2.74",
-      avgRating: 4.5,
-    },
-    {
-      id: "5",
-      name: "Marketplace",
-      slug: "marketplace",
-      price: 29900,
-      revenue: Math.round(119600 * baseMultiplier),
-      orderCount: Math.round(8 * baseMultiplier),
-      previewCount: Math.round(432 * baseMultiplier),
-      conversionRate: "1.85",
-      avgRating: 4.7,
-    },
-  ];
-
-  const geoData: GeoData[] = [
-    {
-      country: "United States",
-      orders: Math.round(45 * baseMultiplier),
-      revenue: Math.round(489500 * baseMultiplier),
-    },
-    {
-      country: "United Kingdom",
-      orders: Math.round(18 * baseMultiplier),
-      revenue: Math.round(167800 * baseMultiplier),
-    },
-    {
-      country: "Germany",
-      orders: Math.round(14 * baseMultiplier),
-      revenue: Math.round(134200 * baseMultiplier),
-    },
-    {
-      country: "Canada",
-      orders: Math.round(12 * baseMultiplier),
-      revenue: Math.round(98400 * baseMultiplier),
-    },
-    {
-      country: "Australia",
-      orders: Math.round(9 * baseMultiplier),
-      revenue: Math.round(78600 * baseMultiplier),
-    },
-    {
-      country: "France",
-      orders: Math.round(7 * baseMultiplier),
-      revenue: Math.round(62400 * baseMultiplier),
-    },
-    {
-      country: "Netherlands",
-      orders: Math.round(5 * baseMultiplier),
-      revenue: Math.round(45800 * baseMultiplier),
-    },
-    {
-      country: "India",
-      orders: Math.round(8 * baseMultiplier),
-      revenue: Math.round(34200 * baseMultiplier),
-    },
-  ];
-
+// Helper to compute key metrics from API data
+function computeKeyMetrics(revenueData: RevenueAnalytics, funnelData: FunnelAnalytics): KeyMetrics {
   const totalRevenue = revenueData.byTier.reduce((s, t) => s + t.revenue, 0);
   const totalOrders = revenueData.byTier.reduce((s, t) => s + t.orderCount, 0);
-
-  const keyMetrics: KeyMetrics = {
+  return {
     totalRevenue,
     totalOrders,
     avgOrderValue: totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0,
-    conversionRate: 0.83,
-    revenueTrend: 12.5,
-    ordersTrend: 8.3,
-    aovTrend: 3.9,
-    conversionTrend: -1.2,
-  };
-
-  return {
-    revenueData,
-    featureData,
-    funnelData,
-    templateData,
-    geoData,
-    keyMetrics,
+    conversionRate: parseFloat(funnelData.conversionRate) || 0,
   };
 }
 
@@ -491,7 +177,7 @@ function BarChart({
   );
 }
 
-function ConversionFunnel({ data }: { data: FunnelData }) {
+function ConversionFunnel({ data }: { data: FunnelAnalytics }) {
   const colors = [
     "bg-blue-500",
     "bg-indigo-500",
@@ -502,7 +188,7 @@ function ConversionFunnel({ data }: { data: FunnelData }) {
   return (
     <div className="space-y-6">
       <div className="space-y-3">
-        {data.funnel.map((stage, idx) => {
+        {data.funnel.map((stage: { stage: string; count: number; percentage: number }, idx: number) => {
           const widthPercent = stage.percentage;
           const nextStage = data.funnel[idx + 1];
           const dropOff = nextStage
@@ -658,38 +344,57 @@ export default function AnalyticsPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("daily");
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [data, setData] = useState<ReturnType<typeof generateMockData> | null>(
-    null
-  );
+  const [data, setData] = useState<AnalyticsData | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const loadData = (showRefreshing = false) => {
+  const loadData = useCallback(async (showRefreshing = false) => {
     if (showRefreshing) setRefreshing(true);
     else setLoading(true);
+    setError(null);
 
-    // Simulate API call
-    setTimeout(() => {
-      setData(generateMockData(period));
+    try {
+      // Fetch all analytics data in parallel
+      const [revenueData, featureData, funnelData, templateData] = await Promise.all([
+        adminApi.getRevenue(period),
+        adminApi.getFeatureStats(),
+        adminApi.getFunnel(period),
+        adminApi.getTemplateStats(),
+      ]);
+
+      // Compute key metrics from the data
+      const keyMetrics = computeKeyMetrics(revenueData, funnelData);
+
+      setData({
+        revenueData,
+        featureData,
+        funnelData,
+        templateData,
+        keyMetrics,
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to load analytics";
+      setError(message);
+      showError(message);
+    } finally {
       setLoading(false);
       setRefreshing(false);
-    }, 500);
-  };
+    }
+  }, [period]);
 
   useEffect(() => {
     loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [period]);
+  }, [loadData]);
 
   const [exporting, setExporting] = useState(false);
 
   const handleExportPdf = async (reportType: "revenue" | "funnel" | "features" | "templates") => {
     setExporting(true);
     try {
-      const exportPeriod = period === "custom" ? "30d" : period;
-      const url = adminApi.getAnalyticsPdfExportUrl(reportType, exportPeriod);
+      const url = adminApi.getAnalyticsPdfExportUrl(reportType, period);
       await downloadFile(url);
-    } catch (error) {
-      console.error("Export failed:", error);
-      alert("Failed to export PDF. Please try again.");
+    } catch (err) {
+      console.error("Export failed:", err);
+      showError("Failed to export PDF. Please try again.");
     } finally {
       setExporting(false);
     }
@@ -719,10 +424,25 @@ export default function AnalyticsPage() {
     );
   }
 
-  if (!data) return null;
+  if (error || !data) {
+    return (
+      <div className="space-y-6">
+        <AdminPageHeader
+          title="Analytics"
+          description="Track revenue, conversions, and performance metrics"
+        />
+        <Card className="p-8 text-center">
+          <p className="text-muted-foreground mb-4">{error || "Failed to load analytics data"}</p>
+          <Button onClick={() => loadData()}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Retry
+          </Button>
+        </Card>
+      </div>
+    );
+  }
 
-  const { revenueData, featureData, funnelData, templateData, geoData, keyMetrics } =
-    data;
+  const { revenueData, featureData, funnelData, templateData, keyMetrics } = data;
 
   return (
     <div className="space-y-6">
@@ -815,32 +535,24 @@ export default function AnalyticsPage() {
         <StatCard
           label="Total Revenue"
           value={formatCurrency(keyMetrics.totalRevenue)}
-          change={keyMetrics.revenueTrend}
-          trendLabel="vs previous period"
           icon={<DollarSign className="h-6 w-6" />}
           size="lg"
         />
         <StatCard
           label="Total Orders"
           value={formatNumber(keyMetrics.totalOrders)}
-          change={keyMetrics.ordersTrend}
-          trendLabel="vs previous period"
           icon={<ShoppingCart className="h-6 w-6" />}
           size="lg"
         />
         <StatCard
           label="Avg Order Value"
           value={formatCurrency(keyMetrics.avgOrderValue)}
-          change={keyMetrics.aovTrend}
-          trendLabel="vs previous period"
           icon={<BarChart3 className="h-6 w-6" />}
           size="lg"
         />
         <StatCard
           label="Conversion Rate"
           value={formatPercentage(keyMetrics.conversionRate)}
-          change={keyMetrics.conversionTrend}
-          trendLabel="vs previous period"
           icon={<TrendingUp className="h-6 w-6" />}
           size="lg"
         />
@@ -968,7 +680,6 @@ export default function AnalyticsPage() {
                 <TableHead>Revenue</TableHead>
                 <TableHead>Previews</TableHead>
                 <TableHead>Conversion</TableHead>
-                <TableHead>Avg Rating</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -988,11 +699,6 @@ export default function AnalyticsPage() {
                   </TableCell>
                   <TableCell>{formatNumber(template.previewCount)}</TableCell>
                   <TableCell>{template.conversionRate}%</TableCell>
-                  <TableCell>
-                    {template.avgRating && (
-                      <StarRating rating={template.avgRating} />
-                    )}
-                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -1000,7 +706,7 @@ export default function AnalyticsPage() {
         </CardContent>
       </Card>
 
-      {/* Geographic Distribution */}
+      {/* Geographic Distribution - Coming Soon */}
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
@@ -1014,30 +720,10 @@ export default function AnalyticsPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {geoData.map((country, idx) => {
-              const maxRevenue = geoData[0].revenue;
-              const percent = (country.revenue / maxRevenue) * 100;
-              return (
-                <div key={country.country} className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium truncate">
-                      {idx + 1}. {country.country}
-                    </span>
-                  </div>
-                  <div className="h-2 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-primary rounded-full transition-all"
-                      style={{ width: `${percent}%` }}
-                    />
-                  </div>
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>{formatNumber(country.orders)} orders</span>
-                    <span>{formatCurrency(country.revenue)}</span>
-                  </div>
-                </div>
-              );
-            })}
+          <div className="text-center py-8 text-muted-foreground">
+            <Globe className="h-12 w-12 mx-auto mb-3 opacity-30" />
+            <p>Geographic analytics require IP geolocation integration.</p>
+            <p className="text-sm">Coming soon.</p>
           </div>
         </CardContent>
       </Card>

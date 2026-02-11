@@ -14,6 +14,8 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { cn, formatCurrency } from "@/lib/utils";
+import { API_CONFIG } from "@/lib/constants";
+import { showError, showSuccess } from "@/lib/toast";
 
 // Shared UI components
 import {
@@ -105,346 +107,6 @@ const TIER_OPTIONS = [
   { value: "ENTERPRISE", label: "Enterprise" },
 ];
 
-// =====================================================
-// Mock Data
-// =====================================================
-
-const MOCK_MODULES: Module[] = [
-  {
-    id: "mod-auth",
-    slug: "authentication",
-    name: "Authentication",
-    description: "User authentication and identity management features",
-    category: "auth",
-    displayOrder: 1,
-    isActive: true,
-    features: [],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "mod-payments",
-    slug: "payments",
-    name: "Payments",
-    description: "Payment processing and subscription management",
-    category: "payment",
-    displayOrder: 2,
-    isActive: true,
-    features: [],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "mod-content",
-    slug: "content-management",
-    name: "Content Management",
-    description: "CMS, blog, and media management features",
-    category: "content",
-    displayOrder: 3,
-    isActive: true,
-    features: [],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "mod-comm",
-    slug: "communication",
-    name: "Communication",
-    description: "Email, notifications, and messaging features",
-    category: "communication",
-    displayOrder: 4,
-    isActive: true,
-    features: [],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "mod-analytics",
-    slug: "analytics",
-    name: "Analytics",
-    description: "Dashboard, reports, and tracking capabilities",
-    category: "analytics",
-    displayOrder: 5,
-    isActive: true,
-    features: [],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-];
-
-const MOCK_FEATURES: Feature[] = [
-  // Authentication features
-  {
-    id: "feat-email-auth",
-    slug: "email-password-auth",
-    name: "Email/Password Authentication",
-    description: "Basic email and password login with secure session management",
-    moduleId: "mod-auth",
-    module: { id: "mod-auth", name: "Authentication", slug: "authentication", category: "auth" },
-    price: 0,
-    tier: null,
-    requires: [],
-    conflicts: [],
-    fileMappings: { "auth/email": ["login.tsx", "register.tsx", "forgot-password.tsx"] },
-    displayOrder: 1,
-    isActive: true,
-    isNew: false,
-    isPopular: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "feat-social-auth",
-    slug: "social-login",
-    name: "Social Login",
-    description: "OAuth integration with Google, GitHub, and other providers",
-    moduleId: "mod-auth",
-    module: { id: "mod-auth", name: "Authentication", slug: "authentication", category: "auth" },
-    price: 1999,
-    tier: "PRO",
-    requires: ["email-password-auth"],
-    conflicts: [],
-    fileMappings: { "auth/social": ["oauth-providers.ts", "google.tsx", "github.tsx"] },
-    displayOrder: 2,
-    isActive: true,
-    isNew: false,
-    isPopular: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "feat-2fa",
-    slug: "two-factor-auth",
-    name: "Two-Factor Authentication",
-    description: "TOTP-based 2FA with backup codes for enhanced security",
-    moduleId: "mod-auth",
-    module: { id: "mod-auth", name: "Authentication", slug: "authentication", category: "auth" },
-    price: 2999,
-    tier: "BUSINESS",
-    requires: ["email-password-auth"],
-    conflicts: [],
-    fileMappings: { "auth/2fa": ["setup-2fa.tsx", "verify-2fa.tsx", "backup-codes.tsx"] },
-    displayOrder: 3,
-    isActive: true,
-    isNew: true,
-    isPopular: false,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  // Payment features
-  {
-    id: "feat-stripe",
-    slug: "stripe-payments",
-    name: "Stripe Payments",
-    description: "One-time payments and checkout with Stripe",
-    moduleId: "mod-payments",
-    module: { id: "mod-payments", name: "Payments", slug: "payments", category: "payment" },
-    price: 4999,
-    tier: "PRO",
-    requires: [],
-    conflicts: ["paypal-payments"],
-    fileMappings: { "payments/stripe": ["checkout.tsx", "webhook.ts", "stripe-client.ts"] },
-    displayOrder: 1,
-    isActive: true,
-    isNew: false,
-    isPopular: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "feat-paypal",
-    slug: "paypal-payments",
-    name: "PayPal Payments",
-    description: "PayPal checkout integration",
-    moduleId: "mod-payments",
-    module: { id: "mod-payments", name: "Payments", slug: "payments", category: "payment" },
-    price: 3999,
-    tier: "PRO",
-    requires: [],
-    conflicts: ["stripe-payments"],
-    fileMappings: { "payments/paypal": ["paypal-checkout.tsx", "paypal-webhook.ts"] },
-    displayOrder: 2,
-    isActive: true,
-    isNew: false,
-    isPopular: false,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "feat-subscriptions",
-    slug: "subscription-billing",
-    name: "Subscription Billing",
-    description: "Recurring payments with plan management and proration",
-    moduleId: "mod-payments",
-    module: { id: "mod-payments", name: "Payments", slug: "payments", category: "payment" },
-    price: 7999,
-    tier: "BUSINESS",
-    requires: ["stripe-payments"],
-    conflicts: [],
-    fileMappings: { "payments/subscriptions": ["plans.tsx", "billing-portal.tsx", "usage-metering.ts"] },
-    displayOrder: 3,
-    isActive: true,
-    isNew: true,
-    isPopular: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  // Content features
-  {
-    id: "feat-cms",
-    slug: "headless-cms",
-    name: "Headless CMS",
-    description: "Content management with custom content types",
-    moduleId: "mod-content",
-    module: { id: "mod-content", name: "Content Management", slug: "content-management", category: "content" },
-    price: 5999,
-    tier: "PRO",
-    requires: [],
-    conflicts: [],
-    fileMappings: { "content/cms": ["content-editor.tsx", "content-types.ts", "api-routes.ts"] },
-    displayOrder: 1,
-    isActive: true,
-    isNew: false,
-    isPopular: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "feat-blog",
-    slug: "blog-engine",
-    name: "Blog Engine",
-    description: "Full-featured blog with categories, tags, and SEO",
-    moduleId: "mod-content",
-    module: { id: "mod-content", name: "Content Management", slug: "content-management", category: "content" },
-    price: 3999,
-    tier: "PRO",
-    requires: [],
-    conflicts: [],
-    fileMappings: { "content/blog": ["posts.tsx", "categories.tsx", "rss-feed.ts"] },
-    displayOrder: 2,
-    isActive: true,
-    isNew: false,
-    isPopular: false,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "feat-media",
-    slug: "media-library",
-    name: "Media Library",
-    description: "Image and file management with optimization",
-    moduleId: "mod-content",
-    module: { id: "mod-content", name: "Content Management", slug: "content-management", category: "content" },
-    price: 2999,
-    tier: null,
-    requires: [],
-    conflicts: [],
-    fileMappings: { "content/media": ["upload.tsx", "gallery.tsx", "image-optimizer.ts"] },
-    displayOrder: 3,
-    isActive: true,
-    isNew: false,
-    isPopular: false,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  // Communication features
-  {
-    id: "feat-email",
-    slug: "email-service",
-    name: "Email Service",
-    description: "Transactional emails with templates",
-    moduleId: "mod-comm",
-    module: { id: "mod-comm", name: "Communication", slug: "communication", category: "communication" },
-    price: 1999,
-    tier: null,
-    requires: [],
-    conflicts: [],
-    fileMappings: { "communication/email": ["send-email.ts", "templates.tsx", "email-queue.ts"] },
-    displayOrder: 1,
-    isActive: true,
-    isNew: false,
-    isPopular: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "feat-push",
-    slug: "push-notifications",
-    name: "Push Notifications",
-    description: "Web and mobile push notification support",
-    moduleId: "mod-comm",
-    module: { id: "mod-comm", name: "Communication", slug: "communication", category: "communication" },
-    price: 2999,
-    tier: "PRO",
-    requires: [],
-    conflicts: [],
-    fileMappings: { "communication/push": ["service-worker.ts", "push-manager.ts", "notification-ui.tsx"] },
-    displayOrder: 2,
-    isActive: true,
-    isNew: true,
-    isPopular: false,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  // Analytics features
-  {
-    id: "feat-dashboard",
-    slug: "analytics-dashboard",
-    name: "Analytics Dashboard",
-    description: "Real-time metrics and KPI visualization",
-    moduleId: "mod-analytics",
-    module: { id: "mod-analytics", name: "Analytics", slug: "analytics", category: "analytics" },
-    price: 4999,
-    tier: "PRO",
-    requires: [],
-    conflicts: [],
-    fileMappings: { "analytics/dashboard": ["charts.tsx", "metrics-api.ts", "real-time.ts"] },
-    displayOrder: 1,
-    isActive: true,
-    isNew: false,
-    isPopular: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "feat-reports",
-    slug: "custom-reports",
-    name: "Custom Reports",
-    description: "Scheduled and on-demand report generation",
-    moduleId: "mod-analytics",
-    module: { id: "mod-analytics", name: "Analytics", slug: "analytics", category: "analytics" },
-    price: 3999,
-    tier: "BUSINESS",
-    requires: ["analytics-dashboard"],
-    conflicts: [],
-    fileMappings: { "analytics/reports": ["report-builder.tsx", "pdf-export.ts", "scheduler.ts"] },
-    displayOrder: 2,
-    isActive: true,
-    isNew: false,
-    isPopular: false,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "feat-tracking",
-    slug: "event-tracking",
-    name: "Event Tracking",
-    description: "Custom event tracking and user behavior analytics",
-    moduleId: "mod-analytics",
-    module: { id: "mod-analytics", name: "Analytics", slug: "analytics", category: "analytics" },
-    price: 2999,
-    tier: "PRO",
-    requires: [],
-    conflicts: [],
-    fileMappings: { "analytics/tracking": ["tracker.ts", "events-api.ts", "funnel-analysis.tsx"] },
-    displayOrder: 3,
-    isActive: true,
-    isNew: true,
-    isPopular: false,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-];
 
 // =====================================================
 // Utility Functions
@@ -1440,15 +1102,38 @@ export default function FeaturesAdminPage() {
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
   const [selectedFeatureIds, setSelectedFeatureIds] = useState<Set<string>>(new Set());
 
-  // Load data
+  // Load data from API
   useEffect(() => {
-    // Simulate API call
     const loadData = async () => {
       setLoading(true);
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      setModules(MOCK_MODULES);
-      setFeatures(MOCK_FEATURES);
-      setLoading(false);
+      try {
+        const [modulesRes, featuresRes] = await Promise.all([
+          fetch(`${API_CONFIG.BASE_URL}/admin/modules`, {
+            credentials: "include",
+          }),
+          fetch(`${API_CONFIG.BASE_URL}/admin/features`, {
+            credentials: "include",
+          }),
+        ]);
+
+        if (!modulesRes.ok) {
+          throw new Error("Failed to fetch modules");
+        }
+        if (!featuresRes.ok) {
+          throw new Error("Failed to fetch features");
+        }
+
+        const modulesData = await modulesRes.json();
+        const featuresData = await featuresRes.json();
+
+        setModules(modulesData.data?.items || []);
+        setFeatures(featuresData.data?.items || []);
+      } catch (error) {
+        console.error("Failed to fetch data:", error);
+        showError("Failed to load features and modules");
+      } finally {
+        setLoading(false);
+      }
     };
     loadData();
   }, []);
@@ -1510,50 +1195,68 @@ export default function FeaturesAdminPage() {
   const handleSaveFeature = async (data: Partial<Feature>) => {
     setSaving(true);
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      const payload = {
+        slug: data.slug,
+        name: data.name,
+        description: data.description,
+        moduleId: data.moduleId,
+        price: data.price || 0,
+        tier: data.tier || null,
+        requires: data.requires || [],
+        conflicts: data.conflicts || [],
+        fileMappings: data.fileMappings || null,
+        isActive: data.isActive ?? true,
+        isNew: data.isNew ?? false,
+        isPopular: data.isPopular ?? false,
+      };
 
       if (editingFeature) {
-        // Update
+        // Update existing feature
+        const response = await fetch(`${API_CONFIG.BASE_URL}/admin/features/${editingFeature.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "Failed to update feature");
+        }
+
+        const result = await response.json();
+        const updatedFeature = result.data;
+
         setFeatures((prev) =>
-          prev.map((f) =>
-            f.id === editingFeature.id
-              ? { ...f, ...data, updatedAt: new Date().toISOString() }
-              : f
-          )
+          prev.map((f) => (f.id === editingFeature.id ? updatedFeature : f))
         );
+        showSuccess("Feature updated successfully");
       } else {
-        // Create
-        const newFeature: Feature = {
-          id: `feat-${Date.now()}`,
-          slug: data.slug || "",
-          name: data.name || "",
-          description: data.description || "",
-          moduleId: data.moduleId || "",
-          module: modules.find((m) => m.id === data.moduleId)
-            ? {
-                id: data.moduleId || "",
-                name: modules.find((m) => m.id === data.moduleId)?.name || "",
-                slug: modules.find((m) => m.id === data.moduleId)?.slug || "",
-                category: modules.find((m) => m.id === data.moduleId)?.category || "",
-              }
-            : undefined,
-          price: data.price || 0,
-          tier: data.tier || null,
-          requires: data.requires || [],
-          conflicts: data.conflicts || [],
-          fileMappings: data.fileMappings || null,
-          displayOrder: features.length + 1,
-          isActive: data.isActive ?? true,
-          isNew: data.isNew ?? false,
-          isPopular: data.isPopular ?? false,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
+        // Create new feature
+        const response = await fetch(`${API_CONFIG.BASE_URL}/admin/features`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "Failed to create feature");
+        }
+
+        const result = await response.json();
+        const newFeature = result.data;
+
         setFeatures((prev) => [...prev, newFeature]);
+        showSuccess("Feature created successfully");
       }
+
       setModalType(null);
       setEditingFeature(null);
+    } catch (error) {
+      console.error("Failed to save feature:", error);
+      showError("Failed to save feature", error instanceof Error ? error.message : undefined);
     } finally {
       setSaving(false);
     }
@@ -1562,36 +1265,63 @@ export default function FeaturesAdminPage() {
   const handleSaveModule = async (data: Partial<Module>) => {
     setSaving(true);
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      const payload = {
+        slug: data.slug,
+        name: data.name,
+        description: data.description,
+        category: data.category || "core",
+        displayOrder: data.displayOrder || modules.length + 1,
+        isActive: data.isActive ?? true,
+        iconName: data.iconName,
+      };
 
       if (editingModule) {
-        // Update
+        // Update existing module
+        const response = await fetch(`${API_CONFIG.BASE_URL}/admin/modules/${editingModule.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "Failed to update module");
+        }
+
+        const result = await response.json();
+        const updatedModule = result.data;
+
         setModules((prev) =>
-          prev.map((m) =>
-            m.id === editingModule.id
-              ? { ...m, ...data, updatedAt: new Date().toISOString() }
-              : m
-          )
+          prev.map((m) => (m.id === editingModule.id ? updatedModule : m))
         );
+        showSuccess("Module updated successfully");
       } else {
-        // Create
-        const newModule: Module = {
-          id: `mod-${Date.now()}`,
-          slug: data.slug || "",
-          name: data.name || "",
-          description: data.description || "",
-          category: data.category || "core",
-          displayOrder: data.displayOrder || modules.length + 1,
-          isActive: data.isActive ?? true,
-          features: [],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
+        // Create new module
+        const response = await fetch(`${API_CONFIG.BASE_URL}/admin/modules`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "Failed to create module");
+        }
+
+        const result = await response.json();
+        const newModule = result.data;
+
         setModules((prev) => [...prev, newModule]);
+        showSuccess("Module created successfully");
       }
+
       setModalType(null);
       setEditingModule(null);
+    } catch (error) {
+      console.error("Failed to save module:", error);
+      showError("Failed to save module", error instanceof Error ? error.message : undefined);
     } finally {
       setSaving(false);
     }
@@ -1601,8 +1331,19 @@ export default function FeaturesAdminPage() {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      const endpoint = deleteTarget.type === "feature"
+        ? `${API_CONFIG.BASE_URL}/admin/features/${deleteTarget.item.id}`
+        : `${API_CONFIG.BASE_URL}/admin/modules/${deleteTarget.item.id}`;
+
+      const response = await fetch(endpoint, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || `Failed to delete ${deleteTarget.type}`);
+      }
 
       if (deleteTarget.type === "feature") {
         setFeatures((prev) => prev.filter((f) => f.id !== deleteTarget.item.id));
@@ -1611,10 +1352,15 @@ export default function FeaturesAdminPage() {
           next.delete(deleteTarget.item.id);
           return next;
         });
+        showSuccess("Feature deleted successfully");
       } else {
         setModules((prev) => prev.filter((m) => m.id !== deleteTarget.item.id));
+        showSuccess("Module deleted successfully");
       }
       setDeleteTarget(null);
+    } catch (error) {
+      console.error(`Failed to delete ${deleteTarget.type}:`, error);
+      showError(`Failed to delete ${deleteTarget.type}`, error instanceof Error ? error.message : undefined);
     } finally {
       setDeleting(false);
     }
@@ -1627,27 +1373,42 @@ export default function FeaturesAdminPage() {
   }) => {
     setSaving(true);
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      const response = await fetch(`${API_CONFIG.BASE_URL}/admin/features/bulk-price-update`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          featureIds: data.featureIds,
+          adjustmentType: data.adjustmentType,
+          value: data.value,
+        }),
+      });
 
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to update prices");
+      }
+
+      const result = await response.json();
+      const updates = result.data?.updates || [];
+
+      // Update local state with new prices from server
       setFeatures((prev) =>
         prev.map((f) => {
-          if (!data.featureIds.includes(f.id)) return f;
-          let newPrice: number;
-          if (data.adjustmentType === "percentage") {
-            newPrice = Math.round(f.price * (1 + data.value / 100));
-          } else {
-            newPrice = f.price + data.value;
+          const update = updates.find((u: { id: string; price: number }) => u.id === f.id);
+          if (update) {
+            return { ...f, price: update.price, updatedAt: new Date().toISOString() };
           }
-          return {
-            ...f,
-            price: Math.max(0, newPrice),
-            updatedAt: new Date().toISOString(),
-          };
+          return f;
         })
       );
+
       setModalType(null);
       setSelectedFeatureIds(new Set());
+      showSuccess(`${data.featureIds.length} features updated successfully`);
+    } catch (error) {
+      console.error("Failed to update prices:", error);
+      showError("Failed to update prices", error instanceof Error ? error.message : undefined);
     } finally {
       setSaving(false);
     }

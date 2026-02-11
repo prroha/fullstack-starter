@@ -75,6 +75,10 @@ studio/backend/
 │   │       ├── features.routes.ts
 │   │       ├── pricing.routes.ts
 │   │       └── ...
+│   ├── services/
+│   │   ├── stripe.service.ts     # Stripe payments & refunds
+│   │   ├── email.service.ts      # Resend email service
+│   │   └── download.service.ts   # Download file generation
 │   ├── utils/
 │   │   ├── response.ts         # API response helpers
 │   │   └── errors.ts           # Custom error classes
@@ -578,11 +582,29 @@ function Dashboard() {
 **Backend (`studio/backend/.env`):**
 
 ```env
+# Required
 DATABASE_URL="postgresql://user:pass@localhost:5432/studio"
+JWT_SECRET=your-secret-key-min-32-chars
+
+# Server
 PORT=3001
 NODE_ENV=development
-JWT_SECRET=your-secret-key
 CORS_ORIGIN=http://localhost:3002
+
+# Stripe (for payments)
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+STRIPE_PUBLISHABLE_KEY=pk_test_...
+STRIPE_SUCCESS_URL=http://localhost:3002/checkout/success
+STRIPE_CANCEL_URL=http://localhost:3002/checkout
+
+# Email (Resend)
+RESEND_API_KEY=re_...
+EMAIL_FROM=noreply@yourdomain.com
+
+# Admin (for seeding)
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASSWORD=secure-password
 ```
 
 **Frontend (`studio/web/.env.local`):**
@@ -850,6 +872,67 @@ All admin pages are connected to real backend APIs:
 | Licenses  | `/admin/licenses`  | List, revoke, regenerate download                |
 | Coupons   | `/admin/coupons`   | CRUD, usage tracking                             |
 | Analytics | `/admin/analytics` | Revenue, orders, customer metrics                |
+
+### Email Service
+
+**Location:** `/studio/backend/src/services/email.service.ts`
+
+The studio uses Resend for transactional emails. Emails are automatically sent for:
+
+1. **Order Confirmation** - Sent after successful checkout with license key and download link
+2. **Download Link** - Resent on admin request with regenerated download link
+3. **Refund Confirmation** - Sent when refund is processed
+4. **Welcome Email** - Sent for new user registration
+
+**Configuration:**
+
+```env
+RESEND_API_KEY=re_...
+EMAIL_FROM=noreply@yourdomain.com
+```
+
+**Usage:**
+
+```typescript
+import { emailService } from "../services/email.service.js";
+
+// Send order confirmation
+await emailService.sendOrderConfirmation({
+  customerEmail: "customer@example.com",
+  customerName: "John Doe",
+  orderNumber: "FS-123456",
+  tier: "pro",
+  tierName: "Pro",
+  selectedFeatures: ["auth", "payments"],
+  subtotal: 14900,
+  discount: 0,
+  total: 14900,
+  licenseKey: "FS-XXXX-XXXX-XXXX",
+  downloadUrl: "https://studio.com/download/token",
+});
+
+// Resend download link
+await emailService.sendDownloadLink({
+  customerEmail: "customer@example.com",
+  orderNumber: "FS-123456",
+  licenseKey: "FS-XXXX-XXXX-XXXX",
+  downloadUrl: "https://studio.com/download/new-token",
+  expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+});
+
+// Check if configured
+if (emailService.isConfigured()) {
+  // Ready to send emails
+}
+```
+
+**Admin Endpoints:**
+
+| Method | Endpoint                             | Description         |
+| ------ | ------------------------------------ | ------------------- |
+| `GET`  | `/api/admin/settings/email/status`   | Check email config  |
+| `POST` | `/api/admin/settings/email/test`     | Send test email     |
+| `POST` | `/api/admin/orders/:id/resend-email` | Resend order emails |
 
 ---
 
