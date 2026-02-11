@@ -1,81 +1,98 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useId } from "react";
 import { Monitor, Smartphone, Sun, Moon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ComponentPreviewProps {
   children: React.ReactNode;
   className?: string;
+  /** Optional label for the preview */
+  label?: string;
 }
 
 type DeviceMode = "desktop" | "mobile";
 type ThemeMode = "light" | "dark";
 
-export function ComponentPreview({ children, className }: ComponentPreviewProps) {
+interface ToggleButtonProps {
+  isActive: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+}
+
+function ToggleButton({ isActive, onClick, icon, label }: ToggleButtonProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "p-1.5 rounded transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
+        isActive ? "bg-background shadow-sm" : "hover:bg-accent"
+      )}
+      aria-label={label}
+      aria-pressed={isActive}
+    >
+      {icon}
+    </button>
+  );
+}
+
+export function ComponentPreview({ children, className, label }: ComponentPreviewProps) {
   const [device, setDevice] = useState<DeviceMode>("desktop");
   const [theme, setTheme] = useState<ThemeMode>("light");
+  const previewId = useId();
 
   return (
-    <div className={cn("rounded-lg border overflow-hidden", className)}>
+    <div
+      className={cn("rounded-lg border overflow-hidden", className)}
+      role="region"
+      aria-labelledby={`${previewId}-label`}
+    >
       {/* Toolbar */}
       <div className="flex items-center justify-between border-b px-4 py-2 bg-muted/50">
-        <span className="text-sm font-medium">Preview</span>
+        <span id={`${previewId}-label`} className="text-sm font-medium">
+          {label ?? "Preview"}
+        </span>
         <div className="flex items-center gap-1">
           {/* Device Toggle */}
-          <div className="flex items-center border rounded-md p-0.5">
-            <button
+          <div
+            className="flex items-center border rounded-md p-0.5"
+            role="group"
+            aria-label="Device view selector"
+          >
+            <ToggleButton
+              isActive={device === "desktop"}
               onClick={() => setDevice("desktop")}
-              className={cn(
-                "p-1.5 rounded transition-colors",
-                device === "desktop"
-                  ? "bg-background shadow-sm"
-                  : "hover:bg-accent"
-              )}
-              aria-label="Desktop view"
-            >
-              <Monitor className="h-4 w-4" />
-            </button>
-            <button
+              icon={<Monitor className="h-4 w-4" aria-hidden="true" />}
+              label="Desktop view"
+            />
+            <ToggleButton
+              isActive={device === "mobile"}
               onClick={() => setDevice("mobile")}
-              className={cn(
-                "p-1.5 rounded transition-colors",
-                device === "mobile"
-                  ? "bg-background shadow-sm"
-                  : "hover:bg-accent"
-              )}
-              aria-label="Mobile view"
-            >
-              <Smartphone className="h-4 w-4" />
-            </button>
+              icon={<Smartphone className="h-4 w-4" aria-hidden="true" />}
+              label="Mobile view"
+            />
           </div>
 
           {/* Theme Toggle */}
-          <div className="flex items-center border rounded-md p-0.5 ml-2">
-            <button
+          <div
+            className="flex items-center border rounded-md p-0.5 ml-2"
+            role="group"
+            aria-label="Preview theme selector"
+          >
+            <ToggleButton
+              isActive={theme === "light"}
               onClick={() => setTheme("light")}
-              className={cn(
-                "p-1.5 rounded transition-colors",
-                theme === "light"
-                  ? "bg-background shadow-sm"
-                  : "hover:bg-accent"
-              )}
-              aria-label="Light theme"
-            >
-              <Sun className="h-4 w-4" />
-            </button>
-            <button
+              icon={<Sun className="h-4 w-4" aria-hidden="true" />}
+              label="Light theme preview"
+            />
+            <ToggleButton
+              isActive={theme === "dark"}
               onClick={() => setTheme("dark")}
-              className={cn(
-                "p-1.5 rounded transition-colors",
-                theme === "dark"
-                  ? "bg-background shadow-sm"
-                  : "hover:bg-accent"
-              )}
-              aria-label="Dark theme"
-            >
-              <Moon className="h-4 w-4" />
-            </button>
+              icon={<Moon className="h-4 w-4" aria-hidden="true" />}
+              label="Dark theme preview"
+            />
           </div>
         </div>
       </div>
@@ -83,12 +100,21 @@ export function ComponentPreview({ children, className }: ComponentPreviewProps)
       {/* Preview Area */}
       <div
         className={cn(
-          "p-8 bg-background transition-all duration-300",
+          "p-8 transition-all duration-300",
           device === "mobile" && "max-w-sm mx-auto",
-          theme === "dark" && "dark bg-zinc-950"
+          theme === "light" ? "bg-white" : "bg-zinc-950"
         )}
+        data-theme={theme}
+        style={{
+          colorScheme: theme,
+        }}
       >
-        <div className="flex items-center justify-center min-h-[200px]">
+        <div
+          className={cn(
+            "flex items-center justify-center min-h-[200px]",
+            theme === "dark" && "text-white"
+          )}
+        >
           {children}
         </div>
       </div>

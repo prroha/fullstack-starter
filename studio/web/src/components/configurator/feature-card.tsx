@@ -1,6 +1,7 @@
 "use client";
 
-import { Check, Lock, Link, AlertTriangle } from "lucide-react";
+import { useCallback } from "react";
+import { Check, Lock, Link as LinkIcon, AlertTriangle } from "lucide-react";
 import { Card, CardContent, Badge, Switch, Icon, Tooltip } from "@/components/ui";
 import type { IconName } from "@core/components/ui/icon";
 import { useConfigurator } from "./context";
@@ -38,10 +39,21 @@ export function FeatureCard({ feature, className }: FeatureCardProps) {
   const isLocked = isIncluded || isAuto;
   const effectivePrice = isIncluded ? 0 : feature.price;
 
-  const handleToggle = () => {
+  const handleToggle = useCallback(() => {
     if (isLocked) return;
     toggleFeature(feature.slug);
-  };
+  }, [isLocked, toggleFeature, feature.slug]);
+
+  const handleKeyDown = useCallback(
+    (event: React.KeyboardEvent) => {
+      if (isLocked) return;
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggleFeature(feature.slug);
+      }
+    },
+    [isLocked, toggleFeature, feature.slug]
+  );
 
   return (
     <Card
@@ -49,8 +61,15 @@ export function FeatureCard({ feature, className }: FeatureCardProps) {
         "relative transition-all",
         isSelected && "ring-2 ring-primary",
         isLocked && "opacity-80",
+        !isLocked && "cursor-pointer hover:shadow-md focus-within:ring-2 focus-within:ring-primary",
         className
       )}
+      role="option"
+      aria-selected={isSelected}
+      aria-disabled={isLocked}
+      tabIndex={isLocked ? -1 : 0}
+      onClick={handleToggle}
+      onKeyDown={handleKeyDown}
     >
       <CardContent className="p-4">
         <div className="flex items-start gap-3">
@@ -93,7 +112,7 @@ export function FeatureCard({ feature, className }: FeatureCardProps) {
               {dependencies.length > 0 && (
                 <Tooltip content={`Requires: ${dependencies.join(", ")}`}>
                   <Badge variant="outline" className="text-xs gap-1">
-                    <Link className="h-3 w-3" />
+                    <LinkIcon className="h-3 w-3" />
                     {dependencies.length} deps
                   </Badge>
                 </Tooltip>
@@ -114,7 +133,7 @@ export function FeatureCard({ feature, className }: FeatureCardProps) {
               )}
               {isAuto && !isIncluded && (
                 <Badge variant="outline" className="text-xs gap-1">
-                  <Link className="h-3 w-3" />
+                  <LinkIcon className="h-3 w-3" />
                   Required
                 </Badge>
               )}

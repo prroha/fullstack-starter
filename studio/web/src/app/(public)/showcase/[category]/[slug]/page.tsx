@@ -195,7 +195,7 @@ export default function ComponentDetailPage({ params }: ComponentDetailPageProps
             <div className="space-y-6">
               <div>
                 <h3 className="text-lg font-semibold mb-3">Component Props</h3>
-                <PropsTable props={component.props} />
+                <PropsTable props={component.props} componentName={component.name} />
               </div>
             </div>
           </TabPanel>

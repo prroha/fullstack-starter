@@ -2,9 +2,17 @@
 
 import * as React from "react";
 import { formatCurrency, formatNumber } from "@/lib/utils";
-import { API_CONFIG } from "@/lib/constants";
 import { showSuccess, showError } from "@/lib/toast";
 import { validators, validate, hasErrors, type FormErrors } from "@/lib/validation";
+import {
+  adminApi,
+  ApiError,
+  type Template,
+  type Feature,
+  type CreateTemplateData,
+  type UpdateTemplateData,
+} from "@/lib/api";
+import { API_CONFIG } from "@/lib/constants";
 
 // Core UI Components
 import {
@@ -37,33 +45,6 @@ import { AdminPageHeader, TierBadge, AdminTableSkeleton } from "@/components/adm
 // =====================================================
 
 type Tier = "STARTER" | "PRO" | "BUSINESS" | "ENTERPRISE";
-
-interface Feature {
-  id: string;
-  slug: string;
-  name: string;
-  description: string;
-  price: number;
-  moduleId: string;
-}
-
-interface Template {
-  id: string;
-  slug: string;
-  name: string;
-  description: string;
-  shortDescription: string;
-  price: number;
-  compareAtPrice: number;
-  tier: Tier;
-  includedFeatures: string[];
-  iconName: string;
-  color: string;
-  previewImageUrl: string | null;
-  displayOrder: number;
-  isFeatured: boolean;
-  isActive: boolean;
-}
 
 interface TemplateFormData {
   name: string;
@@ -318,7 +299,7 @@ function TemplateFormModal({
           slug: initialData.slug,
           description: initialData.description,
           shortDescription: initialData.shortDescription || "",
-          tier: initialData.tier,
+          tier: initialData.tier as Tier,
           price: (initialData.price / 100).toFixed(2),
           compareAtPrice: initialData.compareAtPrice ? (initialData.compareAtPrice / 100).toFixed(2) : "",
           includedFeatures: [...initialData.includedFeatures],
@@ -678,30 +659,16 @@ export default function TemplatesPage() {
     async function fetchData() {
       setIsLoading(true);
       try {
-        const [templatesRes, featuresRes] = await Promise.all([
-          fetch(`${API_CONFIG.BASE_URL}/admin/templates`, {
-            credentials: "include",
-          }),
-          fetch(`${API_CONFIG.BASE_URL}/admin/features`, {
-            credentials: "include",
-          }),
+        const [templatesResult, featuresResult] = await Promise.all([
+          adminApi.getTemplates(),
+          adminApi.getFeatures(),
         ]);
 
-        if (!templatesRes.ok) {
-          throw new Error("Failed to fetch templates");
-        }
-        if (!featuresRes.ok) {
-          throw new Error("Failed to fetch features");
-        }
-
-        const templatesData = await templatesRes.json();
-        const featuresData = await featuresRes.json();
-
-        setTemplates(templatesData.data?.items || []);
-        setFeatures(featuresData.data?.items || []);
+        setTemplates(templatesResult.items as unknown as Template[]);
+        setFeatures(featuresResult.items as unknown as Feature[]);
       } catch (error) {
         console.error("Failed to fetch data:", error);
-        showError("Failed to load templates and features");
+        showError("Failed to load templates and features", error instanceof ApiError ? error.message : undefined);
       } finally {
         setIsLoading(false);
       }
@@ -779,9 +746,9 @@ export default function TemplatesPage() {
     const priceInCents = Math.round(parseFloat(formData.price) * 100);
     const compareAtPriceInCents = formData.compareAtPrice
       ? Math.round(parseFloat(formData.compareAtPrice) * 100)
-      : null;
+      : undefined;
 
-    const payload = {
+    const payload: CreateTemplateData = {
       name: formData.name,
       slug: formData.slug,
       description: formData.description,
@@ -792,7 +759,7 @@ export default function TemplatesPage() {
       includedFeatures: formData.includedFeatures,
       iconName: formData.iconName,
       color: formData.color,
-      previewImageUrl: formData.previewImageUrl,
+      previewImageUrl: formData.previewImageUrl || undefined,
       displayOrder: formData.displayOrder,
       isFeatured: formData.isFeatured,
       isActive: formData.isActive,
@@ -800,42 +767,16 @@ export default function TemplatesPage() {
 
     try {
       if (editingTemplate) {
-        const response = await fetch(`${API_CONFIG.BASE_URL}/admin/templates/${editingTemplate.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify(payload),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || "Failed to update template");
-        }
-
-        const result = await response.json();
-        const updatedTemplate = result.data;
+        const updatedTemplate = await adminApi.updateTemplate(editingTemplate.id, payload as UpdateTemplateData);
 
         setTemplates((prev) =>
-          prev.map((t) => (t.id === editingTemplate.id ? updatedTemplate : t))
+          prev.map((t) => (t.id === editingTemplate.id ? (updatedTemplate as unknown as Template) : t))
         );
         showSuccess("Template updated successfully");
       } else {
-        const response = await fetch(`${API_CONFIG.BASE_URL}/admin/templates`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify(payload),
-        });
+        const newTemplate = await adminApi.createTemplate(payload);
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || "Failed to create template");
-        }
-
-        const result = await response.json();
-        const newTemplate = result.data;
-
-        setTemplates((prev) => [newTemplate, ...prev]);
+        setTemplates((prev) => [newTemplate as unknown as Template, ...prev]);
         showSuccess("Template created successfully");
       }
 
@@ -843,7 +784,7 @@ export default function TemplatesPage() {
       setEditingTemplate(undefined);
     } catch (error) {
       console.error("Failed to save template:", error);
-      showError("Failed to save template", error instanceof Error ? error.message : undefined);
+      showError("Failed to save template", error instanceof ApiError ? error.message : undefined);
     } finally {
       setIsSubmitting(false);
     }
@@ -855,15 +796,7 @@ export default function TemplatesPage() {
     setIsDeleting(true);
 
     try {
-      const response = await fetch(`${API_CONFIG.BASE_URL}/admin/templates/${deletingTemplate.id}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to delete template");
-      }
+      await adminApi.deleteTemplate(deletingTemplate.id);
 
       setTemplates((prev) => prev.filter((t) => t.id !== deletingTemplate.id));
       showSuccess("Template deleted successfully");
@@ -871,7 +804,7 @@ export default function TemplatesPage() {
       setDeletingTemplate(null);
     } catch (error) {
       console.error("Failed to delete template:", error);
-      showError("Failed to delete template", error instanceof Error ? error.message : undefined);
+      showError("Failed to delete template", error instanceof ApiError ? error.message : undefined);
     } finally {
       setIsDeleting(false);
     }
@@ -887,19 +820,11 @@ export default function TemplatesPage() {
     );
 
     try {
-      const response = await fetch(`${API_CONFIG.BASE_URL}/admin/templates/${template.id}/toggle`, {
-        method: "PATCH",
-        credentials: "include",
-      });
+      const updatedTemplate = await adminApi.toggleTemplate(template.id);
 
-      if (!response.ok) {
-        throw new Error("Failed to toggle template status");
-      }
-
-      const result = await response.json();
       // Update with server response to ensure consistency
       setTemplates((prev) =>
-        prev.map((t) => (t.id === template.id ? result.data : t))
+        prev.map((t) => (t.id === template.id ? (updatedTemplate as unknown as Template) : t))
       );
       showSuccess(`Template ${!previousState ? "activated" : "deactivated"} successfully`);
     } catch (error) {

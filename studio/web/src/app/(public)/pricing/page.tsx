@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Fragment } from "react";
 import Link from "next/link";
 import { Check, X, Sparkles, ArrowRight } from "lucide-react";
 import {
@@ -16,7 +17,7 @@ import {
 } from "@/components/ui";
 import { API_CONFIG } from "@/lib/constants";
 import type { PricingTier } from "@studio/shared";
-import { TIER_ORDER, TIER_INFO } from "@/lib/pricing";
+import { TIER_ORDER, TIER_INFO, formatDisplayPrice } from "@/lib/pricing";
 
 export const metadata: Metadata = {
   title: "Pricing - Starter Studio",
@@ -213,17 +214,6 @@ const fallbackTiers: PricingTier[] = [
   },
 ];
 
-// Format price in cents to dollars
-function formatPrice(cents: number): string {
-  if (cents === 0) return "Free";
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(cents / 100);
-}
-
 // Fetch pricing tiers from API
 async function getPricingTiers(): Promise<PricingTier[]> {
   try {
@@ -342,7 +332,7 @@ export default async function PricingPage() {
                           {tier?.name || tierInfo?.name || tierSlug}
                         </div>
                         <div className="text-sm text-muted-foreground font-normal">
-                          {tier ? formatPrice(tier.price) : "-"}
+                          {tier ? formatDisplayPrice(tier.price) : "-"}
                         </div>
                       </th>
                     );
@@ -351,8 +341,8 @@ export default async function PricingPage() {
               </thead>
               <tbody>
                 {featureCategories.map((category) => (
-                  <>
-                    <tr key={`category-${category.name}`}>
+                  <Fragment key={`category-${category.name}`}>
+                    <tr>
                       <td
                         colSpan={TIER_ORDER.length + 1}
                         className="bg-muted/50 p-3 font-semibold text-sm"
@@ -377,7 +367,7 @@ export default async function PricingPage() {
                         ))}
                       </tr>
                     ))}
-                  </>
+                  </Fragment>
                 ))}
               </tbody>
             </table>
@@ -392,7 +382,7 @@ export default async function PricingPage() {
                     <div>
                       <h3 className="font-semibold text-lg">{tier.name}</h3>
                       <p className="text-2xl font-bold">
-                        {formatPrice(tier.price)}
+                        {formatDisplayPrice(tier.price)}
                       </p>
                     </div>
                     {tier.isPopular && (
@@ -530,7 +520,7 @@ function PricingCard({ tier }: { tier: PricingTier }) {
           {tier.compareAtPrice && tier.compareAtPrice > tier.price && (
             <div className="flex items-center gap-2 mb-1">
               <span className="text-lg text-muted-foreground line-through">
-                {formatPrice(tier.compareAtPrice)}
+                {formatDisplayPrice(tier.compareAtPrice)}
               </span>
               {savings && (
                 <Badge variant="success" size="sm">
@@ -540,7 +530,7 @@ function PricingCard({ tier }: { tier: PricingTier }) {
             </div>
           )}
           <div className="flex items-baseline gap-1">
-            <span className="text-4xl font-bold">{formatPrice(tier.price)}</span>
+            <span className="text-4xl font-bold">{formatDisplayPrice(tier.price)}</span>
             {tier.price > 0 && (
               <span className="text-muted-foreground text-sm">one-time</span>
             )}

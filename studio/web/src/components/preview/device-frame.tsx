@@ -9,6 +9,8 @@ interface DeviceFrameProps {
   size: DeviceSize;
   children: ReactNode;
   className?: string;
+  /** Scale down device frame to fit container */
+  responsive?: boolean;
 }
 
 export function DeviceFrame({
@@ -16,17 +18,38 @@ export function DeviceFrame({
   size,
   children,
   className,
+  responsive = true,
 }: DeviceFrameProps) {
   if (device === "desktop") {
     return (
-      <div className={cn("w-full h-full", className)}>
-        {children}
+      <div
+        className={cn(
+          "w-full h-full rounded-lg border border-zinc-200 dark:border-zinc-800 overflow-hidden shadow-lg",
+          className
+        )}
+      >
+        {/* Desktop browser chrome */}
+        <div className="h-8 bg-zinc-100 dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-700 flex items-center px-3 gap-2">
+          <div className="flex gap-1.5">
+            <div className="w-3 h-3 rounded-full bg-red-500" />
+            <div className="w-3 h-3 rounded-full bg-yellow-500" />
+            <div className="w-3 h-3 rounded-full bg-green-500" />
+          </div>
+          <div className="flex-1 flex justify-center">
+            <div className="bg-white dark:bg-zinc-900 rounded px-4 py-1 text-xs text-zinc-500 dark:text-zinc-400 max-w-xs truncate">
+              localhost:3000
+            </div>
+          </div>
+        </div>
+        <div className="w-full h-[calc(100%-2rem)] overflow-auto">
+          {children}
+        </div>
       </div>
     );
   }
 
   const tabletStyles = {
-    wrapper: "bg-zinc-800 rounded-[2rem] p-3 shadow-xl",
+    wrapper: "bg-zinc-800 rounded-[2rem] p-3 shadow-xl transition-transform",
     screen: "rounded-[1.5rem] overflow-hidden bg-white",
     bezel: "h-4 flex justify-center items-center mb-2",
     camera: "w-2 h-2 rounded-full bg-zinc-600",
@@ -35,7 +58,7 @@ export function DeviceFrame({
   };
 
   const mobileStyles = {
-    wrapper: "bg-zinc-900 rounded-[3rem] p-2 shadow-2xl",
+    wrapper: "bg-zinc-900 rounded-[3rem] p-2 shadow-2xl transition-transform",
     screen: "rounded-[2.5rem] overflow-hidden bg-white relative",
     bezel: "",
     camera: "",
@@ -45,12 +68,37 @@ export function DeviceFrame({
 
   const styles = device === "mobile" ? mobileStyles : tabletStyles;
 
+  // Calculate bezel adjustments
+  const bezelPadding = device === "tablet" ? 24 : 16;
+  const bezelHeight = device === "tablet" ? 80 : 32;
+  const screenWidth = size.width - bezelPadding;
+  const screenHeight = size.height - bezelHeight;
+
   return (
     <div
-      className={cn("inline-block mx-auto", className)}
-      style={{ width: size.width }}
+      className={cn(
+        "inline-block mx-auto",
+        // Responsive scaling: allow device to scale down on smaller screens
+        responsive && "max-w-full",
+        className
+      )}
+      style={{
+        width: size.width,
+        // Use CSS containment for better rendering performance
+        contain: "layout style",
+      }}
     >
-      <div className={styles.wrapper}>
+      <div
+        className={cn(
+          styles.wrapper,
+          // Scale down smoothly when container is smaller than device
+          responsive && "origin-top scale-[var(--device-scale,1)]"
+        )}
+        style={{
+          // CSS custom property for responsive scaling (can be set via JS if needed)
+          ["--device-scale" as string]: 1,
+        }}
+      >
         {/* Top bezel / Camera */}
         {device === "tablet" && (
           <div className={styles.bezel}>
@@ -62,15 +110,20 @@ export function DeviceFrame({
         <div
           className={styles.screen}
           style={{
-            width: size.width - (device === "tablet" ? 24 : 16),
-            height: size.height - (device === "tablet" ? 80 : 32),
+            width: screenWidth,
+            height: screenHeight,
           }}
         >
           {/* Mobile notch */}
           {device === "mobile" && <div className={mobileStyles.notch} />}
 
-          {/* Content */}
-          <div className="w-full h-full overflow-auto">
+          {/* Content with safe area padding for mobile */}
+          <div
+            className={cn(
+              "w-full h-full overflow-auto",
+              device === "mobile" && "pt-6 pb-5" // Account for notch and home indicator
+            )}
+          >
             {children}
           </div>
 

@@ -18,16 +18,14 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { cn, formatNumber, formatDate, formatDateTime } from "@/lib/utils";
-import { API_CONFIG } from "@/lib/constants";
 import { showSuccess, showError, showLoading, dismissToast } from "@/lib/toast";
+import { adminApi, ApiError, type License as ApiLicense, type LicenseStatus, type PaginationInfo } from "@/lib/api";
 import { Button, Modal, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, StatCard, CopyButton } from "@/components/ui";
 import { EmptyList } from "@/components/ui";
 import { EmptyState } from "@core/components/shared";
-import { AdminPageHeader, AdminFilters, LicenseStatusBadge, AdminTableSkeleton } from "@/components/admin";
+import { AdminPageHeader, AdminFilterBar, type FilterConfig, LicenseStatusBadge, AdminTableSkeleton } from "@/components/admin";
 
 // Types
-type LicenseStatus = "ACTIVE" | "EXPIRED" | "REVOKED";
-
 interface License {
   id: string;
   licenseKey: string;
@@ -64,13 +62,6 @@ interface LicenseStats {
   active: number;
   expired: number;
   revoked: number;
-}
-
-interface PaginationInfo {
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
 }
 
 // Extend License Modal
@@ -493,23 +484,27 @@ function ActionsDropdown({
     <div className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className="p-1 rounded hover:bg-muted transition-colors"
+        className="p-1 rounded hover:bg-muted transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+        aria-label={`Actions for license ${license.licenseKey.substring(0, 8)}...`}
+        aria-expanded={open}
+        aria-haspopup="menu"
       >
-        <MoreHorizontal className="h-4 w-4" />
+        <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
       </button>
 
       {open && (
         <>
-          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 mt-1 w-48 bg-background border rounded-md shadow-lg z-20 py-1">
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} aria-hidden="true" />
+          <div className="absolute right-0 mt-1 w-48 bg-background border rounded-md shadow-lg z-20 py-1" role="menu" aria-orientation="vertical">
             <button
               onClick={() => {
                 setOpen(false);
                 onViewDetails();
               }}
-              className="w-full px-3 py-2 text-sm text-left hover:bg-muted flex items-center gap-2"
+              className="w-full px-3 py-2 text-sm text-left hover:bg-muted flex items-center gap-2 focus:outline-none focus:bg-muted"
+              role="menuitem"
             >
-              <Eye className="h-4 w-4" />
+              <Eye className="h-4 w-4" aria-hidden="true" />
               View Details
             </button>
             {license.status !== "REVOKED" && (
@@ -519,9 +514,10 @@ function ActionsDropdown({
                     setOpen(false);
                     onExtend();
                   }}
-                  className="w-full px-3 py-2 text-sm text-left hover:bg-muted flex items-center gap-2"
+                  className="w-full px-3 py-2 text-sm text-left hover:bg-muted flex items-center gap-2 focus:outline-none focus:bg-muted"
+                  role="menuitem"
                 >
-                  <Calendar className="h-4 w-4" />
+                  <Calendar className="h-4 w-4" aria-hidden="true" />
                   Extend License
                 </button>
                 <button
@@ -529,20 +525,22 @@ function ActionsDropdown({
                     setOpen(false);
                     onRegenerate();
                   }}
-                  className="w-full px-3 py-2 text-sm text-left hover:bg-muted flex items-center gap-2"
+                  className="w-full px-3 py-2 text-sm text-left hover:bg-muted flex items-center gap-2 focus:outline-none focus:bg-muted"
+                  role="menuitem"
                 >
-                  <RefreshCw className="h-4 w-4" />
+                  <RefreshCw className="h-4 w-4" aria-hidden="true" />
                   Regenerate Token
                 </button>
-                <hr className="my-1" />
+                <hr className="my-1" aria-hidden="true" />
                 <button
                   onClick={() => {
                     setOpen(false);
                     onRevoke();
                   }}
-                  className="w-full px-3 py-2 text-sm text-left hover:bg-muted flex items-center gap-2 text-red-600"
+                  className="w-full px-3 py-2 text-sm text-left hover:bg-muted flex items-center gap-2 text-red-600 focus:outline-none focus:bg-muted"
+                  role="menuitem"
                 >
-                  <Ban className="h-4 w-4" />
+                  <Ban className="h-4 w-4" aria-hidden="true" />
                   Revoke License
                 </button>
               </>
@@ -569,13 +567,14 @@ function Pagination({
       <p className="text-sm text-muted-foreground">
         Page {currentPage} of {totalPages}
       </p>
-      <div className="flex items-center gap-2">
+      <nav className="flex items-center gap-2" aria-label="Pagination">
         <button
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage <= 1}
-          className="p-2 rounded hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="p-2 rounded hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+          aria-label="Go to previous page"
         >
-          <ChevronLeft className="h-4 w-4" />
+          <ChevronLeft className="h-4 w-4" aria-hidden="true" />
         </button>
         {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
           let pageNum: number;
@@ -606,11 +605,12 @@ function Pagination({
         <button
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage >= totalPages}
-          className="p-2 rounded hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="p-2 rounded hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+          aria-label="Go to next page"
         >
-          <ChevronRight className="h-4 w-4" />
+          <ChevronRight className="h-4 w-4" aria-hidden="true" />
         </button>
-      </div>
+      </nav>
     </div>
   );
 }
@@ -627,17 +627,44 @@ function LoadingSkeleton() {
   );
 }
 
+// Filter configuration for AdminFilterBar
+const LICENSE_FILTER_CONFIG: FilterConfig[] = [
+  {
+    type: "search",
+    key: "search",
+    label: "Search licenses",
+    placeholder: "Search by license key, order number, or email...",
+  },
+  {
+    type: "select",
+    key: "status",
+    label: "Filter by status",
+    options: [
+      { value: "ALL", label: "All Statuses" },
+      { value: "ACTIVE", label: "Active" },
+      { value: "EXPIRED", label: "Expired" },
+      { value: "REVOKED", label: "Revoked" },
+    ],
+  },
+];
+
+// Initial filter values
+const INITIAL_FILTER_VALUES = {
+  search: "",
+  status: "ALL",
+};
+
 // Main Page Component
 export default function LicensesPage() {
   const [licenses, setLicenses] = useState<License[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"ALL" | LicenseStatus>("ALL");
+  const [filterValues, setFilterValues] = useState<Record<string, string>>(INITIAL_FILTER_VALUES);
   const [pagination, setPagination] = useState<PaginationInfo>({
     page: 1,
     limit: 10,
     total: 0,
     totalPages: 0,
+    hasMore: false,
   });
 
   // Modal states
@@ -651,37 +678,24 @@ export default function LicensesPage() {
   const fetchLicenses = useCallback(async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams();
-      params.set("page", pagination.page.toString());
-      params.set("limit", pagination.limit.toString());
-      if (statusFilter !== "ALL") params.set("status", statusFilter);
-      if (searchTerm) params.set("search", searchTerm);
+      const statusValue = filterValues.status !== "ALL" ? filterValues.status as LicenseStatus : undefined;
+      const result = await adminApi.getLicenses({
+        page: pagination.page,
+        limit: pagination.limit,
+        status: statusValue,
+        search: filterValues.search || undefined,
+      });
 
-      const response = await fetch(
-        `${API_CONFIG.BASE_URL}/admin/licenses?${params.toString()}`,
-        {
-          credentials: "include",
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error?.message || "Failed to fetch licenses");
-      }
-
-      const data = await response.json();
-      setLicenses(data.data || []);
-      if (data.pagination) {
-        setPagination(data.pagination);
-      }
+      setLicenses(result.items as unknown as License[]);
+      setPagination(result.pagination);
     } catch (err) {
       console.error("Failed to fetch licenses:", err);
-      const errorMessage = err instanceof Error ? err.message : "Failed to fetch licenses";
+      const errorMessage = err instanceof ApiError ? err.message : "Failed to fetch licenses";
       showError("Failed to load licenses", errorMessage);
     } finally {
       setLoading(false);
     }
-  }, [pagination.page, pagination.limit, statusFilter, searchTerm]);
+  }, [pagination.page, pagination.limit, filterValues]);
 
   // Initial load and refetch on filter changes
   useEffect(() => {
@@ -691,7 +705,7 @@ export default function LicensesPage() {
   // Reset page when filters change
   useEffect(() => {
     setPagination((prev) => ({ ...prev, page: 1 }));
-  }, [searchTerm, statusFilter]);
+  }, [filterValues]);
 
   // Calculate stats from current data
   const stats = useMemo<LicenseStats>(() => {
@@ -707,37 +721,22 @@ export default function LicensesPage() {
   const handleExtend = useCallback(async (licenseId: string, days: number) => {
     const loadingId = showLoading("Extending license...");
     try {
-      const response = await fetch(
-        `${API_CONFIG.BASE_URL}/admin/licenses/${licenseId}/extend`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({ days }),
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error?.message || "Failed to extend license");
-      }
-
-      const data = await response.json();
+      const updatedLicense = await adminApi.extendLicense(licenseId, days);
 
       // Update local state with the response
       setLicenses((prev) =>
         prev.map((l) =>
           l.id === licenseId
-            ? { ...l, expiresAt: data.data.expiresAt, status: "ACTIVE" as LicenseStatus }
+            ? { ...l, expiresAt: updatedLicense.expiresAt, status: "ACTIVE" as LicenseStatus }
             : l
         )
       );
       dismissToast(loadingId);
-      showSuccess(data.message || "License extended successfully");
+      showSuccess("License extended successfully");
     } catch (err) {
       console.error("Failed to extend license:", err);
       dismissToast(loadingId);
-      showError("Failed to extend license", err instanceof Error ? err.message : undefined);
+      showError("Failed to extend license", err instanceof ApiError ? err.message : undefined);
       throw err;
     }
   }, []);
@@ -745,22 +744,7 @@ export default function LicensesPage() {
   const handleRevoke = useCallback(async (licenseId: string, reason: string) => {
     const loadingId = showLoading("Revoking license...");
     try {
-      const response = await fetch(
-        `${API_CONFIG.BASE_URL}/admin/licenses/${licenseId}/revoke`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({ reason }),
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error?.message || "Failed to revoke license");
-      }
-
-      const data = await response.json();
+      const updatedLicense = await adminApi.revokeLicense(licenseId, reason);
 
       // Update local state
       setLicenses((prev) =>
@@ -769,18 +753,18 @@ export default function LicensesPage() {
             ? {
                 ...l,
                 status: "REVOKED" as LicenseStatus,
-                revokedAt: data.data.revokedAt,
+                revokedAt: updatedLicense.revokedAt,
                 revokedReason: reason,
               }
             : l
         )
       );
       dismissToast(loadingId);
-      showSuccess(data.message || "License revoked successfully");
+      showSuccess("License revoked successfully");
     } catch (err) {
       console.error("Failed to revoke license:", err);
       dismissToast(loadingId);
-      showError("Failed to revoke license", err instanceof Error ? err.message : undefined);
+      showError("Failed to revoke license", err instanceof ApiError ? err.message : undefined);
       throw err;
     }
   }, []);
@@ -788,31 +772,18 @@ export default function LicensesPage() {
   const handleRegenerate = useCallback(async (licenseId: string) => {
     const loadingId = showLoading("Regenerating download token...");
     try {
-      const response = await fetch(
-        `${API_CONFIG.BASE_URL}/admin/licenses/${licenseId}/regenerate`,
-        {
-          method: "POST",
-          credentials: "include",
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error?.message || "Failed to regenerate token");
-      }
-
-      const data = await response.json();
+      const result = await adminApi.regenerateToken(licenseId);
 
       // Update local state with new token
       setLicenses((prev) =>
-        prev.map((l) => (l.id === licenseId ? { ...l, downloadToken: data.data.downloadToken } : l))
+        prev.map((l) => (l.id === licenseId ? { ...l, downloadToken: result.downloadToken } : l))
       );
       dismissToast(loadingId);
-      showSuccess(data.message || "Download token regenerated");
+      showSuccess("Download token regenerated");
     } catch (err) {
       console.error("Failed to regenerate token:", err);
       dismissToast(loadingId);
-      showError("Failed to regenerate token", err instanceof Error ? err.message : undefined);
+      showError("Failed to regenerate token", err instanceof ApiError ? err.message : undefined);
       throw err;
     }
   }, []);
@@ -823,14 +794,18 @@ export default function LicensesPage() {
     return `${key.substring(0, 12)}...${key.substring(key.length - 4)}`;
   };
 
+  // Handle filter value change
+  const handleFilterChange = useCallback((key: string, value: string) => {
+    setFilterValues((prev) => ({ ...prev, [key]: value }));
+  }, []);
+
   // Clear filters handler
   const handleClearFilters = useCallback(() => {
-    setSearchTerm("");
-    setStatusFilter("ALL");
+    setFilterValues(INITIAL_FILTER_VALUES);
   }, []);
 
   // Check if filters are active
-  const hasActiveFilters = searchTerm !== "" || statusFilter !== "ALL";
+  const hasActiveFilters = filterValues.search !== "" || filterValues.status !== "ALL";
 
   // Show loading skeleton only on initial load
   if (loading && licenses.length === 0) {
@@ -845,33 +820,22 @@ export default function LicensesPage() {
         description="Manage customer licenses and download access"
       />
 
-      {/* Filter Bar */}
-      <AdminFilters
-        search={searchTerm}
-        searchPlaceholder="Search by license key, order number, or email..."
-        onSearchChange={setSearchTerm}
+      {/* Filter Bar - Using the new AdminFilterBar component */}
+      <AdminFilterBar
+        filters={LICENSE_FILTER_CONFIG}
+        values={filterValues}
+        onChange={handleFilterChange}
+        onReset={handleClearFilters}
         hasActiveFilters={hasActiveFilters}
-        onClearFilters={handleClearFilters}
-      >
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as "ALL" | LicenseStatus)}
-          className="h-10 px-4 rounded-md border bg-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-        >
-          <option value="ALL">All Statuses</option>
-          <option value="ACTIVE">Active</option>
-          <option value="EXPIRED">Expired</option>
-          <option value="REVOKED">Revoked</option>
-        </select>
-      </AdminFilters>
+      />
 
       {/* Stats Row */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <StatCard label="Total Licenses" value={formatNumber(stats.total)} icon={<Key className="h-5 w-5" />} />
-        <StatCard label="Active" value={formatNumber(stats.active)} icon={<Check className="h-5 w-5" />} variant="success" />
-        <StatCard label="Expired" value={formatNumber(stats.expired)} icon={<Clock className="h-5 w-5" />} variant="warning" />
-        <StatCard label="Revoked" value={formatNumber(stats.revoked)} icon={<Ban className="h-5 w-5" />} variant="error" />
-      </div>
+      <section aria-label="License statistics" className="grid gap-4 md:grid-cols-4">
+        <StatCard label="Total Licenses" value={formatNumber(stats.total)} icon={<Key className="h-5 w-5" aria-hidden="true" />} />
+        <StatCard label="Active" value={formatNumber(stats.active)} icon={<Check className="h-5 w-5" aria-hidden="true" />} variant="success" />
+        <StatCard label="Expired" value={formatNumber(stats.expired)} icon={<Clock className="h-5 w-5" aria-hidden="true" />} variant="warning" />
+        <StatCard label="Revoked" value={formatNumber(stats.revoked)} icon={<Ban className="h-5 w-5" aria-hidden="true" />} variant="error" />
+      </section>
 
       {/* Data Table */}
       {licenses.length === 0 ? (

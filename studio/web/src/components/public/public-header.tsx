@@ -36,7 +36,7 @@ export function PublicHeader() {
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-6">
+          <nav className="hidden md:flex items-center gap-6" aria-label="Main navigation">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
@@ -47,6 +47,7 @@ export function PublicHeader() {
                     ? "text-foreground"
                     : "text-muted-foreground"
                 )}
+                aria-current={isActive(link.href) ? "page" : undefined}
               >
                 {link.label}
               </Link>
@@ -67,7 +68,9 @@ export function PublicHeader() {
             <button
               className="md:hidden min-h-[44px] min-w-[44px] flex items-center justify-center hover:bg-accent rounded-md"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              aria-label="Toggle menu"
+              aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+              aria-expanded={mobileMenuOpen}
+              aria-controls="mobile-nav"
             >
               {mobileMenuOpen ? (
                 <X className="h-5 w-5" />
@@ -81,9 +84,9 @@ export function PublicHeader() {
 
       {/* Mobile Navigation */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t bg-background">
+        <div id="mobile-nav" className="md:hidden border-t bg-background">
           <Container>
-            <nav className="flex flex-col py-4 space-y-1">
+            <nav className="flex flex-col py-4 space-y-1" aria-label="Mobile navigation">
               {navLinks.map((link) => (
                 <Link
                   key={link.href}
@@ -95,6 +98,7 @@ export function PublicHeader() {
                       ? "bg-accent text-foreground"
                       : "text-muted-foreground hover:bg-accent hover:text-foreground"
                   )}
+                  aria-current={isActive(link.href) ? "page" : undefined}
                 >
                   {link.label}
                 </Link>

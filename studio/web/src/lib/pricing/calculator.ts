@@ -12,6 +12,7 @@ import type {
   BundleDiscount,
 } from "@studio/shared";
 import type { BundleMatch } from "./types";
+import { formatPrice, formatDetailedPrice } from "./utils";
 
 /**
  * Pricing Calculator class
@@ -276,20 +277,16 @@ export class PricingCalculator {
 
   /**
    * Format price for display
+   * @deprecated Use formatPrice or formatDetailedPrice from ./utils instead
    */
   static formatPrice(
     amountInCents: number,
     currency: string = "USD",
     showCents: boolean = true
   ): string {
-    const amount = amountInCents / 100;
-    const formatter = new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency,
-      minimumFractionDigits: showCents ? 2 : 0,
-      maximumFractionDigits: showCents ? 2 : 0,
-    });
-    return formatter.format(amount);
+    return showCents
+      ? formatDetailedPrice(amountInCents, { currency })
+      : formatPrice(amountInCents, { currency });
   }
 
   /**

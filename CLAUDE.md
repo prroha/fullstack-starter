@@ -1,6 +1,6 @@
 # CLAUDE.md - Fullstack Starter Template
 
-> **Last Updated**: 2026-02-10
+> **Last Updated**: 2026-02-11
 > **Codebase Version**: 1.2.0
 > **Maintainer**: AI-assisted documentation (auto-update on changes)
 
@@ -30,6 +30,8 @@ Use these to quickly find what you need:
 
 | Date       | Change                                                                                            | Files                                                                                       |
 | ---------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| 2026-02-11 | Studio code generator service, preview sessions, cleanup jobs                                     | `studio/backend/src/services/generator.service.ts`, `studio/backend/src/jobs/`              |
+| 2026-02-11 | Documentation updates: Studio web/backend CLAUDE.md files                                         | `studio/CLAUDE.md`, `studio/web/CLAUDE.md`, `studio/backend/CLAUDE.md`                      |
 | 2026-02-10 | Studio MVP: Admin auth, API integration, toast notifications, validation, mobile responsive, a11y | `studio/backend/src/routes/`, `studio/web/src/app/(admin)/`, `studio/web/src/lib/`          |
 | 2026-02-10 | Studio bug fixes: Route ordering, Stripe refunds, API path fixes                                  | `studio/backend/src/routes/admin/`, `studio/backend/src/services/stripe.service.ts`         |
 | 2026-02-09 | Documentation updates, ESLint configuration, skeleton composites                                  | `CLAUDE.md`, `eslint.config.mjs`, `skeleton-composites.tsx`                                 |
@@ -190,15 +192,16 @@ flutter pub run build_runner build --delete-conflicting-outputs  # Generate code
 
 ### Studio (Configuration Platform)
 
-| Item               | Location                                      |
-| ------------------ | --------------------------------------------- |
-| Backend entry      | `studio/backend/src/index.ts`                 |
-| Frontend entry     | `studio/web/src/app/layout.tsx`               |
-| Configurator       | `studio/web/src/components/configurator/`     |
-| Admin dashboard    | `studio/web/src/app/(admin)/admin/`           |
-| Feature resolver   | `studio/web/src/lib/features/dependencies.ts` |
-| Pricing calculator | `studio/web/src/lib/pricing/calculator.ts`    |
-| Shared types       | `studio/shared/types/`                        |
+| Item               | Location                                           |
+| ------------------ | -------------------------------------------------- |
+| Backend entry      | `studio/backend/src/index.ts`                      |
+| Frontend entry     | `studio/web/src/app/layout.tsx`                    |
+| Configurator       | `studio/web/src/components/configurator/`          |
+| Admin dashboard    | `studio/web/src/app/(admin)/admin/`                |
+| Feature resolver   | `studio/web/src/lib/features/dependencies.ts`      |
+| Pricing calculator | `studio/web/src/lib/pricing/calculator.ts`         |
+| Code generator     | `studio/backend/src/services/generator.service.ts` |
+| Shared types       | `studio/shared/types/`                             |
 
 **Key Commands:**
 
@@ -208,13 +211,18 @@ npm run dev              # Start both backend (3001) and frontend (3002)
 
 cd studio/backend
 npm run dev              # Backend only
-npm run db:seed          # Seed features, tiers, templates
+pnpm db:migrate          # Run database migrations
+pnpm db:seed             # Seed features, tiers, templates
 
 cd studio/web
 npm run dev              # Frontend only
 ```
 
-**Documentation:** See `studio/CLAUDE.md` for detailed Studio documentation.
+**Documentation:** See detailed Studio documentation:
+
+- [`studio/CLAUDE.md`](./studio/CLAUDE.md) - Main Studio overview
+- [`studio/web/CLAUDE.md`](./studio/web/CLAUDE.md) - Frontend documentation
+- [`studio/backend/CLAUDE.md`](./studio/backend/CLAUDE.md) - Backend documentation
 
 ---
 

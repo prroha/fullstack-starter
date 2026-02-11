@@ -1,16 +1,18 @@
 "use client";
 
-import { useState } from "react";
-import { Check, Copy } from "lucide-react";
+import { useState, useCallback } from "react";
+import { Check, Copy, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface CodeBlockProps {
   code: string;
-  language?: "tsx" | "ts" | "css" | "bash";
+  language?: "tsx" | "ts" | "css" | "bash" | "json";
   title?: string;
   className?: string;
   showLineNumbers?: boolean;
 }
+
+type CopyState = "idle" | "copied" | "error";
 
 export function CodeBlock({
   code,
@@ -19,57 +21,92 @@ export function CodeBlock({
   className,
   showLineNumbers = false,
 }: CodeBlockProps) {
-  const [copied, setCopied] = useState(false);
+  const [copyState, setCopyState] = useState<CopyState>("idle");
 
-  const handleCopy = async () => {
-    await navigator.clipboard.writeText(code);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
+  const handleCopy = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopyState("copied");
+      setTimeout(() => setCopyState("idle"), 2000);
+    } catch {
+      setCopyState("error");
+      setTimeout(() => setCopyState("idle"), 2000);
+    }
+  }, [code]);
 
   const lines = code.split("\n");
 
+  const getCopyIcon = () => {
+    switch (copyState) {
+      case "copied":
+        return <Check className="h-4 w-4 text-green-500" aria-hidden="true" />;
+      case "error":
+        return <AlertCircle className="h-4 w-4 text-destructive" aria-hidden="true" />;
+      default:
+        return <Copy className="h-4 w-4 text-muted-foreground" aria-hidden="true" />;
+    }
+  };
+
+  const getCopyLabel = () => {
+    switch (copyState) {
+      case "copied":
+        return "Copied to clipboard";
+      case "error":
+        return "Failed to copy";
+      default:
+        return "Copy code to clipboard";
+    }
+  };
+
+  const CopyButton = ({ className: buttonClassName }: { className?: string }) => (
+    <button
+      type="button"
+      onClick={handleCopy}
+      className={cn(
+        "p-1.5 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+        "hover:bg-accent",
+        buttonClassName
+      )}
+      aria-label={getCopyLabel()}
+      aria-live="polite"
+    >
+      {getCopyIcon()}
+      <span className="sr-only">{getCopyLabel()}</span>
+    </button>
+  );
+
   return (
-    <div className={cn("rounded-lg border bg-muted/50 overflow-hidden", className)}>
+    <div
+      className={cn("rounded-lg border bg-muted/50 overflow-hidden", className)}
+      role="region"
+      aria-label={title ? `Code block: ${title}` : "Code block"}
+    >
       {title && (
         <div className="flex items-center justify-between border-b px-4 py-2 bg-muted/50">
           <span className="text-sm font-medium">{title}</span>
           <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground uppercase">{language}</span>
-            <button
-              onClick={handleCopy}
-              className="p-1.5 hover:bg-accent rounded-md transition-colors"
-              aria-label="Copy code"
-            >
-              {copied ? (
-                <Check className="h-4 w-4 text-green-500" />
-              ) : (
-                <Copy className="h-4 w-4 text-muted-foreground" />
-              )}
-            </button>
+            <span className="text-xs text-muted-foreground uppercase" aria-label={`Language: ${language}`}>
+              {language}
+            </span>
+            <CopyButton />
           </div>
         </div>
       )}
       <div className="relative group">
         {!title && (
-          <button
-            onClick={handleCopy}
-            className="absolute right-2 top-2 p-1.5 hover:bg-accent rounded-md transition-colors opacity-0 group-hover:opacity-100"
-            aria-label="Copy code"
-          >
-            {copied ? (
-              <Check className="h-4 w-4 text-green-500" />
-            ) : (
-              <Copy className="h-4 w-4 text-muted-foreground" />
-            )}
-          </button>
+          <CopyButton
+            className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
+          />
         )}
-        <pre className="overflow-x-auto p-4 text-sm">
+        <pre className="overflow-x-auto p-4 text-sm" tabIndex={0}>
           <code className={`language-${language}`}>
             {showLineNumbers ? (
               lines.map((line, i) => (
                 <div key={i} className="table-row">
-                  <span className="table-cell pr-4 text-muted-foreground select-none text-right">
+                  <span
+                    className="table-cell pr-4 text-muted-foreground select-none text-right"
+                    aria-hidden="true"
+                  >
                     {i + 1}
                   </span>
                   <span className="table-cell">{line}</span>

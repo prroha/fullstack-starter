@@ -9,8 +9,8 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { formatCurrency, formatNumber, formatDateTime } from "@/lib/utils";
-import { API_CONFIG } from "@/lib/constants";
 import { showError } from "@/lib/toast";
+import { adminApi, type DashboardStats, ApiError } from "@/lib/api";
 import {
   StatCard,
   Table,
@@ -23,49 +23,6 @@ import {
   Button,
 } from "@/components/ui";
 import { AdminPageHeader, OrderStatusBadge } from "@/components/admin";
-import type { OrderStatus } from "@/components/admin/status-badges";
-
-interface DashboardStats {
-  revenue: {
-    total: number;
-    today: number;
-    thisMonth: number;
-    lastMonth: number;
-    growth: number;
-  };
-  orders: {
-    total: number;
-    today: number;
-    pending: number;
-  };
-  customers: {
-    total: number;
-    newToday: number;
-  };
-  templates: {
-    active: number;
-  };
-  previews: {
-    total: number;
-    today: number;
-  };
-  recentOrders: Array<{
-    id: string;
-    orderNumber: string;
-    customerEmail: string;
-    customerName: string | null;
-    tier: string;
-    total: number;
-    status: OrderStatus;
-    createdAt: string;
-    template?: { name: string } | null;
-  }>;
-  topTemplates: Array<{
-    templateId: string | null;
-    _count: { id: number };
-    _sum: { total: number | null };
-  }>;
-}
 
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -77,18 +34,10 @@ export default function AdminDashboardPage() {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`${API_CONFIG.BASE_URL}/admin/dashboard/stats`, {
-        credentials: "include",
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch dashboard stats");
-      }
-
-      const result = await response.json();
-      setStats(result.data);
+      const data = await adminApi.getStats();
+      setStats(data);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to load dashboard";
+      const message = err instanceof ApiError ? err.message : "Failed to load dashboard";
       setError(message);
       showError(message);
     } finally {
@@ -151,45 +100,45 @@ export default function AdminDashboardPage() {
       />
 
       {/* Stats Grid */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <section aria-label="Dashboard statistics" className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
           label="Total Revenue"
           value={formatCurrency(stats.revenue.total)}
           change={stats.revenue.growth}
           trend={stats.revenue.growth >= 0 ? "up" : "down"}
           trendLabel="vs last month"
-          icon={<DollarSign className="h-5 w-5" />}
+          icon={<DollarSign className="h-5 w-5" aria-hidden="true" />}
           size="lg"
         />
         <StatCard
           label="Orders"
           value={formatNumber(stats.orders.total)}
           trendLabel={`${stats.orders.pending} pending`}
-          icon={<ShoppingCart className="h-5 w-5" />}
+          icon={<ShoppingCart className="h-5 w-5" aria-hidden="true" />}
           size="lg"
         />
         <StatCard
           label="Customers"
           value={formatNumber(stats.customers.total)}
           trendLabel={`${stats.customers.newToday} new today`}
-          icon={<Users className="h-5 w-5" />}
+          icon={<Users className="h-5 w-5" aria-hidden="true" />}
           size="lg"
         />
         <StatCard
           label="Previews"
           value={formatNumber(stats.previews.total)}
           trendLabel={`${stats.previews.today} today`}
-          icon={<Eye className="h-5 w-5" />}
+          icon={<Eye className="h-5 w-5" aria-hidden="true" />}
           size="lg"
         />
-      </div>
+      </section>
 
       {/* Recent Orders */}
       <Card>
         <div className="p-4 border-b">
-          <h2 className="font-semibold">Recent Orders</h2>
+          <h2 id="recent-orders-heading" className="font-semibold">Recent Orders</h2>
         </div>
-        <Table>
+        <Table aria-labelledby="recent-orders-heading">
           <TableHeader className="bg-muted/50">
             <TableRow>
               <TableHead>Order</TableHead>
@@ -234,10 +183,10 @@ export default function AdminDashboardPage() {
       </Card>
 
       {/* Quick Actions */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <nav aria-label="Quick actions" className="grid gap-4 md:grid-cols-3">
         <a
           href="/admin/templates"
-          className="p-4 bg-background border rounded-lg hover:border-primary transition-colors"
+          className="p-4 bg-background border rounded-lg hover:border-primary transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
         >
           <h3 className="font-medium">Manage Templates</h3>
           <p className="text-sm text-muted-foreground">
@@ -246,7 +195,7 @@ export default function AdminDashboardPage() {
         </a>
         <a
           href="/admin/features"
-          className="p-4 bg-background border rounded-lg hover:border-primary transition-colors"
+          className="p-4 bg-background border rounded-lg hover:border-primary transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
         >
           <h3 className="font-medium">Manage Features</h3>
           <p className="text-sm text-muted-foreground">
@@ -255,14 +204,14 @@ export default function AdminDashboardPage() {
         </a>
         <a
           href="/admin/analytics"
-          className="p-4 bg-background border rounded-lg hover:border-primary transition-colors"
+          className="p-4 bg-background border rounded-lg hover:border-primary transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
         >
           <h3 className="font-medium">View Analytics</h3>
           <p className="text-sm text-muted-foreground">
             See conversion funnels and revenue reports
           </p>
         </a>
-      </div>
+      </nav>
     </div>
   );
 }

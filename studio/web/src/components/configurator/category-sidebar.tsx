@@ -61,15 +61,24 @@ export function CategorySidebar({
   const totalSelected = resolvedFeatures?.selectedFeatures.length || 0;
 
   return (
-    <aside className="w-full lg:w-64 lg:border-r bg-muted/30 p-4 overflow-y-auto">
-      <h2 className="hidden lg:block font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-4">
+    <aside
+      className="w-full lg:w-64 lg:border-r bg-muted/30 p-4 overflow-y-auto"
+      aria-label="Feature categories"
+    >
+      <h2
+        id="category-heading"
+        className="hidden lg:block font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-4"
+      >
         Categories
       </h2>
 
-      <nav className="space-y-1">
+      <nav className="space-y-1" role="tablist" aria-labelledby="category-heading">
         {/* All Features */}
         <button
           onClick={() => onSelectCategory("all")}
+          role="tab"
+          aria-selected={selectedCategory === "all"}
+          aria-controls="feature-list-panel"
           className={cn(
             "w-full flex items-center justify-between px-3 py-3 min-h-[44px] rounded-md text-sm font-medium transition-colors",
             selectedCategory === "all"
@@ -78,13 +87,14 @@ export function CategorySidebar({
           )}
         >
           <div className="flex items-center gap-2">
-            <Icon name="Layers" size="sm" />
+            <Icon name="Layers" size="sm" aria-hidden="true" />
             <span>All Features</span>
           </div>
           {totalSelected > 0 && (
             <Badge
               variant={selectedCategory === "all" ? "secondary" : "outline"}
               className="text-xs"
+              aria-label={`${totalSelected} features selected`}
             >
               {totalSelected}
             </Badge>
@@ -102,6 +112,9 @@ export function CategorySidebar({
             <button
               key={category}
               onClick={() => onSelectCategory(category)}
+              role="tab"
+              aria-selected={selectedCategory === category}
+              aria-controls="feature-list-panel"
               className={cn(
                 "w-full flex items-center justify-between px-3 py-3 min-h-[44px] rounded-md text-sm font-medium transition-colors",
                 selectedCategory === category
@@ -110,7 +123,7 @@ export function CategorySidebar({
               )}
             >
               <div className="flex items-center gap-2">
-                <Icon name={info.icon} size="sm" />
+                <Icon name={info.icon} size="sm" aria-hidden="true" />
                 <span>{info.name}</span>
               </div>
               <div className="flex items-center gap-1">
@@ -120,6 +133,7 @@ export function CategorySidebar({
                       selectedCategory === category ? "secondary" : "default"
                     }
                     className="text-xs"
+                    aria-label={`${counts.selected} selected`}
                   >
                     {counts.selected}
                   </Badge>
@@ -131,6 +145,7 @@ export function CategorySidebar({
                       ? "text-primary-foreground/70"
                       : "text-muted-foreground"
                   )}
+                  aria-label={`of ${counts.total} total`}
                 >
                   /{counts.total}
                 </span>

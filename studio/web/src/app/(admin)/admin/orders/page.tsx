@@ -13,305 +13,37 @@ import {
   ChevronRight,
   AlertTriangle,
 } from "lucide-react";
-import { formatCurrency, formatNumber, formatDateTime, formatDate } from "@/lib/utils";
-import { API_CONFIG } from "@/lib/constants";
+import { formatCurrency, formatNumber, formatDate } from "@/lib/utils";
 import { showSuccess, showError, showLoading, dismissToast } from "@/lib/toast";
+import {
+  adminApi,
+  ApiError,
+  type Order,
+  type OrderStatus,
+  type OrderStats,
+  type PaginationInfo,
+} from "@/lib/api";
 
 // Shared UI components
-import { Button, Modal, StatCard, DropdownMenu } from "@/components/ui";
-import { EmptyList } from "@/components/ui";
+import { Button, StatCard, DropdownMenu } from "@/components/ui";
 import { EmptyState } from "@core/components/shared";
 import { AdminPageHeader, OrderStatusBadge, AdminTableSkeleton } from "@/components/admin";
+import { API_CONFIG, ORDER_STATUS_OPTIONS, TIER_OPTIONS } from "@/lib/constants";
+
+// Order modals
+import {
+  OrderDetailsModal,
+  StatusUpdateModal,
+  RefundConfirmModal,
+} from "@/components/admin/orders";
 
 // Types
-interface Order {
-  id: string;
-  orderNumber: string;
-  customerEmail: string;
-  customerName: string | null;
-  tier: string;
-  total: number;
-  status: OrderStatus;
-  createdAt: string;
-  paidAt: string | null;
-  stripePaymentIntentId: string | null;
-  template?: { name: string; slug: string } | null;
-  coupon?: { code: string } | null;
-  license?: { id: string; status: string; downloadCount: number } | null;
-}
-
-type OrderStatus = "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED" | "REFUNDED" | "CANCELLED";
-
-interface OrderStats {
-  total: number;
-  completed: number;
-  pending: number;
-  refunded: number;
-  revenue: number;
-  averageOrderValue: number;
-}
-
-interface PaginationInfo {
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
-}
-
 interface Filters {
   search: string;
   status: string;
   tier: string;
   from: string;
   to: string;
-}
-
-// Constants
-const ORDER_STATUSES: { value: string; label: string }[] = [
-  { value: "", label: "All Statuses" },
-  { value: "PENDING", label: "Pending" },
-  { value: "PROCESSING", label: "Processing" },
-  { value: "COMPLETED", label: "Completed" },
-  { value: "FAILED", label: "Failed" },
-  { value: "REFUNDED", label: "Refunded" },
-  { value: "CANCELLED", label: "Cancelled" },
-];
-
-const TIERS: { value: string; label: string }[] = [
-  { value: "", label: "All Tiers" },
-  { value: "Starter", label: "Starter" },
-  { value: "Pro", label: "Pro" },
-  { value: "Business", label: "Business" },
-  { value: "Enterprise", label: "Enterprise" },
-];
-
-// Order Details Modal
-function OrderDetailsModal({
-  order,
-  open,
-  onClose,
-}: {
-  order: Order | null;
-  open: boolean;
-  onClose: () => void;
-}) {
-  if (!order) return null;
-
-  return (
-    <Modal isOpen={open} onClose={onClose} title={`Order ${order.orderNumber}`} size="lg">
-      <div className="space-y-6">
-        {/* Status */}
-        <div className="flex items-center justify-between">
-          <span className="text-muted-foreground">Status</span>
-          <OrderStatusBadge status={order.status} />
-        </div>
-
-        {/* Customer Info */}
-        <section className="border rounded-lg p-4 space-y-2" aria-labelledby="customer-info-heading">
-          <h3 id="customer-info-heading" className="font-medium">Customer Information</h3>
-          <div className="grid grid-cols-2 gap-2 text-sm">
-            <span className="text-muted-foreground">Email</span>
-            <span>{order.customerEmail}</span>
-            <span className="text-muted-foreground">Name</span>
-            <span>{order.customerName || "-"}</span>
-          </div>
-        </section>
-
-        {/* Order Info */}
-        <section className="border rounded-lg p-4 space-y-2" aria-labelledby="order-details-heading">
-          <h3 id="order-details-heading" className="font-medium">Order Details</h3>
-          <div className="grid grid-cols-2 gap-2 text-sm">
-            <span className="text-muted-foreground">Tier</span>
-            <span>{order.tier}</span>
-            <span className="text-muted-foreground">Template</span>
-            <span>{order.template?.name || "Custom"}</span>
-            <span className="text-muted-foreground">Total</span>
-            <span className="font-medium">{formatCurrency(order.total)}</span>
-            {order.coupon && (
-              <>
-                <span className="text-muted-foreground">Coupon</span>
-                <span className="text-success">{order.coupon.code}</span>
-              </>
-            )}
-          </div>
-        </section>
-
-        {/* Payment Info */}
-        <section className="border rounded-lg p-4 space-y-2" aria-labelledby="payment-info-heading">
-          <h3 id="payment-info-heading" className="font-medium">Payment Information</h3>
-          <div className="grid grid-cols-2 gap-2 text-sm">
-            <span className="text-muted-foreground">Created</span>
-            <span>{formatDateTime(order.createdAt)}</span>
-            <span className="text-muted-foreground">Paid At</span>
-            <span>{order.paidAt ? formatDateTime(order.paidAt) : "-"}</span>
-            <span className="text-muted-foreground">Stripe ID</span>
-            <span className="font-mono text-xs truncate">
-              {order.stripePaymentIntentId || "-"}
-            </span>
-          </div>
-        </section>
-
-        {/* License Info */}
-        {order.license && (
-          <section className="border rounded-lg p-4 space-y-2" aria-labelledby="license-info-heading">
-            <h3 id="license-info-heading" className="font-medium">License Information</h3>
-            <div className="grid grid-cols-2 gap-2 text-sm">
-              <span className="text-muted-foreground">License Status</span>
-              <span>{order.license.status}</span>
-              <span className="text-muted-foreground">Downloads</span>
-              <span>{order.license.downloadCount}</span>
-            </div>
-          </section>
-        )}
-      </div>
-    </Modal>
-  );
-}
-
-// Status Update Modal
-function StatusUpdateModal({
-  order,
-  open,
-  onClose,
-  onUpdate,
-}: {
-  order: Order | null;
-  open: boolean;
-  onClose: () => void;
-  onUpdate: (orderId: string, status: OrderStatus) => void;
-}) {
-  const [status, setStatus] = useState<OrderStatus>("PENDING");
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (order) {
-      setStatus(order.status);
-    }
-  }, [order]);
-
-  if (!order) return null;
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      await onUpdate(order.id, status);
-      onClose();
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <Modal
-      isOpen={open}
-      onClose={onClose}
-      title="Update Order Status"
-      size="sm"
-      footer={
-        <>
-          <Button variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={loading || status === order.status}
-          >
-            {loading ? "Updating..." : "Update Status"}
-          </Button>
-        </>
-      }
-    >
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label htmlFor="order-status-select" className="block text-sm font-medium mb-2">
-            Order: {order.orderNumber}
-          </label>
-          <select
-            id="order-status-select"
-            value={status}
-            onChange={(e) => setStatus(e.target.value as OrderStatus)}
-            className="w-full px-3 py-2 border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-            aria-label="Select order status"
-          >
-            {ORDER_STATUSES.filter(s => s.value).map((s) => (
-              <option key={s.value} value={s.value}>
-                {s.label}
-              </option>
-            ))}
-          </select>
-        </div>
-      </form>
-    </Modal>
-  );
-}
-
-// Refund Confirmation Modal
-function RefundConfirmModal({
-  order,
-  open,
-  onClose,
-  onConfirm,
-}: {
-  order: Order | null;
-  open: boolean;
-  onClose: () => void;
-  onConfirm: (orderId: string) => void;
-}) {
-  const [loading, setLoading] = useState(false);
-
-  if (!order) return null;
-
-  const handleConfirm = async () => {
-    setLoading(true);
-    try {
-      await onConfirm(order.id);
-      onClose();
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <Modal
-      isOpen={open}
-      onClose={onClose}
-      title="Confirm Refund"
-      size="sm"
-      footer={
-        <>
-          <Button variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button variant="destructive" onClick={handleConfirm} disabled={loading}>
-            {loading ? "Processing..." : "Process Refund"}
-          </Button>
-        </>
-      }
-    >
-      <div className="space-y-4">
-        <div className="flex items-start gap-3 p-4 bg-destructive/10 rounded-lg" role="alert">
-          <AlertTriangle className="h-5 w-5 text-destructive mt-0.5" aria-hidden="true" />
-          <div>
-            <p className="font-medium text-destructive">This action cannot be undone</p>
-            <p className="text-sm text-muted-foreground mt-1">
-              Processing a refund will change the order status to REFUNDED and revoke any associated licenses.
-            </p>
-          </div>
-        </div>
-        <div className="border rounded-lg p-4 space-y-2">
-          <div className="grid grid-cols-2 gap-2 text-sm">
-            <span className="text-muted-foreground">Order</span>
-            <span className="font-medium">{order.orderNumber}</span>
-            <span className="text-muted-foreground">Customer</span>
-            <span>{order.customerEmail}</span>
-            <span className="text-muted-foreground">Amount</span>
-            <span className="font-medium">{formatCurrency(order.total)}</span>
-          </div>
-        </div>
-      </div>
-    </Modal>
-  );
 }
 
 // Main Orders Page
@@ -325,6 +57,7 @@ export default function OrdersPage() {
     limit: 10,
     total: 0,
     totalPages: 0,
+    hasMore: false,
   });
   const [filters, setFilters] = useState<Filters>({
     search: "",
@@ -346,35 +79,21 @@ export default function OrdersPage() {
     setLoading(true);
     setError(null);
     try {
-      const params = new URLSearchParams();
-      params.set("page", pagination.page.toString());
-      params.set("limit", pagination.limit.toString());
-      if (filters.status) params.set("status", filters.status);
-      if (filters.tier) params.set("tier", filters.tier);
-      if (filters.search) params.set("search", filters.search);
-      if (filters.from) params.set("from", filters.from);
-      if (filters.to) params.set("to", filters.to);
+      const result = await adminApi.getOrders({
+        page: pagination.page,
+        limit: pagination.limit,
+        status: filters.status as OrderStatus | undefined,
+        tier: filters.tier || undefined,
+        search: filters.search || undefined,
+        from: filters.from || undefined,
+        to: filters.to || undefined,
+      });
 
-      const response = await fetch(
-        `${API_CONFIG.BASE_URL}/admin/orders?${params.toString()}`,
-        {
-          credentials: "include",
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error?.message || "Failed to fetch orders");
-      }
-
-      const data = await response.json();
-      setOrders(data.data?.items || data.data || []);
-      if (data.pagination) {
-        setPagination(data.pagination);
-      }
+      setOrders(result.items);
+      setPagination(result.pagination);
     } catch (err) {
       console.error("Failed to fetch orders:", err);
-      const errorMessage = err instanceof Error ? err.message : "Failed to fetch orders";
+      const errorMessage = err instanceof ApiError ? err.message : "Failed to fetch orders";
       setError(errorMessage);
       showError("Failed to load orders", errorMessage);
     } finally {
@@ -385,17 +104,8 @@ export default function OrdersPage() {
   // Fetch stats
   const fetchStats = useCallback(async () => {
     try {
-      const response = await fetch(`${API_CONFIG.BASE_URL}/admin/orders/stats`, {
-        credentials: "include",
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error?.message || "Failed to fetch stats");
-      }
-
-      const data = await response.json();
-      setStats(data.data);
+      const statsData = await adminApi.getOrderStats();
+      setStats(statsData);
     } catch (err) {
       console.error("Failed to fetch stats:", err);
     }
@@ -417,20 +127,7 @@ export default function OrdersPage() {
   const handleStatusUpdate = async (orderId: string, newStatus: OrderStatus) => {
     const loadingId = showLoading("Updating order status...");
     try {
-      const response = await fetch(
-        `${API_CONFIG.BASE_URL}/admin/orders/${orderId}/status`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({ status: newStatus }),
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error?.message || "Failed to update status");
-      }
+      await adminApi.updateOrderStatus(orderId, newStatus);
 
       // Update local state on success
       setOrders((prev) =>
@@ -441,7 +138,7 @@ export default function OrdersPage() {
     } catch (err) {
       console.error("Failed to update order status:", err);
       dismissToast(loadingId);
-      showError("Failed to update order status", err instanceof Error ? err.message : undefined);
+      showError("Failed to update order status", err instanceof ApiError ? err.message : undefined);
       throw err;
     }
   };
@@ -450,18 +147,7 @@ export default function OrdersPage() {
   const handleRefund = async (orderId: string) => {
     const loadingId = showLoading("Processing refund...");
     try {
-      const response = await fetch(
-        `${API_CONFIG.BASE_URL}/admin/orders/${orderId}/refund`,
-        {
-          method: "POST",
-          credentials: "include",
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error?.message || "Failed to process refund");
-      }
+      await adminApi.refundOrder(orderId);
 
       // Update local state on success
       setOrders((prev) =>
@@ -473,7 +159,7 @@ export default function OrdersPage() {
     } catch (err) {
       console.error("Failed to process refund:", err);
       dismissToast(loadingId);
-      showError("Failed to process refund", err instanceof Error ? err.message : undefined);
+      showError("Failed to process refund", err instanceof ApiError ? err.message : undefined);
       throw err;
     }
   };
@@ -482,25 +168,14 @@ export default function OrdersPage() {
   const handleRegenerateDownload = async (orderId: string) => {
     const loadingId = showLoading("Regenerating download link...");
     try {
-      const response = await fetch(
-        `${API_CONFIG.BASE_URL}/admin/orders/${orderId}/regenerate-download`,
-        {
-          method: "POST",
-          credentials: "include",
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error?.message || "Failed to regenerate download link");
-      }
+      await adminApi.regenerateDownload(orderId);
 
       dismissToast(loadingId);
       showSuccess("Download link regenerated successfully");
     } catch (err) {
       console.error("Failed to regenerate download link:", err);
       dismissToast(loadingId);
-      showError("Failed to regenerate download link", err instanceof Error ? err.message : undefined);
+      showError("Failed to regenerate download link", err instanceof ApiError ? err.message : undefined);
     }
   };
 
@@ -508,6 +183,7 @@ export default function OrdersPage() {
   const handleDownloadPackage = async (orderId: string) => {
     const loadingId = showLoading("Preparing download...");
     try {
+      // Use the API_CONFIG.BASE_URL for downloads since it requires credentials
       const downloadUrl = `${API_CONFIG.BASE_URL}/orders/${orderId}/download`;
 
       // Use fetch to get the file with credentials
@@ -552,15 +228,12 @@ export default function OrdersPage() {
 
   // Handle export
   const handleExport = () => {
-    const params = new URLSearchParams();
-    if (filters.status) params.set("status", filters.status);
-    if (filters.tier) params.set("tier", filters.tier);
-    if (filters.search) params.set("search", filters.search);
-    if (filters.from) params.set("from", filters.from);
-    if (filters.to) params.set("to", filters.to);
-
-    const queryString = params.toString();
-    const exportUrl = `${API_CONFIG.BASE_URL}/admin/orders/export/csv${queryString ? `?${queryString}` : ""}`;
+    const exportUrl = adminApi.getExportOrdersUrl({
+      status: filters.status as OrderStatus | undefined,
+      tier: filters.tier || undefined,
+      from: filters.from || undefined,
+      to: filters.to || undefined,
+    });
     window.location.href = exportUrl;
   };
 
@@ -635,7 +308,7 @@ export default function OrdersPage() {
               onChange={(e) => handleFilterChange("status", e.target.value)}
               className="w-full sm:w-auto px-4 py-2 border rounded-lg bg-background sm:min-w-[150px] focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
             >
-              {ORDER_STATUSES.map((s) => (
+              {ORDER_STATUS_OPTIONS.map((s) => (
                 <option key={s.value} value={s.value}>
                   {s.label}
                 </option>
@@ -652,7 +325,7 @@ export default function OrdersPage() {
               onChange={(e) => handleFilterChange("tier", e.target.value)}
               className="w-full sm:w-auto px-4 py-2 border rounded-lg bg-background sm:min-w-[120px] focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
             >
-              {TIERS.map((t) => (
+              {TIER_OPTIONS.map((t) => (
                 <option key={t.value} value={t.value}>
                   {t.label}
                 </option>
@@ -685,6 +358,20 @@ export default function OrdersPage() {
           />
         </fieldset>
       </div>
+
+      {/* Error Alert */}
+      {error && (
+        <div
+          role="alert"
+          className="p-4 rounded-lg border bg-destructive/10 border-destructive/50 text-destructive flex items-start gap-3"
+        >
+          <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" aria-hidden="true" />
+          <div>
+            <p className="font-medium">Failed to load orders</p>
+            <p className="text-sm mt-1">{error}</p>
+          </div>
+        </div>
+      )}
 
       {/* Stats Row */}
       {stats && (

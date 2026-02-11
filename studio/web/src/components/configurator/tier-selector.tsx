@@ -2,8 +2,9 @@
 
 import { Check } from "lucide-react";
 import { Badge, Icon } from "@/components/ui";
+import type { IconName } from "@core/components/ui/icon";
 import { useConfigurator } from "./context";
-import { getTierIcon, getTierColor } from "@/lib/pricing";
+import { getTierIcon } from "@/lib/pricing";
 import { cn } from "@/lib/utils";
 
 export function TierSelector() {
@@ -12,15 +13,18 @@ export function TierSelector() {
   const sortedTiers = [...tiers].sort((a, b) => a.displayOrder - b.displayOrder);
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2" role="radiogroup" aria-label="Select pricing tier">
       {sortedTiers.map((tier) => {
         const isSelected = tier.slug === selectedTier;
-        const iconName = getTierIcon(tier.slug);
+        const iconName = getTierIcon(tier.slug) as IconName;
 
         return (
           <button
             key={tier.slug}
             onClick={() => setTier(tier.slug)}
+            role="radio"
+            aria-checked={isSelected}
+            aria-label={`${tier.name} tier, ${formatPrice(tier.price)}, ${tier.includedFeatures.length} features included`}
             className={cn(
               "w-full flex items-center gap-3 p-3 min-h-[60px] rounded-lg border-2 transition-all text-left",
               isSelected
@@ -48,9 +52,10 @@ export function TierSelector() {
               )}
             >
               <Icon
-                name={iconName as any}
+                name={iconName}
                 size="sm"
                 className={isSelected ? "text-primary" : "text-muted-foreground"}
+                aria-hidden="true"
               />
             </div>
 

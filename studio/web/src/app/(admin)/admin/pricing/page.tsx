@@ -38,49 +38,18 @@ import {
 } from "@/components/ui";
 import { AdminPageHeader, TierBadge } from "@/components/admin";
 import { cn, formatCurrency, formatNumber } from "@/lib/utils";
-import { API_CONFIG } from "@/lib/constants";
 import { showSuccess, showError } from "@/lib/toast";
+import {
+  adminApi,
+  ApiError,
+  type PricingTier,
+  type BundleDiscount,
+  type DiscountType,
+} from "@/lib/api";
 
 // =============================================================================
 // Types
 // =============================================================================
-
-type DiscountType = "PERCENTAGE" | "FIXED";
-
-interface PricingTier {
-  id: string;
-  slug: string;
-  name: string;
-  description: string;
-  price: number; // in cents
-  includedFeatures: string[];
-  isPopular: boolean;
-  displayOrder: number;
-  color: string | null;
-  isActive: boolean;
-  stats?: {
-    totalOrders: number;
-    totalRevenue: number;
-  };
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface BundleDiscount {
-  id: string;
-  name: string;
-  description: string | null;
-  type: DiscountType;
-  value: number; // percentage (0-100) or cents for fixed
-  minItems: number;
-  applicableTiers: string[];
-  applicableFeatures: string[];
-  isActive: boolean;
-  startsAt: string | null;
-  expiresAt: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
 
 interface TierFormData {
   name: string;
@@ -391,30 +360,19 @@ export default function PricingPage() {
     const loadData = async () => {
       setLoading(true);
       try {
-        const [tiersRes, bundlesRes] = await Promise.all([
-          fetch(`${API_CONFIG.BASE_URL}/admin/pricing/tiers`, {
-            credentials: "include",
-          }),
-          fetch(`${API_CONFIG.BASE_URL}/admin/pricing/bundles`, {
-            credentials: "include",
-          }),
+        const [tiersData, bundlesData] = await Promise.all([
+          adminApi.getPricingTiers(),
+          adminApi.getBundleDiscounts(),
         ]);
 
-        if (!tiersRes.ok) {
-          throw new Error("Failed to fetch pricing tiers");
-        }
-        if (!bundlesRes.ok) {
-          throw new Error("Failed to fetch bundle discounts");
-        }
-
-        const tiersData = await tiersRes.json();
-        const bundlesData = await bundlesRes.json();
-
-        setTiers(tiersData.data || []);
-        setBundles(bundlesData.data?.items || []);
+        setTiers(tiersData || []);
+        setBundles(bundlesData.items || []);
       } catch (error) {
         console.error("Failed to fetch pricing data:", error);
-        showError("Failed to load pricing data");
+        showError(
+          "Failed to load pricing data",
+          error instanceof ApiError ? error.message : undefined
+        );
       } finally {
         setLoading(false);
       }
@@ -476,23 +434,7 @@ export default function PricingPage() {
     };
 
     try {
-      const response = await fetch(
-        `${API_CONFIG.BASE_URL}/admin/pricing/tiers/${editingTier.slug}`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify(payload),
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to update tier");
-      }
-
-      const result = await response.json();
-      const updatedTier = result.data;
+      const updatedTier = await adminApi.updatePricingTier(editingTier.slug, payload);
 
       // Preserve stats from the original tier
       setTiers((prev) =>
@@ -509,7 +451,7 @@ export default function PricingPage() {
       console.error("Failed to update tier:", error);
       showError(
         "Failed to update pricing tier",
-        error instanceof Error ? error.message : undefined
+        error instanceof ApiError ? error.message : undefined
       );
     } finally {
       setIsSaving(false);
@@ -572,46 +514,14 @@ export default function PricingPage() {
 
     try {
       if (editingBundle) {
-        const response = await fetch(
-          `${API_CONFIG.BASE_URL}/admin/pricing/bundles/${editingBundle.id}`,
-          {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include",
-            body: JSON.stringify(payload),
-          }
-        );
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || "Failed to update bundle");
-        }
-
-        const result = await response.json();
-        const updatedBundle = result.data;
+        const updatedBundle = await adminApi.updateBundleDiscount(editingBundle.id, payload);
 
         setBundles((prev) =>
           prev.map((b) => (b.id === editingBundle.id ? updatedBundle : b))
         );
         showSuccess("Bundle discount updated successfully");
       } else {
-        const response = await fetch(
-          `${API_CONFIG.BASE_URL}/admin/pricing/bundles`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include",
-            body: JSON.stringify(payload),
-          }
-        );
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || "Failed to create bundle");
-        }
-
-        const result = await response.json();
-        const newBundle = result.data;
+        const newBundle = await adminApi.createBundleDiscount(payload);
 
         setBundles((prev) => [newBundle, ...prev]);
         showSuccess("Bundle discount created successfully");
@@ -622,7 +532,7 @@ export default function PricingPage() {
       console.error("Failed to save bundle:", error);
       showError(
         "Failed to save bundle discount",
-        error instanceof Error ? error.message : undefined
+        error instanceof ApiError ? error.message : undefined
       );
     } finally {
       setIsSaving(false);
@@ -639,22 +549,11 @@ export default function PricingPage() {
     );
 
     try {
-      const response = await fetch(
-        `${API_CONFIG.BASE_URL}/admin/pricing/bundles/${bundle.id}/toggle`,
-        {
-          method: "PATCH",
-          credentials: "include",
-        }
-      );
+      const updatedBundle = await adminApi.toggleBundleDiscount(bundle.id);
 
-      if (!response.ok) {
-        throw new Error("Failed to toggle bundle status");
-      }
-
-      const result = await response.json();
       // Update with server response to ensure consistency
       setBundles((prev) =>
-        prev.map((b) => (b.id === bundle.id ? result.data : b))
+        prev.map((b) => (b.id === bundle.id ? updatedBundle : b))
       );
       showSuccess(`Bundle ${!previousState ? "activated" : "deactivated"}`);
     } catch (error) {
@@ -665,7 +564,10 @@ export default function PricingPage() {
         )
       );
       console.error("Failed to toggle bundle:", error);
-      showError("Failed to toggle bundle status");
+      showError(
+        "Failed to toggle bundle status",
+        error instanceof ApiError ? error.message : undefined
+      );
     }
   };
 
@@ -685,18 +587,7 @@ export default function PricingPage() {
     setIsSaving(true);
 
     try {
-      const response = await fetch(
-        `${API_CONFIG.BASE_URL}/admin/pricing/bundles/${deletingBundle.id}`,
-        {
-          method: "DELETE",
-          credentials: "include",
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to delete bundle");
-      }
+      await adminApi.deleteBundleDiscount(deletingBundle.id);
 
       setBundles((prev) => prev.filter((b) => b.id !== deletingBundle.id));
       handleCloseDeleteDialog();
@@ -705,7 +596,7 @@ export default function PricingPage() {
       console.error("Failed to delete bundle:", error);
       showError(
         "Failed to delete bundle discount",
-        error instanceof Error ? error.message : undefined
+        error instanceof ApiError ? error.message : undefined
       );
     } finally {
       setIsSaving(false);

@@ -1124,8 +1124,90 @@ The admin dashboard is fully responsive:
 
 ---
 
+## Quick Reference
+
+### File Paths for Common Tasks
+
+| Task                           | Path                                         |
+| ------------------------------ | -------------------------------------------- |
+| Add new admin page             | `web/src/app/(admin)/admin/{page}/page.tsx`  |
+| Add new public page            | `web/src/app/(public)/{page}/page.tsx`       |
+| Add new API route (public)     | `backend/src/routes/public/{name}.routes.ts` |
+| Add new API route (admin)      | `backend/src/routes/admin/{name}.routes.ts`  |
+| Add new service                | `backend/src/services/{name}.service.ts`     |
+| Add new configurator component | `web/src/components/configurator/{name}.tsx` |
+| Modify feature logic           | `web/src/lib/features/`                      |
+| Modify pricing logic           | `web/src/lib/pricing/`                       |
+| Modify database schema         | `backend/prisma/schema.prisma`               |
+| Add seed data                  | `backend/prisma/seed.ts`                     |
+| Add background job             | `backend/src/jobs/{name}.job.ts`             |
+
+### Command Cheatsheet
+
+```bash
+# Development
+cd studio/backend && pnpm dev          # Backend on :3001
+cd studio/web && pnpm dev              # Frontend on :3002
+
+# Database
+cd studio/backend
+pnpm db:generate                        # Generate Prisma client
+pnpm db:migrate                         # Run migrations
+pnpm db:migrate:deploy                  # Deploy migrations (production)
+pnpm db:reset                           # Reset database
+pnpm db:studio                          # Open Prisma Studio
+pnpm db:seed                            # Seed database
+
+# Build & Test
+pnpm build                              # Build for production
+pnpm lint                               # Run ESLint
+pnpm typecheck                          # TypeScript type checking
+pnpm test                               # Run tests
+pnpm test:watch                         # Watch mode
+
+# Code Generation
+cd studio/backend
+# Generate project ZIP for an order
+# Called via API: POST /api/admin/orders/:id/download
+```
+
+### API Endpoints Summary
+
+**Public API (`/api/*`):**
+| Endpoint | Method | Description |
+| ----------------------------- | ------ | -------------------------- |
+| `/api/features` | GET | List features |
+| `/api/templates` | GET | List templates |
+| `/api/pricing/tiers` | GET | List pricing tiers |
+| `/api/pricing/calculate` | POST | Calculate price |
+| `/api/preview/session` | POST | Create preview session |
+| `/api/checkout` | POST | Create checkout session |
+| `/api/auth/admin/login` | POST | Admin login |
+| `/api/auth/me` | GET | Get current user |
+
+**Admin API (`/api/admin/*`):**
+| Endpoint | Method | Description |
+| ----------------------------- | ------ | -------------------------- |
+| `/api/admin/dashboard/stats` | GET | Dashboard statistics |
+| `/api/admin/orders` | GET | List orders |
+| `/api/admin/orders/:id` | GET | Get order details |
+| `/api/admin/orders/:id` | PATCH | Update order |
+| `/api/admin/orders/:id/refund`| POST | Refund order |
+| `/api/admin/templates` | CRUD | Template management |
+| `/api/admin/features` | CRUD | Feature management |
+| `/api/admin/pricing/tiers` | CRUD | Pricing tier management |
+| `/api/admin/customers` | GET | Customer list |
+| `/api/admin/licenses` | GET | License management |
+| `/api/admin/coupons` | CRUD | Coupon management |
+| `/api/admin/analytics/*` | GET | Analytics data |
+| `/api/admin/settings` | GET/PUT| Platform settings |
+
+---
+
 ## Related Documentation
 
-- [Fullstack Starter Main CLAUDE.md](/home/proha/.worspace/fullstack-starter/CLAUDE.md)
-- [Prisma Schema](/home/proha/.worspace/fullstack-starter/studio/backend/prisma/schema.prisma)
-- [@studio/shared types](shared types package)
+- [Fullstack Starter Main CLAUDE.md](../CLAUDE.md)
+- [Studio Web CLAUDE.md](./web/CLAUDE.md)
+- [Studio Backend CLAUDE.md](./backend/CLAUDE.md)
+- [Prisma Schema](./backend/prisma/schema.prisma)
+- [@studio/shared types](./shared/)

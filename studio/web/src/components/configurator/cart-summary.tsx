@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import Link from "next/link";
 import { ShoppingCart, ArrowRight, Tag, Sparkles } from "lucide-react";
-import { Button, Card, CardContent, CardHeader, CardTitle, Badge, Divider } from "@/components/ui";
+import { Button, Divider } from "@/components/ui";
 import { useConfigurator } from "./context";
 import { TierSelector } from "./tier-selector";
 import { API_CONFIG } from "@/lib/constants";
@@ -25,7 +25,7 @@ export function CartSummary() {
 
   const template = templates.find((t) => t.slug === selectedTemplate);
 
-  async function handlePreview() {
+  const handlePreview = useCallback(async () => {
     setIsCreatingPreview(true);
     setPreviewError(null);
     try {
@@ -39,9 +39,13 @@ export function CartSummary() {
         }),
       });
 
+      if (!response.ok) {
+        throw new Error(`HTTP error: ${response.status}`);
+      }
+
       const data = await response.json();
       if (data.success && data.data?.previewUrl) {
-        window.open(data.data.previewUrl, "_blank");
+        window.open(data.data.previewUrl, "_blank", "noopener,noreferrer");
       } else {
         setPreviewError(data.error?.message || "Failed to create preview");
       }
@@ -51,7 +55,7 @@ export function CartSummary() {
     } finally {
       setIsCreatingPreview(false);
     }
-  }
+  }, [selectedFeatures, selectedTier, template?.slug]);
 
   const currentTier = getCurrentTier();
   const tierIncluded = currentTier?.includedFeatures.length || 0;
@@ -61,20 +65,29 @@ export function CartSummary() {
   const hasConflicts = (resolvedFeatures?.conflicts.length || 0) > 0;
 
   return (
-    <aside className="w-full lg:w-80 lg:border-l bg-muted/30 p-4 overflow-y-auto flex flex-col">
+    <aside
+      className="w-full lg:w-80 lg:border-l bg-muted/30 p-4 overflow-y-auto flex flex-col"
+      aria-label="Cart summary"
+    >
       {/* Tier Selector */}
-      <div className="mb-6">
-        <h2 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-3">
+      <section className="mb-6" aria-labelledby="tier-section-heading">
+        <h2
+          id="tier-section-heading"
+          className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-3"
+        >
           Select Tier
         </h2>
         <TierSelector />
-      </div>
+      </section>
 
       <Divider />
 
       {/* Selection Summary */}
-      <div className="py-4">
-        <h2 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-3">
+      <section className="py-4" aria-labelledby="selection-section-heading">
+        <h2
+          id="selection-section-heading"
+          className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-3"
+        >
           Your Selection
         </h2>
 
@@ -102,7 +115,11 @@ export function CartSummary() {
 
         {/* Conflicts Warning */}
         {hasConflicts && (
-          <div className="mt-4 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+          <div
+            className="mt-4 p-3 rounded-lg bg-destructive/10 border border-destructive/20"
+            role="alert"
+            aria-live="polite"
+          >
             <p className="text-sm text-destructive font-medium">
               {resolvedFeatures?.conflicts.length} conflict(s) detected
             </p>
@@ -111,13 +128,16 @@ export function CartSummary() {
             </p>
           </div>
         )}
-      </div>
+      </section>
 
       <Divider />
 
       {/* Pricing Breakdown */}
-      <div className="py-4 flex-1">
-        <h2 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-3">
+      <section className="py-4 flex-1" aria-labelledby="pricing-section-heading">
+        <h2
+          id="pricing-section-heading"
+          className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-3"
+        >
           Pricing
         </h2>
 
@@ -188,31 +208,34 @@ export function CartSummary() {
             Select a tier to see pricing.
           </p>
         )}
-      </div>
+      </section>
 
       {/* Actions */}
-      <div className="space-y-2 pt-4 border-t">
+      <nav className="space-y-2 pt-4 border-t" aria-label="Cart actions">
         <Button
           variant="secondary"
           className="w-full"
           disabled={hasConflicts || isCreatingPreview}
           isLoading={isCreatingPreview}
           onClick={handlePreview}
+          aria-describedby={previewError ? "preview-error" : undefined}
         >
-          {!isCreatingPreview && <Sparkles className="mr-2 h-4 w-4" />}
+          {!isCreatingPreview && <Sparkles className="mr-2 h-4 w-4" aria-hidden="true" />}
           {isCreatingPreview ? "Creating Preview..." : "Preview App"}
         </Button>
         {previewError && (
-          <p className="text-xs text-destructive text-center">{previewError}</p>
+          <p id="preview-error" className="text-xs text-destructive text-center" role="alert">
+            {previewError}
+          </p>
         )}
         <Button asChild variant="default" className="w-full" disabled={hasConflicts}>
-          <Link href="/checkout">
-            <ShoppingCart className="mr-2 h-4 w-4" />
+          <Link href="/checkout" aria-label="Proceed to checkout">
+            <ShoppingCart className="mr-2 h-4 w-4" aria-hidden="true" />
             Proceed to Checkout
-            <ArrowRight className="ml-2 h-4 w-4" />
+            <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
           </Link>
         </Button>
-      </div>
+      </nav>
     </aside>
   );
 }

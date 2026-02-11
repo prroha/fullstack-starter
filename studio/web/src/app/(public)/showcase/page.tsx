@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { Container, Grid } from "@/components/ui";
+import { Suspense, useState, useMemo } from "react";
+import { Container, Grid, Spinner } from "@/components/ui";
 import { ComponentCard, CategoryNav, SearchFilter } from "@/components/showcase";
 import {
   componentRegistry,
@@ -10,7 +10,7 @@ import {
   type ComponentTier,
 } from "@/lib/showcase";
 
-export default function ShowcasePage() {
+function ShowcasePageContent() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTier, setSelectedTier] = useState<ComponentTier | "all">("all");
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
@@ -104,5 +104,26 @@ export default function ShowcasePage() {
         )}
       </div>
     </Container>
+  );
+}
+
+function ShowcasePageFallback() {
+  return (
+    <Container className="py-12">
+      <div className="flex items-center justify-center min-h-[40vh]">
+        <div className="text-center">
+          <Spinner size="lg" />
+          <p className="mt-4 text-muted-foreground">Loading showcase...</p>
+        </div>
+      </div>
+    </Container>
+  );
+}
+
+export default function ShowcasePage() {
+  return (
+    <Suspense fallback={<ShowcasePageFallback />}>
+      <ShowcasePageContent />
+    </Suspense>
   );
 }

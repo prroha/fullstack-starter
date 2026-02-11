@@ -15,7 +15,14 @@ export function ComponentCard({ component, className }: ComponentCardProps) {
   const tierInfo = getTierInfo(component.tier);
 
   return (
-    <Link href={`/showcase/${component.category}/${component.slug}`} className="block min-h-[120px]">
+    <Link
+      href={`/showcase/${component.category}/${component.slug}`}
+      className={cn(
+        "block min-h-[120px] rounded-lg",
+        "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+      )}
+      aria-label={`View ${component.name} component`}
+    >
       <Card
         interactive
         className={cn(
@@ -25,12 +32,15 @@ export function ComponentCard({ component, className }: ComponentCardProps) {
       >
         <CardContent className="p-4 sm:pt-6 sm:px-6">
           <div className="flex items-start justify-between mb-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+            <div
+              className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10"
+              aria-hidden="true"
+            >
               {component.iconName && (
                 <Icon name={component.iconName} size="md" className="text-primary" />
               )}
             </div>
-            <div className="flex gap-1.5">
+            <div className="flex gap-1.5" aria-label="Component badges">
               {component.isNew && (
                 <Badge variant="success" className="text-xs">New</Badge>
               )}
@@ -50,16 +60,23 @@ export function ComponentCard({ component, className }: ComponentCardProps) {
             {component.description}
           </p>
 
-          <div className="mt-3 flex flex-wrap gap-1">
-            {component.tags.slice(0, 3).map((tag) => (
-              <span
-                key={tag}
-                className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
+          {component.tags.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-1" aria-label="Component tags">
+              {component.tags.slice(0, 3).map((tag) => (
+                <span
+                  key={tag}
+                  className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"
+                >
+                  {tag}
+                </span>
+              ))}
+              {component.tags.length > 3 && (
+                <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                  +{component.tags.length - 3}
+                </span>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
     </Link>

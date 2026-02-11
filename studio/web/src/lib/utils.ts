@@ -429,20 +429,235 @@ export function downloadFile(url: string, filename?: string): void {
 /**
  * Copy text to clipboard
  * @param text - Text to copy
- * @returns Promise that resolves when copied
+ * @returns Promise that resolves with success boolean
  */
-export async function copyToClipboard(text: string): Promise<void> {
-  if (navigator.clipboard) {
-    await navigator.clipboard.writeText(text);
-  } else {
-    // Fallback for older browsers
+export async function copyToClipboard(text: string): Promise<boolean> {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+    // Fallback for older browsers or non-secure contexts
     const textArea = document.createElement("textarea");
     textArea.value = text;
     textArea.style.position = "fixed";
     textArea.style.left = "-999999px";
+    textArea.style.top = "-999999px";
     document.body.appendChild(textArea);
+    textArea.focus();
     textArea.select();
-    document.execCommand("copy");
+    const success = document.execCommand("copy");
     document.body.removeChild(textArea);
+    return success;
+  } catch {
+    return false;
+  }
+}
+
+// =====================================================
+// Array Utilities
+// =====================================================
+
+/**
+ * Group an array of objects by a key
+ * @param array - Array to group
+ * @param key - Key to group by
+ * @returns Object with keys and arrays of items
+ */
+export function groupBy<T, K extends keyof T>(
+  array: T[],
+  key: K
+): Record<string, T[]> {
+  return array.reduce(
+    (acc, item) => {
+      const groupKey = String(item[key]);
+      if (!acc[groupKey]) {
+        acc[groupKey] = [];
+      }
+      acc[groupKey].push(item);
+      return acc;
+    },
+    {} as Record<string, T[]>
+  );
+}
+
+/**
+ * Remove duplicates from an array
+ * @param array - Array with potential duplicates
+ * @param key - Optional key for object comparison
+ * @returns Array without duplicates
+ */
+export function uniqueBy<T>(array: T[], key?: keyof T): T[] {
+  if (!key) {
+    return [...new Set(array)];
+  }
+  const seen = new Set();
+  return array.filter((item) => {
+    const value = item[key];
+    if (seen.has(value)) {
+      return false;
+    }
+    seen.add(value);
+    return true;
+  });
+}
+
+/**
+ * Sort an array of objects by a key
+ * @param array - Array to sort
+ * @param key - Key to sort by
+ * @param order - Sort order (asc or desc)
+ * @returns Sorted array
+ */
+export function sortBy<T>(
+  array: T[],
+  key: keyof T,
+  order: "asc" | "desc" = "asc"
+): T[] {
+  return [...array].sort((a, b) => {
+    const aVal = a[key];
+    const bVal = b[key];
+    if (aVal < bVal) return order === "asc" ? -1 : 1;
+    if (aVal > bVal) return order === "asc" ? 1 : -1;
+    return 0;
+  });
+}
+
+// =====================================================
+// Object Utilities
+// =====================================================
+
+/**
+ * Pick specific keys from an object
+ * @param obj - Source object
+ * @param keys - Keys to pick
+ * @returns New object with only specified keys
+ */
+export function pick<T extends object, K extends keyof T>(
+  obj: T,
+  keys: K[]
+): Pick<T, K> {
+  const result = {} as Pick<T, K>;
+  for (const key of keys) {
+    if (key in obj) {
+      result[key] = obj[key];
+    }
+  }
+  return result;
+}
+
+/**
+ * Omit specific keys from an object
+ * @param obj - Source object
+ * @param keys - Keys to omit
+ * @returns New object without specified keys
+ */
+export function omit<T extends object, K extends keyof T>(
+  obj: T,
+  keys: K[]
+): Omit<T, K> {
+  const result = { ...obj };
+  for (const key of keys) {
+    delete result[key];
+  }
+  return result;
+}
+
+/**
+ * Check if an object is empty
+ * @param obj - Object to check
+ * @returns Boolean indicating if empty
+ */
+export function isEmpty(obj: object | null | undefined): boolean {
+  if (!obj) return true;
+  return Object.keys(obj).length === 0;
+}
+
+// =====================================================
+// ID Generation
+// =====================================================
+
+/**
+ * Generate a UUID v4
+ * Uses crypto.randomUUID when available, falls back to manual generation
+ * @returns UUID string
+ */
+export function generateId(): string {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  // Fallback for environments without crypto.randomUUID
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
+/**
+ * Generate a short ID (8 characters)
+ * Useful for display purposes where full UUID is too long
+ * @returns Short ID string
+ */
+export function generateShortId(): string {
+  return generateId().slice(0, 8);
+}
+
+// =====================================================
+// Throttle
+// =====================================================
+
+/**
+ * Throttle function execution
+ * Unlike debounce, throttle executes immediately and then ignores
+ * subsequent calls for the specified duration
+ * @param fn - Function to throttle
+ * @param ms - Minimum time between executions
+ * @returns Throttled function
+ */
+export function throttle<T extends (...args: Parameters<T>) => ReturnType<T>>(
+  fn: T,
+  ms: number
+): (...args: Parameters<T>) => void {
+  let lastCall = 0;
+  return function (this: ThisParameterType<T>, ...args: Parameters<T>) {
+    const now = Date.now();
+    if (now - lastCall >= ms) {
+      lastCall = now;
+      fn.apply(this, args);
+    }
+  };
+}
+
+// =====================================================
+// Safe JSON
+// =====================================================
+
+/**
+ * Safely parse JSON with error handling
+ * @param json - JSON string to parse
+ * @param fallback - Fallback value if parsing fails
+ * @returns Parsed value or fallback
+ */
+export function safeJsonParse<T>(json: string, fallback: T): T {
+  try {
+    return JSON.parse(json) as T;
+  } catch {
+    return fallback;
+  }
+}
+
+/**
+ * Safely stringify an object to JSON
+ * Handles circular references and other edge cases
+ * @param value - Value to stringify
+ * @param fallback - Fallback string if stringify fails
+ * @returns JSON string or fallback
+ */
+export function safeJsonStringify(value: unknown, fallback = "{}"): string {
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return fallback;
   }
 }

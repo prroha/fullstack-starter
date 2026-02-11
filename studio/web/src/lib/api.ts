@@ -116,6 +116,7 @@ export interface Order {
   paidAt: string | null;
   createdAt: string;
   updatedAt: string;
+  stripePaymentIntentId?: string | null;
   template: { name: string; slug: string } | null;
   coupon: { code: string } | null;
   license: { id: string; status: string; downloadCount: number } | null;
@@ -540,6 +541,72 @@ export interface GetSettingsParams {
   search?: string;
   isPublic?: boolean;
 }
+
+// =====================================================
+// Pricing Types
+// =====================================================
+
+export type DiscountType = "PERCENTAGE" | "FIXED";
+
+export interface PricingTier {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+  price: number;
+  includedFeatures: string[];
+  isPopular: boolean;
+  displayOrder: number;
+  color: string | null;
+  isActive: boolean;
+  stats?: {
+    totalOrders: number;
+    totalRevenue: number;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UpdatePricingTierData {
+  name?: string;
+  description?: string;
+  price?: number;
+  includedFeatures?: string[];
+  isPopular?: boolean;
+  color?: string | null;
+  isActive?: boolean;
+}
+
+export interface BundleDiscount {
+  id: string;
+  name: string;
+  description: string | null;
+  type: DiscountType;
+  value: number;
+  minItems: number;
+  applicableTiers: string[];
+  applicableFeatures: string[];
+  isActive: boolean;
+  startsAt: string | null;
+  expiresAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateBundleDiscountData {
+  name: string;
+  description?: string | null;
+  type: DiscountType;
+  value: number;
+  minItems: number;
+  applicableTiers?: string[];
+  applicableFeatures?: string[];
+  isActive?: boolean;
+  startsAt?: string | null;
+  expiresAt?: string | null;
+}
+
+export interface UpdateBundleDiscountData extends Partial<CreateBundleDiscountData> {}
 
 // Note: ApiError is re-exported from @core/lib/api at the top of this file
 
@@ -1032,6 +1099,38 @@ class StudioAdminApi {
 
   getExportSettingsUrl(): string {
     return `${this.config.baseUrl}/admin/settings/export/json`;
+  }
+
+  // =====================================================
+  // Pricing API
+  // =====================================================
+
+  async getPricingTiers(): Promise<PricingTier[]> {
+    return this.get<PricingTier[]>("/admin/pricing/tiers");
+  }
+
+  async updatePricingTier(slug: string, data: UpdatePricingTierData): Promise<PricingTier> {
+    return this.put<PricingTier>(`/admin/pricing/tiers/${slug}`, data);
+  }
+
+  async getBundleDiscounts(): Promise<PaginatedResponse<BundleDiscount>> {
+    return this.get<PaginatedResponse<BundleDiscount>>("/admin/pricing/bundles");
+  }
+
+  async createBundleDiscount(data: CreateBundleDiscountData): Promise<BundleDiscount> {
+    return this.post<BundleDiscount>("/admin/pricing/bundles", data);
+  }
+
+  async updateBundleDiscount(id: string, data: UpdateBundleDiscountData): Promise<BundleDiscount> {
+    return this.put<BundleDiscount>(`/admin/pricing/bundles/${id}`, data);
+  }
+
+  async toggleBundleDiscount(id: string): Promise<BundleDiscount> {
+    return this.patch<BundleDiscount>(`/admin/pricing/bundles/${id}/toggle`);
+  }
+
+  async deleteBundleDiscount(id: string): Promise<void> {
+    return this.delete<void>(`/admin/pricing/bundles/${id}`);
   }
 }
 

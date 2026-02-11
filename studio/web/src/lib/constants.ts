@@ -1,6 +1,12 @@
 // =====================================================
 // Studio Constants
-// Re-export core constants + studio-specific constants
+// =====================================================
+//
+// This file contains all constants used in the Studio web app.
+// It re-exports core constants and adds studio-specific constants.
+//
+// Usage:
+//   import { API_CONFIG, PAGINATION, ORDER_STATUS } from "@/lib/constants";
 // =====================================================
 
 // Re-export all core constants for core components that depend on them
@@ -123,3 +129,31 @@ export const PREVIEW_FEATURES = [
 ] as const;
 
 export type PreviewFeature = (typeof PREVIEW_FEATURES)[number];
+
+// =====================================================
+// Filter Options for Admin Pages
+// =====================================================
+
+/**
+ * Order status filter options for dropdowns
+ */
+export const ORDER_STATUS_OPTIONS: { value: string; label: string }[] = [
+  { value: "", label: "All Statuses" },
+  { value: "PENDING", label: "Pending" },
+  { value: "PROCESSING", label: "Processing" },
+  { value: "COMPLETED", label: "Completed" },
+  { value: "FAILED", label: "Failed" },
+  { value: "REFUNDED", label: "Refunded" },
+  { value: "CANCELLED", label: "Cancelled" },
+];
+
+/**
+ * Tier filter options for dropdowns
+ */
+export const TIER_OPTIONS: { value: string; label: string }[] = [
+  { value: "", label: "All Tiers" },
+  { value: "Starter", label: "Starter" },
+  { value: "Pro", label: "Pro" },
+  { value: "Business", label: "Business" },
+  { value: "Enterprise", label: "Enterprise" },
+];

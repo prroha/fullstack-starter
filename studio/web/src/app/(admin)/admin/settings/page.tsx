@@ -14,8 +14,14 @@ import {
 } from "lucide-react";
 import { showSuccess, showError, showInfo } from "@/lib/toast";
 import { cn, formatCurrency } from "@/lib/utils";
-import { API_CONFIG } from "@/lib/constants";
 import { validators, validate } from "@/lib/validation";
+import {
+  adminApi,
+  ApiError,
+  type Setting as ApiSetting,
+  type SettingType as ApiSettingType,
+  type UpdateSettingData,
+} from "@/lib/api";
 import {
   Button,
   Input,
@@ -34,16 +40,8 @@ import { AdminPageHeader } from "@/components/admin";
 // Types
 // ============================================================================
 
-type SettingType = "STRING" | "NUMBER" | "BOOLEAN" | "JSON";
-
-interface Setting {
-  id: string;
-  key: string;
-  value: string;
-  type: SettingType;
-  description?: string;
-  isPublic: boolean;
-}
+// Local setting type enum (maps to API SettingType)
+type LocalSettingType = "STRING" | "NUMBER" | "BOOLEAN" | "JSON";
 
 interface SettingsState {
   // General Settings
@@ -417,17 +415,9 @@ export default function SettingsPage() {
   useEffect(() => {
     const loadSettings = async () => {
       try {
-        const response = await fetch(`${API_CONFIG.BASE_URL}/admin/settings`, {
-          credentials: "include",
-        });
+        const result = await adminApi.getSettings({ limit: 100 });
 
-        if (!response.ok) {
-          throw new Error(`Failed to load settings: ${response.statusText}`);
-        }
-
-        const data = await response.json();
-
-        if (data.success && data.data?.items) {
+        if (result.items && result.items.length > 0) {
           // Convert settings array to state object
           const loadedSettings: SettingsState = { ...DEFAULT_SETTINGS };
 
@@ -436,25 +426,25 @@ export default function SettingsPage() {
             (settings as unknown as Record<string, unknown>)[key] = value;
           };
 
-          for (const item of data.data.items) {
+          for (const item of result.items) {
             const key = item.key as keyof SettingsState;
             if (key in loadedSettings) {
               // Convert value based on type
               switch (item.type) {
-                case "NUMBER":
+                case "number":
                   setSetting(loadedSettings, key, parseFloat(item.value) || 0);
                   break;
-                case "BOOLEAN":
+                case "boolean":
                   setSetting(loadedSettings, key, item.value === "true");
                   break;
-                case "JSON":
+                case "json":
                   try {
                     setSetting(loadedSettings, key, JSON.parse(item.value));
                   } catch {
                     setSetting(loadedSettings, key, item.value);
                   }
                   break;
-                case "STRING":
+                case "string":
                 default:
                   setSetting(loadedSettings, key, item.value);
                   break;
@@ -471,7 +461,8 @@ export default function SettingsPage() {
         }
       } catch (error) {
         console.error("Failed to load settings:", error);
-        showError("Failed to load settings");
+        const errorMessage = error instanceof ApiError ? error.message : "Failed to load settings";
+        showError(errorMessage);
         // Fall back to defaults on error
         setSettings(DEFAULT_SETTINGS);
         setOriginalSettings(DEFAULT_SETTINGS);
@@ -562,25 +553,25 @@ export default function SettingsPage() {
     [settings]
   );
 
-  // Helper to determine setting type
-  const getSettingType = (key: keyof SettingsState): SettingType => {
+  // Helper to determine setting type (returns API-compatible lowercase types)
+  const getSettingType = (key: keyof SettingsState): ApiSettingType => {
     const value = settings[key];
-    if (typeof value === "boolean") return "BOOLEAN";
-    if (typeof value === "number") return "NUMBER";
-    if (typeof value === "object") return "JSON";
-    return "STRING";
+    if (typeof value === "boolean") return "boolean";
+    if (typeof value === "number") return "number";
+    if (typeof value === "object") return "json";
+    return "string";
   };
 
   // Helper to convert value to string for API
-  const valueToString = (value: unknown, type: SettingType): string => {
+  const valueToString = (value: unknown, type: ApiSettingType): string => {
     switch (type) {
-      case "BOOLEAN":
+      case "boolean":
         return value ? "true" : "false";
-      case "NUMBER":
+      case "number":
         return String(value);
-      case "JSON":
+      case "json":
         return JSON.stringify(value);
-      case "STRING":
+      case "string":
       default:
         return String(value);
     }
@@ -623,21 +614,13 @@ export default function SettingsPage() {
 
       const keys = sectionKeys[section] || [];
 
-      // Save each setting via API
+      // Save each setting via API using adminApi
       for (const key of keys) {
         const type = getSettingType(key);
         const value = valueToString(settings[key], type);
 
-        const response = await fetch(`${API_CONFIG.BASE_URL}/admin/settings/${key}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({ value, type }),
-        });
-
-        if (!response.ok) {
-          throw new Error(`Failed to save setting ${key}: ${response.statusText}`);
-        }
+        const updateData: UpdateSettingData = { value, type };
+        await adminApi.updateSetting(key, updateData);
       }
 
       // Update original settings for the saved section
@@ -650,7 +633,8 @@ export default function SettingsPage() {
       showSuccess(`${section.charAt(0).toUpperCase() + section.slice(1)} settings saved`);
     } catch (error) {
       console.error("Failed to save settings:", error);
-      showError("Failed to save settings", "Please try again.");
+      const errorMessage = error instanceof ApiError ? error.message : "Please try again.";
+      showError("Failed to save settings", errorMessage);
     } finally {
       setSavingSection(null);
     }

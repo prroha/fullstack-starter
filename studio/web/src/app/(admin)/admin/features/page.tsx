@@ -14,8 +14,17 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { cn, formatCurrency } from "@/lib/utils";
-import { API_CONFIG } from "@/lib/constants";
 import { showError, showSuccess } from "@/lib/toast";
+import {
+  adminApi,
+  ApiError,
+  type Module as ApiModule,
+  type Feature as ApiFeature,
+  type CreateModuleData,
+  type UpdateModuleData,
+  type CreateFeatureData,
+  type UpdateFeatureData,
+} from "@/lib/api";
 
 // Shared UI components
 import {
@@ -273,15 +282,17 @@ function ModuleCard({
           <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
             <button
               onClick={onEdit}
-              className="p-1.5 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground"
+              className="p-1.5 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              aria-label={`Edit module ${module.name}`}
             >
-              <Pencil className="h-4 w-4" />
+              <Pencil className="h-4 w-4" aria-hidden="true" />
             </button>
             <button
               onClick={onDelete}
-              className="p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
+              className="p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              aria-label={`Delete module ${module.name}`}
             >
-              <Trash2 className="h-4 w-4" />
+              <Trash2 className="h-4 w-4" aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -442,15 +453,17 @@ function FeaturesTable({
                     <div className="flex items-center justify-end gap-1">
                       <button
                         onClick={() => onEdit(feature)}
-                        className="p-1.5 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground"
+                        className="p-1.5 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                        aria-label={`Edit feature ${feature.name}`}
                       >
-                        <Pencil className="h-4 w-4" />
+                        <Pencil className="h-4 w-4" aria-hidden="true" />
                       </button>
                       <button
                         onClick={() => onDelete(feature)}
-                        className="p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
+                        className="p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                        aria-label={`Delete feature ${feature.name}`}
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-4 w-4" aria-hidden="true" />
                       </button>
                     </div>
                   </TableCell>
@@ -1107,30 +1120,16 @@ export default function FeaturesAdminPage() {
     const loadData = async () => {
       setLoading(true);
       try {
-        const [modulesRes, featuresRes] = await Promise.all([
-          fetch(`${API_CONFIG.BASE_URL}/admin/modules`, {
-            credentials: "include",
-          }),
-          fetch(`${API_CONFIG.BASE_URL}/admin/features`, {
-            credentials: "include",
-          }),
+        const [modulesResult, featuresResult] = await Promise.all([
+          adminApi.getModules(),
+          adminApi.getFeatures(),
         ]);
 
-        if (!modulesRes.ok) {
-          throw new Error("Failed to fetch modules");
-        }
-        if (!featuresRes.ok) {
-          throw new Error("Failed to fetch features");
-        }
-
-        const modulesData = await modulesRes.json();
-        const featuresData = await featuresRes.json();
-
-        setModules(modulesData.data?.items || []);
-        setFeatures(featuresData.data?.items || []);
+        setModules(modulesResult.items as unknown as Module[]);
+        setFeatures(featuresResult.items as unknown as Feature[]);
       } catch (error) {
         console.error("Failed to fetch data:", error);
-        showError("Failed to load features and modules");
+        showError("Failed to load features and modules", error instanceof ApiError ? error.message : undefined);
       } finally {
         setLoading(false);
       }
@@ -1195,16 +1194,16 @@ export default function FeaturesAdminPage() {
   const handleSaveFeature = async (data: Partial<Feature>) => {
     setSaving(true);
     try {
-      const payload = {
-        slug: data.slug,
-        name: data.name,
-        description: data.description,
-        moduleId: data.moduleId,
+      const payload: CreateFeatureData = {
+        slug: data.slug || "",
+        name: data.name || "",
+        description: data.description || "",
+        moduleId: data.moduleId || "",
         price: data.price || 0,
         tier: data.tier || null,
         requires: data.requires || [],
         conflicts: data.conflicts || [],
-        fileMappings: data.fileMappings || null,
+        fileMappings: data.fileMappings || undefined,
         isActive: data.isActive ?? true,
         isNew: data.isNew ?? false,
         isPopular: data.isPopular ?? false,
@@ -1212,43 +1211,17 @@ export default function FeaturesAdminPage() {
 
       if (editingFeature) {
         // Update existing feature
-        const response = await fetch(`${API_CONFIG.BASE_URL}/admin/features/${editingFeature.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify(payload),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || "Failed to update feature");
-        }
-
-        const result = await response.json();
-        const updatedFeature = result.data;
+        const updatedFeature = await adminApi.updateFeature(editingFeature.id, payload as UpdateFeatureData);
 
         setFeatures((prev) =>
-          prev.map((f) => (f.id === editingFeature.id ? updatedFeature : f))
+          prev.map((f) => (f.id === editingFeature.id ? (updatedFeature as unknown as Feature) : f))
         );
         showSuccess("Feature updated successfully");
       } else {
         // Create new feature
-        const response = await fetch(`${API_CONFIG.BASE_URL}/admin/features`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify(payload),
-        });
+        const newFeature = await adminApi.createFeature(payload);
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || "Failed to create feature");
-        }
-
-        const result = await response.json();
-        const newFeature = result.data;
-
-        setFeatures((prev) => [...prev, newFeature]);
+        setFeatures((prev) => [...prev, newFeature as unknown as Feature]);
         showSuccess("Feature created successfully");
       }
 
@@ -1256,7 +1229,7 @@ export default function FeaturesAdminPage() {
       setEditingFeature(null);
     } catch (error) {
       console.error("Failed to save feature:", error);
-      showError("Failed to save feature", error instanceof Error ? error.message : undefined);
+      showError("Failed to save feature", error instanceof ApiError ? error.message : undefined);
     } finally {
       setSaving(false);
     }
@@ -1265,10 +1238,10 @@ export default function FeaturesAdminPage() {
   const handleSaveModule = async (data: Partial<Module>) => {
     setSaving(true);
     try {
-      const payload = {
-        slug: data.slug,
-        name: data.name,
-        description: data.description,
+      const payload: CreateModuleData = {
+        slug: data.slug || "",
+        name: data.name || "",
+        description: data.description || "",
         category: data.category || "core",
         displayOrder: data.displayOrder || modules.length + 1,
         isActive: data.isActive ?? true,
@@ -1277,43 +1250,17 @@ export default function FeaturesAdminPage() {
 
       if (editingModule) {
         // Update existing module
-        const response = await fetch(`${API_CONFIG.BASE_URL}/admin/modules/${editingModule.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify(payload),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || "Failed to update module");
-        }
-
-        const result = await response.json();
-        const updatedModule = result.data;
+        const updatedModule = await adminApi.updateModule(editingModule.id, payload as UpdateModuleData);
 
         setModules((prev) =>
-          prev.map((m) => (m.id === editingModule.id ? updatedModule : m))
+          prev.map((m) => (m.id === editingModule.id ? (updatedModule as unknown as Module) : m))
         );
         showSuccess("Module updated successfully");
       } else {
         // Create new module
-        const response = await fetch(`${API_CONFIG.BASE_URL}/admin/modules`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify(payload),
-        });
+        const newModule = await adminApi.createModule(payload);
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || "Failed to create module");
-        }
-
-        const result = await response.json();
-        const newModule = result.data;
-
-        setModules((prev) => [...prev, newModule]);
+        setModules((prev) => [...prev, newModule as unknown as Module]);
         showSuccess("Module created successfully");
       }
 
@@ -1321,7 +1268,7 @@ export default function FeaturesAdminPage() {
       setEditingModule(null);
     } catch (error) {
       console.error("Failed to save module:", error);
-      showError("Failed to save module", error instanceof Error ? error.message : undefined);
+      showError("Failed to save module", error instanceof ApiError ? error.message : undefined);
     } finally {
       setSaving(false);
     }
@@ -1331,21 +1278,8 @@ export default function FeaturesAdminPage() {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      const endpoint = deleteTarget.type === "feature"
-        ? `${API_CONFIG.BASE_URL}/admin/features/${deleteTarget.item.id}`
-        : `${API_CONFIG.BASE_URL}/admin/modules/${deleteTarget.item.id}`;
-
-      const response = await fetch(endpoint, {
-        method: "DELETE",
-        credentials: "include",
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || `Failed to delete ${deleteTarget.type}`);
-      }
-
       if (deleteTarget.type === "feature") {
+        await adminApi.deleteFeature(deleteTarget.item.id);
         setFeatures((prev) => prev.filter((f) => f.id !== deleteTarget.item.id));
         setSelectedFeatureIds((prev) => {
           const next = new Set(prev);
@@ -1354,13 +1288,14 @@ export default function FeaturesAdminPage() {
         });
         showSuccess("Feature deleted successfully");
       } else {
+        await adminApi.deleteModule(deleteTarget.item.id);
         setModules((prev) => prev.filter((m) => m.id !== deleteTarget.item.id));
         showSuccess("Module deleted successfully");
       }
       setDeleteTarget(null);
     } catch (error) {
       console.error(`Failed to delete ${deleteTarget.type}:`, error);
-      showError(`Failed to delete ${deleteTarget.type}`, error instanceof Error ? error.message : undefined);
+      showError(`Failed to delete ${deleteTarget.type}`, error instanceof ApiError ? error.message : undefined);
     } finally {
       setDeleting(false);
     }
@@ -1373,29 +1308,26 @@ export default function FeaturesAdminPage() {
   }) => {
     setSaving(true);
     try {
-      const response = await fetch(`${API_CONFIG.BASE_URL}/admin/features/bulk-price-update`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          featureIds: data.featureIds,
-          adjustmentType: data.adjustmentType,
-          value: data.value,
-        }),
-      });
+      // Calculate new prices based on adjustment type and update via API
+      const updates = data.featureIds.map((id) => {
+        const feature = features.find((f) => f.id === id);
+        if (!feature) return null;
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to update prices");
-      }
+        let newPrice: number;
+        if (data.adjustmentType === "percentage") {
+          newPrice = Math.round(feature.price * (1 + data.value / 100));
+        } else {
+          newPrice = feature.price + data.value;
+        }
+        return { id, price: Math.max(0, newPrice) };
+      }).filter((u): u is { id: string; price: number } => u !== null);
 
-      const result = await response.json();
-      const updates = result.data?.updates || [];
+      await adminApi.bulkUpdatePrices(updates);
 
-      // Update local state with new prices from server
+      // Update local state with new prices
       setFeatures((prev) =>
         prev.map((f) => {
-          const update = updates.find((u: { id: string; price: number }) => u.id === f.id);
+          const update = updates.find((u) => u.id === f.id);
           if (update) {
             return { ...f, price: update.price, updatedAt: new Date().toISOString() };
           }
@@ -1408,7 +1340,7 @@ export default function FeaturesAdminPage() {
       showSuccess(`${data.featureIds.length} features updated successfully`);
     } catch (error) {
       console.error("Failed to update prices:", error);
-      showError("Failed to update prices", error instanceof Error ? error.message : undefined);
+      showError("Failed to update prices", error instanceof ApiError ? error.message : undefined);
     } finally {
       setSaving(false);
     }

@@ -1,6 +1,6 @@
 "use client";
 
-import { Link, AlertTriangle, Info } from "lucide-react";
+import { Link as LinkIcon, AlertTriangle } from "lucide-react";
 import { Badge, Tooltip } from "@/components/ui";
 import { useConfigurator } from "./context";
 
@@ -39,13 +39,13 @@ export function DependencyBadge({
         showTooltip ? (
           <Tooltip content={`Requires: ${getFeatureNames(dependencies)}`}>
             <Badge variant="outline" className="text-xs gap-1 cursor-help">
-              <Link className="h-3 w-3" />
+              <LinkIcon className="h-3 w-3" />
               {dependencies.length} {dependencies.length === 1 ? "dependency" : "dependencies"}
             </Badge>
           </Tooltip>
         ) : (
           <Badge variant="outline" className="text-xs gap-1">
-            <Link className="h-3 w-3" />
+            <LinkIcon className="h-3 w-3" />
             {dependencies.length}
           </Badge>
         )
@@ -96,7 +96,7 @@ export function DependencyInfo({ featureSlug }: { featureSlug: string }) {
       {dependencies.length > 0 && (
         <div>
           <div className="flex items-center gap-1 text-muted-foreground mb-1">
-            <Link className="h-3 w-3" />
+            <LinkIcon className="h-3 w-3" />
             <span>Requires:</span>
           </div>
           <ul className="ml-4 space-y-0.5">

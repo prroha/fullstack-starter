@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { Menu, ShoppingCart, X } from "lucide-react";
 import { Spinner, Button } from "@/components/ui";
@@ -14,7 +14,7 @@ import {
 import { parseURLConfig, updateURLState } from "@/lib/config";
 import type { ModuleCategory } from "@studio/shared";
 
-export default function ConfigurePage() {
+function ConfigurePageContent() {
   const searchParams = useSearchParams();
   const {
     loading,
@@ -98,8 +98,9 @@ export default function ConfigurePage() {
           size="sm"
           className="min-h-[44px] gap-2"
           onClick={() => setMobileSidebarOpen(true)}
+          aria-label="Open categories menu"
         >
-          <Menu className="h-4 w-4" />
+          <Menu className="h-4 w-4" aria-hidden="true" />
           Categories
         </Button>
         <Button
@@ -107,8 +108,9 @@ export default function ConfigurePage() {
           size="sm"
           className="min-h-[44px] gap-2"
           onClick={() => setMobileCartOpen(true)}
+          aria-label={`Open cart with ${totalSelected} items`}
         >
-          <ShoppingCart className="h-4 w-4" />
+          <ShoppingCart className="h-4 w-4" aria-hidden="true" />
           Cart ({totalSelected})
         </Button>
       </div>
@@ -118,6 +120,9 @@ export default function ConfigurePage() {
         <div
           className="lg:hidden fixed inset-0 z-50 bg-background/80 backdrop-blur-sm"
           onClick={() => setMobileSidebarOpen(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Categories"
         >
           <div
             className="fixed inset-y-0 left-0 w-[280px] max-w-[85vw] bg-background shadow-lg"
@@ -130,8 +135,9 @@ export default function ConfigurePage() {
                 size="sm"
                 className="min-h-[44px] min-w-[44px]"
                 onClick={() => setMobileSidebarOpen(false)}
+                aria-label="Close categories"
               >
-                <X className="h-5 w-5" />
+                <X className="h-5 w-5" aria-hidden="true" />
               </Button>
             </div>
             <div className="overflow-y-auto h-[calc(100%-60px)]">
@@ -149,8 +155,17 @@ export default function ConfigurePage() {
 
       {/* Mobile Cart Overlay */}
       {mobileCartOpen && (
-        <div className="lg:hidden fixed inset-0 z-50 bg-background/80 backdrop-blur-sm">
-          <div className="fixed inset-y-0 right-0 w-[320px] max-w-[90vw] bg-background shadow-lg">
+        <div
+          className="lg:hidden fixed inset-0 z-50 bg-background/80 backdrop-blur-sm"
+          onClick={() => setMobileCartOpen(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Your selection"
+        >
+          <div
+            className="fixed inset-y-0 right-0 w-[320px] max-w-[90vw] bg-background shadow-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between p-4 border-b">
               <h2 className="font-semibold">Your Selection</h2>
               <Button
@@ -158,8 +173,9 @@ export default function ConfigurePage() {
                 size="sm"
                 className="min-h-[44px] min-w-[44px]"
                 onClick={() => setMobileCartOpen(false)}
+                aria-label="Close cart"
               >
-                <X className="h-5 w-5" />
+                <X className="h-5 w-5" aria-hidden="true" />
               </Button>
             </div>
             <div className="overflow-y-auto h-[calc(100%-60px)]">
@@ -193,5 +209,24 @@ export default function ConfigurePage() {
         <CartSummary />
       </div>
     </div>
+  );
+}
+
+function ConfigurePageFallback() {
+  return (
+    <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="text-center">
+        <Spinner size="lg" />
+        <p className="mt-4 text-muted-foreground">Loading configurator...</p>
+      </div>
+    </div>
+  );
+}
+
+export default function ConfigurePage() {
+  return (
+    <Suspense fallback={<ConfigurePageFallback />}>
+      <ConfigurePageContent />
+    </Suspense>
   );
 }

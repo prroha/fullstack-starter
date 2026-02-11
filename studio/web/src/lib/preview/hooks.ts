@@ -98,49 +98,131 @@ export function useThemePreview(
 
 interface PreviewSession {
   id: string;
+  sessionToken?: string;
   tier: string;
   features: string[];
   startedAt: Date;
   duration: number;
+  expiresAt?: Date;
 }
 
 interface UsePreviewSessionReturn {
   session: PreviewSession | null;
-  startSession: (tier: string, features: string[]) => void;
+  isLoading: boolean;
+  error: string | null;
+  startSession: (tier: string, features: string[], templateSlug?: string) => void;
   endSession: () => void;
+  loadSessionFromToken: (token: string) => Promise<PreviewSession | null>;
 }
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
 
 export function usePreviewSession(): UsePreviewSessionReturn {
   const [session, setSession] = useState<PreviewSession | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const startSession = useCallback((tier: string, features: string[]) => {
+  const startSession = useCallback(async (tier: string, features: string[], templateSlug?: string) => {
     const id = `preview_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-    setSession({
+    // Create local session immediately for responsive UI
+    const localSession: PreviewSession = {
       id,
       tier,
       features,
       startedAt: new Date(),
       duration: 0,
-    });
+    };
 
-    // Optionally track session start via API
-    // fetch('/api/preview/session', { method: 'POST', body: JSON.stringify({ tier, features }) });
+    setSession(localSession);
+    setError(null);
+
+    // Optionally create backend session for persistence/sharing
+    // This is non-blocking - the preview works without backend
+    if (features.length > 0) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/preview/sessions`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            selectedFeatures: features,
+            tier,
+            templateSlug,
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.data) {
+            setSession((prev) => prev ? {
+              ...prev,
+              sessionToken: data.data.sessionToken,
+              expiresAt: new Date(data.data.expiresAt),
+            } : prev);
+          }
+        }
+      } catch {
+        // Backend session creation is optional - continue without it
+        console.debug("Backend session creation skipped - preview works offline");
+      }
+    }
   }, []);
 
-  const endSession = useCallback(() => {
-    if (session) {
-      const duration = Date.now() - session.startedAt.getTime();
-
-      // Optionally track session end via API
-      // fetch('/api/preview/session', {
-      //   method: 'PATCH',
-      //   body: JSON.stringify({ sessionId: session.id, duration }),
-      // });
-
-      setSession(null);
+  const endSession = useCallback(async () => {
+    if (session?.sessionToken) {
+      // Optionally delete backend session
+      try {
+        await fetch(`${API_BASE_URL}/preview/sessions/${session.sessionToken}`, {
+          method: "DELETE",
+        });
+      } catch {
+        // Ignore deletion errors
+      }
     }
+    setSession(null);
+    setError(null);
   }, [session]);
+
+  // Load session configuration from a token (for shared preview links)
+  const loadSessionFromToken = useCallback(async (token: string): Promise<PreviewSession | null> => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/preview/sessions/${token}`);
+      const data = await response.json();
+
+      if (!response.ok) {
+        const errorMessage = data.error || "Failed to load preview session";
+        setError(errorMessage);
+        return null;
+      }
+
+      if (data.success && data.data) {
+        const loadedSession: PreviewSession = {
+          id: `preview_${Date.now()}`,
+          sessionToken: token,
+          tier: data.data.tier,
+          features: data.data.selectedFeatures,
+          startedAt: new Date(),
+          duration: 0,
+          expiresAt: new Date(data.data.expiresAt),
+        };
+        setSession(loadedSession);
+        return loadedSession;
+      }
+
+      setError("Invalid session data");
+      return null;
+    } catch {
+      setError("Failed to connect to preview service");
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   // Update duration every minute
   useEffect(() => {
@@ -161,7 +243,10 @@ export function usePreviewSession(): UsePreviewSessionReturn {
 
   return {
     session,
+    isLoading,
+    error,
     startSession,
     endSession,
+    loadSessionFromToken,
   };
 }

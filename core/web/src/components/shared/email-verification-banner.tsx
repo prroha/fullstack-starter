@@ -29,20 +29,14 @@ export function EmailVerificationBanner({
     setIsSending(true);
     try {
       await api.sendVerificationEmail();
-      toast.success("Verification email sent", {
-        description: "Please check your inbox for the verification link.",
-      });
+      toast.success("Verification email sent! Please check your inbox for the verification link.");
       logger.info("Auth", "Verification email resent");
     } catch (err) {
       if (err instanceof ApiError) {
-        toast.error("Failed to send verification email", {
-          description: err.message,
-        });
+        toast.error(`Failed to send verification email: ${err.message}`);
         logger.warn("Auth", "Failed to resend verification email", { code: err.code });
       } else {
-        toast.error("Failed to send verification email", {
-          description: "An unexpected error occurred. Please try again.",
-        });
+        toast.error("Failed to send verification email. An unexpected error occurred. Please try again.");
         logger.error("Auth", "Unexpected error resending verification email", err);
       }
     } finally {

@@ -35,8 +35,17 @@ import {
 } from "@/components/ui";
 import { AdminPageHeader, AdminFilters, TierBadge, TableSkeleton } from "@/components/admin";
 import { formatCurrency, formatDate, formatNumber } from "@/lib/utils";
-import { API_CONFIG } from "@/lib/constants";
 import { showError, showSuccess, showLoading, dismissToast } from "@/lib/toast";
+import {
+  adminApi,
+  ApiError,
+  type Coupon as ApiCoupon,
+  type CouponType as ApiCouponType,
+  type CreateCouponData,
+  type UpdateCouponData,
+  type GetCouponsParams,
+  type PaginationInfo,
+} from "@/lib/api";
 
 // =============================================================================
 // Types
@@ -60,13 +69,6 @@ interface Coupon {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
-}
-
-interface PaginationInfo {
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
 }
 
 interface CouponFormData {
@@ -176,13 +178,13 @@ function CopyCodeButton({ code }: { code: string }) {
   return (
     <button
       onClick={handleCopy}
-      className="p-1 hover:bg-accent rounded-md transition-colors"
-      title="Copy code"
+      className="p-1 hover:bg-accent rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+      aria-label={copied ? "Copied to clipboard" : `Copy code ${code}`}
     >
       {copied ? (
-        <Check className="h-3.5 w-3.5 text-green-500" />
+        <Check className="h-3.5 w-3.5 text-green-500" aria-hidden="true" />
       ) : (
-        <Copy className="h-3.5 w-3.5 text-muted-foreground" />
+        <Copy className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
       )}
     </button>
   );
@@ -210,9 +212,9 @@ function TypeBadge({ type }: { type: DiscountType }) {
   return (
     <Badge variant={type === "PERCENTAGE" ? "default" : "outline"}>
       {type === "PERCENTAGE" ? (
-        <Percent className="h-3 w-3 mr-1" />
+        <Percent className="h-3 w-3 mr-1" aria-hidden="true" />
       ) : (
-        <DollarSign className="h-3 w-3 mr-1" />
+        <DollarSign className="h-3 w-3 mr-1" aria-hidden="true" />
       )}
       {type === "PERCENTAGE" ? "Percentage" : "Fixed"}
     </Badge>
@@ -271,6 +273,7 @@ export default function CouponsPage() {
     limit: 10,
     total: 0,
     totalPages: 0,
+    hasMore: false,
   });
   const [error, setError] = useState<string | null>(null);
 
@@ -287,34 +290,23 @@ export default function CouponsPage() {
     setLoading(true);
     setError(null);
     try {
-      const params = new URLSearchParams();
-      params.set("page", pagination.page.toString());
-      params.set("limit", pagination.limit.toString());
-      if (search) params.set("search", search);
-      if (typeFilter !== "ALL") params.set("type", typeFilter);
-      if (statusFilter === "ACTIVE") params.set("isActive", "true");
-      if (statusFilter === "INACTIVE") params.set("isActive", "false");
+      const params: GetCouponsParams = {
+        page: pagination.page,
+        limit: pagination.limit,
+      };
+      if (search) params.search = search;
+      if (typeFilter !== "ALL") params.type = typeFilter as ApiCouponType;
+      if (statusFilter === "ACTIVE") params.isActive = true;
+      if (statusFilter === "INACTIVE") params.isActive = false;
 
-      const response = await fetch(
-        `${API_CONFIG.BASE_URL}/admin/coupons?${params.toString()}`,
-        {
-          credentials: "include",
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error?.message || "Failed to fetch coupons");
-      }
-
-      const data = await response.json();
-      setCoupons(data.data?.items || data.data || []);
-      if (data.pagination) {
-        setPagination(data.pagination);
+      const result = await adminApi.getCoupons(params);
+      setCoupons(result.items as unknown as Coupon[]);
+      if (result.pagination) {
+        setPagination(result.pagination);
       }
     } catch (err) {
       console.error("Failed to fetch coupons:", err);
-      const errorMessage = err instanceof Error ? err.message : "Failed to fetch coupons";
+      const errorMessage = err instanceof ApiError ? err.message : "Failed to fetch coupons";
       setError(errorMessage);
       showError("Failed to load coupons", errorMessage);
     } finally {
@@ -417,9 +409,9 @@ export default function CouponsPage() {
     const loadingId = showLoading(editingCoupon ? "Updating coupon..." : "Creating coupon...");
 
     try {
-      const couponData = {
+      const couponData: CreateCouponData = {
         code: formData.code.toUpperCase(),
-        type: formData.type,
+        type: formData.type as ApiCouponType,
         value:
           formData.type === "FIXED"
             ? Math.round(formData.value * 100)
@@ -433,21 +425,10 @@ export default function CouponsPage() {
         isActive: formData.isActive,
       };
 
-      const url = editingCoupon
-        ? `${API_CONFIG.BASE_URL}/admin/coupons/${editingCoupon.id}`
-        : `${API_CONFIG.BASE_URL}/admin/coupons`;
-      const method = editingCoupon ? "PUT" : "POST";
-
-      const response = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(couponData),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error?.message || `Failed to ${editingCoupon ? "update" : "create"} coupon`);
+      if (editingCoupon) {
+        await adminApi.updateCoupon(editingCoupon.id, couponData);
+      } else {
+        await adminApi.createCoupon(couponData);
       }
 
       dismissToast(loadingId);
@@ -459,7 +440,7 @@ export default function CouponsPage() {
       dismissToast(loadingId);
       showError(
         `Failed to ${editingCoupon ? "update" : "create"} coupon`,
-        err instanceof Error ? err.message : undefined
+        err instanceof ApiError ? err.message : undefined
       );
     } finally {
       setIsSaving(false);
@@ -486,18 +467,7 @@ export default function CouponsPage() {
     const loadingId = showLoading("Deleting coupon...");
 
     try {
-      const response = await fetch(
-        `${API_CONFIG.BASE_URL}/admin/coupons/${deletingCoupon.id}`,
-        {
-          method: "DELETE",
-          credentials: "include",
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error?.message || "Failed to delete coupon");
-      }
+      await adminApi.deleteCoupon(deletingCoupon.id);
 
       dismissToast(loadingId);
       showSuccess("Coupon deleted successfully");
@@ -508,7 +478,7 @@ export default function CouponsPage() {
       dismissToast(loadingId);
       showError(
         "Failed to delete coupon",
-        err instanceof Error ? err.message : undefined
+        err instanceof ApiError ? err.message : undefined
       );
     } finally {
       setIsSaving(false);
@@ -544,33 +514,33 @@ export default function CouponsPage() {
       />
 
       {/* Stats Row */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <section aria-label="Coupon statistics" className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
           label="Total Coupons"
           value={formatNumber(stats.total)}
-          icon={<Ticket className="h-5 w-5" />}
+          icon={<Ticket className="h-5 w-5" aria-hidden="true" />}
           isLoading={loading}
         />
         <StatCard
           label="Active"
           value={formatNumber(stats.active)}
-          icon={<Check className="h-5 w-5" />}
+          icon={<Check className="h-5 w-5" aria-hidden="true" />}
           variant="success"
           isLoading={loading}
         />
         <StatCard
           label="Total Redemptions"
           value={formatNumber(stats.totalRedemptions)}
-          icon={<RotateCcw className="h-5 w-5" />}
+          icon={<RotateCcw className="h-5 w-5" aria-hidden="true" />}
           isLoading={loading}
         />
         <StatCard
           label="Total Discount Given"
           value={formatCurrency(stats.totalDiscountGiven)}
-          icon={<DollarSign className="h-5 w-5" />}
+          icon={<DollarSign className="h-5 w-5" aria-hidden="true" />}
           isLoading={loading}
         />
-      </div>
+      </section>
 
       {/* Filter Bar */}
       <AdminFilters
@@ -671,17 +641,17 @@ export default function CouponsPage() {
                           variant="ghost"
                           size="icon"
                           onClick={() => handleOpenEditModal(coupon)}
-                          title="Edit coupon"
+                          aria-label={`Edit coupon ${coupon.code}`}
                         >
-                          <Pencil className="h-4 w-4" />
+                          <Pencil className="h-4 w-4" aria-hidden="true" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="icon"
                           onClick={() => handleOpenDeleteDialog(coupon)}
-                          title="Delete coupon"
+                          aria-label={`Delete coupon ${coupon.code}`}
                         >
-                          <Trash2 className="h-4 w-4 text-destructive" />
+                          <Trash2 className="h-4 w-4 text-destructive" aria-hidden="true" />
                         </Button>
                       </div>
                     </TableCell>

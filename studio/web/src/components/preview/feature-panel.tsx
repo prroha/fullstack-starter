@@ -2,7 +2,7 @@
 
 import { Check, X, ChevronDown, ChevronRight } from "lucide-react";
 import { useState } from "react";
-import { Badge, Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui";
+import { Badge } from "@/components/ui";
 import { cn } from "@/lib/utils";
 
 interface FeaturePanelProps {

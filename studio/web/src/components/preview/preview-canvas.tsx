@@ -154,7 +154,7 @@ function PreviewContent({ theme }: { theme: ThemeMode }) {
             ? "border-zinc-800 text-zinc-500"
             : "border-zinc-200 text-zinc-500"
         )}>
-          Built with Starter Studio • {tier} tier • {features.size} features
+          Built with Starter Studio • {tier} tier • {features.size > 0 ? features.size : 0} features
         </footer>
       </div>
     </div>

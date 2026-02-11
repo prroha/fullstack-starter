@@ -30,15 +30,17 @@ export function CategoryNav({
 
   if (orientation === "vertical") {
     return (
-      <nav className={cn("space-y-1", className)}>
+      <nav className={cn("space-y-1", className)} aria-label="Component categories">
         <Link
           href="/showcase"
           className={cn(
             "flex items-center justify-between px-3 py-3 min-h-[44px] rounded-md text-sm font-medium transition-colors",
+            "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
             isAllActive()
               ? "bg-primary text-primary-foreground"
               : "text-muted-foreground hover:bg-accent hover:text-foreground"
           )}
+          aria-current={isAllActive() ? "page" : undefined}
         >
           <span>All Components</span>
         </Link>
@@ -46,6 +48,7 @@ export function CategoryNav({
         {categories.map((category) => {
           const info = getCategoryInfo(category);
           const count = getComponentsByCategory(category).length;
+          const active = isActive(category);
 
           return (
             <Link
@@ -53,23 +56,24 @@ export function CategoryNav({
               href={`/showcase/${category}`}
               className={cn(
                 "flex items-center justify-between px-3 py-3 min-h-[44px] rounded-md text-sm font-medium transition-colors",
-                isActive(category)
+                "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                active
                   ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:bg-accent hover:text-foreground"
               )}
+              aria-current={active ? "page" : undefined}
             >
               <div className="flex items-center gap-2">
-                <Icon name={info.icon} size="sm" />
+                <Icon name={info.icon} size="sm" aria-hidden="true" />
                 <span>{info.name}</span>
               </div>
               {showCounts && (
                 <span
                   className={cn(
                     "text-xs",
-                    isActive(category)
-                      ? "text-primary-foreground/70"
-                      : "text-muted-foreground"
+                    active ? "text-primary-foreground/70" : "text-muted-foreground"
                   )}
+                  aria-label={`${count} components`}
                 >
                   {count}
                 </span>
@@ -87,15 +91,18 @@ export function CategoryNav({
         "flex flex-wrap gap-2 border-b pb-4 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0",
         className
       )}
+      aria-label="Component categories"
     >
       <Link
         href="/showcase"
         className={cn(
           "inline-flex items-center gap-2 px-4 py-2.5 min-h-[44px] rounded-md text-sm font-medium transition-colors whitespace-nowrap",
+          "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
           isAllActive()
             ? "bg-primary text-primary-foreground"
             : "bg-muted text-muted-foreground hover:text-foreground"
         )}
+        aria-current={isAllActive() ? "page" : undefined}
       >
         All
       </Link>
@@ -103,6 +110,7 @@ export function CategoryNav({
       {categories.map((category) => {
         const info = getCategoryInfo(category);
         const count = getComponentsByCategory(category).length;
+        const active = isActive(category);
 
         return (
           <Link
@@ -110,21 +118,22 @@ export function CategoryNav({
             href={`/showcase/${category}`}
             className={cn(
               "inline-flex items-center gap-2 px-4 py-2.5 min-h-[44px] rounded-md text-sm font-medium transition-colors whitespace-nowrap",
-              isActive(category)
+              "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+              active
                 ? "bg-primary text-primary-foreground"
                 : "bg-muted text-muted-foreground hover:text-foreground"
             )}
+            aria-current={active ? "page" : undefined}
           >
-            <Icon name={info.icon} size="sm" />
+            <Icon name={info.icon} size="sm" aria-hidden="true" />
             <span>{info.name}</span>
             {showCounts && (
               <span
                 className={cn(
                   "ml-1 text-xs",
-                  isActive(category)
-                    ? "text-primary-foreground/70"
-                    : "text-muted-foreground"
+                  active ? "text-primary-foreground/70" : "text-muted-foreground"
                 )}
+                aria-label={`${count} components`}
               >
                 ({count})
               </span>

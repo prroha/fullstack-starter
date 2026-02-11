@@ -115,7 +115,12 @@ export function FeatureList({ category }: FeatureListProps) {
   );
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 md:p-6">
+    <div
+      className="flex-1 overflow-y-auto p-4 md:p-6"
+      id="feature-list-panel"
+      role="tabpanel"
+      aria-label={category === "all" ? "All features" : `${category} features`}
+    >
       {/* Header */}
       <div className="mb-6">
         <h2 className="text-lg font-semibold mb-4">
@@ -141,6 +146,8 @@ export function FeatureList({ category }: FeatureListProps) {
             />
             <button
               onClick={() => setShowIncluded(!showIncluded)}
+              aria-pressed={showIncluded}
+              aria-label={showIncluded ? "Showing all features, click to show add-ons only" : "Showing add-ons only, click to show all features"}
               className={`px-4 py-3 min-h-[44px] rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
                 showIncluded
                   ? "bg-primary text-primary-foreground"
@@ -173,7 +180,12 @@ export function FeatureList({ category }: FeatureListProps) {
               </div>
 
               {/* Feature Grid */}
-              <div className="grid gap-3 sm:gap-4 grid-cols-1 md:grid-cols-2">
+              <div
+                className="grid gap-3 sm:gap-4 grid-cols-1 md:grid-cols-2"
+                role="listbox"
+                aria-label={`${moduleName} features`}
+                aria-multiselectable="true"
+              >
                 {features.map((feature) => (
                   <FeatureCard key={feature.slug} feature={feature} />
                 ))}

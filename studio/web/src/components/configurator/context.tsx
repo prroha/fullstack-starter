@@ -6,6 +6,8 @@ import {
   useReducer,
   useCallback,
   useEffect,
+  useMemo,
+  useRef,
   type ReactNode,
 } from "react";
 import type { Feature, Module, PricingTier, PriceCalculation, Template } from "@studio/shared";
@@ -227,13 +229,23 @@ export function ConfiguratorProvider({
       : initialState
   );
 
-  // Create resolver and calculator
-  const resolver = new DependencyResolver(state.features);
-  const calculator = new PricingCalculator(state.features, state.tiers, []);
+  // Create resolver and calculator - memoized to prevent recreation on every render
+  const resolver = useMemo(
+    () => new DependencyResolver(state.features),
+    [state.features]
+  );
+  const calculator = useMemo(
+    () => new PricingCalculator(state.features, state.tiers, []),
+    [state.features, state.tiers]
+  );
+
+  // Track if initial data fetch has been attempted
+  const hasFetchedRef = useRef(false);
 
   // Fetch data if not provided
   useEffect(() => {
-    if (!initialData && state.features.length === 0) {
+    if (!initialData && state.features.length === 0 && !hasFetchedRef.current) {
+      hasFetchedRef.current = true;
       fetchData();
     }
   }, [initialData, state.features.length]);

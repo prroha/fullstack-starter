@@ -12,8 +12,6 @@ import {
   Ban,
   CheckCircle,
   X,
-  ChevronLeft,
-  ChevronRight,
   Loader2,
   AlertTriangle,
   Package,
@@ -21,8 +19,8 @@ import {
   DollarSign,
 } from "lucide-react";
 import { cn, formatCurrency, formatDate } from "@/lib/utils";
-import { API_CONFIG } from "@/lib/constants";
 import { showSuccess, showError } from "@/lib/toast";
+import { adminApi, ApiError, type Customer as ApiCustomer, type PaginationInfo } from "@/lib/api";
 import {
   StatCard,
   Badge,
@@ -37,7 +35,7 @@ import {
   Textarea,
 } from "@/components/ui";
 import { EmptySearch, EmptyList } from "@/components/ui";
-import { AdminPageHeader, AdminFilters, AdminTableSkeleton } from "@/components/admin";
+import { AdminPageHeader, AdminFilters, AdminTableSkeleton, AdminPagination } from "@/components/admin";
 
 // ============================================================================
 // Types
@@ -76,13 +74,6 @@ interface CustomerStats {
   active: number;
   blocked: number;
   newThisMonth: number;
-}
-
-interface PaginationInfo {
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
 }
 
 type StatusFilter = "ALL" | "ACTIVE" | "BLOCKED";
@@ -445,25 +436,17 @@ export default function CustomersPage() {
   const fetchCustomers = useCallback(async () => {
     try {
       setLoading(true);
-      const params = new URLSearchParams();
-      params.set("page", String(currentPage));
-      params.set("limit", String(itemsPerPage));
-      if (searchQuery) params.set("search", searchQuery);
-      if (statusFilter === "BLOCKED") params.set("isBlocked", "true");
-      if (statusFilter === "ACTIVE") params.set("isBlocked", "false");
+      const result = await adminApi.getCustomers({
+        page: currentPage,
+        limit: itemsPerPage,
+        search: searchQuery || undefined,
+        isBlocked: statusFilter === "BLOCKED" ? true : statusFilter === "ACTIVE" ? false : undefined,
+      });
 
-      const response = await fetch(
-        `${API_CONFIG.BASE_URL}/admin/customers?${params.toString()}`,
-        { credentials: "include" }
-      );
-
-      if (!response.ok) throw new Error("Failed to fetch customers");
-
-      const result = await response.json();
-      setCustomers(result.data || []);
-      setPagination(result.pagination || null);
+      setCustomers(result.items as unknown as Customer[]);
+      setPagination(result.pagination);
     } catch (err) {
-      showError(err instanceof Error ? err.message : "Failed to load customers");
+      showError(err instanceof ApiError ? err.message : "Failed to load customers");
     } finally {
       setLoading(false);
     }
@@ -529,17 +512,10 @@ export default function CustomersPage() {
     setIsDrawerOpen(true);
 
     try {
-      const response = await fetch(
-        `${API_CONFIG.BASE_URL}/admin/customers/${customer.id}`,
-        { credentials: "include" }
-      );
-
-      if (!response.ok) throw new Error("Failed to fetch customer details");
-
-      const result = await response.json();
-      setSelectedCustomer(result.data);
+      const customerDetails = await adminApi.getCustomer(customer.id);
+      setSelectedCustomer(customerDetails as unknown as CustomerWithOrders);
     } catch (err) {
-      showError(err instanceof Error ? err.message : "Failed to load customer details");
+      showError(err instanceof ApiError ? err.message : "Failed to load customer details");
     } finally {
       setIsLoadingDetails(false);
     }
@@ -559,17 +535,11 @@ export default function CustomersPage() {
       try {
         const newIsBlocked = !blockDialogCustomer.isBlocked;
 
-        const response = await fetch(
-          `${API_CONFIG.BASE_URL}/admin/customers/${blockDialogCustomer.id}/block`,
-          {
-            method: "PATCH",
-            credentials: "include",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ isBlocked: newIsBlocked, reason }),
-          }
-        );
-
-        if (!response.ok) throw new Error("Failed to update customer status");
+        if (newIsBlocked) {
+          await adminApi.blockCustomer(blockDialogCustomer.id, reason);
+        } else {
+          await adminApi.unblockCustomer(blockDialogCustomer.id);
+        }
 
         // Update customer in list
         setCustomers((prev) =>
@@ -589,7 +559,7 @@ export default function CustomersPage() {
 
         showSuccess(`Customer ${newIsBlocked ? "blocked" : "unblocked"} successfully`);
       } catch (err) {
-        showError(err instanceof Error ? err.message : "Failed to update customer");
+        showError(err instanceof ApiError ? err.message : "Failed to update customer");
       } finally {
         setIsBlocking(false);
         setIsBlockDialogOpen(false);
@@ -626,31 +596,31 @@ export default function CustomersPage() {
       />
 
       {/* Stats Row */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <section aria-label="Customer statistics" className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
           label="Total Customers"
           value={stats.total}
-          icon={<Users className="h-5 w-5" />}
+          icon={<Users className="h-5 w-5" aria-hidden="true" />}
         />
         <StatCard
           label="Active"
           value={stats.active}
-          icon={<UserCheck className="h-5 w-5" />}
+          icon={<UserCheck className="h-5 w-5" aria-hidden="true" />}
           variant="success"
         />
         <StatCard
           label="Blocked"
           value={stats.blocked}
-          icon={<UserX className="h-5 w-5" />}
+          icon={<UserX className="h-5 w-5" aria-hidden="true" />}
           variant="error"
         />
         <StatCard
           label="New This Month"
           value={stats.newThisMonth}
-          icon={<UserPlus className="h-5 w-5" />}
+          icon={<UserPlus className="h-5 w-5" aria-hidden="true" />}
           variant="info"
         />
-      </div>
+      </section>
 
       {/* Filter Bar */}
       <div className="bg-background rounded-lg border p-4">
@@ -772,27 +742,29 @@ export default function CustomersPage() {
                       <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => handleViewCustomer(customer)}
-                          className="p-2 hover:bg-accent rounded-md transition-colors"
-                          title="View Details"
+                          className="p-2 hover:bg-accent rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                          aria-label={`View details for ${customer.name || customer.email}`}
                         >
-                          <Eye className="h-4 w-4 text-muted-foreground" />
+                          <Eye className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
                         </button>
                         <button
                           onClick={() => handleBlockToggle(customer)}
                           className={cn(
-                            "p-2 rounded-md transition-colors",
+                            "p-2 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
                             !customer.isBlocked
                               ? "hover:bg-destructive/10 text-destructive"
                               : "hover:bg-success/10 text-success"
                           )}
-                          title={
-                            !customer.isBlocked ? "Block" : "Unblock"
+                          aria-label={
+                            !customer.isBlocked
+                              ? `Block ${customer.name || customer.email}`
+                              : `Unblock ${customer.name || customer.email}`
                           }
                         >
                           {!customer.isBlocked ? (
-                            <Ban className="h-4 w-4" />
+                            <Ban className="h-4 w-4" aria-hidden="true" />
                           ) : (
-                            <CheckCircle className="h-4 w-4" />
+                            <CheckCircle className="h-4 w-4" aria-hidden="true" />
                           )}
                         </button>
                       </div>
@@ -804,36 +776,14 @@ export default function CustomersPage() {
           </div>
 
           {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between px-4 py-3 border-t">
-              <p className="text-sm text-muted-foreground">
-                Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
-                {Math.min(currentPage * itemsPerPage, pagination?.total || sortedCustomers.length)}{" "}
-                of {pagination?.total || sortedCustomers.length} customers
-              </p>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                  disabled={currentPage === 1}
-                  className="p-2 border rounded-md hover:bg-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </button>
-                <span className="text-sm px-3 py-1 bg-muted rounded-md">
-                  {currentPage} / {totalPages}
-                </span>
-                <button
-                  onClick={() =>
-                    setCurrentPage((prev) => Math.min(totalPages, prev + 1))
-                  }
-                  disabled={currentPage === totalPages}
-                  className="p-2 border rounded-md hover:bg-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-          )}
+          <AdminPagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={pagination?.total || sortedCustomers.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+            itemLabel="customers"
+          />
         </div>
       )}
 

@@ -9,24 +9,50 @@ import React, {
   useMemo,
 } from "react";
 import { API_CONFIG } from "@/lib/constants";
+import { logger } from "@/lib/logger";
 
 // =====================================================
 // Types
 // =====================================================
 
+/** User role types for Studio admin */
+export type StudioUserRole = "USER" | "ADMIN" | "SUPER_ADMIN";
+
+/**
+ * Authenticated user information for the Studio admin panel
+ */
 export interface AuthUser {
+  /** Unique user identifier */
   id: string;
+  /** User email address */
   email: string;
+  /** User display name */
   name: string | null;
-  role: "user" | "admin";
+  /** User role for access control */
+  role: StudioUserRole;
+  /** Whether email is verified */
+  emailVerified?: boolean;
 }
 
+/**
+ * Authentication context value interface
+ */
 interface AuthContextValue {
+  /** Currently authenticated user or null */
   user: AuthUser | null;
+  /** Whether a user is authenticated */
   isAuthenticated: boolean;
+  /** Whether auth state is being loaded */
   isLoading: boolean;
+  /** Whether user has admin access (ADMIN or SUPER_ADMIN) */
+  isAdmin: boolean;
+  /** Whether user is a super admin */
+  isSuperAdmin: boolean;
+  /** Login with email and password */
   login: (email: string, password: string) => Promise<void>;
+  /** Logout and clear session */
   logout: () => Promise<void>;
+  /** Refresh authentication state */
   checkAuth: () => Promise<void>;
 }
 
@@ -44,6 +70,10 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 // Provider
 // =====================================================
 
+/**
+ * AuthProvider - Manages authentication state for Studio admin panel
+ * Uses httpOnly cookies for secure session management
+ */
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -62,11 +92,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (response.ok) {
         const data = await response.json();
         setUser(data.user);
+        logger.debug("Auth", "Auth check successful", { userId: data.user?.id });
       } else {
         setUser(null);
+        logger.debug("Auth", "Auth check failed - no valid session");
       }
     } catch (error) {
-      console.error("Auth check failed:", error);
+      logger.error("Auth", "Auth check failed", error as Error);
       setUser(null);
     } finally {
       setIsLoading(false);
@@ -86,10 +118,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data.message || "Login failed");
+      const errorMessage = data.message || data.error?.message || "Login failed";
+      logger.warn("Auth", "Login failed", { email, error: errorMessage });
+      throw new Error(errorMessage);
     }
 
     setUser(data.user);
+    logger.info("Auth", "Login successful", { userId: data.user?.id });
   }, []);
 
   const logout = useCallback(async () => {
@@ -101,8 +136,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
           "Content-Type": "application/json",
         },
       });
+      logger.info("Auth", "Logout successful");
     } catch (error) {
-      console.error("Logout error:", error);
+      logger.error("Auth", "Logout error", error as Error);
     } finally {
       setUser(null);
     }
@@ -113,16 +149,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
     checkAuth();
   }, [checkAuth]);
 
+  // Compute admin status
+  const isAdmin = user?.role === "ADMIN" || user?.role === "SUPER_ADMIN";
+  const isSuperAdmin = user?.role === "SUPER_ADMIN";
+
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
       isAuthenticated: !!user,
       isLoading,
+      isAdmin,
+      isSuperAdmin,
       login,
       logout,
       checkAuth,
     }),
-    [user, isLoading, login, logout, checkAuth]
+    [user, isLoading, isAdmin, isSuperAdmin, login, logout, checkAuth]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -132,10 +174,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
 // Hook
 // =====================================================
 
+/**
+ * Hook to access authentication context
+ * @throws Error if used outside AuthProvider
+ */
 export function useAuth(): AuthContextValue {
   const context = useContext(AuthContext);
   if (!context) {
     throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
+
 }
