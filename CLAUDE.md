@@ -28,15 +28,16 @@ Use these to quickly find what you need:
 
 <!-- Add new entries at the top -->
 
-| Date       | Change                                                                                            | Files                                                                                       |
-| ---------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| 2026-02-11 | Studio code generator service, preview sessions, cleanup jobs                                     | `studio/backend/src/services/generator.service.ts`, `studio/backend/src/jobs/`              |
-| 2026-02-11 | Documentation updates: Studio web/backend CLAUDE.md files                                         | `studio/CLAUDE.md`, `studio/web/CLAUDE.md`, `studio/backend/CLAUDE.md`                      |
-| 2026-02-10 | Studio MVP: Admin auth, API integration, toast notifications, validation, mobile responsive, a11y | `studio/backend/src/routes/`, `studio/web/src/app/(admin)/`, `studio/web/src/lib/`          |
-| 2026-02-10 | Studio bug fixes: Route ordering, Stripe refunds, API path fixes                                  | `studio/backend/src/routes/admin/`, `studio/backend/src/services/stripe.service.ts`         |
-| 2026-02-09 | Documentation updates, ESLint configuration, skeleton composites                                  | `CLAUDE.md`, `eslint.config.mjs`, `skeleton-composites.tsx`                                 |
-| 2026-02-08 | Admin platform expansion with FAQ, Announcements, Settings, Content, Coupons, Orders modules      | `backend/src/routes/*.routes.ts`, `prisma/schema.prisma`, `web/src/app/(protected)/admin/*` |
-| 2026-02-06 | Initial documentation                                                                             | CLAUDE.md                                                                                   |
+| Date       | Change                                                                                                                                                    | Files                                                                                             |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| 2026-02-12 | Studio: Admin generation page, pricing management (bundles/history/recommendations), enhanced analytics (geo/PDF), PriceHistory model, enhanced seed data | `studio/backend/src/routes/admin/`, `studio/web/src/app/(admin)/admin/`, `studio/backend/prisma/` |
+| 2026-02-11 | Studio code generator service, preview sessions, cleanup jobs                                                                                             | `studio/backend/src/services/generator.service.ts`, `studio/backend/src/jobs/`                    |
+| 2026-02-11 | Documentation updates: Studio web/backend CLAUDE.md files                                                                                                 | `studio/CLAUDE.md`, `studio/web/CLAUDE.md`, `studio/backend/CLAUDE.md`                            |
+| 2026-02-10 | Studio MVP: Admin auth, API integration, toast notifications, validation, mobile responsive, a11y                                                         | `studio/backend/src/routes/`, `studio/web/src/app/(admin)/`, `studio/web/src/lib/`                |
+| 2026-02-10 | Studio bug fixes: Route ordering, Stripe refunds, API path fixes                                                                                          | `studio/backend/src/routes/admin/`, `studio/backend/src/services/stripe.service.ts`               |
+| 2026-02-09 | Documentation updates, ESLint configuration, skeleton composites                                                                                          | `CLAUDE.md`, `eslint.config.mjs`, `skeleton-composites.tsx`                                       |
+| 2026-02-08 | Admin platform expansion with FAQ, Announcements, Settings, Content, Coupons, Orders modules                                                              | `backend/src/routes/*.routes.ts`, `prisma/schema.prisma`, `web/src/app/(protected)/admin/*`       |
+| 2026-02-06 | Initial documentation                                                                                                                                     | CLAUDE.md                                                                                         |
 
 ---
 

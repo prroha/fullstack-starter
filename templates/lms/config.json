@@ -37,7 +37,13 @@
     "ui.admin",
     "analytics.basic",
     "analytics.dashboard",
-    "analytics.export"
+    "analytics.export",
+    "lms.courses",
+    "lms.lessons",
+    "lms.enrollment",
+    "lms.quizzes",
+    "lms.certificates",
+    "lms.instructor"
   ],
   "previewImageUrl": "/images/templates/lms.png",
   "iconName": "GraduationCap",

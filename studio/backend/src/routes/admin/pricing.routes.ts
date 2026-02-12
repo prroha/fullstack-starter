@@ -174,6 +174,25 @@ router.put("/tiers/:tier", async (req, res, next) => {
       data,
     });
 
+    // Track price changes
+    if (data.price !== undefined && data.price !== existing.price) {
+      const changePercent = existing.price > 0
+        ? ((data.price - existing.price) / existing.price) * 100
+        : 100;
+      await prisma.priceHistory.create({
+        data: {
+          entityType: "tier",
+          entityId: tier.id,
+          entitySlug: tier.slug,
+          entityName: tier.name,
+          oldPrice: existing.price,
+          newPrice: data.price,
+          changePercent,
+          changedBy: req.user?.email,
+        },
+      });
+    }
+
     await prisma.studioAuditLog.create({
       data: {
         adminId: req.user?.id,
@@ -413,6 +432,170 @@ router.delete("/bundles/:id", async (req, res, next) => {
     });
 
     sendSuccess(res, null, "Bundle discount deleted");
+  } catch (error) {
+    next(error);
+  }
+});
+
+// =====================================================
+// Price History Routes
+// =====================================================
+
+/**
+ * GET /api/admin/pricing/history
+ * Get price change history
+ */
+router.get("/history", async (req, res, next) => {
+  try {
+    const { page, limit, skip } = parsePaginationParams(
+      req.query as { page?: string; limit?: string }
+    );
+    const { entityType, entitySlug } = req.query;
+
+    const where: Record<string, unknown> = {};
+    if (entityType) where.entityType = entityType as string;
+    if (entitySlug) where.entitySlug = entitySlug as string;
+
+    const [history, total] = await Promise.all([
+      prisma.priceHistory.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.priceHistory.count({ where }),
+    ]);
+
+    sendPaginated(res, history, createPaginationInfo(page, limit, total));
+  } catch (error) {
+    next(error);
+  }
+});
+
+// =====================================================
+// Upgrade Recommendation Rules
+// =====================================================
+
+/**
+ * GET /api/admin/pricing/recommendations
+ * Get upgrade recommendation analysis
+ * Analyzes order data to suggest when customers should be recommended to upgrade tiers
+ */
+router.get("/recommendations", async (_req, res, next) => {
+  try {
+    // Get all completed orders with their features and tiers
+    const orders = await prisma.order.findMany({
+      where: { status: "COMPLETED" },
+      select: {
+        tier: true,
+        selectedFeatures: true,
+        total: true,
+        discount: true,
+      },
+    });
+
+    // Get tiers and features for analysis
+    const [tiers, features] = await Promise.all([
+      prisma.pricingTier.findMany({
+        where: { isActive: true },
+        orderBy: { price: "asc" },
+      }),
+      prisma.feature.findMany({
+        where: { isActive: true },
+        select: { slug: true, name: true, price: true, tier: true },
+      }),
+    ]);
+
+    // Analyze: For each tier, find customers who would save money by upgrading
+    const recommendations = tiers.slice(0, -1).map((currentTier, idx) => {
+      const nextTier = tiers[idx + 1];
+      if (!nextTier) return null;
+
+      // Orders on this tier
+      const tierOrders = orders.filter((o) => o.tier === currentTier.slug);
+      if (tierOrders.length === 0) return null;
+
+      // Calculate how many had enough add-ons that upgrading would save money
+      const nextTierFeatures = new Set(nextTier.includedFeatures);
+      let wouldSaveCount = 0;
+      let totalPotentialSavings = 0;
+
+      tierOrders.forEach((order) => {
+        // Calculate how much they paid in add-on features that are included in next tier
+        const addOnSavings = order.selectedFeatures
+          .filter((slug: string) => nextTierFeatures.has(slug))
+          .reduce((sum: number, slug: string) => {
+            const feature = features.find((f) => f.slug === slug);
+            return sum + (feature?.price || 0);
+          }, 0);
+
+        const upgradeCost = nextTier.price - currentTier.price;
+        if (addOnSavings > upgradeCost) {
+          wouldSaveCount++;
+          totalPotentialSavings += addOnSavings - upgradeCost;
+        }
+      });
+
+      return {
+        fromTier: currentTier.slug,
+        fromTierName: currentTier.name,
+        toTier: nextTier.slug,
+        toTierName: nextTier.name,
+        totalOrders: tierOrders.length,
+        wouldSaveCount,
+        percentWouldSave: tierOrders.length > 0
+          ? Math.round((wouldSaveCount / tierOrders.length) * 100)
+          : 0,
+        avgPotentialSavings: wouldSaveCount > 0
+          ? Math.round(totalPotentialSavings / wouldSaveCount)
+          : 0,
+        upgradeCost: nextTier.price - currentTier.price,
+      };
+    }).filter(Boolean);
+
+    // Most common add-on features per tier (helps set recommendation thresholds)
+    const addOnPatterns = tiers.map((tier) => {
+      const tierOrders = orders.filter((o) => o.tier === tier.slug);
+      const featureCounts = new Map<string, number>();
+
+      tierOrders.forEach((order) => {
+        order.selectedFeatures.forEach((slug: string) => {
+          if (!tier.includedFeatures.includes(slug)) {
+            featureCounts.set(slug, (featureCounts.get(slug) || 0) + 1);
+          }
+        });
+      });
+
+      const topAddOns = Array.from(featureCounts.entries())
+        .map(([slug, count]) => {
+          const feature = features.find((f) => f.slug === slug);
+          return {
+            slug,
+            name: feature?.name || slug,
+            price: feature?.price || 0,
+            count,
+            percentage: tierOrders.length > 0
+              ? Math.round((count / tierOrders.length) * 100)
+              : 0,
+          };
+        })
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 5);
+
+      return {
+        tier: tier.slug,
+        tierName: tier.name,
+        orderCount: tierOrders.length,
+        avgAddOns: tierOrders.length > 0
+          ? (tierOrders.reduce((sum, o) => sum + o.selectedFeatures.filter(
+              (s: string) => !tier.includedFeatures.includes(s)
+            ).length, 0) / tierOrders.length).toFixed(1)
+          : "0",
+        topAddOns,
+      };
+    });
+
+    sendSuccess(res, { recommendations, addOnPatterns });
   } catch (error) {
     next(error);
   }

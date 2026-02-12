@@ -289,18 +289,19 @@ const { hasFeature, hasTier } = useFeatureFlags();
 
 ### Admin Pages
 
-| Page      | Route              | Features                                |
-| --------- | ------------------ | --------------------------------------- |
-| Dashboard | `/admin`           | Stats, charts, recent orders            |
-| Orders    | `/admin/orders`    | List, filter, status, refund, export    |
-| Templates | `/admin/templates` | CRUD, feature selection                 |
-| Features  | `/admin/features`  | CRUD, dependencies, pricing             |
-| Pricing   | `/admin/pricing`   | Tier management, bundle discounts       |
-| Customers | `/admin/customers` | Customer list, search, order history    |
-| Licenses  | `/admin/licenses`  | List, revoke, regenerate download       |
-| Coupons   | `/admin/coupons`   | CRUD, usage tracking                    |
-| Analytics | `/admin/analytics` | Revenue charts, conversion funnel       |
-| Settings  | `/admin/settings`  | Payment, email, download, feature flags |
+| Page      | Route              | Features                                                         |
+| --------- | ------------------ | ---------------------------------------------------------------- |
+| Dashboard | `/admin`           | Stats, charts, recent orders                                     |
+| Orders    | `/admin/orders`    | List, filter, status, refund, export                             |
+| Templates | `/admin/templates` | CRUD, feature selection                                          |
+| Features  | `/admin/features`  | CRUD, dependencies, pricing                                      |
+| Pricing   | `/admin/pricing`   | Tier management, bundles, price history, upgrade recommendations |
+| Customers | `/admin/customers` | Customer list, search, order history                             |
+| Licenses  | `/admin/licenses`  | List, revoke, regenerate download                                |
+| Coupons   | `/admin/coupons`   | CRUD, usage tracking                                             |
+| Analytics | `/admin/analytics` | Revenue, funnel, geo, features, templates, PDF export            |
+| Generate  | `/admin/generate`  | Manual project generation for customers without payment          |
+| Settings  | `/admin/settings`  | Payment, email, download, feature flags                          |
 
 ---
 

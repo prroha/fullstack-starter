@@ -53,7 +53,8 @@ studio/backend/
 │   │       ├── coupons.routes.ts  # Coupon CRUD
 │   │       ├── analytics.routes.ts# Analytics data
 │   │       ├── settings.routes.ts # Platform settings
-│   │       └── uploads.routes.ts  # File uploads
+│   │       ├── uploads.routes.ts  # File uploads
+│   │       └── generation.routes.ts # Manual project generation
 │   ├── services/
 │   │   ├── generator.service.ts   # Project code generator
 │   │   ├── stripe.service.ts      # Stripe payments & refunds
@@ -96,6 +97,7 @@ studio/backend/
 | `StudioAnalytics` | Event tracking for analytics                 |
 | `PreviewSession`  | Preview session tracking                     |
 | `StudioSetting`   | Key-value platform settings                  |
+| `PriceHistory`    | Tracks tier/feature price changes over time  |
 | `StudioAuditLog`  | Admin action audit trail                     |
 
 ### Key Enums
@@ -241,23 +243,39 @@ All admin routes require authentication (JWT in cookie).
 
 #### Pricing
 
-| Method | Endpoint                       | Description           |
-| ------ | ------------------------------ | --------------------- |
-| GET    | `/api/admin/pricing/tiers`     | List tiers            |
-| POST   | `/api/admin/pricing/tiers`     | Create tier           |
-| PATCH  | `/api/admin/pricing/tiers/:id` | Update tier           |
-| DELETE | `/api/admin/pricing/tiers/:id` | Delete tier           |
-| GET    | `/api/admin/pricing/bundles`   | List bundle discounts |
-| POST   | `/api/admin/pricing/bundles`   | Create bundle         |
+| Method | Endpoint                                | Description             |
+| ------ | --------------------------------------- | ----------------------- |
+| GET    | `/api/admin/pricing/tiers`              | List tiers with stats   |
+| GET    | `/api/admin/pricing/tiers/:tier`        | Get tier details        |
+| PUT    | `/api/admin/pricing/tiers/:tier`        | Update tier             |
+| PATCH  | `/api/admin/pricing/tiers/:tier/toggle` | Toggle tier active      |
+| PUT    | `/api/admin/pricing/tiers/reorder`      | Reorder tiers           |
+| GET    | `/api/admin/pricing/bundles`            | List bundle discounts   |
+| GET    | `/api/admin/pricing/bundles/:id`        | Get bundle details      |
+| POST   | `/api/admin/pricing/bundles`            | Create bundle           |
+| PUT    | `/api/admin/pricing/bundles/:id`        | Update bundle           |
+| PATCH  | `/api/admin/pricing/bundles/:id/toggle` | Toggle bundle active    |
+| DELETE | `/api/admin/pricing/bundles/:id`        | Delete bundle           |
+| GET    | `/api/admin/pricing/history`            | Price change history    |
+| GET    | `/api/admin/pricing/recommendations`    | Upgrade recommendations |
 
 #### Analytics
 
-| Method | Endpoint                            | Description       |
-| ------ | ----------------------------------- | ----------------- |
-| GET    | `/api/admin/analytics/revenue`      | Revenue over time |
-| GET    | `/api/admin/analytics/funnel`       | Conversion funnel |
-| GET    | `/api/admin/analytics/top-features` | Popular features  |
-| GET    | `/api/admin/analytics/events`       | Event log         |
+| Method | Endpoint                          | Description          |
+| ------ | --------------------------------- | -------------------- |
+| GET    | `/api/admin/analytics/revenue`    | Revenue over time    |
+| GET    | `/api/admin/analytics/features`   | Popular features     |
+| GET    | `/api/admin/analytics/funnel`     | Conversion funnel    |
+| GET    | `/api/admin/analytics/templates`  | Template performance |
+| GET    | `/api/admin/analytics/geo`        | Geographic analytics |
+| GET    | `/api/admin/analytics/export/pdf` | Export analytics PDF |
+
+#### Generation
+
+| Method | Endpoint                      | Description                   |
+| ------ | ----------------------------- | ----------------------------- |
+| POST   | `/api/admin/generate`         | Generate project for customer |
+| GET    | `/api/admin/generate/options` | Get available tiers/features  |
 
 #### Settings
 

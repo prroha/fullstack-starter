@@ -19,6 +19,7 @@ import {
   ChevronLeft,
   LogOut,
   Loader2,
+  Wand2,
 } from "lucide-react";
 import { Toaster } from "sonner";
 import { cn } from "@/lib/utils";
@@ -34,6 +35,7 @@ const navItems = [
   { href: "/admin/coupons", label: "Coupons", icon: Ticket },
   { href: "/admin/pricing", label: "Pricing", icon: Tag },
   { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/admin/generate", label: "Generate", icon: Wand2 },
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 

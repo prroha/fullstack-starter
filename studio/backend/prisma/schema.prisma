@@ -425,6 +425,37 @@ model StudioSetting {
 }
 
 // =====================================================
+// Price History (tracks tier/feature price changes)
+// =====================================================
+
+model PriceHistory {
+  id              String    @id @default(cuid())
+
+  // What changed
+  entityType      String    // "tier" or "feature"
+  entityId        String    // PricingTier ID or Feature ID
+  entitySlug      String    // Slug for display
+  entityName      String    // Name for display
+
+  // Price change
+  oldPrice        Int       // in cents
+  newPrice        Int       // in cents
+  changePercent   Float     // percentage change
+
+  // Who changed it
+  changedBy       String?   // Admin email
+  reason          String?   // Optional reason for change
+
+  // Timestamps
+  createdAt       DateTime  @default(now())
+
+  @@index([entityType])
+  @@index([entitySlug])
+  @@index([createdAt])
+  @@map("price_history")
+}
+
+// =====================================================
 // Audit Log (for admin actions)
 // =====================================================
 

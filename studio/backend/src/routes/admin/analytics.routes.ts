@@ -213,25 +213,75 @@ router.get("/templates", async (_req, res, next) => {
 
 /**
  * GET /api/admin/analytics/geo
- * Geographic distribution
+ * Geographic distribution analytics
+ * Aggregates geographic data from analytics events that contain country info
  */
-router.get("/geo", async (_req, res, next) => {
+router.get("/geo", async (req, res, next) => {
   try {
-    // This would require IP geolocation - for now return placeholder
-    // In production, you'd use a service like MaxMind or ipinfo.io
+    const { period = "30d" } = req.query;
+    const days = period === "7d" ? 7 : period === "90d" ? 90 : period === "1y" ? 365 : 30;
 
-    const ordersByCountry = await prisma.studioAnalytics.groupBy({
-      by: ["data"],
-      _count: { id: true },
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+    startDate.setHours(0, 0, 0, 0);
+
+    // Get analytics events that have country data in their JSON data field
+    const events = await prisma.studioAnalytics.findMany({
       where: {
-        event: "purchase",
-        data: { path: ["country"], not: { equals: {} } },
+        createdAt: { gte: startDate },
+        data: { not: { equals: null } },
       },
+      select: { data: true, event: true },
     });
 
+    // Extract and count countries from event data
+    const countryCounts = new Map<string, { visits: number; purchases: number; revenue: number }>();
+
+    for (const event of events) {
+      const data = event.data as Record<string, unknown> | null;
+      if (!data) continue;
+
+      const geo = data.geo as Record<string, unknown> | undefined;
+      const country = (data.country as string) || (geo?.country as string) || null;
+      if (!country) continue;
+
+      const existing = countryCounts.get(country) || { visits: 0, purchases: 0, revenue: 0 };
+
+      if (event.event === "purchase" || event.event === "checkout_complete") {
+        existing.purchases++;
+        existing.revenue += (data.amount as number) || 0;
+      } else {
+        existing.visits++;
+      }
+
+      countryCounts.set(country, existing);
+    }
+
+    // Convert to sorted array
+    const countries = Array.from(countryCounts.entries())
+      .map(([country, stats]) => ({
+        country,
+        countryCode: country,
+        visits: stats.visits,
+        purchases: stats.purchases,
+        revenue: stats.revenue,
+        conversionRate: stats.visits > 0
+          ? ((stats.purchases / stats.visits) * 100).toFixed(1)
+          : "0",
+      }))
+      .sort((a, b) => b.revenue - a.revenue || b.visits - a.visits);
+
+    const totalVisits = countries.reduce((s, c) => s + c.visits, 0);
+    const totalPurchases = countries.reduce((s, c) => s + c.purchases, 0);
+    const totalRevenue = countries.reduce((s, c) => s + c.revenue, 0);
+
     sendSuccess(res, {
-      note: "Geographic analytics requires IP geolocation service integration",
-      data: ordersByCountry,
+      countries,
+      totalCountries: countries.length,
+      totalVisits,
+      totalPurchases,
+      totalRevenue,
+      hasData: countries.length > 0,
     });
   } catch (error) {
     next(error);

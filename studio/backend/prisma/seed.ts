@@ -9,7 +9,7 @@
  * - Bundle Discounts (3 promotional bundles)
  */
 
-import { PrismaClient, CouponType } from "@prisma/client";
+import { PrismaClient, CouponType, Prisma } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -71,6 +71,7 @@ const pricingTiers = [
       "analytics.basic",
       "analytics.dashboard",
       "mobile.core",
+      "admin.panel",
     ],
     isPopular: true,
     displayOrder: 3,
@@ -108,6 +109,10 @@ const pricingTiers = [
       "mobile.push",
       "infra.docker",
       "integrations.webhooks",
+      "admin.panel",
+      "admin.audit",
+      "admin.rbac",
+      "admin.analytics",
     ],
     isPopular: false,
     displayOrder: 4,
@@ -158,6 +163,11 @@ const pricingTiers = [
       "integrations.webhooks",
       "integrations.api",
       "integrations.zapier",
+      "admin.panel",
+      "admin.audit",
+      "admin.rbac",
+      "admin.impersonation",
+      "admin.analytics",
     ],
     isPopular: false,
     displayOrder: 5,
@@ -248,6 +258,22 @@ const modules = [
     category: "integrations",
     iconName: "Puzzle",
     displayOrder: 10,
+  },
+  {
+    slug: "admin",
+    name: "Administration",
+    description: "Admin dashboard, user management, role-based access control, audit logging, and analytics for administrators.",
+    category: "admin",
+    iconName: "Settings",
+    displayOrder: 11,
+  },
+  {
+    slug: "lms",
+    name: "Learning Management",
+    description: "Complete LMS with courses, lessons, quizzes, certificates, enrollment tracking, and instructor dashboard.",
+    category: "education",
+    iconName: "GraduationCap",
+    displayOrder: 12,
   },
 ];
 
@@ -358,7 +384,22 @@ const features: FeatureData[] = [
     envVars: [
       { key: "MFA_ISSUER", description: "App name displayed in authenticator apps", required: true },
     ],
-    npmPackages: [{ name: "otplib", version: "^12.0.1" }],
+    npmPackages: [
+      { name: "otplib", version: "^12.0.1" },
+      { name: "qrcode", version: "^1.5.3" },
+    ],
+    fileMappings: [
+      // Note: MFA module source files to be created
+      { source: "modules/mfa/backend/src/routes/mfa.routes.ts", destination: "backend/src/routes/mfa.routes.ts" },
+      { source: "modules/mfa/backend/src/services/mfa.service.ts", destination: "backend/src/services/mfa.service.ts" },
+      { source: "modules/mfa/backend/src/controllers/mfa.controller.ts", destination: "backend/src/controllers/mfa.controller.ts" },
+      { source: "modules/mfa/web/src/components/mfa-setup.tsx", destination: "web/src/components/mfa-setup.tsx" },
+      { source: "modules/mfa/web/src/components/mfa-verify.tsx", destination: "web/src/components/mfa-verify.tsx" },
+    ],
+    schemaMappings: [
+      { model: "MfaToken", source: "modules/mfa/prisma/mfa.prisma" },
+      { model: "BackupCode", source: "modules/mfa/prisma/mfa.prisma" },
+    ],
   },
   {
     slug: "auth.sso",
@@ -377,10 +418,26 @@ const features: FeatureData[] = [
       { key: "SSO_DOMAIN", description: "SSO identity provider domain", required: true },
       { key: "SSO_CLIENT_ID", description: "SSO client ID", required: true },
       { key: "SSO_CLIENT_SECRET", description: "SSO client secret", required: true },
+      { key: "SSO_CALLBACK_URL", description: "SSO callback URL after authentication", required: true },
+      { key: "SAML_CERT", description: "SAML identity provider certificate", required: false },
     ],
     npmPackages: [
       { name: "passport", version: "^0.7.0" },
       { name: "passport-saml", version: "^4.0.0" },
+      { name: "openid-client", version: "^5.6.0" },
+    ],
+    fileMappings: [
+      // Note: SSO module source files to be created
+      { source: "modules/sso/backend/src/routes/sso.routes.ts", destination: "backend/src/routes/sso.routes.ts" },
+      { source: "modules/sso/backend/src/services/sso.service.ts", destination: "backend/src/services/sso.service.ts" },
+      { source: "modules/sso/backend/src/controllers/sso.controller.ts", destination: "backend/src/controllers/sso.controller.ts" },
+      { source: "modules/sso/backend/src/config/saml.config.ts", destination: "backend/src/config/saml.config.ts" },
+      { source: "modules/sso/web/src/app/(auth)/sso/page.tsx", destination: "web/src/app/(auth)/sso/page.tsx" },
+      { source: "modules/sso/web/src/components/sso-login-button.tsx", destination: "web/src/components/sso-login-button.tsx" },
+    ],
+    schemaMappings: [
+      { model: "SsoProvider", source: "modules/sso/prisma/sso.prisma" },
+      { model: "SsoSession", source: "modules/sso/prisma/sso.prisma" },
     ],
   },
   {
@@ -399,6 +456,22 @@ const features: FeatureData[] = [
     envVars: [
       { key: "MAGIC_LINK_SECRET", description: "Secret key for signing magic link tokens", required: true },
       { key: "MAGIC_LINK_EXPIRY", description: "Magic link expiration time", required: false, default: "15m" },
+      { key: "MAGIC_LINK_BASE_URL", description: "Base URL for magic link verification", required: true },
+    ],
+    npmPackages: [
+      { name: "jsonwebtoken", version: "^9.0.0" },
+    ],
+    fileMappings: [
+      // Note: Magic link module source files to be created
+      { source: "modules/magic-link/backend/src/routes/magic-link.routes.ts", destination: "backend/src/routes/magic-link.routes.ts" },
+      { source: "modules/magic-link/backend/src/services/magic-link.service.ts", destination: "backend/src/services/magic-link.service.ts" },
+      { source: "modules/magic-link/backend/src/controllers/magic-link.controller.ts", destination: "backend/src/controllers/magic-link.controller.ts" },
+      { source: "modules/magic-link/web/src/app/(auth)/magic-link/page.tsx", destination: "web/src/app/(auth)/magic-link/page.tsx" },
+      { source: "modules/magic-link/web/src/app/(auth)/magic-link/verify/page.tsx", destination: "web/src/app/(auth)/magic-link/verify/page.tsx" },
+      { source: "modules/magic-link/web/src/components/magic-link-form.tsx", destination: "web/src/components/magic-link-form.tsx" },
+    ],
+    schemaMappings: [
+      { model: "MagicLinkToken", source: "modules/magic-link/prisma/magic-link.prisma" },
     ],
   },
 
@@ -419,6 +492,16 @@ const features: FeatureData[] = [
     envVars: [
       { key: "DEFAULT_ADMIN_EMAIL", description: "Default admin user email for seeding", required: false },
       { key: "DEFAULT_ADMIN_PASSWORD", description: "Default admin user password for seeding", required: false },
+      { key: "RBAC_CACHE_TTL", description: "Permission cache TTL in seconds", required: false, default: "300" },
+    ],
+    fileMappings: [
+      { source: "core/backend/src/middleware/auth.middleware.ts", destination: "backend/src/middleware/auth.middleware.ts" },
+      { source: "modules/admin-dashboard/backend/src/routes/admin.routes.ts", destination: "backend/src/routes/admin.routes.ts" },
+      { source: "modules/admin-dashboard/backend/src/controllers/admin.controller.ts", destination: "backend/src/controllers/admin.controller.ts" },
+    ],
+    schemaMappings: [
+      { model: "Role", source: "modules/rbac/prisma/rbac.prisma" },
+      { model: "Permission", source: "modules/rbac/prisma/rbac.prisma" },
     ],
   },
   {
@@ -434,13 +517,22 @@ const features: FeatureData[] = [
     displayOrder: 2,
     isNew: false,
     isPopular: false,
+    envVars: [
+      { key: "AUDIT_LOG_ENABLED", description: "Enable or disable audit logging", required: false, default: "true" },
+      { key: "AUDIT_LOG_RETENTION_DAYS", description: "Number of days to retain audit logs", required: false, default: "365" },
+      { key: "AUDIT_LOG_LEVELS", description: "Comma-separated list of log levels to capture", required: false, default: "info,warning,error,security" },
+    ],
     fileMappings: [
       { source: "modules/audit-log/backend/src/routes/audit.routes.ts", destination: "backend/src/routes/audit.routes.ts" },
       { source: "modules/audit-log/backend/src/services/audit.service.ts", destination: "backend/src/services/audit.service.ts" },
       { source: "modules/audit-log/backend/src/middleware/audit.middleware.ts", destination: "backend/src/middleware/audit.middleware.ts" },
       { source: "modules/audit-log/web/src/app/admin/audit-logs/page.tsx", destination: "web/src/app/(protected)/admin/audit-logs/page.tsx" },
+      { source: "modules/audit-log/mobile/lib/core/services/audit_service.dart", destination: "mobile/lib/core/services/audit_service.dart" },
+      { source: "modules/audit-log/mobile/lib/presentation/screens/audit_logs_screen.dart", destination: "mobile/lib/presentation/screens/admin/audit_logs_screen.dart" },
     ],
-    // Note: AuditLog model is already included in core schema, no separate schema mapping needed
+    schemaMappings: [
+      { model: "AuditLog", source: "modules/audit-log/prisma/audit-log.prisma" },
+    ],
   },
   {
     slug: "security.encryption",
@@ -458,8 +550,18 @@ const features: FeatureData[] = [
     envVars: [
       { key: "ENCRYPTION_KEY", description: "Master encryption key for data encryption", required: true },
       { key: "ENCRYPTION_ALGORITHM", description: "Encryption algorithm to use", required: false, default: "aes-256-gcm" },
+      { key: "ENCRYPTION_KEY_ROTATION_DAYS", description: "Days between automatic key rotation", required: false, default: "90" },
     ],
     npmPackages: [{ name: "crypto-js", version: "^4.2.0" }],
+    fileMappings: [
+      // Note: Encryption module source files to be created
+      { source: "modules/encryption/backend/src/services/encryption.service.ts", destination: "backend/src/services/encryption.service.ts" },
+      { source: "modules/encryption/backend/src/middleware/encryption.middleware.ts", destination: "backend/src/middleware/encryption.middleware.ts" },
+      { source: "modules/encryption/backend/src/utils/key-management.ts", destination: "backend/src/utils/key-management.ts" },
+    ],
+    schemaMappings: [
+      { model: "EncryptionKey", source: "modules/encryption/prisma/encryption.prisma" },
+    ],
   },
 
   // PAYMENTS MODULE
@@ -503,6 +605,14 @@ const features: FeatureData[] = [
     envVars: [
       { key: "STRIPE_WEBHOOK_SECRET", description: "Stripe webhook signing secret", required: true },
     ],
+    fileMappings: [
+      { source: "modules/payments/backend/src/routes/webhook.routes.ts", destination: "backend/src/routes/webhook.routes.ts" },
+      { source: "modules/payments/backend/src/services/webhook.service.ts", destination: "backend/src/services/webhook.service.ts" },
+      { source: "modules/payments/backend/src/controllers/webhook.controller.ts", destination: "backend/src/controllers/webhook.controller.ts" },
+    ],
+    schemaMappings: [
+      { model: "WebhookEvent", source: "modules/payments/prisma/payments.prisma" },
+    ],
   },
   {
     slug: "payments.subscriptions",
@@ -524,6 +634,18 @@ const features: FeatureData[] = [
       { key: "SUBSCRIPTION_TRIAL_DAYS", description: "Number of trial days for new subscriptions", required: false, default: "14" },
     ],
     npmPackages: [{ name: "stripe", version: "^14.0.0" }],
+    fileMappings: [
+      { source: "modules/payments/backend/src/routes/subscription.routes.ts", destination: "backend/src/routes/subscription.routes.ts" },
+      { source: "modules/payments/backend/src/services/subscription.service.ts", destination: "backend/src/services/subscription.service.ts" },
+      { source: "modules/payments/backend/src/controllers/subscription.controller.ts", destination: "backend/src/controllers/subscription.controller.ts" },
+      { source: "modules/payments/web/src/app/subscription", destination: "web/src/app/subscription" },
+      { source: "modules/payments/web/src/components/subscription-plans.tsx", destination: "web/src/components/subscription-plans.tsx" },
+      { source: "modules/payments/web/src/components/billing-portal-button.tsx", destination: "web/src/components/billing-portal-button.tsx" },
+    ],
+    schemaMappings: [
+      { model: "Subscription", source: "modules/payments/prisma/payments.prisma" },
+      { model: "SubscriptionPlan", source: "modules/payments/prisma/payments.prisma" },
+    ],
   },
   {
     slug: "payments.multi-currency",
@@ -538,6 +660,26 @@ const features: FeatureData[] = [
     displayOrder: 4,
     isNew: true,
     isPopular: false,
+    envVars: [
+      { key: "DEFAULT_CURRENCY", description: "Default currency for pricing", required: false, default: "USD" },
+      { key: "SUPPORTED_CURRENCIES", description: "Comma-separated list of supported currencies", required: false, default: "USD,EUR,GBP,CAD,AUD" },
+      { key: "EXCHANGE_RATE_API_KEY", description: "API key for exchange rate provider", required: false },
+    ],
+    npmPackages: [
+      { name: "stripe", version: "^14.0.0" },
+      { name: "currency.js", version: "^2.0.4" },
+    ],
+    fileMappings: [
+      // Note: Multi-currency module source files to be created
+      { source: "modules/multi-currency/backend/src/services/currency.service.ts", destination: "backend/src/services/currency.service.ts" },
+      { source: "modules/multi-currency/backend/src/utils/exchange-rates.ts", destination: "backend/src/utils/exchange-rates.ts" },
+      { source: "modules/multi-currency/web/src/components/currency-selector.tsx", destination: "web/src/components/currency-selector.tsx" },
+      { source: "modules/multi-currency/web/src/hooks/use-currency.ts", destination: "web/src/hooks/use-currency.ts" },
+    ],
+    schemaMappings: [
+      { model: "CurrencyRate", source: "modules/multi-currency/prisma/multi-currency.prisma" },
+      { model: "PriceOverride", source: "modules/multi-currency/prisma/multi-currency.prisma" },
+    ],
   },
 
   // STORAGE MODULE
@@ -554,6 +696,14 @@ const features: FeatureData[] = [
     displayOrder: 1,
     isNew: false,
     isPopular: false,
+    envVars: [
+      { key: "LOCAL_STORAGE_PATH", description: "Path for local file storage", required: false, default: "./uploads" },
+      { key: "MAX_FILE_SIZE", description: "Maximum file size in bytes", required: false, default: "10485760" },
+    ],
+    fileMappings: [
+      { source: "core/backend/src/services/local-storage.service.ts", destination: "backend/src/services/local-storage.service.ts" },
+      { source: "core/backend/src/utils/file-utils.ts", destination: "backend/src/utils/file-utils.ts" },
+    ],
   },
   {
     slug: "storage.upload",
@@ -598,6 +748,11 @@ const features: FeatureData[] = [
       { key: "AWS_REGION", description: "AWS region", required: false, default: "us-east-1" },
     ],
     npmPackages: [{ name: "@aws-sdk/client-s3", version: "^3.0.0" }],
+    fileMappings: [
+      { source: "modules/file-upload/backend/src/services/s3-storage.service.ts", destination: "backend/src/services/s3-storage.service.ts" },
+      { source: "modules/file-upload/backend/src/utils/presigned-url.ts", destination: "backend/src/utils/presigned-url.ts" },
+      { source: "modules/file-upload/backend/src/config/aws.config.ts", destination: "backend/src/config/aws.config.ts" },
+    ],
   },
   {
     slug: "storage.cdn",
@@ -615,6 +770,15 @@ const features: FeatureData[] = [
     envVars: [
       { key: "CDN_URL", description: "CDN base URL for serving assets", required: true },
       { key: "CDN_API_KEY", description: "CDN provider API key for cache invalidation", required: false },
+      { key: "CDN_DISTRIBUTION_ID", description: "CloudFront distribution ID for cache invalidation", required: false },
+    ],
+    npmPackages: [
+      { name: "@aws-sdk/client-cloudfront", version: "^3.0.0" },
+    ],
+    fileMappings: [
+      // Note: CDN module source files to be created
+      { source: "modules/cdn/backend/src/services/cdn.service.ts", destination: "backend/src/services/cdn.service.ts" },
+      { source: "modules/cdn/backend/src/utils/cdn-utils.ts", destination: "backend/src/utils/cdn-utils.ts" },
     ],
   },
   {
@@ -635,13 +799,26 @@ const features: FeatureData[] = [
       { key: "BACKUP_RETENTION_DAYS", description: "Number of days to retain backups", required: false, default: "30" },
       { key: "BACKUP_S3_BUCKET", description: "S3 bucket name for storing backups", required: true },
     ],
+    npmPackages: [
+      { name: "node-cron", version: "^3.0.3" },
+      { name: "@aws-sdk/client-s3", version: "^3.0.0" },
+    ],
+    fileMappings: [
+      { source: "modules/backup/backend/src/services/backup.service.ts", destination: "backend/src/services/backup.service.ts" },
+      { source: "modules/backup/backend/src/jobs/backup.job.ts", destination: "backend/src/jobs/backup.job.ts" },
+      { source: "modules/backup/backend/src/routes/backup.routes.ts", destination: "backend/src/routes/backup.routes.ts" },
+      { source: "modules/backup/backend/src/utils/backup-utils.ts", destination: "backend/src/utils/backup-utils.ts" },
+    ],
+    schemaMappings: [
+      { model: "BackupRecord", source: "modules/backup/prisma/backup.prisma" },
+    ],
   },
 
   // COMMUNICATIONS MODULE
   {
     slug: "comms.email",
     name: "Email Service",
-    description: "Transactional email with templates, scheduling, and delivery tracking.",
+    description: "Transactional email with Resend integration, templates, and delivery tracking.",
     moduleSlug: "comms",
     price: 2900, // $29
     tier: "pro",
@@ -652,23 +829,30 @@ const features: FeatureData[] = [
     isNew: false,
     isPopular: true,
     envVars: [
-      { key: "SMTP_HOST", description: "SMTP server host", required: true },
-      { key: "SMTP_PORT", description: "SMTP server port", required: true },
-      { key: "SMTP_USER", description: "SMTP username", required: true },
-      { key: "SMTP_PASS", description: "SMTP password", required: true },
+      { key: "RESEND_API_KEY", description: "Resend API key for sending emails", required: true },
+      { key: "EMAIL_FROM", description: "Default sender email address", required: true },
+      { key: "EMAIL_REPLY_TO", description: "Default reply-to email address", required: false },
     ],
-    npmPackages: [{ name: "nodemailer", version: "^6.9.0" }],
+    npmPackages: [
+      { name: "resend", version: "^3.0.0" },
+    ],
     fileMappings: [
       { source: "modules/email/backend/src/routes/email.routes.ts", destination: "backend/src/routes/email.routes.ts" },
       { source: "modules/email/backend/src/services/email.service.ts", destination: "backend/src/services/email.service.ts" },
+      { source: "modules/email/backend/src/templates/welcome.html", destination: "backend/src/templates/email/welcome.html" },
+      { source: "modules/email/backend/src/templates/password-reset.html", destination: "backend/src/templates/email/password-reset.html" },
+      { source: "modules/email/backend/src/templates/notification.html", destination: "backend/src/templates/email/notification.html" },
       { source: "modules/email/web/src/components/email-template-preview.tsx", destination: "web/src/components/email-template-preview.tsx" },
       { source: "modules/email/web/src/lib/email.ts", destination: "web/src/lib/email.ts" },
+    ],
+    schemaMappings: [
+      { model: "EmailLog", source: "modules/email/prisma/email.prisma" },
     ],
   },
   {
     slug: "comms.push",
     name: "Push Notifications",
-    description: "Web and mobile push notifications with segmentation and scheduling.",
+    description: "Web and mobile push notifications via Firebase Cloud Messaging with segmentation and scheduling.",
     moduleSlug: "comms",
     price: 2900, // $29
     tier: "business",
@@ -678,12 +862,26 @@ const features: FeatureData[] = [
     displayOrder: 2,
     isNew: false,
     isPopular: false,
-    npmPackages: [{ name: "web-push", version: "^3.6.0" }],
+    envVars: [
+      { key: "FIREBASE_PROJECT_ID", description: "Firebase project ID", required: true },
+      { key: "FIREBASE_PRIVATE_KEY", description: "Firebase service account private key", required: true },
+      { key: "FIREBASE_CLIENT_EMAIL", description: "Firebase service account client email", required: true },
+      { key: "FIREBASE_DATABASE_URL", description: "Firebase Realtime Database URL", required: false },
+    ],
+    npmPackages: [
+      { name: "firebase-admin", version: "^12.0.0" },
+    ],
     fileMappings: [
       { source: "modules/push-notifications/backend/src/routes/notifications.routes.ts", destination: "backend/src/routes/notifications.routes.ts" },
       { source: "modules/push-notifications/backend/src/services/push.service.ts", destination: "backend/src/services/push.service.ts" },
       { source: "modules/push-notifications/backend/src/services/device.service.ts", destination: "backend/src/services/device.service.ts" },
       { source: "modules/push-notifications/web/src/lib/push-notifications.ts", destination: "web/src/lib/push-notifications.ts" },
+      { source: "modules/push-notifications/mobile/lib/core/services/push_notification_service.dart", destination: "mobile/lib/core/services/push_notification_service.dart" },
+      { source: "modules/push-notifications/mobile/lib/presentation/providers/notification_provider.dart", destination: "mobile/lib/presentation/providers/notification_provider.dart" },
+    ],
+    schemaMappings: [
+      { model: "PushDevice", source: "modules/push-notifications/prisma/push.prisma" },
+      { model: "PushNotification", source: "modules/push-notifications/prisma/push.prisma" },
     ],
   },
   {
@@ -705,10 +903,19 @@ const features: FeatureData[] = [
       { key: "TWILIO_PHONE_NUMBER", description: "Twilio phone number", required: true },
     ],
     npmPackages: [{ name: "twilio", version: "^4.0.0" }],
+    fileMappings: [
+      { source: "modules/sms/backend/src/routes/sms.routes.ts", destination: "backend/src/routes/sms.routes.ts" },
+      { source: "modules/sms/backend/src/services/sms.service.ts", destination: "backend/src/services/sms.service.ts" },
+      { source: "modules/sms/backend/src/controllers/sms.controller.ts", destination: "backend/src/controllers/sms.controller.ts" },
+      { source: "modules/sms/backend/src/templates/sms-templates.ts", destination: "backend/src/templates/sms/sms-templates.ts" },
+    ],
+    schemaMappings: [
+      { model: "SmsLog", source: "modules/sms/prisma/sms.prisma" },
+    ],
   },
   {
-    slug: "comms.realtime",
-    name: "Real-time Messaging",
+    slug: "comms.websocket",
+    name: "WebSocket Real-time",
     description: "WebSocket-based real-time communication for chat, notifications, and live updates.",
     moduleSlug: "comms",
     price: 3900, // $39
@@ -719,13 +926,56 @@ const features: FeatureData[] = [
     displayOrder: 4,
     isNew: true,
     isPopular: true,
-    npmPackages: [{ name: "socket.io", version: "^4.7.0" }],
+    envVars: [
+      { key: "SOCKET_CORS_ORIGIN", description: "Allowed CORS origins for WebSocket connections", required: false, default: "http://localhost:3000" },
+      { key: "SOCKET_PATH", description: "Socket.IO server path", required: false, default: "/socket.io" },
+    ],
+    npmPackages: [
+      { name: "socket.io", version: "^4.7.0" },
+      { name: "socket.io-client", version: "^4.7.0" },
+    ],
     fileMappings: [
       { source: "modules/real-time/backend/src/lib/socket.ts", destination: "backend/src/lib/socket.ts" },
       { source: "modules/real-time/web/src/lib/socket.ts", destination: "web/src/lib/socket.ts" },
       { source: "modules/real-time/web/src/hooks/use-socket.ts", destination: "web/src/hooks/use-socket.ts" },
       { source: "modules/real-time/web/src/components/chat-widget.tsx", destination: "web/src/components/chat-widget.tsx" },
       { source: "modules/real-time/web/src/components/presence-indicator.tsx", destination: "web/src/components/presence-indicator.tsx" },
+      { source: "modules/real-time/mobile/lib/core/services/socket_service.dart", destination: "mobile/lib/core/services/socket_service.dart" },
+      { source: "modules/real-time/mobile/lib/presentation/providers/socket_provider.dart", destination: "mobile/lib/presentation/providers/socket_provider.dart" },
+      { source: "modules/real-time/mobile/lib/presentation/widgets/chat_widget.dart", destination: "mobile/lib/presentation/widgets/chat_widget.dart" },
+    ],
+    schemaMappings: [
+      { model: "Message", source: "modules/real-time/prisma/messaging.prisma" },
+      { model: "ChatRoom", source: "modules/real-time/prisma/messaging.prisma" },
+    ],
+  },
+  {
+    slug: "comms.in-app",
+    name: "In-App Notifications",
+    description: "In-app notification system with read status, notification center, and user preferences.",
+    moduleSlug: "comms",
+    price: 1900, // $19
+    tier: "pro",
+    requires: [],
+    conflicts: [],
+    iconName: "BellDot",
+    displayOrder: 5,
+    isNew: true,
+    isPopular: false,
+    envVars: [
+      { key: "NOTIFICATION_RETENTION_DAYS", description: "Number of days to retain notifications", required: false, default: "30" },
+    ],
+    npmPackages: [],
+    fileMappings: [
+      { source: "modules/in-app-notifications/backend/src/routes/notifications.routes.ts", destination: "backend/src/routes/in-app-notifications.routes.ts" },
+      { source: "modules/in-app-notifications/backend/src/services/notification.service.ts", destination: "backend/src/services/in-app-notification.service.ts" },
+      { source: "modules/in-app-notifications/web/src/components/notification-center.tsx", destination: "web/src/components/notification-center.tsx" },
+      { source: "modules/in-app-notifications/web/src/components/notification-bell.tsx", destination: "web/src/components/notification-bell.tsx" },
+      { source: "modules/in-app-notifications/web/src/hooks/use-notifications.ts", destination: "web/src/hooks/use-notifications.ts" },
+    ],
+    schemaMappings: [
+      { model: "Notification", source: "core/backend/prisma/schema.prisma" },
+      { model: "NotificationType", source: "core/backend/prisma/schema.prisma" },
     ],
   },
 
@@ -743,20 +993,48 @@ const features: FeatureData[] = [
     displayOrder: 1,
     isNew: false,
     isPopular: true,
-  },
-  {
-    slug: "ui.themes",
-    name: "Theme System",
-    description: "Dark/light mode with customizable color schemes and design tokens.",
-    moduleSlug: "ui",
-    price: 1900, // $19
-    tier: "basic",
-    requires: ["ui.components"],
-    conflicts: [],
-    iconName: "Palette",
-    displayOrder: 2,
-    isNew: false,
-    isPopular: true,
+    npmPackages: [
+      { name: "clsx", version: "^2.1.0" },
+      { name: "tailwind-merge", version: "^2.2.0" },
+      { name: "class-variance-authority", version: "^0.7.0" },
+      { name: "lucide-react", version: "^0.400.0" },
+      { name: "@radix-ui/react-dialog", version: "^1.0.5" },
+      { name: "@radix-ui/react-dropdown-menu", version: "^2.0.6" },
+      { name: "@radix-ui/react-popover", version: "^1.0.7" },
+      { name: "@radix-ui/react-tooltip", version: "^1.0.7" },
+      { name: "@radix-ui/react-slot", version: "^1.0.2" },
+    ],
+    fileMappings: [
+      { source: "core/web/src/components/ui/button.tsx", destination: "web/src/components/ui/button.tsx" },
+      { source: "core/web/src/components/ui/input.tsx", destination: "web/src/components/ui/input.tsx" },
+      { source: "core/web/src/components/ui/textarea.tsx", destination: "web/src/components/ui/textarea.tsx" },
+      { source: "core/web/src/components/ui/label.tsx", destination: "web/src/components/ui/label.tsx" },
+      { source: "core/web/src/components/ui/card.tsx", destination: "web/src/components/ui/card.tsx" },
+      { source: "core/web/src/components/ui/modal.tsx", destination: "web/src/components/ui/modal.tsx" },
+      { source: "core/web/src/components/ui/dialog.tsx", destination: "web/src/components/ui/dialog.tsx" },
+      { source: "core/web/src/components/ui/badge.tsx", destination: "web/src/components/ui/badge.tsx" },
+      { source: "core/web/src/components/ui/spinner.tsx", destination: "web/src/components/ui/spinner.tsx" },
+      { source: "core/web/src/components/ui/tooltip.tsx", destination: "web/src/components/ui/tooltip.tsx" },
+      { source: "core/web/src/components/ui/popover.tsx", destination: "web/src/components/ui/popover.tsx" },
+      { source: "core/web/src/components/ui/dropdown-menu.tsx", destination: "web/src/components/ui/dropdown-menu.tsx" },
+      { source: "core/web/src/components/ui/icon.tsx", destination: "web/src/components/ui/icon.tsx" },
+      { source: "core/web/src/components/ui/icon-button.tsx", destination: "web/src/components/ui/icon-button.tsx" },
+      { source: "core/web/src/components/ui/link.tsx", destination: "web/src/components/ui/link.tsx" },
+      { source: "core/web/src/components/ui/text.tsx", destination: "web/src/components/ui/text.tsx" },
+      { source: "core/web/src/components/ui/divider.tsx", destination: "web/src/components/ui/divider.tsx" },
+      { source: "core/web/src/components/ui/kbd.tsx", destination: "web/src/components/ui/kbd.tsx" },
+      { source: "core/web/src/components/ui/visually-hidden.tsx", destination: "web/src/components/ui/visually-hidden.tsx" },
+      { source: "core/web/src/components/ui/index.ts", destination: "web/src/components/ui/index.ts" },
+      { source: "core/web/src/components/shared/empty-state.tsx", destination: "web/src/components/shared/empty-state.tsx" },
+      { source: "core/web/src/components/shared/error-boundary.tsx", destination: "web/src/components/shared/error-boundary.tsx" },
+      { source: "core/web/src/components/shared/seo.tsx", destination: "web/src/components/shared/seo.tsx" },
+      { source: "core/web/src/components/shared/index.ts", destination: "web/src/components/shared/index.ts" },
+      { source: "core/web/src/components/layout/header.tsx", destination: "web/src/components/layout/header.tsx" },
+      { source: "core/web/src/components/layout/footer.tsx", destination: "web/src/components/layout/footer.tsx" },
+      { source: "core/web/src/components/layout/page-container.tsx", destination: "web/src/components/layout/page-container.tsx" },
+      { source: "core/web/src/components/layout/section.tsx", destination: "web/src/components/layout/section.tsx" },
+      { source: "core/web/src/components/layout/index.ts", destination: "web/src/components/layout/index.ts" },
+    ],
   },
   {
     slug: "ui.forms",
@@ -768,33 +1046,64 @@ const features: FeatureData[] = [
     requires: ["ui.components"],
     conflicts: [],
     iconName: "ClipboardList",
-    displayOrder: 3,
+    displayOrder: 2,
     isNew: false,
     isPopular: false,
     npmPackages: [
-      { name: "react-hook-form", version: "^7.0.0" },
+      { name: "react-hook-form", version: "^7.50.0" },
+      { name: "@hookform/resolvers", version: "^3.3.0" },
       { name: "zod", version: "^3.22.0" },
+      { name: "@radix-ui/react-checkbox", version: "^1.0.4" },
+      { name: "@radix-ui/react-radio-group", version: "^1.1.3" },
+      { name: "@radix-ui/react-select", version: "^2.0.0" },
+      { name: "@radix-ui/react-switch", version: "^1.0.3" },
+    ],
+    fileMappings: [
+      { source: "core/web/src/components/forms/form.tsx", destination: "web/src/components/forms/form.tsx" },
+      { source: "core/web/src/components/forms/form-field.tsx", destination: "web/src/components/forms/form-field.tsx" },
+      { source: "core/web/src/components/forms/password-input.tsx", destination: "web/src/components/forms/password-input.tsx" },
+      { source: "core/web/src/components/forms/index.ts", destination: "web/src/components/forms/index.ts" },
+      { source: "core/web/src/components/ui/checkbox.tsx", destination: "web/src/components/ui/checkbox.tsx" },
+      { source: "core/web/src/components/ui/radio.tsx", destination: "web/src/components/ui/radio.tsx" },
+      { source: "core/web/src/components/ui/select.tsx", destination: "web/src/components/ui/select.tsx" },
+      { source: "core/web/src/components/ui/switch.tsx", destination: "web/src/components/ui/switch.tsx" },
+      { source: "core/web/src/components/ui/field-wrapper.tsx", destination: "web/src/components/ui/field-wrapper.tsx" },
+      { source: "core/web/src/components/ui/stepper.tsx", destination: "web/src/components/ui/stepper.tsx" },
+      { source: "core/web/src/components/ui/password-strength.tsx", destination: "web/src/components/ui/password-strength.tsx" },
+      { source: "core/web/src/components/ui/tag-input.tsx", destination: "web/src/components/ui/tag-input.tsx" },
+      { source: "core/web/src/components/ui/date-picker.tsx", destination: "web/src/components/ui/date-picker.tsx" },
+      { source: "core/web/src/components/ui/time-picker.tsx", destination: "web/src/components/ui/time-picker.tsx" },
+      { source: "core/web/src/components/ui/number-input.tsx", destination: "web/src/components/ui/number-input.tsx" },
+      { source: "core/web/src/components/ui/slider.tsx", destination: "web/src/components/ui/slider.tsx" },
+      { source: "core/web/src/components/ui/autocomplete.tsx", destination: "web/src/components/ui/autocomplete.tsx" },
+      { source: "core/web/src/components/ui/rich-text-editor.tsx", destination: "web/src/components/ui/rich-text-editor.tsx" },
     ],
   },
   {
-    slug: "ui.dashboard",
-    name: "Dashboard Layout",
-    description: "Pre-built dashboard layouts with sidebar navigation and responsive design.",
+    slug: "ui.tables",
+    name: "Data Tables",
+    description: "Advanced data tables with sorting, filtering, pagination, and export capabilities.",
     moduleSlug: "ui",
     price: 2900, // $29
-    tier: "business",
+    tier: "pro",
     requires: ["ui.components"],
     conflicts: [],
-    iconName: "LayoutDashboard",
-    displayOrder: 4,
+    iconName: "Table",
+    displayOrder: 3,
     isNew: false,
     isPopular: true,
+    npmPackages: [
+      { name: "@tanstack/react-table", version: "^8.11.0" },
+    ],
     fileMappings: [
-      { source: "modules/admin-dashboard/backend/src/routes/admin.routes.ts", destination: "backend/src/routes/admin.routes.ts" },
-      { source: "modules/admin-dashboard/backend/src/controllers/admin.controller.ts", destination: "backend/src/controllers/admin.controller.ts" },
-      { source: "modules/admin-dashboard/web/src/app/admin", destination: "web/src/app/(protected)/admin" },
-      { source: "modules/admin-dashboard/web/src/components", destination: "web/src/components/admin" },
-      { source: "modules/admin-dashboard/web/src/lib", destination: "web/src/lib/admin" },
+      { source: "core/web/src/components/ui/table.tsx", destination: "web/src/components/ui/table.tsx" },
+      { source: "core/web/src/components/ui/data-table.tsx", destination: "web/src/components/ui/data-table.tsx" },
+      { source: "core/web/src/components/ui/pagination.tsx", destination: "web/src/components/ui/pagination.tsx" },
+      { source: "core/web/src/components/ui/export-button.tsx", destination: "web/src/components/ui/export-button.tsx" },
+      { source: "core/web/src/components/ui/search-input.tsx", destination: "web/src/components/ui/search-input.tsx" },
+      { source: "core/web/src/components/admin/AdminTableContainer.tsx", destination: "web/src/components/admin/AdminTableContainer.tsx" },
+      { source: "core/web/src/components/admin/AdminFilters.tsx", destination: "web/src/components/admin/AdminFilters.tsx" },
+      { source: "core/web/src/components/admin/Pagination.tsx", destination: "web/src/components/admin/Pagination.tsx" },
     ],
   },
   {
@@ -807,10 +1116,95 @@ const features: FeatureData[] = [
     requires: ["ui.components"],
     conflicts: [],
     iconName: "PieChart",
-    displayOrder: 5,
+    displayOrder: 4,
     isNew: false,
     isPopular: false,
-    npmPackages: [{ name: "recharts", version: "^2.10.0" }],
+    npmPackages: [
+      { name: "recharts", version: "^2.12.0" },
+      { name: "d3-scale", version: "^4.0.2" },
+      { name: "d3-shape", version: "^3.2.0" },
+    ],
+    fileMappings: [
+      { source: "core/web/src/components/ui/progress.tsx", destination: "web/src/components/ui/progress.tsx" },
+      { source: "core/web/src/components/ui/rating.tsx", destination: "web/src/components/ui/rating.tsx" },
+    ],
+  },
+  {
+    slug: "ui.theme",
+    name: "Theme System",
+    description: "Customizable theme system with design tokens, CSS variables, and theme configuration.",
+    moduleSlug: "ui",
+    price: 1900, // $19
+    tier: "basic",
+    requires: ["ui.components"],
+    conflicts: [],
+    iconName: "Palette",
+    displayOrder: 5,
+    isNew: false,
+    isPopular: true,
+    npmPackages: [
+      { name: "next-themes", version: "^0.3.0" },
+    ],
+    fileMappings: [
+      { source: "core/web/src/components/providers/theme-provider.tsx", destination: "web/src/components/providers/theme-provider.tsx" },
+      { source: "core/web/src/components/providers/index.ts", destination: "web/src/components/providers/index.ts" },
+      { source: "core/web/src/components/ui/theme-selector.tsx", destination: "web/src/components/ui/theme-selector.tsx" },
+    ],
+  },
+  {
+    slug: "ui.dark-mode",
+    name: "Dark Mode Support",
+    description: "Complete dark mode implementation with system preference detection and persistent user choice.",
+    moduleSlug: "ui",
+    price: 990, // $9.90
+    tier: "basic",
+    requires: ["ui.components", "ui.theme"],
+    conflicts: [],
+    iconName: "Moon",
+    displayOrder: 6,
+    isNew: false,
+    isPopular: true,
+    npmPackages: [
+      { name: "next-themes", version: "^0.3.0" },
+    ],
+    fileMappings: [
+      { source: "core/web/src/components/ui/theme-toggle.tsx", destination: "web/src/components/ui/theme-toggle.tsx" },
+      { source: "core/web/src/components/providers/theme-provider.tsx", destination: "web/src/components/providers/theme-provider.tsx" },
+    ],
+  },
+  {
+    slug: "ui.dashboard",
+    name: "Dashboard Layout",
+    description: "Pre-built dashboard layouts with sidebar navigation and responsive design.",
+    moduleSlug: "ui",
+    price: 2900, // $29
+    tier: "business",
+    requires: ["ui.components"],
+    conflicts: [],
+    iconName: "LayoutDashboard",
+    displayOrder: 7,
+    isNew: false,
+    isPopular: true,
+    npmPackages: [
+      { name: "@radix-ui/react-collapsible", version: "^1.0.3" },
+      { name: "@radix-ui/react-navigation-menu", version: "^1.1.4" },
+    ],
+    fileMappings: [
+      { source: "modules/admin-dashboard/backend/src/routes/admin.routes.ts", destination: "backend/src/routes/admin.routes.ts" },
+      { source: "modules/admin-dashboard/backend/src/controllers/admin.controller.ts", destination: "backend/src/controllers/admin.controller.ts" },
+      { source: "modules/admin-dashboard/web/src/app/admin", destination: "web/src/app/(protected)/admin" },
+      { source: "modules/admin-dashboard/web/src/components", destination: "web/src/components/admin" },
+      { source: "modules/admin-dashboard/web/src/lib", destination: "web/src/lib/admin" },
+      { source: "core/web/src/components/ui/collapsible.tsx", destination: "web/src/components/ui/collapsible.tsx" },
+      { source: "core/web/src/components/ui/breadcrumb.tsx", destination: "web/src/components/ui/breadcrumb.tsx" },
+      { source: "core/web/src/components/ui/nav-link.tsx", destination: "web/src/components/ui/nav-link.tsx" },
+      { source: "core/web/src/components/ui/menu-item.tsx", destination: "web/src/components/ui/menu-item.tsx" },
+      { source: "core/web/src/components/ui/stat-card.tsx", destination: "web/src/components/ui/stat-card.tsx" },
+      { source: "core/web/src/components/ui/timeline.tsx", destination: "web/src/components/ui/timeline.tsx" },
+      { source: "core/web/src/components/ui/command-palette.tsx", destination: "web/src/components/ui/command-palette.tsx" },
+      { source: "core/web/src/components/admin/AdminPageHeader.tsx", destination: "web/src/components/admin/AdminPageHeader.tsx" },
+      { source: "core/web/src/components/admin/index.ts", destination: "web/src/components/admin/index.ts" },
+    ],
   },
 
   // ANALYTICS MODULE
@@ -877,6 +1271,20 @@ const features: FeatureData[] = [
       { key: "REPORTS_EMAIL_FROM", description: "Email address for sending scheduled reports", required: false },
       { key: "REPORTS_MAX_ROWS", description: "Maximum number of rows in exported reports", required: false, default: "10000" },
     ],
+    npmPackages: [
+      { name: "node-cron", version: "^3.0.3" },
+    ],
+    fileMappings: [
+      { source: "modules/analytics/backend/src/routes/reports.routes.ts", destination: "backend/src/routes/reports.routes.ts" },
+      { source: "modules/analytics/backend/src/services/reports.service.ts", destination: "backend/src/services/reports.service.ts" },
+      { source: "modules/analytics/backend/src/jobs/report-scheduler.job.ts", destination: "backend/src/jobs/report-scheduler.job.ts" },
+      { source: "modules/analytics/web/src/app/(protected)/admin/reports/page.tsx", destination: "web/src/app/(protected)/admin/reports/page.tsx" },
+      { source: "modules/analytics/web/src/components/report-builder.tsx", destination: "web/src/components/report-builder.tsx" },
+    ],
+    schemaMappings: [
+      { model: "Report", source: "modules/analytics/prisma/analytics.prisma" },
+      { model: "ScheduledReport", source: "modules/analytics/prisma/analytics.prisma" },
+    ],
   },
   {
     slug: "analytics.export",
@@ -891,6 +1299,15 @@ const features: FeatureData[] = [
     displayOrder: 4,
     isNew: false,
     isPopular: false,
+    npmPackages: [
+      { name: "json2csv", version: "^6.0.0" },
+      { name: "exceljs", version: "^4.4.0" },
+    ],
+    fileMappings: [
+      { source: "modules/analytics/backend/src/routes/export.routes.ts", destination: "backend/src/routes/export.routes.ts" },
+      { source: "modules/analytics/backend/src/services/export.service.ts", destination: "backend/src/services/export.service.ts" },
+      { source: "modules/analytics/web/src/components/export-dialog.tsx", destination: "web/src/components/export-dialog.tsx" },
+    ],
   },
 
   // MOBILE MODULE
@@ -907,6 +1324,25 @@ const features: FeatureData[] = [
     displayOrder: 1,
     isNew: false,
     isPopular: true,
+    fileMappings: [
+      { source: "mobile/lib/main.dart", destination: "mobile/lib/main.dart" },
+      { source: "mobile/lib/app.dart", destination: "mobile/lib/app.dart" },
+      { source: "mobile/lib/core/constants/api_constants.dart", destination: "mobile/lib/core/constants/api_constants.dart" },
+      { source: "mobile/lib/core/network/api_client.dart", destination: "mobile/lib/core/network/api_client.dart" },
+      { source: "mobile/lib/core/network/interceptors.dart", destination: "mobile/lib/core/network/interceptors.dart" },
+      { source: "mobile/lib/core/theme/app_theme.dart", destination: "mobile/lib/core/theme/app_theme.dart" },
+      { source: "mobile/lib/core/router/app_router.dart", destination: "mobile/lib/core/router/app_router.dart" },
+      { source: "mobile/lib/core/storage/secure_storage.dart", destination: "mobile/lib/core/storage/secure_storage.dart" },
+      { source: "mobile/lib/data/models/user_model.dart", destination: "mobile/lib/data/models/user_model.dart" },
+      { source: "mobile/lib/data/datasources/auth_datasource.dart", destination: "mobile/lib/data/datasources/auth_datasource.dart" },
+      { source: "mobile/lib/domain/entities/user.dart", destination: "mobile/lib/domain/entities/user.dart" },
+      { source: "mobile/lib/domain/repositories/auth_repository.dart", destination: "mobile/lib/domain/repositories/auth_repository.dart" },
+      { source: "mobile/lib/presentation/providers/auth_provider.dart", destination: "mobile/lib/presentation/providers/auth_provider.dart" },
+      { source: "mobile/lib/presentation/screens/auth/login_screen.dart", destination: "mobile/lib/presentation/screens/auth/login_screen.dart" },
+      { source: "mobile/lib/presentation/screens/auth/register_screen.dart", destination: "mobile/lib/presentation/screens/auth/register_screen.dart" },
+      { source: "mobile/lib/presentation/screens/home/home_screen.dart", destination: "mobile/lib/presentation/screens/home/home_screen.dart" },
+      { source: "mobile/pubspec.yaml", destination: "mobile/pubspec.yaml" },
+    ],
   },
   {
     slug: "mobile.push",
@@ -922,6 +1358,12 @@ const features: FeatureData[] = [
     isNew: false,
     isPopular: false,
     envVars: [{ key: "FCM_SERVER_KEY", description: "Firebase Cloud Messaging server key", required: true }],
+    fileMappings: [
+      { source: "modules/push-notifications/mobile/lib/core/services/push_notification_service.dart", destination: "mobile/lib/core/services/push_notification_service.dart" },
+      { source: "modules/push-notifications/mobile/lib/presentation/providers/notification_provider.dart", destination: "mobile/lib/presentation/providers/notification_provider.dart" },
+      { source: "modules/push-notifications/mobile/lib/presentation/screens/notifications_screen.dart", destination: "mobile/lib/presentation/screens/notifications_screen.dart" },
+      { source: "modules/push-notifications/mobile/lib/core/config/firebase_config.dart", destination: "mobile/lib/core/config/firebase_config.dart" },
+    ],
   },
   {
     slug: "mobile.offline",
@@ -936,6 +1378,14 @@ const features: FeatureData[] = [
     displayOrder: 3,
     isNew: true,
     isPopular: false,
+    fileMappings: [
+      { source: "modules/offline/mobile/lib/core/services/sync_service.dart", destination: "mobile/lib/core/services/sync_service.dart" },
+      { source: "modules/offline/mobile/lib/core/services/offline_storage.dart", destination: "mobile/lib/core/services/offline_storage.dart" },
+      { source: "modules/offline/mobile/lib/core/services/connectivity_service.dart", destination: "mobile/lib/core/services/connectivity_service.dart" },
+      { source: "modules/offline/mobile/lib/core/db/local_database.dart", destination: "mobile/lib/core/db/local_database.dart" },
+      { source: "modules/offline/mobile/lib/presentation/providers/connectivity_provider.dart", destination: "mobile/lib/presentation/providers/connectivity_provider.dart" },
+      { source: "modules/offline/mobile/lib/presentation/widgets/offline_banner.dart", destination: "mobile/lib/presentation/widgets/offline_banner.dart" },
+    ],
   },
 
   // INFRASTRUCTURE MODULE
@@ -956,6 +1406,15 @@ const features: FeatureData[] = [
       { key: "DOCKER_REGISTRY", description: "Docker registry URL for pushing images", required: false },
       { key: "DOCKER_IMAGE_TAG", description: "Docker image tag for builds", required: false, default: "latest" },
     ],
+    fileMappings: [
+      { source: "modules/docker/Dockerfile", destination: "Dockerfile" },
+      { source: "modules/docker/Dockerfile.backend", destination: "backend/Dockerfile" },
+      { source: "modules/docker/Dockerfile.web", destination: "web/Dockerfile" },
+      { source: "modules/docker/docker-compose.yml", destination: "docker-compose.yml" },
+      { source: "modules/docker/docker-compose.dev.yml", destination: "docker-compose.dev.yml" },
+      { source: "modules/docker/.dockerignore", destination: ".dockerignore" },
+      { source: "modules/docker/scripts/docker-entrypoint.sh", destination: "scripts/docker-entrypoint.sh" },
+    ],
   },
   {
     slug: "infra.kubernetes",
@@ -974,6 +1433,17 @@ const features: FeatureData[] = [
       { key: "K8S_NAMESPACE", description: "Kubernetes namespace for deployment", required: false, default: "default" },
       { key: "K8S_CLUSTER_NAME", description: "Kubernetes cluster name", required: false },
     ],
+    fileMappings: [
+      { source: "modules/kubernetes/k8s/deployment.yaml", destination: "k8s/deployment.yaml" },
+      { source: "modules/kubernetes/k8s/service.yaml", destination: "k8s/service.yaml" },
+      { source: "modules/kubernetes/k8s/ingress.yaml", destination: "k8s/ingress.yaml" },
+      { source: "modules/kubernetes/k8s/configmap.yaml", destination: "k8s/configmap.yaml" },
+      { source: "modules/kubernetes/k8s/secrets.yaml", destination: "k8s/secrets.yaml" },
+      { source: "modules/kubernetes/k8s/hpa.yaml", destination: "k8s/hpa.yaml" },
+      { source: "modules/kubernetes/helm/Chart.yaml", destination: "helm/Chart.yaml" },
+      { source: "modules/kubernetes/helm/values.yaml", destination: "helm/values.yaml" },
+      { source: "modules/kubernetes/helm/templates", destination: "helm/templates" },
+    ],
   },
   {
     slug: "infra.ci-cd",
@@ -988,6 +1458,13 @@ const features: FeatureData[] = [
     displayOrder: 3,
     isNew: false,
     isPopular: true,
+    fileMappings: [
+      { source: "modules/ci-cd/.github/workflows/ci.yml", destination: ".github/workflows/ci.yml" },
+      { source: "modules/ci-cd/.github/workflows/cd.yml", destination: ".github/workflows/cd.yml" },
+      { source: "modules/ci-cd/.github/workflows/test.yml", destination: ".github/workflows/test.yml" },
+      { source: "modules/ci-cd/.github/workflows/lint.yml", destination: ".github/workflows/lint.yml" },
+      { source: "modules/ci-cd/.github/dependabot.yml", destination: ".github/dependabot.yml" },
+    ],
   },
 
   // INTEGRATIONS MODULE
@@ -1004,6 +1481,20 @@ const features: FeatureData[] = [
     displayOrder: 1,
     isNew: false,
     isPopular: false,
+    envVars: [
+      { key: "WEBHOOK_SIGNING_SECRET", description: "Secret for signing outgoing webhook payloads", required: true },
+      { key: "WEBHOOK_RETRY_ATTEMPTS", description: "Number of retry attempts for failed webhooks", required: false, default: "3" },
+    ],
+    fileMappings: [
+      { source: "modules/webhooks/backend/src/routes/webhook.routes.ts", destination: "backend/src/routes/outgoing-webhook.routes.ts" },
+      { source: "modules/webhooks/backend/src/services/webhook.service.ts", destination: "backend/src/services/outgoing-webhook.service.ts" },
+      { source: "modules/webhooks/backend/src/services/webhook-delivery.service.ts", destination: "backend/src/services/webhook-delivery.service.ts" },
+      { source: "modules/webhooks/backend/src/jobs/webhook-retry.job.ts", destination: "backend/src/jobs/webhook-retry.job.ts" },
+    ],
+    schemaMappings: [
+      { model: "WebhookEndpoint", source: "modules/webhooks/prisma/webhooks.prisma" },
+      { model: "WebhookDelivery", source: "modules/webhooks/prisma/webhooks.prisma" },
+    ],
   },
   {
     slug: "integrations.api",
@@ -1022,6 +1513,24 @@ const features: FeatureData[] = [
       { key: "API_RATE_LIMIT", description: "API rate limit per minute", required: false, default: "100" },
       { key: "API_KEY_PREFIX", description: "Prefix for generated API keys", required: false, default: "sk_" },
     ],
+    npmPackages: [
+      { name: "express-rate-limit", version: "^7.1.0" },
+      { name: "swagger-ui-express", version: "^5.0.0" },
+      { name: "swagger-jsdoc", version: "^6.2.0" },
+    ],
+    fileMappings: [
+      { source: "modules/api/backend/src/routes/api-keys.routes.ts", destination: "backend/src/routes/api-keys.routes.ts" },
+      { source: "modules/api/backend/src/services/api-key.service.ts", destination: "backend/src/services/api-key.service.ts" },
+      { source: "modules/api/backend/src/middleware/rate-limit.middleware.ts", destination: "backend/src/middleware/rate-limit.middleware.ts" },
+      { source: "modules/api/backend/src/middleware/api-key.middleware.ts", destination: "backend/src/middleware/api-key.middleware.ts" },
+      { source: "modules/api/backend/src/config/swagger.config.ts", destination: "backend/src/config/swagger.config.ts" },
+      { source: "modules/api/web/src/app/(protected)/developer/page.tsx", destination: "web/src/app/(protected)/developer/page.tsx" },
+      { source: "modules/api/web/src/components/api-key-manager.tsx", destination: "web/src/components/api-key-manager.tsx" },
+    ],
+    schemaMappings: [
+      { model: "ApiKey", source: "modules/api/prisma/api.prisma" },
+      { model: "ApiUsageLog", source: "modules/api/prisma/api.prisma" },
+    ],
   },
   {
     slug: "integrations.zapier",
@@ -1038,6 +1547,359 @@ const features: FeatureData[] = [
     isPopular: false,
     envVars: [
       { key: "ZAPIER_WEBHOOK_SECRET", description: "Secret for validating Zapier webhook requests", required: true },
+    ],
+    fileMappings: [
+      { source: "modules/zapier/backend/src/routes/zapier.routes.ts", destination: "backend/src/routes/zapier.routes.ts" },
+      { source: "modules/zapier/backend/src/services/zapier.service.ts", destination: "backend/src/services/zapier.service.ts" },
+      { source: "modules/zapier/backend/src/controllers/zapier.controller.ts", destination: "backend/src/controllers/zapier.controller.ts" },
+    ],
+  },
+
+  // ADMIN MODULE
+  {
+    slug: "admin.panel",
+    name: "Admin Dashboard Panel",
+    description: "Full-featured admin dashboard with user management, settings persistence, activity logging, and responsive UI components.",
+    moduleSlug: "admin",
+    price: 4900, // $49
+    tier: "pro",
+    requires: ["auth.basic"],
+    conflicts: [],
+    iconName: "LayoutDashboard",
+    displayOrder: 1,
+    isNew: false,
+    isPopular: true,
+    envVars: [
+      { key: "ADMIN_EMAIL", description: "Default admin email for seeding", required: false, default: "admin@example.com" },
+      { key: "APP_NAME", description: "Application name displayed in admin panel", required: false, default: "My App" },
+      { key: "SUPPORT_EMAIL", description: "Support email displayed in admin panel", required: false, default: "support@example.com" },
+    ],
+    npmPackages: [
+      { name: "@tanstack/react-table", version: "^8.11.0" },
+    ],
+    fileMappings: [
+      { source: "modules/admin-dashboard/backend/src/routes/admin.routes.ts", destination: "backend/src/routes/admin.routes.ts" },
+      { source: "modules/admin-dashboard/backend/src/controllers/admin.controller.ts", destination: "backend/src/controllers/admin.controller.ts" },
+      { source: "modules/admin-dashboard/web/src/app/admin/page.tsx", destination: "web/src/app/(protected)/admin/page.tsx" },
+      { source: "modules/admin-dashboard/web/src/app/admin/users/page.tsx", destination: "web/src/app/(protected)/admin/users/page.tsx" },
+      { source: "modules/admin-dashboard/web/src/components/admin-stats-card.tsx", destination: "web/src/components/admin/admin-stats-card.tsx" },
+      { source: "modules/admin-dashboard/web/src/components/admin-users-table.tsx", destination: "web/src/components/admin/admin-users-table.tsx" },
+      { source: "modules/admin-dashboard/web/src/components/admin-sidebar.tsx", destination: "web/src/components/admin/admin-sidebar.tsx" },
+      { source: "modules/admin-dashboard/web/src/components/admin-header.tsx", destination: "web/src/components/admin/admin-header.tsx" },
+      { source: "modules/admin-dashboard/web/src/lib/use-admin.ts", destination: "web/src/lib/admin/use-admin.ts" },
+      { source: "modules/admin-dashboard/mobile/lib/core/services/admin_service.dart", destination: "mobile/lib/core/services/admin_service.dart" },
+      { source: "modules/admin-dashboard/mobile/lib/presentation/screens/admin/admin_dashboard_screen.dart", destination: "mobile/lib/presentation/screens/admin/admin_dashboard_screen.dart" },
+      { source: "modules/admin-dashboard/mobile/lib/presentation/providers/admin_provider.dart", destination: "mobile/lib/presentation/providers/admin_provider.dart" },
+    ],
+  },
+  {
+    slug: "admin.audit",
+    name: "Admin Audit Logging",
+    description: "Comprehensive audit logging for admin actions with filtering, search, export capabilities, and retention policies.",
+    moduleSlug: "admin",
+    price: 2900, // $29
+    tier: "business",
+    requires: ["admin.panel"],
+    conflicts: [],
+    iconName: "FileSearch",
+    displayOrder: 2,
+    isNew: false,
+    isPopular: false,
+    envVars: [
+      { key: "AUDIT_LOG_ENABLED", description: "Enable or disable audit logging", required: false, default: "true" },
+      { key: "AUDIT_LOG_RETENTION_DAYS", description: "Number of days to retain audit logs", required: false, default: "365" },
+      { key: "AUDIT_LOG_LEVELS", description: "Comma-separated list of log levels to capture", required: false, default: "info,warning,error,security" },
+      { key: "AUDIT_LOG_EXCLUDE_PATHS", description: "Comma-separated paths to exclude from logging", required: false, default: "/health,/metrics" },
+      { key: "AUDIT_LOG_INCLUDE_BODY", description: "Include request body in audit logs", required: false, default: "false" },
+      { key: "AUDIT_LOG_MASK_FIELDS", description: "Comma-separated field names to mask in logs", required: false, default: "password,token,secret,apiKey,creditCard" },
+    ],
+    npmPackages: [],
+    fileMappings: [
+      { source: "modules/audit-log/backend/src/routes/audit.routes.ts", destination: "backend/src/routes/audit.routes.ts" },
+      { source: "modules/audit-log/backend/src/services/audit.service.ts", destination: "backend/src/services/audit.service.ts" },
+      { source: "modules/audit-log/backend/src/middleware/audit.middleware.ts", destination: "backend/src/middleware/audit.middleware.ts" },
+      { source: "modules/audit-log/web/src/app/admin/audit-logs/page.tsx", destination: "web/src/app/(protected)/admin/audit-logs/page.tsx" },
+      { source: "modules/audit-log/mobile/lib/core/services/audit_service.dart", destination: "mobile/lib/core/services/audit_service.dart" },
+      { source: "modules/audit-log/mobile/lib/presentation/screens/audit_logs_screen.dart", destination: "mobile/lib/presentation/screens/admin/audit_logs_screen.dart" },
+    ],
+    schemaMappings: [
+      { model: "AuditLog", source: "modules/audit-log/prisma/audit-log.prisma" },
+    ],
+  },
+  {
+    slug: "admin.rbac",
+    name: "Admin Role-Based Access Control",
+    description: "Fine-grained permission system with roles (ADMIN, MANAGER), permission-based endpoint protection, and role management UI.",
+    moduleSlug: "admin",
+    price: 3900, // $39
+    tier: "business",
+    requires: ["admin.panel", "auth.basic"],
+    conflicts: [],
+    iconName: "ShieldCheck",
+    displayOrder: 3,
+    isNew: false,
+    isPopular: true,
+    envVars: [
+      { key: "DEFAULT_ADMIN_EMAIL", description: "Default admin user email for seeding", required: false },
+      { key: "DEFAULT_ADMIN_PASSWORD", description: "Default admin user password for seeding", required: false },
+      { key: "RBAC_CACHE_TTL", description: "Permission cache TTL in seconds", required: false, default: "300" },
+    ],
+    npmPackages: [],
+    fileMappings: [
+      { source: "modules/admin-dashboard/backend/src/routes/admin.routes.ts", destination: "backend/src/routes/admin.routes.ts" },
+      { source: "modules/admin-dashboard/backend/src/controllers/admin.controller.ts", destination: "backend/src/controllers/admin.controller.ts" },
+      { source: "core/backend/src/middleware/auth.middleware.ts", destination: "backend/src/middleware/auth.middleware.ts" },
+      { source: "modules/admin-dashboard/web/src/lib/use-admin.ts", destination: "web/src/lib/admin/use-admin.ts" },
+    ],
+    schemaMappings: [
+      { model: "Role", source: "modules/rbac/prisma/rbac.prisma" },
+      { model: "Permission", source: "modules/rbac/prisma/rbac.prisma" },
+      { model: "RolePermission", source: "modules/rbac/prisma/rbac.prisma" },
+    ],
+  },
+  {
+    slug: "admin.impersonation",
+    name: "User Impersonation",
+    description: "Allow admins to impersonate users for debugging and support purposes with full audit trail and session management.",
+    moduleSlug: "admin",
+    price: 2900, // $29
+    tier: "enterprise",
+    requires: ["admin.panel", "admin.rbac", "admin.audit"],
+    conflicts: [],
+    iconName: "UserCog",
+    displayOrder: 4,
+    isNew: true,
+    isPopular: false,
+    envVars: [
+      { key: "IMPERSONATION_ENABLED", description: "Enable or disable user impersonation feature", required: false, default: "true" },
+      { key: "IMPERSONATION_MAX_DURATION", description: "Maximum impersonation session duration in minutes", required: false, default: "60" },
+      { key: "IMPERSONATION_AUDIT_LEVEL", description: "Audit level for impersonation actions (all, sensitive, none)", required: false, default: "all" },
+    ],
+    npmPackages: [],
+    fileMappings: [
+      { source: "modules/impersonation/backend/src/routes/impersonation.routes.ts", destination: "backend/src/routes/impersonation.routes.ts" },
+      { source: "modules/impersonation/backend/src/services/impersonation.service.ts", destination: "backend/src/services/impersonation.service.ts" },
+      { source: "modules/impersonation/backend/src/middleware/impersonation.middleware.ts", destination: "backend/src/middleware/impersonation.middleware.ts" },
+      { source: "modules/impersonation/web/src/components/impersonation-banner.tsx", destination: "web/src/components/admin/impersonation-banner.tsx" },
+      { source: "modules/impersonation/web/src/lib/impersonation.ts", destination: "web/src/lib/admin/impersonation.ts" },
+      { source: "modules/impersonation/web/src/hooks/use-impersonation.ts", destination: "web/src/hooks/use-impersonation.ts" },
+    ],
+    schemaMappings: [
+      { model: "ImpersonationSession", source: "modules/impersonation/prisma/impersonation.prisma" },
+    ],
+  },
+  {
+    slug: "admin.analytics",
+    name: "Admin Analytics Dashboard",
+    description: "Real-time analytics dashboard for admins with user metrics, activity trends, system health monitoring, and customizable widgets.",
+    moduleSlug: "admin",
+    price: 3900, // $39
+    tier: "business",
+    requires: ["admin.panel", "analytics.basic"],
+    conflicts: [],
+    iconName: "BarChart3",
+    displayOrder: 5,
+    isNew: true,
+    isPopular: true,
+    envVars: [
+      { key: "ADMIN_ANALYTICS_REFRESH_INTERVAL", description: "Dashboard data refresh interval in seconds", required: false, default: "30" },
+      { key: "ADMIN_ANALYTICS_CACHE_TTL", description: "Analytics data cache TTL in seconds", required: false, default: "60" },
+      { key: "ADMIN_ANALYTICS_MAX_DATA_POINTS", description: "Maximum data points for charts", required: false, default: "100" },
+    ],
+    npmPackages: [
+      { name: "recharts", version: "^2.10.0" },
+      { name: "ua-parser-js", version: "^1.0.37" },
+      { name: "@types/ua-parser-js", version: "^0.7.39", dev: true },
+    ],
+    fileMappings: [
+      { source: "modules/analytics/backend/src/routes/analytics.routes.ts", destination: "backend/src/routes/analytics.routes.ts" },
+      { source: "modules/analytics/backend/src/services/analytics.service.ts", destination: "backend/src/services/analytics.service.ts" },
+      { source: "modules/analytics/web/src/lib/analytics.ts", destination: "web/src/lib/analytics.ts" },
+      { source: "core/backend/src/services/admin.service.ts", destination: "backend/src/services/admin.service.ts" },
+      { source: "core/backend/src/controllers/admin.controller.ts", destination: "backend/src/controllers/admin.controller.ts" },
+      { source: "modules/admin-dashboard/web/src/components/admin-stats-card.tsx", destination: "web/src/components/admin/admin-stats-card.tsx" },
+      { source: "modules/admin-dashboard/web/src/lib/use-admin.ts", destination: "web/src/lib/admin/use-admin.ts" },
+    ],
+    schemaMappings: [
+      { model: "AnalyticsEvent", source: "modules/analytics/prisma/analytics.prisma" },
+      { model: "AnalyticsAggregate", source: "modules/analytics/prisma/analytics.prisma" },
+    ],
+  },
+
+  // LMS MODULE
+  {
+    slug: "lms.courses",
+    name: "Course Management",
+    description: "Create, publish, and manage online courses with categories, thumbnails, pricing, and multi-level curriculum.",
+    moduleSlug: "lms",
+    price: 4900, // $49
+    tier: "pro",
+    requires: ["auth.basic", "storage.upload"],
+    conflicts: [],
+    iconName: "BookOpen",
+    displayOrder: 1,
+    isNew: true,
+    isPopular: true,
+    envVars: [
+      { key: "VIDEO_STORAGE_URL", description: "Base URL for externally hosted videos (YouTube, Vimeo, S3)", required: false },
+    ],
+    npmPackages: [
+      { name: "slugify", version: "^1.6.6" },
+    ],
+    fileMappings: [
+      { source: "modules/lms/backend/src/routes/course.routes.ts", destination: "backend/src/routes/lms/course.routes.ts" },
+      { source: "modules/lms/backend/src/services/course.service.ts", destination: "backend/src/services/lms/course.service.ts" },
+      { source: "modules/lms/web/src/app/courses/page.tsx", destination: "web/src/app/courses/page.tsx" },
+      { source: "modules/lms/web/src/app/courses/[slug]/page.tsx", destination: "web/src/app/courses/[slug]/page.tsx" },
+      { source: "modules/lms/web/src/components/lms/course-card.tsx", destination: "web/src/components/lms/course-card.tsx" },
+      { source: "modules/lms/web/src/components/lms/course-grid.tsx", destination: "web/src/components/lms/course-grid.tsx" },
+      { source: "modules/lms/web/src/components/lms/review-form.tsx", destination: "web/src/components/lms/review-form.tsx" },
+      { source: "modules/lms/web/src/components/lms/review-list.tsx", destination: "web/src/components/lms/review-list.tsx" },
+      { source: "modules/lms/web/src/lib/lms/types.ts", destination: "web/src/lib/lms/types.ts" },
+      { source: "modules/lms/web/src/lib/lms/api.ts", destination: "web/src/lib/lms/api.ts" },
+    ],
+    schemaMappings: [
+      { model: "Category", source: "modules/lms/prisma/lms.prisma" },
+      { model: "CourseCategory", source: "modules/lms/prisma/lms.prisma" },
+      { model: "Course", source: "modules/lms/prisma/lms.prisma" },
+      { model: "Review", source: "modules/lms/prisma/lms.prisma" },
+    ],
+  },
+  {
+    slug: "lms.lessons",
+    name: "Lessons & Sections",
+    description: "Organize courses into sections with video, text, and PDF lessons. Drag-and-drop reordering and free lesson previews.",
+    moduleSlug: "lms",
+    price: 3900, // $39
+    tier: "pro",
+    requires: ["lms.courses"],
+    conflicts: [],
+    iconName: "PlayCircle",
+    displayOrder: 2,
+    isNew: true,
+    isPopular: false,
+    npmPackages: [
+      { name: "react-player", version: "^2.14.0" },
+    ],
+    fileMappings: [
+      { source: "modules/lms/backend/src/routes/lesson.routes.ts", destination: "backend/src/routes/lms/lesson.routes.ts" },
+      { source: "modules/lms/backend/src/services/lesson.service.ts", destination: "backend/src/services/lms/lesson.service.ts" },
+      { source: "modules/lms/web/src/app/courses/[slug]/learn/page.tsx", destination: "web/src/app/courses/[slug]/learn/page.tsx" },
+      { source: "modules/lms/web/src/components/lms/lesson-player.tsx", destination: "web/src/components/lms/lesson-player.tsx" },
+      { source: "modules/lms/web/src/components/lms/lesson-sidebar.tsx", destination: "web/src/components/lms/lesson-sidebar.tsx" },
+      { source: "modules/lms/web/src/app/(dashboard)/dashboard/instructor/courses/[id]/lessons/page.tsx", destination: "web/src/app/(dashboard)/dashboard/instructor/courses/[id]/lessons/page.tsx" },
+    ],
+    schemaMappings: [
+      { model: "Section", source: "modules/lms/prisma/lms.prisma" },
+      { model: "Lesson", source: "modules/lms/prisma/lms.prisma" },
+    ],
+  },
+  {
+    slug: "lms.enrollment",
+    name: "Enrollment & Progress",
+    description: "Student enrollment, lesson-by-lesson progress tracking, course completion detection, and enrollment management.",
+    moduleSlug: "lms",
+    price: 3900, // $39
+    tier: "pro",
+    requires: ["lms.courses", "lms.lessons"],
+    conflicts: [],
+    iconName: "UserPlus",
+    displayOrder: 3,
+    isNew: true,
+    isPopular: true,
+    fileMappings: [
+      { source: "modules/lms/backend/src/routes/enrollment.routes.ts", destination: "backend/src/routes/lms/enrollment.routes.ts" },
+      { source: "modules/lms/backend/src/services/enrollment.service.ts", destination: "backend/src/services/lms/enrollment.service.ts" },
+      { source: "modules/lms/web/src/app/(dashboard)/dashboard/my-courses/page.tsx", destination: "web/src/app/(dashboard)/dashboard/my-courses/page.tsx" },
+      { source: "modules/lms/web/src/components/lms/enrollment-button.tsx", destination: "web/src/components/lms/enrollment-button.tsx" },
+      { source: "modules/lms/web/src/components/lms/progress-bar.tsx", destination: "web/src/components/lms/progress-bar.tsx" },
+    ],
+    schemaMappings: [
+      { model: "Enrollment", source: "modules/lms/prisma/lms.prisma" },
+      { model: "Progress", source: "modules/lms/prisma/lms.prisma" },
+    ],
+  },
+  {
+    slug: "lms.quizzes",
+    name: "Quizzes & Assessments",
+    description: "Interactive quizzes with multiple choice, true/false, and short answer questions. Scoring, retakes, and timed exams.",
+    moduleSlug: "lms",
+    price: 2900, // $29
+    tier: "pro",
+    requires: ["lms.lessons"],
+    conflicts: [],
+    iconName: "ClipboardCheck",
+    displayOrder: 4,
+    isNew: true,
+    isPopular: false,
+    fileMappings: [
+      { source: "modules/lms/backend/src/routes/quiz.routes.ts", destination: "backend/src/routes/lms/quiz.routes.ts" },
+      { source: "modules/lms/backend/src/services/quiz.service.ts", destination: "backend/src/services/lms/quiz.service.ts" },
+      { source: "modules/lms/web/src/components/lms/quiz-form.tsx", destination: "web/src/components/lms/quiz-form.tsx" },
+      { source: "modules/lms/web/src/components/lms/quiz-results.tsx", destination: "web/src/components/lms/quiz-results.tsx" },
+    ],
+    schemaMappings: [
+      { model: "Quiz", source: "modules/lms/prisma/lms.prisma" },
+      { model: "Question", source: "modules/lms/prisma/lms.prisma" },
+      { model: "QuizAttempt", source: "modules/lms/prisma/lms.prisma" },
+    ],
+  },
+  {
+    slug: "lms.certificates",
+    name: "Certificates",
+    description: "Auto-generated PDF certificates with QR code verification for course completions. Customizable issuer branding.",
+    moduleSlug: "lms",
+    price: 2900, // $29
+    tier: "business",
+    requires: ["lms.enrollment"],
+    conflicts: [],
+    iconName: "Award",
+    displayOrder: 5,
+    isNew: true,
+    isPopular: false,
+    envVars: [
+      { key: "LMS_CERTIFICATE_ISSUER", description: "Organization name on certificates", required: true },
+      { key: "LMS_CERTIFICATE_VERIFY_URL", description: "Base URL for certificate verification", required: true },
+    ],
+    npmPackages: [
+      { name: "pdfkit", version: "^0.15.0" },
+      { name: "qrcode", version: "^1.5.3" },
+      { name: "@types/pdfkit", version: "^0.13.0", dev: true },
+    ],
+    fileMappings: [
+      { source: "modules/lms/backend/src/routes/certificate.routes.ts", destination: "backend/src/routes/lms/certificate.routes.ts" },
+      { source: "modules/lms/backend/src/services/certificate.service.ts", destination: "backend/src/services/lms/certificate.service.ts" },
+      { source: "modules/lms/web/src/app/certificates/[id]/page.tsx", destination: "web/src/app/certificates/[id]/page.tsx" },
+      { source: "modules/lms/web/src/components/lms/certificate-card.tsx", destination: "web/src/components/lms/certificate-card.tsx" },
+    ],
+    schemaMappings: [
+      { model: "Certificate", source: "modules/lms/prisma/lms.prisma" },
+    ],
+  },
+  {
+    slug: "lms.instructor",
+    name: "Instructor Dashboard",
+    description: "Instructor dashboard with course analytics, earnings tracking, student management, and course creation tools.",
+    moduleSlug: "lms",
+    price: 3900, // $39
+    tier: "business",
+    requires: ["lms.courses", "lms.enrollment", "analytics.basic"],
+    conflicts: [],
+    iconName: "GraduationCap",
+    displayOrder: 6,
+    isNew: true,
+    isPopular: true,
+    fileMappings: [
+      { source: "modules/lms/backend/src/routes/instructor.routes.ts", destination: "backend/src/routes/lms/instructor.routes.ts" },
+      { source: "modules/lms/backend/src/services/instructor.service.ts", destination: "backend/src/services/lms/instructor.service.ts" },
+      { source: "modules/lms/web/src/app/(dashboard)/dashboard/instructor/page.tsx", destination: "web/src/app/(dashboard)/dashboard/instructor/page.tsx" },
+      { source: "modules/lms/web/src/app/(dashboard)/dashboard/instructor/courses/page.tsx", destination: "web/src/app/(dashboard)/dashboard/instructor/courses/page.tsx" },
+      { source: "modules/lms/web/src/app/(dashboard)/dashboard/instructor/courses/new/page.tsx", destination: "web/src/app/(dashboard)/dashboard/instructor/courses/new/page.tsx" },
+      { source: "modules/lms/web/src/app/(dashboard)/dashboard/instructor/courses/[id]/page.tsx", destination: "web/src/app/(dashboard)/dashboard/instructor/courses/[id]/page.tsx" },
+      { source: "modules/lms/web/src/components/lms/instructor-stats.tsx", destination: "web/src/components/lms/instructor-stats.tsx" },
+      { source: "modules/lms/mobile/lib/lms/course_screen.dart", destination: "mobile/lib/presentation/screens/lms/course_screen.dart" },
+      { source: "modules/lms/mobile/lib/lms/course_detail_screen.dart", destination: "mobile/lib/presentation/screens/lms/course_detail_screen.dart" },
+      { source: "modules/lms/mobile/lib/lms/lms_service.dart", destination: "mobile/lib/core/services/lms_service.dart" },
     ],
   },
 ];
@@ -1136,6 +1998,12 @@ const templates = [
       "analytics.basic",
       "analytics.dashboard",
       "analytics.reports",
+      "lms.courses",
+      "lms.lessons",
+      "lms.enrollment",
+      "lms.quizzes",
+      "lms.certificates",
+      "lms.instructor",
     ],
     previewImageUrl: "/images/templates/lms.png",
     previewUrl: "https://demo.starterstudio.com/lms",
@@ -1166,6 +2034,10 @@ const templates = [
       "analytics.dashboard",
       "analytics.reports",
       "analytics.export",
+      "admin.panel",
+      "admin.audit",
+      "admin.rbac",
+      "admin.analytics",
     ],
     previewImageUrl: "/images/templates/admin-dashboard.png",
     previewUrl: "https://demo.starterstudio.com/admin",
@@ -1301,8 +2173,8 @@ async function main() {
         isPopular: feature.isPopular,
         envVars: feature.envVars ? feature.envVars : undefined,
         npmPackages: feature.npmPackages ? feature.npmPackages : undefined,
-        fileMappings: feature.fileMappings ? feature.fileMappings : undefined,
-        schemaMappings: feature.schemaMappings ? feature.schemaMappings : undefined,
+        fileMappings: feature.fileMappings ? (feature.fileMappings as unknown as Prisma.InputJsonValue) : undefined,
+        schemaMappings: feature.schemaMappings ? (feature.schemaMappings as unknown as Prisma.InputJsonValue) : undefined,
       },
     });
     console.log(`  Created feature: ${feature.slug}`);

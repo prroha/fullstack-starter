@@ -12,6 +12,7 @@ import { pricingRoutes } from "./pricing.routes.js";
 import { analyticsRoutes } from "./analytics.routes.js";
 import { settingsRoutes } from "./settings.routes.js";
 import { uploadsRoutes } from "./uploads.routes.js";
+import { generationRoutes } from "./generation.routes.js";
 
 const router = Router();
 
@@ -31,5 +32,6 @@ router.use("/pricing", pricingRoutes);
 router.use("/analytics", analyticsRoutes);
 router.use("/settings", settingsRoutes);
 router.use("/uploads", uploadsRoutes);
+router.use("/generate", generationRoutes);
 
 export { router as adminRoutes };

@@ -863,15 +863,17 @@ JWT_SECRET=your-jwt-secret
 
 All admin pages are connected to real backend APIs:
 
-| Page      | Route              | Features                                         |
-| --------- | ------------------ | ------------------------------------------------ |
-| Orders    | `/admin/orders`    | List, filter, status update, refund, export CSV  |
-| Templates | `/admin/templates` | CRUD, feature selection, toggle active           |
-| Settings  | `/admin/settings`  | General, payment, download, email, feature flags |
-| Customers | `/admin/customers` | List, search, view orders                        |
-| Licenses  | `/admin/licenses`  | List, revoke, regenerate download                |
-| Coupons   | `/admin/coupons`   | CRUD, usage tracking                             |
-| Analytics | `/admin/analytics` | Revenue, orders, customer metrics                |
+| Page      | Route              | Features                                                         |
+| --------- | ------------------ | ---------------------------------------------------------------- |
+| Orders    | `/admin/orders`    | List, filter, status update, refund, export CSV                  |
+| Templates | `/admin/templates` | CRUD, feature selection, toggle active                           |
+| Settings  | `/admin/settings`  | General, payment, download, email, feature flags                 |
+| Customers | `/admin/customers` | List, search, view orders                                        |
+| Licenses  | `/admin/licenses`  | List, revoke, regenerate download                                |
+| Coupons   | `/admin/coupons`   | CRUD, usage tracking                                             |
+| Pricing   | `/admin/pricing`   | Tier management, bundles, price history, upgrade recommendations |
+| Analytics | `/admin/analytics` | Revenue, funnel, geo, features, templates, PDF export            |
+| Generate  | `/admin/generate`  | Manual project generation for customers without payment          |
 
 ### Email Service
 

@@ -14,7 +14,10 @@ import {
   Briefcase,
   Building2,
   Package,
+  TrendingUp,
+  ArrowRight,
   AlertCircle,
+  History,
 } from "lucide-react";
 import {
   Button,
@@ -45,6 +48,10 @@ import {
   type PricingTier,
   type BundleDiscount,
   type DiscountType,
+  type PriceHistoryEntry,
+  type UpgradeRecommendation,
+  type AddOnPattern,
+  type RecommendationData,
 } from "@/lib/api";
 
 // =============================================================================
@@ -354,19 +361,24 @@ export default function PricingPage() {
   const [tierFormData, setTierFormData] = useState<TierFormData>(INITIAL_TIER_FORM);
   const [bundleFormData, setBundleFormData] = useState<BundleFormData>(INITIAL_BUNDLE_FORM);
   const [isSaving, setIsSaving] = useState(false);
+  const [recommendations, setRecommendations] = useState<RecommendationData | null>(null);
+  const [priceHistory, setPriceHistory] = useState<PriceHistoryEntry[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   // Load data
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
       try {
-        const [tiersData, bundlesData] = await Promise.all([
+        const [tiersData, bundlesData, recoData] = await Promise.all([
           adminApi.getPricingTiers(),
           adminApi.getBundleDiscounts(),
+          adminApi.getUpgradeRecommendations().catch(() => null),
         ]);
 
         setTiers(tiersData || []);
         setBundles(bundlesData.items || []);
+        setRecommendations(recoData);
       } catch (error) {
         console.error("Failed to fetch pricing data:", error);
         showError(
@@ -380,6 +392,23 @@ export default function PricingPage() {
 
     loadData();
   }, []);
+
+  // Load price history
+  const loadHistory = async () => {
+    setHistoryLoading(true);
+    try {
+      const data = await adminApi.getPriceHistory({ limit: 20 });
+      setPriceHistory(data.items || []);
+    } catch (error) {
+      console.error("Failed to load price history:", error);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!loading) loadHistory();
+  }, [loading]);
 
   // Computed Stats
   const stats: PricingStats = useMemo(() => {
@@ -727,6 +756,159 @@ export default function PricingPage() {
           </div>
         )}
       </div>
+
+      {/* Price History Section */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              <History className="h-5 w-5" />
+              Price History
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Track all pricing changes over time
+            </p>
+          </div>
+        </div>
+
+        {historyLoading ? (
+          <Card className="p-6">
+            <div className="space-y-3">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="h-12 bg-muted rounded animate-pulse" />
+              ))}
+            </div>
+          </Card>
+        ) : priceHistory.length === 0 ? (
+          <Card className="p-6">
+            <EmptyList
+              title="No price changes yet"
+              description="Price changes will appear here when you update tier or feature prices."
+            />
+          </Card>
+        ) : (
+          <Card>
+            <CardContent className="p-0">
+              <div className="divide-y">
+                {priceHistory.map((entry) => (
+                  <div key={entry.id} className="flex items-center justify-between p-4">
+                    <div className="flex items-center gap-3">
+                      <div className={cn(
+                        "w-2 h-2 rounded-full",
+                        entry.newPrice > entry.oldPrice ? "bg-red-500" : "bg-green-500"
+                      )} />
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{entry.entityName}</span>
+                          <Badge variant="secondary" size="sm">
+                            {entry.entityType}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          {formatCurrency(entry.oldPrice)} → {formatCurrency(entry.newPrice)}
+                          <span className={cn(
+                            "ml-2 font-medium",
+                            entry.changePercent > 0 ? "text-red-600" : "text-green-600"
+                          )}>
+                            ({entry.changePercent > 0 ? "+" : ""}{entry.changePercent.toFixed(1)}%)
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right text-sm text-muted-foreground">
+                      <p>{entry.changedBy || "System"}</p>
+                      <p>{new Date(entry.createdAt).toLocaleDateString()}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      {/* Upgrade Recommendations */}
+      {recommendations && recommendations.recommendations.length > 0 && (
+        <div className="space-y-4">
+          <div>
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              <TrendingUp className="h-5 w-5" />
+              Upgrade Recommendations
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Insights on customers who would benefit from upgrading
+            </p>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            {recommendations.recommendations.map((rec) => (
+              <Card key={`${rec.fromTier}-${rec.toTier}`}>
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <TierBadge tier={rec.fromTierName} />
+                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                    <TierBadge tier={rec.toTierName} />
+                  </div>
+                  <div className="grid grid-cols-3 gap-4 text-center">
+                    <div>
+                      <p className="text-2xl font-bold text-primary">{rec.percentWouldSave}%</p>
+                      <p className="text-xs text-muted-foreground">Would Save</p>
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold">{rec.wouldSaveCount}</p>
+                      <p className="text-xs text-muted-foreground">of {rec.totalOrders} orders</p>
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-green-600">{formatCurrency(rec.avgPotentialSavings)}</p>
+                      <p className="text-xs text-muted-foreground">Avg Savings</p>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-3">
+                    Upgrade cost: {formatCurrency(rec.upgradeCost)}
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Add-on Patterns */}
+          {recommendations.addOnPatterns.filter(p => p.topAddOns.length > 0).length > 0 && (
+            <Card>
+              <CardHeader>
+                <h3 className="font-semibold">Top Add-ons by Tier</h3>
+                <p className="text-sm text-muted-foreground">
+                  Most popular add-on features purchased per tier
+                </p>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="divide-y">
+                  {recommendations.addOnPatterns
+                    .filter((p) => p.topAddOns.length > 0)
+                    .map((pattern) => (
+                      <div key={pattern.tier} className="p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <TierBadge tier={pattern.tierName} />
+                            <span className="text-sm text-muted-foreground">
+                              {pattern.orderCount} orders, avg {pattern.avgAddOns} add-ons
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {pattern.topAddOns.map((addon) => (
+                            <Badge key={addon.slug} variant="outline" size="sm">
+                              {addon.name} ({addon.percentage}%)
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
 
       {/* Edit Tier Modal */}
       <Dialog

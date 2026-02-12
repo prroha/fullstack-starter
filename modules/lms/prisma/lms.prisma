@@ -1,0 +1,289 @@
+// =============================================================================
+// LMS Module - Prisma Schema
+// =============================================================================
+// Standalone schema for the schema merger. No datasource/generator blocks.
+// Models reference User by foreign key (userId / instructorId).
+
+// -----------------------------------------------------------------------------
+// Enums
+// -----------------------------------------------------------------------------
+
+enum CourseStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum LessonType {
+  VIDEO
+  TEXT
+  PDF
+  QUIZ
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  COMPLETED
+  DROPPED
+  EXPIRED
+}
+
+enum QuestionType {
+  MULTIPLE_CHOICE
+  TRUE_FALSE
+  SHORT_ANSWER
+}
+
+// -----------------------------------------------------------------------------
+// Category & Course-Category (many-to-many)
+// -----------------------------------------------------------------------------
+
+model Category {
+  id           String   @id @default(uuid())
+  name         String   @unique
+  slug         String   @unique
+  description  String?
+  iconName     String?  @map("icon_name")
+  displayOrder Int      @default(0) @map("display_order")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  courses CourseCategory[]
+
+  @@map("lms_categories")
+}
+
+model CourseCategory {
+  courseId   String @map("course_id")
+  categoryId String @map("category_id")
+
+  course   Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([courseId, categoryId])
+  @@map("lms_course_categories")
+}
+
+// -----------------------------------------------------------------------------
+// Course
+// -----------------------------------------------------------------------------
+
+model Course {
+  id               String       @id @default(uuid())
+  title            String
+  slug             String       @unique
+  description      String
+  shortDescription String?      @map("short_description")
+  thumbnailUrl     String?      @map("thumbnail_url")
+  instructorId     String       @map("instructor_id")
+  price            Int          @default(0) // cents, 0 = free
+  compareAtPrice   Int?         @map("compare_at_price")
+  currency         String       @default("usd")
+  status           CourseStatus @default(DRAFT)
+  level            String? // beginner, intermediate, advanced
+  language         String       @default("en")
+  duration         Int          @default(0) // total minutes (computed)
+  maxStudents      Int?         @map("max_students")
+  isFeatured       Boolean      @default(false) @map("is_featured")
+  publishedAt      DateTime?    @map("published_at")
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
+
+  categories  CourseCategory[]
+  sections    Section[]
+  enrollments Enrollment[]
+  reviews     Review[]
+
+  @@index([instructorId])
+  @@index([status])
+  @@index([slug])
+  @@map("lms_courses")
+}
+
+// -----------------------------------------------------------------------------
+// Section & Lesson
+// -----------------------------------------------------------------------------
+
+model Section {
+  id          String   @id @default(uuid())
+  courseId    String   @map("course_id")
+  title       String
+  description String?
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  course  Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons Lesson[]
+
+  @@index([courseId])
+  @@map("lms_sections")
+}
+
+model Lesson {
+  id          String     @id @default(uuid())
+  sectionId   String     @map("section_id")
+  title       String
+  description String?
+  type        LessonType @default(VIDEO)
+  contentUrl  String?    @map("content_url") // video URL, PDF URL, etc.
+  contentText String?    @map("content_text") // text/markdown content
+  duration    Int        @default(0) // minutes
+  sortOrder   Int        @default(0) @map("sort_order")
+  isFree      Boolean    @default(false) @map("is_free")
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  section  Section    @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  progress Progress[]
+  quizzes  Quiz[]
+
+  @@index([sectionId])
+  @@map("lms_lessons")
+}
+
+// -----------------------------------------------------------------------------
+// Enrollment & Progress
+// -----------------------------------------------------------------------------
+
+model Enrollment {
+  id          String           @id @default(uuid())
+  userId      String           @map("user_id")
+  courseId    String           @map("course_id")
+  status      EnrollmentStatus @default(ACTIVE)
+  progress    Float            @default(0) // 0-100 percentage
+  enrolledAt  DateTime         @default(now()) @map("enrolled_at")
+  completedAt DateTime?        @map("completed_at")
+  expiresAt   DateTime?        @map("expires_at")
+
+  course        Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  progressItems Progress[]
+  certificates  Certificate[]
+
+  @@unique([userId, courseId])
+  @@index([userId])
+  @@index([courseId])
+  @@map("lms_enrollments")
+}
+
+model Progress {
+  id           String    @id @default(uuid())
+  enrollmentId String    @map("enrollment_id")
+  lessonId     String    @map("lesson_id")
+  completed    Boolean   @default(false)
+  timeSpent    Int       @default(0) @map("time_spent") // seconds
+  lastPosition Int       @default(0) @map("last_position") // seconds for video
+  completedAt  DateTime? @map("completed_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  enrollment Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  lesson     Lesson     @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([enrollmentId, lessonId])
+  @@index([enrollmentId])
+  @@index([lessonId])
+  @@map("lms_progress")
+}
+
+// -----------------------------------------------------------------------------
+// Quiz & Questions
+// -----------------------------------------------------------------------------
+
+model Quiz {
+  id               String   @id @default(uuid())
+  lessonId         String   @map("lesson_id")
+  title            String
+  description      String?
+  passingScore     Int      @default(70) @map("passing_score") // percentage
+  maxAttempts      Int      @default(3) @map("max_attempts") // 0 = unlimited
+  timeLimitMins    Int?     @map("time_limit_mins")
+  shuffleQuestions Boolean  @default(false) @map("shuffle_questions")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  lesson    Lesson        @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  questions Question[]
+  attempts  QuizAttempt[]
+
+  @@index([lessonId])
+  @@map("lms_quizzes")
+}
+
+model Question {
+  id            String       @id @default(uuid())
+  quizId        String       @map("quiz_id")
+  type          QuestionType @default(MULTIPLE_CHOICE)
+  text          String
+  options       Json? // [{label, value, isCorrect}] for MC/TF
+  correctAnswer String?      @map("correct_answer") // for short answer
+  explanation   String?
+  points        Int          @default(1)
+  sortOrder     Int          @default(0) @map("sort_order")
+  createdAt     DateTime     @default(now()) @map("created_at")
+
+  quiz Quiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  @@index([quizId])
+  @@map("lms_questions")
+}
+
+model QuizAttempt {
+  id          String    @id @default(uuid())
+  quizId      String    @map("quiz_id")
+  userId      String    @map("user_id")
+  score       Float     @default(0) // percentage
+  passed      Boolean   @default(false)
+  answers     Json? // [{questionId, answer, isCorrect, points}]
+  startedAt   DateTime  @default(now()) @map("started_at")
+  completedAt DateTime? @map("completed_at")
+
+  quiz Quiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  @@index([quizId])
+  @@index([userId])
+  @@map("lms_quiz_attempts")
+}
+
+// -----------------------------------------------------------------------------
+// Certificate
+// -----------------------------------------------------------------------------
+
+model Certificate {
+  id               String   @id @default(uuid())
+  enrollmentId     String   @map("enrollment_id")
+  userId           String   @map("user_id")
+  courseTitle      String   @map("course_title")
+  studentName      String   @map("student_name")
+  issuerName       String   @map("issuer_name")
+  verificationCode String   @unique @map("verification_code")
+  issuedAt         DateTime @default(now()) @map("issued_at")
+  pdfUrl           String?  @map("pdf_url")
+
+  enrollment Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([verificationCode])
+  @@map("lms_certificates")
+}
+
+// -----------------------------------------------------------------------------
+// Review
+// -----------------------------------------------------------------------------
+
+model Review {
+  id        String   @id @default(uuid())
+  courseId  String   @map("course_id")
+  userId    String   @map("user_id")
+  rating    Int // 1-5
+  comment   String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([courseId, userId])
+  @@index([courseId])
+  @@index([userId])
+  @@map("lms_reviews")
+}

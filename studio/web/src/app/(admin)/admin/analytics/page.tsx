@@ -8,6 +8,7 @@ import {
   BarChart3,
   PieChart,
   Globe,
+  MapPin,
   ArrowDown,
   RefreshCw,
   Download,
@@ -21,7 +22,7 @@ import {
   formatDate,
 } from "@/lib/utils";
 import { downloadFile } from "@/lib/export";
-import { adminApi, type RevenueAnalytics, type FeatureStats, type FunnelAnalytics, type TemplateStats, type AnalyticsPeriod } from "@/lib/api";
+import { adminApi, type RevenueAnalytics, type FeatureStats, type FunnelAnalytics, type TemplateStats, type AnalyticsPeriod, type GeoAnalytics } from "@/lib/api";
 import { showError } from "@/lib/toast";
 import {
   Button,
@@ -346,6 +347,7 @@ export default function AnalyticsPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [geoData, setGeoData] = useState<GeoAnalytics | null>(null);
 
   const loadData = useCallback(async (showRefreshing = false) => {
     if (showRefreshing) setRefreshing(true);
@@ -354,12 +356,15 @@ export default function AnalyticsPage() {
 
     try {
       // Fetch all analytics data in parallel
-      const [revenueData, featureData, funnelData, templateData] = await Promise.all([
+      const [revenueData, featureData, funnelData, templateData, geoResult] = await Promise.all([
         adminApi.getRevenue(period),
         adminApi.getFeatureStats(),
         adminApi.getFunnel(period),
         adminApi.getTemplateStats(),
+        adminApi.getGeoAnalytics(period).catch(() => null),
       ]);
+
+      setGeoData(geoResult);
 
       // Compute key metrics from the data
       const keyMetrics = computeKeyMetrics(revenueData, funnelData);
@@ -706,7 +711,7 @@ export default function AnalyticsPage() {
         </CardContent>
       </Card>
 
-      {/* Geographic Distribution - Coming Soon */}
+      {/* Geographic Distribution */}
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
@@ -714,17 +719,65 @@ export default function AnalyticsPage() {
             <div>
               <h2 className="font-semibold">Geographic Distribution</h2>
               <p className="text-sm text-muted-foreground">
-                Top countries by revenue
+                Top countries by revenue and visits
               </p>
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
-            <Globe className="h-12 w-12 mx-auto mb-3 opacity-30" />
-            <p>Geographic analytics require IP geolocation integration.</p>
-            <p className="text-sm">Coming soon.</p>
-          </div>
+          {!geoData || !geoData.hasData ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Globe className="h-12 w-12 mx-auto mb-3 opacity-30" />
+              <p>No geographic data available yet.</p>
+              <p className="text-sm mt-1">
+                Geographic data is collected from analytics events with country information.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="grid grid-cols-3 gap-4 pb-4 border-b">
+                <div className="text-center">
+                  <p className="text-2xl font-bold">{formatNumber(geoData.totalCountries)}</p>
+                  <p className="text-xs text-muted-foreground">Countries</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold">{formatNumber(geoData.totalVisits)}</p>
+                  <p className="text-xs text-muted-foreground">Total Visits</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-primary">{formatCurrency(geoData.totalRevenue)}</p>
+                  <p className="text-xs text-muted-foreground">Total Revenue</p>
+                </div>
+              </div>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Country</TableHead>
+                    <TableHead>Visits</TableHead>
+                    <TableHead>Purchases</TableHead>
+                    <TableHead>Revenue</TableHead>
+                    <TableHead>Conv. Rate</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {geoData.countries.slice(0, 10).map((country) => (
+                    <TableRow key={country.country}>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <MapPin className="h-4 w-4 text-muted-foreground" />
+                          <span className="font-medium">{country.country}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>{formatNumber(country.visits)}</TableCell>
+                      <TableCell>{formatNumber(country.purchases)}</TableCell>
+                      <TableCell className="font-medium">{formatCurrency(country.revenue)}</TableCell>
+                      <TableCell>{country.conversionRate}%</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
 

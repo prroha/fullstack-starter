@@ -509,6 +509,63 @@ export interface TemplateStats {
 export type AnalyticsPeriod = "7d" | "30d" | "90d" | "1y";
 
 // =====================================================
+// Geo Analytics Types
+// =====================================================
+
+export interface GeoCountry {
+  country: string;
+  countryCode: string;
+  visits: number;
+  purchases: number;
+  revenue: number;
+  conversionRate: string;
+}
+
+export interface GeoAnalytics {
+  countries: GeoCountry[];
+  totalCountries: number;
+  totalVisits: number;
+  totalPurchases: number;
+  totalRevenue: number;
+  hasData: boolean;
+}
+
+// =====================================================
+// Recommendation Types
+// =====================================================
+
+export interface UpgradeRecommendation {
+  fromTier: string;
+  fromTierName: string;
+  toTier: string;
+  toTierName: string;
+  totalOrders: number;
+  wouldSaveCount: number;
+  percentWouldSave: number;
+  avgPotentialSavings: number;
+  upgradeCost: number;
+}
+
+export interface AddOnPattern {
+  tier: string;
+  tierName: string;
+  orderCount: number;
+  avgAddOns: string;
+  topAddOns: Array<{
+    slug: string;
+    name: string;
+    price: number;
+    count: number;
+    percentage: number;
+  }>;
+}
+
+export interface RecommendationData {
+  recommendations: UpgradeRecommendation[];
+  addOnPatterns: AddOnPattern[];
+}
+
+// =====================================================
 // Settings Types
 // =====================================================
 
@@ -607,6 +664,24 @@ export interface CreateBundleDiscountData {
 }
 
 export interface UpdateBundleDiscountData extends Partial<CreateBundleDiscountData> {}
+
+// =====================================================
+// Price History Types
+// =====================================================
+
+export interface PriceHistoryEntry {
+  id: string;
+  entityType: "tier" | "feature";
+  entityId: string;
+  entitySlug: string;
+  entityName: string;
+  oldPrice: number;
+  newPrice: number;
+  changePercent: number;
+  changedBy: string | null;
+  reason: string | null;
+  createdAt: string;
+}
 
 // Note: ApiError is re-exported from @core/lib/api at the top of this file
 
@@ -1068,6 +1143,10 @@ class StudioAdminApi {
     return this.get<TemplateStats[]>("/admin/analytics/templates");
   }
 
+  async getGeoAnalytics(period: AnalyticsPeriod = "30d"): Promise<GeoAnalytics> {
+    return this.get<GeoAnalytics>(`/admin/analytics/geo?period=${period}`);
+  }
+
   getAnalyticsPdfExportUrl(type: "revenue" | "funnel" | "features" | "templates", period: AnalyticsPeriod): string {
     return `${this.config.baseUrl}/admin/analytics/export/pdf?type=${type}&period=${period}`;
   }
@@ -1131,6 +1210,23 @@ class StudioAdminApi {
 
   async deleteBundleDiscount(id: string): Promise<void> {
     return this.delete<void>(`/admin/pricing/bundles/${id}`);
+  }
+
+  // =====================================================
+  // Recommendations API
+  // =====================================================
+
+  async getUpgradeRecommendations(): Promise<RecommendationData> {
+    return this.get<RecommendationData>("/admin/pricing/recommendations");
+  }
+
+  // =====================================================
+  // Price History API
+  // =====================================================
+
+  async getPriceHistory(params: { page?: number; limit?: number; entityType?: string; entitySlug?: string } = {}): Promise<PaginatedResponse<PriceHistoryEntry>> {
+    const query = buildQueryString(params);
+    return this.get<PaginatedResponse<PriceHistoryEntry>>(`/admin/pricing/history${query}`);
   }
 }
 
