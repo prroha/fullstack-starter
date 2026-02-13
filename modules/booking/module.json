@@ -1,0 +1,57 @@
+{
+  "name": "Booking & Appointments",
+  "version": "1.0.0",
+  "description": "Complete booking system with service catalog, provider management, appointment scheduling, reviews, and provider dashboard",
+  "tier": "premium",
+  "price": "249",
+  "category": "booking",
+  "platforms": "backend,web,mobile",
+  "dependencies": {
+    "backend": {
+      "slugify": "^1.6.6",
+      "nanoid": "^5.0.0"
+    },
+    "web": {},
+    "mobile": {
+      "http": "^1.2.0"
+    }
+  },
+  "env": {
+    "BOOKING_CURRENCY": "usd",
+    "BOOKING_BUFFER_MINUTES": "15",
+    "BOOKING_REMINDER_HOURS": "24"
+  },
+  "prismaModels": [
+    "ServiceCategory",
+    "ServiceCategoryLink",
+    "BookingService",
+    "Provider",
+    "ProviderService",
+    "Schedule",
+    "ScheduleOverride",
+    "Booking",
+    "BookingReminder",
+    "BookingReview"
+  ],
+  "routes": {
+    "backend": {
+      "prefix": "/api/v1/booking",
+      "files": [
+        "routes/service.routes.ts",
+        "routes/provider.routes.ts",
+        "routes/booking.routes.ts",
+        "routes/schedule.routes.ts",
+        "routes/review.routes.ts",
+        "routes/admin-booking.routes.ts"
+      ]
+    }
+  },
+  "postInstall": [
+    "Run Prisma migration to add Booking models",
+    "Configure currency and buffer time environment variables",
+    "Seed initial service categories",
+    "Configure file upload for provider avatars",
+    "Set up email service for booking reminders"
+  ],
+  "documentation": "https://docs.fullstack-starter.dev/modules/booking"
+}
