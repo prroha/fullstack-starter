@@ -310,8 +310,9 @@ import { cn } from "@/lib/utils";
 ### Common Patterns
 
 ```tsx
-// Container
-<div className="container mx-auto px-4">
+// Container — use PageContainer from layout
+import { PageContainer } from "@/components/layout/page-container";
+<PageContainer size="lg">
 
 // Flex layouts
 <div className="flex items-center justify-between gap-4">
@@ -320,13 +321,15 @@ import { cn } from "@/lib/utils";
 // Grid layouts
 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
 
-// Typography
-<h1 className="text-3xl font-bold">
-<p className="text-gray-600">
+// Typography — use design system colors, NOT hardcoded
+<h1 className="text-3xl font-bold text-foreground">
+<p className="text-muted-foreground">
 
-// Buttons
-<button className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
-<button className="px-4 py-2 border border-blue-500 text-blue-500 rounded hover:bg-blue-50">
+// Buttons — ALWAYS use Button component, NEVER raw <button>
+import { Button } from "@/components/ui/button";
+<Button>Primary</Button>
+<Button variant="outline">Outline</Button>
+<Button variant="destructive" isLoading={loading}>Delete</Button>
 ```
 
 ---
@@ -760,32 +763,32 @@ export default function NewPage() {
 ### How to Add a New Component
 
 ```tsx
-// src/components/ui/button.tsx
+// src/components/ui/my-component.tsx
+import * as React from "react";
 import { cn } from "@/lib/utils";
 
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "primary" | "outline";
+export interface MyComponentProps extends React.HTMLAttributes<HTMLDivElement> {
+  variant?: "default" | "primary";
 }
 
-export function Button({
-  className,
-  variant = "primary",
-  ...props
-}: ButtonProps) {
-  return (
-    <button
+const MyComponent = React.forwardRef<HTMLDivElement, MyComponentProps>(
+  ({ className, variant = "default", ...props }, ref) => (
+    <div
+      ref={ref}
       className={cn(
-        "px-4 py-2 rounded font-medium transition-colors",
-        variant === "primary" && "bg-blue-500 text-white hover:bg-blue-600",
-        variant === "outline" &&
-          "border border-blue-500 text-blue-500 hover:bg-blue-50",
+        "rounded-lg border border-border bg-card text-card-foreground",
+        variant === "primary" && "bg-primary text-primary-foreground",
         className,
       )}
       {...props}
     />
-  );
-}
+  ),
+);
+MyComponent.displayName = "MyComponent";
+export { MyComponent };
 ```
+
+**IMPORTANT**: Use design system CSS variables (`bg-card`, `text-foreground`, `border-border`) — NEVER hardcoded colors (`bg-white`, `text-gray-900`, `border-gray-200`).
 
 ### How to Add Authentication to a Page
 
@@ -795,6 +798,7 @@ export function Button({
 import { useAuth } from "@/lib/auth-context";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { Spinner } from "@/components/ui/spinner";
 
 export default function ProtectedPage() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -809,13 +813,13 @@ export default function ProtectedPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        Loading...
+        <Spinner size="lg" />
       </div>
     );
   }
 
   if (!isAuthenticated) {
-    return null; // Will redirect
+    return null;
   }
 
   return <div>{/* Protected content */}</div>;

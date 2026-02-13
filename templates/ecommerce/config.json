@@ -43,7 +43,13 @@
     "analytics.basic",
     "analytics.dashboard",
     "analytics.export",
-    "analytics.reports"
+    "analytics.reports",
+    "ecommerce.products",
+    "ecommerce.cart",
+    "ecommerce.orders",
+    "ecommerce.reviews",
+    "ecommerce.customer",
+    "ecommerce.seller"
   ],
   "previewImageUrl": "/images/templates/ecommerce.png",
   "iconName": "ShoppingCart",

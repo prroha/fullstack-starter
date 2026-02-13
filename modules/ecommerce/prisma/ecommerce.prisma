@@ -1,0 +1,241 @@
+// =============================================================================
+// E-Commerce Module - Prisma Schema
+// =============================================================================
+// Standalone schema for the schema merger. No datasource/generator blocks.
+// Models reference User by foreign key (userId / sellerId).
+
+// -----------------------------------------------------------------------------
+// Enums
+// -----------------------------------------------------------------------------
+
+enum ProductStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum EcommerceOrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+// -----------------------------------------------------------------------------
+// Product Category (many-to-many via link table)
+// -----------------------------------------------------------------------------
+
+model ProductCategory {
+  id           String   @id @default(uuid())
+  name         String   @unique
+  slug         String   @unique
+  description  String?
+  imageUrl     String?  @map("image_url")
+  displayOrder Int      @default(0) @map("display_order")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  products ProductCategoryLink[]
+
+  @@map("ecommerce_product_categories")
+}
+
+model ProductCategoryLink {
+  productId  String @map("product_id")
+  categoryId String @map("category_id")
+
+  product  Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  category ProductCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([productId, categoryId])
+  @@map("ecommerce_product_category_links")
+}
+
+// -----------------------------------------------------------------------------
+// Product
+// -----------------------------------------------------------------------------
+
+model Product {
+  id               String        @id @default(uuid())
+  title            String
+  slug             String        @unique
+  description      String
+  shortDescription String?       @map("short_description")
+  sellerId         String        @map("seller_id")
+  price            Int           @default(0) // cents
+  compareAtPrice   Int?          @map("compare_at_price")
+  currency         String        @default("usd")
+  status           ProductStatus @default(DRAFT)
+  sku              String?
+  stock            Int           @default(0)
+  lowStockThreshold Int          @default(5) @map("low_stock_threshold")
+  isFeatured       Boolean       @default(false) @map("is_featured")
+  publishedAt      DateTime?     @map("published_at")
+  createdAt        DateTime      @default(now()) @map("created_at")
+  updatedAt        DateTime      @updatedAt @map("updated_at")
+
+  categories ProductCategoryLink[]
+  images     ProductImage[]
+  variants   ProductVariant[]
+  cartItems  CartItem[]
+  reviews    ProductReview[]
+
+  @@index([sellerId])
+  @@index([status])
+  @@index([slug])
+  @@map("ecommerce_products")
+}
+
+// -----------------------------------------------------------------------------
+// Product Image
+// -----------------------------------------------------------------------------
+
+model ProductImage {
+  id        String   @id @default(uuid())
+  productId String   @map("product_id")
+  url       String
+  altText   String?  @map("alt_text")
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@map("ecommerce_product_images")
+}
+
+// -----------------------------------------------------------------------------
+// Product Variant
+// -----------------------------------------------------------------------------
+
+model ProductVariant {
+  id        String   @id @default(uuid())
+  productId String   @map("product_id")
+  name      String   // e.g. "Large / Red"
+  sku       String?
+  price     Int      @default(0) // cents, 0 = use product price
+  stock     Int      @default(0)
+  options   Json     // { size: "L", color: "Red" }
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  product   Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  cartItems CartItem[]
+
+  @@index([productId])
+  @@map("ecommerce_product_variants")
+}
+
+// -----------------------------------------------------------------------------
+// Cart & Cart Items
+// -----------------------------------------------------------------------------
+
+model Cart {
+  id        String   @id @default(uuid())
+  userId    String?  @map("user_id")
+  sessionId String?  @map("session_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  items CartItem[]
+
+  @@index([userId])
+  @@index([sessionId])
+  @@map("ecommerce_carts")
+}
+
+model CartItem {
+  id        String @id @default(uuid())
+  cartId    String @map("cart_id")
+  productId String @map("product_id")
+  variantId String? @map("variant_id")
+  quantity  Int    @default(1)
+
+  cart    Cart            @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variant ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+
+  @@unique([cartId, productId, variantId])
+  @@index([cartId])
+  @@map("ecommerce_cart_items")
+}
+
+// -----------------------------------------------------------------------------
+// Order & Order Items
+// -----------------------------------------------------------------------------
+
+model EcommerceOrder {
+  id              String               @id @default(uuid())
+  orderNumber     String               @unique @map("order_number")
+  userId          String               @map("user_id")
+  status          EcommerceOrderStatus  @default(PENDING)
+  paymentStatus   PaymentStatus        @default(PENDING) @map("payment_status")
+  paymentIntentId String?              @map("payment_intent_id")
+  subtotal        Int                  @default(0) // cents
+  shippingCost    Int                  @default(0) @map("shipping_cost")
+  taxAmount       Int                  @default(0) @map("tax_amount")
+  totalAmount     Int                  @default(0) @map("total_amount")
+  currency        String               @default("usd")
+  shippingAddress Json?                @map("shipping_address")
+  billingAddress  Json?                @map("billing_address")
+  notes           String?
+  createdAt       DateTime             @default(now()) @map("created_at")
+  updatedAt       DateTime             @updatedAt @map("updated_at")
+
+  items OrderItem[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([orderNumber])
+  @@map("ecommerce_orders")
+}
+
+model OrderItem {
+  id           String @id @default(uuid())
+  orderId      String @map("order_id")
+  productId    String @map("product_id")
+  productTitle String @map("product_title")
+  productSlug  String @map("product_slug")
+  variantName  String? @map("variant_name")
+  quantity     Int    @default(1)
+  unitPrice    Int    @default(0) @map("unit_price") // cents, snapshot at purchase
+  totalPrice   Int    @default(0) @map("total_price") // cents
+
+  order EcommerceOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@map("ecommerce_order_items")
+}
+
+// -----------------------------------------------------------------------------
+// Product Review
+// -----------------------------------------------------------------------------
+
+model ProductReview {
+  id        String   @id @default(uuid())
+  productId String   @map("product_id")
+  userId    String   @map("user_id")
+  userName  String?  @map("user_name")
+  rating    Int      // 1-5
+  comment   String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, userId])
+  @@index([productId])
+  @@index([userId])
+  @@map("ecommerce_product_reviews")
+}

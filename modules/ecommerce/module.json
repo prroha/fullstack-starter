@@ -1,0 +1,57 @@
+{
+  "name": "E-Commerce",
+  "version": "1.0.0",
+  "description": "Complete e-commerce with product catalog, shopping cart, checkout, order management, reviews, customer accounts, and seller dashboard",
+  "tier": "business",
+  "price": "224",
+  "category": "commerce",
+  "platforms": "backend,web,mobile",
+  "dependencies": {
+    "backend": {
+      "slugify": "^1.6.6",
+      "nanoid": "^5.0.0"
+    },
+    "web": {},
+    "mobile": {
+      "http": "^1.2.0"
+    }
+  },
+  "env": {
+    "ECOMMERCE_CURRENCY": "usd",
+    "ECOMMERCE_TAX_RATE": "0",
+    "ECOMMERCE_SHIPPING_FLAT_RATE": "0"
+  },
+  "prismaModels": [
+    "ProductCategory",
+    "ProductCategoryLink",
+    "Product",
+    "ProductImage",
+    "ProductVariant",
+    "Cart",
+    "CartItem",
+    "EcommerceOrder",
+    "OrderItem",
+    "ProductReview"
+  ],
+  "routes": {
+    "backend": {
+      "prefix": "/api/v1/ecommerce",
+      "files": [
+        "routes/product.routes.ts",
+        "routes/cart.routes.ts",
+        "routes/order.routes.ts",
+        "routes/review.routes.ts",
+        "routes/customer.routes.ts",
+        "routes/seller.routes.ts"
+      ]
+    }
+  },
+  "postInstall": [
+    "Run Prisma migration to add E-Commerce models",
+    "Configure currency and tax rate environment variables",
+    "Set up Stripe or payment gateway for checkout",
+    "Seed initial product categories",
+    "Configure file upload for product images"
+  ],
+  "documentation": "https://docs.fullstack-starter.dev/modules/ecommerce"
+}
