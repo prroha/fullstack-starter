@@ -8,6 +8,7 @@ import { formatPrice } from '@/lib/ecommerce/formatters';
 import SellerStats from '@/components/ecommerce/seller-stats';
 import OrderStatusBadge from '@/components/ecommerce/order-status-badge';
 import { Rating } from '@/components/ui/rating';
+import { Button } from '@/components/ui/button';
 
 export default function SellerDashboardPage() {
   const [stats, setStats] = useState<SellerStatsType | null>(null);
@@ -46,15 +47,15 @@ export default function SellerDashboardPage() {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="animate-pulse space-y-6">
-          <div className="h-8 w-48 bg-gray-200 rounded" />
+          <div className="h-8 w-48 bg-muted rounded" />
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="h-28 bg-gray-200 rounded-xl" />
+              <div key={i} className="h-28 bg-muted rounded-xl" />
             ))}
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div className="h-64 bg-gray-200 rounded-lg" />
-            <div className="h-64 bg-gray-200 rounded-lg" />
+            <div className="h-64 bg-muted rounded-lg" />
+            <div className="h-64 bg-muted rounded-lg" />
           </div>
         </div>
       </div>
@@ -67,12 +68,13 @@ export default function SellerDashboardPage() {
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <h2 className="text-red-800 font-semibold text-lg">Error</h2>
           <p className="text-red-600 mt-1">{error}</p>
-          <button
+          <Button
+            variant="destructive"
             onClick={() => window.location.reload()}
-            className="mt-3 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+            className="mt-3"
           >
             Retry
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -83,8 +85,8 @@ export default function SellerDashboardPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Seller Dashboard</h1>
-          <p className="mt-2 text-gray-600">
+          <h1 className="text-3xl font-bold text-foreground">Seller Dashboard</h1>
+          <p className="mt-2 text-muted-foreground">
             Overview of your products, orders, and revenue.
           </p>
         </div>
@@ -97,7 +99,7 @@ export default function SellerDashboardPage() {
           </Link>
           <Link
             href="/dashboard/seller/orders"
-            className="px-4 py-2 text-sm font-medium rounded-lg bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 transition-colors"
+            className="px-4 py-2 text-sm font-medium rounded-lg bg-card text-foreground border border-border hover:bg-muted transition-colors"
           >
             View Orders
           </Link>
@@ -110,9 +112,9 @@ export default function SellerDashboardPage() {
       {/* Content Grid */}
       <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Recent Orders */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900">Recent Orders</h2>
+        <div className="bg-card rounded-lg shadow-sm border border-border">
+          <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-foreground">Recent Orders</h2>
             <Link
               href="/dashboard/seller/orders"
               className="text-sm text-blue-600 hover:text-blue-800 font-medium"
@@ -120,24 +122,24 @@ export default function SellerDashboardPage() {
               View all
             </Link>
           </div>
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-border">
             {recentOrders.length === 0 ? (
-              <div className="px-6 py-8 text-center text-gray-500">
+              <div className="px-6 py-8 text-center text-muted-foreground">
                 No orders yet.
               </div>
             ) : (
               recentOrders.map((order) => (
                 <div key={order.id} className="px-6 py-4 flex items-center justify-between">
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-gray-900">
+                    <p className="text-sm font-medium text-foreground">
                       #{order.orderNumber}
                     </p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-muted-foreground">
                       {new Date(order.createdAt).toLocaleDateString()}
                     </p>
                   </div>
                   <div className="flex items-center gap-3 ml-4">
-                    <span className="text-sm font-medium text-gray-900">
+                    <span className="text-sm font-medium text-foreground">
                       {formatPrice(order.totalAmount, order.currency)}
                     </span>
                     <OrderStatusBadge status={order.status} />
@@ -149,28 +151,28 @@ export default function SellerDashboardPage() {
         </div>
 
         {/* Recent Reviews */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">Recent Reviews</h2>
+        <div className="bg-card rounded-lg shadow-sm border border-border">
+          <div className="px-6 py-4 border-b border-border">
+            <h2 className="text-lg font-semibold text-foreground">Recent Reviews</h2>
           </div>
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-border">
             {recentReviews.length === 0 ? (
-              <div className="px-6 py-8 text-center text-gray-500">
+              <div className="px-6 py-8 text-center text-muted-foreground">
                 No reviews yet.
               </div>
             ) : (
               recentReviews.map((review) => (
                 <div key={review.id} className="px-6 py-4">
                   <div className="flex items-center justify-between mb-1">
-                    <p className="text-sm font-medium text-gray-900 truncate">
+                    <p className="text-sm font-medium text-foreground truncate">
                       {review.userName || 'Anonymous'}
                     </p>
                     <Rating value={review.rating} readOnly size="sm" />
                   </div>
                   {review.comment && (
-                    <p className="text-sm text-gray-600 line-clamp-2">{review.comment}</p>
+                    <p className="text-sm text-muted-foreground line-clamp-2">{review.comment}</p>
                   )}
-                  <p className="text-xs text-gray-400 mt-1">
+                  <p className="text-xs text-muted-foreground mt-1">
                     {new Date(review.createdAt).toLocaleDateString()}
                   </p>
                 </div>

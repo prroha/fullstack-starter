@@ -6,6 +6,7 @@ import { formatPrice } from "@/lib/ecommerce/formatters";
 import type { Cart } from "@/lib/ecommerce/types";
 import CartItemRow from "@/components/ecommerce/cart-item";
 import CartSummary from "@/components/ecommerce/cart-summary";
+import { Button } from "@/components/ui/button";
 
 // =============================================================================
 // Shopping Cart Page
@@ -129,12 +130,14 @@ export default function CartPage() {
             Shopping Cart
           </h1>
           {!isEmpty && (
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={handleClear}
-              className="text-sm text-muted-foreground hover:text-destructive transition-colors"
+              className="text-muted-foreground hover:text-destructive"
             >
               Clear Cart
-            </button>
+            </Button>
           )}
         </div>
 
@@ -167,12 +170,9 @@ export default function CartPage() {
             <p className="mt-2 text-muted-foreground">
               Looks like you have not added anything to your cart yet.
             </p>
-            <a
-              href="/shop"
-              className="mt-6 inline-block rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-            >
-              Continue Shopping
-            </a>
+            <Button asChild className="mt-6">
+              <a href="/shop">Continue Shopping</a>
+            </Button>
           </div>
         )}
 

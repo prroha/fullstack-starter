@@ -4,6 +4,14 @@ import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Course, Category, CourseUpdateInput } from '@/lib/lms/types';
 import { courseApi } from '@/lib/lms/api';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Select } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Alert } from '@/components/feedback/alert';
+import { Spinner } from '@/components/ui/spinner';
 
 const LEVELS = [
   { value: 'beginner', label: 'Beginner' },
@@ -173,7 +181,7 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <p className="text-gray-500 text-lg">Loading...</p>
+        <Spinner size="lg" />
       </div>
     );
   }
@@ -181,15 +189,16 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
   if (error && !course) {
     return (
       <div className="max-w-4xl mx-auto p-6">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <h2 className="text-red-800 font-semibold text-lg">Error</h2>
-          <p className="text-red-600 mt-1">{error}</p>
-          <button
+        <Alert variant="destructive" title="Error">
+          {error}
+        </Alert>
+        <div className="mt-3">
+          <Button
+            variant="secondary"
             onClick={() => router.push('/dashboard/instructor/courses')}
-            className="mt-3 px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
           >
             Back to Courses
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -200,67 +209,66 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Edit Course</h1>
+          <h1 className="text-3xl font-bold text-foreground">Edit Course</h1>
           {course && (
             <div className="mt-2 flex items-center gap-3">
-              <span
-                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+              <Badge
+                variant={
                   course.status === 'PUBLISHED'
-                    ? 'bg-green-100 text-green-700'
+                    ? 'success'
                     : course.status === 'ARCHIVED'
-                    ? 'bg-yellow-100 text-yellow-700'
-                    : 'bg-gray-100 text-gray-700'
-                }`}
+                    ? 'warning'
+                    : 'secondary'
+                }
               >
                 {course.status}
-              </span>
-              <button
+              </Badge>
+              <Button
+                variant="link"
+                size="sm"
                 onClick={() =>
                   router.push(`/dashboard/instructor/courses/${id}/lessons`)
                 }
-                className="text-sm text-blue-600 hover:text-blue-800 font-medium"
               >
                 Manage Lessons
-              </button>
+              </Button>
             </div>
           )}
         </div>
 
         <div className="flex items-center gap-3">
-          <button
+          <Button
+            variant={course?.status === 'PUBLISHED' ? 'outline' : 'default'}
+            size="sm"
             onClick={handlePublishToggle}
-            disabled={publishing}
-            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 ${
-              course?.status === 'PUBLISHED'
-                ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
-                : 'bg-green-100 text-green-800 hover:bg-green-200'
-            }`}
+            isLoading={publishing}
           >
-            {publishing
-              ? 'Updating...'
-              : course?.status === 'PUBLISHED'
-              ? 'Unpublish'
-              : 'Publish'}
-          </button>
-          <button
+            {course?.status === 'PUBLISHED' ? 'Unpublish' : 'Publish'}
+          </Button>
+          <Button
+            variant="destructive"
+            size="sm"
             onClick={handleDelete}
-            disabled={deleting}
-            className="px-4 py-2 text-sm font-medium rounded-lg bg-red-100 text-red-700 hover:bg-red-200 disabled:opacity-50 transition-colors"
+            isLoading={deleting}
           >
-            {deleting ? 'Deleting...' : 'Delete'}
-          </button>
+            Delete
+          </Button>
         </div>
       </div>
 
       {/* Messages */}
       {error && (
-        <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-red-600">{error}</p>
+        <div className="mb-6">
+          <Alert variant="destructive" onDismiss={() => setError(null)}>
+            {error}
+          </Alert>
         </div>
       )}
       {successMessage && (
-        <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
-          <p className="text-green-600">{successMessage}</p>
+        <div className="mb-6">
+          <Alert variant="success" onDismiss={() => setSuccessMessage(null)}>
+            {successMessage}
+          </Alert>
         </div>
       )}
 
@@ -268,57 +276,56 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
       <form onSubmit={handleSave} className="space-y-6">
         {/* Title */}
         <div>
-          <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
-            Title <span className="text-red-500">*</span>
-          </label>
-          <input
+          <Label htmlFor="title" required className="mb-1">
+            Title
+          </Label>
+          <Input
             id="title"
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             required
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
           />
         </div>
 
         {/* Description */}
         <div>
-          <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
-            Description <span className="text-red-500">*</span>
-          </label>
-          <textarea
+          <Label htmlFor="description" required className="mb-1">
+            Description
+          </Label>
+          <Textarea
             id="description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             required
             rows={5}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-y"
+            className="resize-y"
           />
         </div>
 
         {/* Short Description */}
         <div>
-          <label htmlFor="shortDescription" className="block text-sm font-medium text-gray-700 mb-1">
+          <Label htmlFor="shortDescription" className="mb-1">
             Short Description
-          </label>
-          <textarea
+          </Label>
+          <Textarea
             id="shortDescription"
             value={shortDescription}
             onChange={(e) => setShortDescription(e.target.value)}
             rows={2}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-y"
+            className="resize-y"
           />
         </div>
 
         {/* Price & Level Row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-1">
+            <Label htmlFor="price" className="mb-1">
               Price (USD)
-            </label>
+            </Label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
-              <input
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+              <Input
                 id="price"
                 type="number"
                 step="0.01"
@@ -326,82 +333,73 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                 value={priceDollars}
                 onChange={(e) => setPriceDollars(e.target.value)}
                 placeholder="0.00"
-                className="w-full pl-7 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                className="pl-7"
               />
             </div>
           </div>
 
           <div>
-            <label htmlFor="level" className="block text-sm font-medium text-gray-700 mb-1">
+            <Label htmlFor="level" className="mb-1">
               Level
-            </label>
-            <select
+            </Label>
+            <Select
               id="level"
               value={level}
-              onChange={(e) => setLevel(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
-            >
-              <option value="">Select level</option>
-              {LEVELS.map((l) => (
-                <option key={l.value} value={l.value}>
-                  {l.label}
-                </option>
-              ))}
-            </select>
+              onChange={(value) => setLevel(value)}
+              placeholder="Select level"
+              options={LEVELS}
+            />
           </div>
         </div>
 
         {/* Language & Max Students Row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label htmlFor="language" className="block text-sm font-medium text-gray-700 mb-1">
+            <Label htmlFor="language" className="mb-1">
               Language
-            </label>
-            <input
+            </Label>
+            <Input
               id="language"
               type="text"
               value={language}
               onChange={(e) => setLanguage(e.target.value)}
               placeholder="e.g. en, es, fr"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
             />
           </div>
 
           <div>
-            <label htmlFor="maxStudents" className="block text-sm font-medium text-gray-700 mb-1">
+            <Label htmlFor="maxStudents" className="mb-1">
               Max Students
-            </label>
-            <input
+            </Label>
+            <Input
               id="maxStudents"
               type="number"
               min="1"
               value={maxStudents}
               onChange={(e) => setMaxStudents(e.target.value)}
               placeholder="Unlimited"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
             />
           </div>
         </div>
 
         {/* Thumbnail URL */}
         <div>
-          <label htmlFor="thumbnailUrl" className="block text-sm font-medium text-gray-700 mb-1">
+          <Label htmlFor="thumbnailUrl" className="mb-1">
             Thumbnail URL
-          </label>
-          <input
+          </Label>
+          <Input
             id="thumbnailUrl"
             type="url"
             value={thumbnailUrl}
             onChange={(e) => setThumbnailUrl(e.target.value)}
             placeholder="https://example.com/image.jpg"
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
           />
           {thumbnailUrl && (
             <div className="mt-2">
               <img
                 src={thumbnailUrl}
                 alt="Thumbnail preview"
-                className="w-32 h-20 object-cover rounded border border-gray-200"
+                className="w-32 h-20 object-cover rounded border border-border"
                 onError={(e) => {
                   (e.target as HTMLImageElement).style.display = 'none';
                 }}
@@ -412,9 +410,9 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
 
         {/* Categories */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Categories</label>
+          <Label className="mb-2">Categories</Label>
           {categories.length === 0 ? (
-            <p className="text-sm text-gray-500">No categories available.</p>
+            <p className="text-sm text-muted-foreground">No categories available.</p>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {categories.map((category) => (
@@ -422,17 +420,17 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
                   key={category.id}
                   className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${
                     selectedCategoryIds.includes(category.id)
-                      ? 'bg-blue-50 border-blue-300'
-                      : 'bg-white border-gray-200 hover:bg-gray-50'
+                      ? 'bg-primary/10 border-primary/30'
+                      : 'bg-card border-border hover:bg-muted'
                   }`}
                 >
                   <input
                     type="checkbox"
                     checked={selectedCategoryIds.includes(category.id)}
                     onChange={() => handleCategoryToggle(category.id)}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    className="rounded border-border text-primary focus:ring-primary"
                   />
-                  <span className="text-sm text-gray-700">{category.name}</span>
+                  <span className="text-sm text-foreground">{category.name}</span>
                 </label>
               ))}
             </div>
@@ -440,21 +438,20 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-4 pt-4 border-t border-gray-200">
-          <button
+        <div className="flex items-center gap-4 pt-4 border-t border-border">
+          <Button
             type="submit"
-            disabled={saving}
-            className="px-6 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            isLoading={saving}
           >
-            {saving ? 'Saving...' : 'Save Changes'}
-          </button>
-          <button
+            Save Changes
+          </Button>
+          <Button
             type="button"
+            variant="outline"
             onClick={() => router.push('/dashboard/instructor/courses')}
-            className="px-6 py-2.5 bg-white text-gray-700 font-medium rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors"
           >
             Back to Courses
-          </button>
+          </Button>
         </div>
       </form>
     </div>

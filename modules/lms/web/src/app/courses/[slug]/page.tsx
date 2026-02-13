@@ -8,6 +8,9 @@ import { EnrollmentButton } from "@/components/lms/enrollment-button";
 import { ReviewForm } from "@/components/lms/review-form";
 import { ReviewList } from "@/components/lms/review-list";
 import { Rating } from "@/components/ui/rating";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Spinner } from "@/components/ui/spinner";
 import { formatPrice, formatDuration, getLevelColor } from "@/lib/lms/formatters";
 
 // =============================================================================
@@ -30,9 +33,10 @@ function CurriculumSection({
 
   return (
     <div className="border border-border rounded-lg overflow-hidden">
-      <button
+      <Button
+        variant="ghost"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex w-full items-center justify-between bg-card px-5 py-4 text-left hover:bg-accent/50 transition-colors"
+        className="flex w-full items-center justify-between rounded-none bg-card px-5 py-4 text-left hover:bg-accent/50 h-auto"
       >
         <div className="flex items-center gap-3">
           <svg
@@ -55,7 +59,7 @@ function CurriculumSection({
           {" \u00B7 "}
           {formatDuration(sectionDuration)}
         </span>
-      </button>
+      </Button>
 
       {isOpen && (
         <div className="divide-y divide-border">
@@ -133,9 +137,9 @@ function CurriculumSection({
                 )}
                 <span className="text-sm text-foreground">{lesson.title}</span>
                 {lesson.isFree && (
-                  <span className="rounded bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                  <Badge variant="success" size="sm">
                     Free Preview
-                  </span>
+                  </Badge>
                 )}
               </div>
               <span className="text-sm text-muted-foreground">
@@ -207,7 +211,7 @@ export default function CourseDetailPage({
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p className="text-muted-foreground">Loading...</p>
+        <Spinner size="lg" />
       </div>
     );
   }
@@ -223,12 +227,9 @@ export default function CourseDetailPage({
           <p className="text-lg font-medium text-destructive">
             {error || "Course not found"}
           </p>
-          <button
-            onClick={fetchCourse}
-            className="mt-4 rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground hover:bg-primary/90 transition-colors"
-          >
+          <Button onClick={fetchCourse} className="mt-4" size="sm">
             Try Again
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -322,18 +323,18 @@ export default function CourseDetailPage({
                       course.level.slice(1)}
                   </span>
                 )}
-                <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
+                <Badge variant="secondary" size="sm">
                   {course.language.toUpperCase()}
-                </span>
+                </Badge>
                 {course.duration > 0 && (
-                  <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
+                  <Badge variant="secondary" size="sm">
                     {formatDuration(course.duration)} total
-                  </span>
+                  </Badge>
                 )}
                 {totalLessons > 0 && (
-                  <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
+                  <Badge variant="secondary" size="sm">
                     {totalLessons} lesson{totalLessons !== 1 ? "s" : ""}
-                  </span>
+                  </Badge>
                 )}
               </div>
             </div>
@@ -439,9 +440,10 @@ export default function CourseDetailPage({
           {/* Tabs */}
           <div className="border-b border-border">
             <div className="flex gap-8">
-              <button
+              <Button
+                variant="ghost"
                 onClick={() => setActiveTab("curriculum")}
-                className={`border-b-2 pb-3 text-sm font-medium transition-colors ${
+                className={`rounded-none border-b-2 pb-3 text-sm font-medium h-auto px-0 hover:bg-transparent ${
                   activeTab === "curriculum"
                     ? "border-primary text-primary"
                     : "border-transparent text-muted-foreground hover:text-foreground"
@@ -453,10 +455,11 @@ export default function CourseDetailPage({
                     {sections.length} section{sections.length !== 1 ? "s" : ""}
                   </span>
                 )}
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="ghost"
                 onClick={() => setActiveTab("reviews")}
-                className={`border-b-2 pb-3 text-sm font-medium transition-colors ${
+                className={`rounded-none border-b-2 pb-3 text-sm font-medium h-auto px-0 hover:bg-transparent ${
                   activeTab === "reviews"
                     ? "border-primary text-primary"
                     : "border-transparent text-muted-foreground hover:text-foreground"
@@ -468,7 +471,7 @@ export default function CourseDetailPage({
                     {course.reviewCount}
                   </span>
                 )}
-              </button>
+              </Button>
             </div>
           </div>
 

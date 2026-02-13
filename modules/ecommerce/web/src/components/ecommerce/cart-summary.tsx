@@ -25,24 +25,24 @@ export default function CartSummary({
   const total = subtotal + shippingCost + taxAmount;
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-6">
-      <h3 className="mb-4 text-lg font-semibold text-gray-900">
+    <div className="rounded-lg border border-border bg-card p-6">
+      <h3 className="mb-4 text-lg font-semibold text-foreground">
         Order Summary
       </h3>
 
       <div className="space-y-3">
         {/* Subtotal */}
         <div className="flex items-center justify-between">
-          <span className="text-sm text-gray-600">Subtotal</span>
-          <span className="text-sm font-medium text-gray-900">
+          <span className="text-sm text-muted-foreground">Subtotal</span>
+          <span className="text-sm font-medium text-foreground">
             {formatPrice(subtotal)}
           </span>
         </div>
 
         {/* Shipping */}
         <div className="flex items-center justify-between">
-          <span className="text-sm text-gray-600">Shipping</span>
-          <span className="text-sm font-medium text-gray-900">
+          <span className="text-sm text-muted-foreground">Shipping</span>
+          <span className="text-sm font-medium text-foreground">
             {shippingCost === 0 ? 'Free' : formatPrice(shippingCost)}
           </span>
         </div>
@@ -50,20 +50,20 @@ export default function CartSummary({
         {/* Tax */}
         {taxAmount > 0 && (
           <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-600">Tax</span>
-            <span className="text-sm font-medium text-gray-900">
+            <span className="text-sm text-muted-foreground">Tax</span>
+            <span className="text-sm font-medium text-foreground">
               {formatPrice(taxAmount)}
             </span>
           </div>
         )}
 
         {/* Divider */}
-        <hr className="border-gray-200" />
+        <hr className="border-border" />
 
         {/* Total */}
         <div className="flex items-center justify-between">
-          <span className="text-base font-semibold text-gray-900">Total</span>
-          <span className="text-lg font-bold text-gray-900">
+          <span className="text-base font-semibold text-foreground">Total</span>
+          <span className="text-lg font-bold text-foreground">
             {formatPrice(total)}
           </span>
         </div>

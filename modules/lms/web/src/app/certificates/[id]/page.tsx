@@ -5,6 +5,8 @@ import { use } from "react";
 import { useSearchParams } from "next/navigation";
 import { certificateApi } from "@/lib/lms/api";
 import type { Certificate, CertificateVerification } from "@/lib/lms/types";
+import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 
 // =============================================================================
 // Helper Functions
@@ -118,7 +120,7 @@ export default function CertificatePage({
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p className="text-muted-foreground">Loading...</p>
+        <Spinner size="lg" />
       </div>
     );
   }
@@ -132,12 +134,9 @@ export default function CertificatePage({
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
           <p className="text-lg font-medium text-destructive">{error}</p>
-          <button
-            onClick={fetchCertificate}
-            className="mt-4 rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground hover:bg-primary/90 transition-colors"
-          >
+          <Button onClick={fetchCertificate} className="mt-4" size="sm">
             Try Again
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -151,9 +150,9 @@ export default function CertificatePage({
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-4">
         <div className="max-w-md text-center">
-          <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-red-100">
+          <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-destructive/10">
             <svg
-              className="h-10 w-10 text-red-600"
+              className="h-10 w-10 text-destructive"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -331,12 +330,9 @@ export default function CertificatePage({
         {/* Actions */}
         <div className="flex flex-wrap items-center justify-center gap-4">
           {/* Download PDF */}
-          <button
-            onClick={handleDownloadPdf}
-            className="flex items-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-          >
+          <Button onClick={handleDownloadPdf} size="lg">
             <svg
-              className="h-4 w-4"
+              className="mr-2 h-4 w-4"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -349,10 +345,12 @@ export default function CertificatePage({
               />
             </svg>
             Download PDF
-          </button>
+          </Button>
 
           {/* Share / Copy Link */}
-          <button
+          <Button
+            variant="outline"
+            size="lg"
             onClick={() => {
               const url = `${window.location.origin}/certificates/${certificate.id}?verify=${certificate.verificationCode}`;
               navigator.clipboard.writeText(url).catch(() => {
@@ -360,10 +358,9 @@ export default function CertificatePage({
                 window.prompt("Copy this link:", url);
               });
             }}
-            className="flex items-center gap-2 rounded-lg border border-input px-6 py-3 text-sm font-medium text-foreground hover:bg-accent transition-colors"
           >
             <svg
-              className="h-4 w-4"
+              className="mr-2 h-4 w-4"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -376,15 +373,16 @@ export default function CertificatePage({
               />
             </svg>
             Copy Verification Link
-          </button>
+          </Button>
 
           {/* Print */}
-          <button
+          <Button
+            variant="outline"
+            size="lg"
             onClick={() => window.print()}
-            className="flex items-center gap-2 rounded-lg border border-input px-6 py-3 text-sm font-medium text-foreground hover:bg-accent transition-colors"
           >
             <svg
-              className="h-4 w-4"
+              className="mr-2 h-4 w-4"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -397,7 +395,7 @@ export default function CertificatePage({
               />
             </svg>
             Print
-          </button>
+          </Button>
         </div>
 
         {/* Certificate Info */}

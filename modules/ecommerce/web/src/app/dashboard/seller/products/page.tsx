@@ -65,10 +65,10 @@ export default function SellerProductsPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="animate-pulse space-y-6">
           <div className="flex justify-between">
-            <div className="h-8 w-40 bg-gray-200 rounded" />
-            <div className="h-10 w-32 bg-gray-200 rounded-lg" />
+            <div className="h-8 w-40 bg-muted rounded" />
+            <div className="h-10 w-32 bg-muted rounded-lg" />
           </div>
-          <div className="h-96 bg-gray-200 rounded-lg" />
+          <div className="h-96 bg-muted rounded-lg" />
         </div>
       </div>
     );
@@ -80,12 +80,13 @@ export default function SellerProductsPage() {
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <h2 className="text-red-800 font-semibold text-lg">Error</h2>
           <p className="text-red-600 mt-1">{error}</p>
-          <button
+          <Button
+            variant="destructive"
             onClick={() => window.location.reload()}
-            className="mt-3 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+            className="mt-3"
           >
             Retry
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -96,8 +97,8 @@ export default function SellerProductsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">My Products</h1>
-          <p className="mt-1 text-gray-600">
+          <h1 className="text-3xl font-bold text-foreground">My Products</h1>
+          <p className="mt-1 text-muted-foreground">
             Manage your product catalog.
           </p>
         </div>
@@ -118,8 +119,8 @@ export default function SellerProductsPage() {
 
       {/* Product List */}
       {products.length === 0 ? (
-        <div className="text-center py-16 bg-white rounded-lg border border-gray-200">
-          <p className="text-gray-500 text-lg">
+        <div className="text-center py-16 bg-card rounded-lg border border-border">
+          <p className="text-muted-foreground text-lg">
             No products yet. Create your first product!
           </p>
           <Link
@@ -152,27 +153,27 @@ export default function SellerProductsPage() {
                         className="w-12 h-12 rounded object-cover flex-shrink-0"
                       />
                     ) : (
-                      <div className="w-12 h-12 rounded bg-gray-200 flex items-center justify-center flex-shrink-0">
-                        <span className="text-gray-400 text-xs">IMG</span>
+                      <div className="w-12 h-12 rounded bg-muted flex items-center justify-center flex-shrink-0">
+                        <span className="text-muted-foreground text-xs">IMG</span>
                       </div>
                     )}
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate max-w-xs">
+                      <p className="text-sm font-medium text-foreground truncate max-w-xs">
                         {product.title}
                       </p>
                       {product.sku && (
-                        <p className="text-xs text-gray-500">SKU: {product.sku}</p>
+                        <p className="text-xs text-muted-foreground">SKU: {product.sku}</p>
                       )}
                     </div>
                   </div>
                 </TableCell>
                 <TableCell>
                   <div>
-                    <span className="text-sm text-gray-900">
+                    <span className="text-sm text-foreground">
                       {formatPrice(product.price, product.currency)}
                     </span>
                     {product.compareAtPrice && product.compareAtPrice > product.price && (
-                      <span className="ml-2 text-xs text-gray-400 line-through">
+                      <span className="ml-2 text-xs text-muted-foreground line-through">
                         {formatPrice(product.compareAtPrice, product.currency)}
                       </span>
                     )}
@@ -183,7 +184,7 @@ export default function SellerProductsPage() {
                     className={`text-sm ${
                       product.stock <= product.lowStockThreshold
                         ? 'text-red-600 font-medium'
-                        : 'text-gray-700'
+                        : 'text-foreground'
                     }`}
                   >
                     {product.stock}
@@ -207,7 +208,7 @@ export default function SellerProductsPage() {
                   >
                     Edit
                   </Link>
-                  <span className="mx-2 text-gray-300">|</span>
+                  <span className="mx-2 text-border">|</span>
                   <Button
                     variant="destructive"
                     size="sm"

@@ -44,8 +44,8 @@ export default function SellerOrdersPage() {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="animate-pulse space-y-6">
-          <div className="h-8 w-32 bg-gray-200 rounded" />
-          <div className="h-96 bg-gray-200 rounded-lg" />
+          <div className="h-8 w-32 bg-muted rounded" />
+          <div className="h-96 bg-muted rounded-lg" />
         </div>
       </div>
     );
@@ -57,12 +57,13 @@ export default function SellerOrdersPage() {
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <h2 className="text-red-800 font-semibold text-lg">Error</h2>
           <p className="text-red-600 mt-1">{error}</p>
-          <button
+          <Button
+            variant="destructive"
             onClick={() => window.location.reload()}
-            className="mt-3 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+            className="mt-3"
           >
             Retry
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -72,8 +73,8 @@ export default function SellerOrdersPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Orders</h1>
-        <p className="mt-1 text-gray-600">
+        <h1 className="text-3xl font-bold text-foreground">Orders</h1>
+        <p className="mt-1 text-muted-foreground">
           Manage orders for your products.
         </p>
       </div>
@@ -87,9 +88,9 @@ export default function SellerOrdersPage() {
 
       {/* Orders table */}
       {orders.length === 0 ? (
-        <div className="text-center py-16 bg-white rounded-lg border border-gray-200">
-          <p className="text-gray-500 text-lg">No orders yet.</p>
-          <p className="text-gray-400 text-sm mt-2">
+        <div className="text-center py-16 bg-card rounded-lg border border-border">
+          <p className="text-muted-foreground text-lg">No orders yet.</p>
+          <p className="text-muted-foreground text-sm mt-2">
             Orders will appear here once customers purchase your products.
           </p>
         </div>
@@ -118,22 +119,22 @@ export default function SellerOrdersPage() {
                     onClick={() => toggleExpand(order.id)}
                   >
                     <TableCell>
-                      <span className="text-sm font-medium text-gray-900">
+                      <span className="text-sm font-medium text-foreground">
                         #{order.orderNumber}
                       </span>
                     </TableCell>
-                    <TableCell className="text-sm text-gray-600">
+                    <TableCell className="text-sm text-muted-foreground">
                       {new Date(order.createdAt).toLocaleDateString()}
                     </TableCell>
                     <TableCell>
-                      <span className="text-sm text-gray-600 font-mono">
+                      <span className="text-sm text-muted-foreground font-mono">
                         {order.userId.slice(0, 8)}...
                       </span>
                     </TableCell>
-                    <TableCell className="text-sm text-gray-700 text-right">
+                    <TableCell className="text-sm text-foreground text-right">
                       {itemCount}
                     </TableCell>
-                    <TableCell className="text-sm font-medium text-gray-900 text-right">
+                    <TableCell className="text-sm font-medium text-foreground text-right">
                       {formatPrice(order.totalAmount, order.currency)}
                     </TableCell>
                     <TableCell>
@@ -156,35 +157,35 @@ export default function SellerOrdersPage() {
                   {/* Expanded detail row */}
                   {isExpanded && (
                     <TableRow>
-                      <TableCell colSpan={7} className="bg-gray-50">
+                      <TableCell colSpan={7} className="bg-muted">
                         <div className="space-y-4">
                           {/* Order items */}
                           {order.items && order.items.length > 0 ? (
                             <div>
-                              <h4 className="text-sm font-semibold text-gray-700 mb-2">
+                              <h4 className="text-sm font-semibold text-foreground mb-2">
                                 Order Items
                               </h4>
                               <div className="space-y-2">
                                 {order.items.map((item) => (
                                   <div
                                     key={item.id}
-                                    className="flex items-center justify-between bg-white rounded-lg border border-gray-200 px-4 py-3"
+                                    className="flex items-center justify-between bg-card rounded-lg border border-border px-4 py-3"
                                   >
                                     <div>
-                                      <p className="text-sm font-medium text-gray-900">
+                                      <p className="text-sm font-medium text-foreground">
                                         {item.productTitle}
                                       </p>
                                       {item.variantName && (
-                                        <p className="text-xs text-gray-500">
+                                        <p className="text-xs text-muted-foreground">
                                           Variant: {item.variantName}
                                         </p>
                                       )}
                                     </div>
                                     <div className="text-right">
-                                      <p className="text-sm text-gray-700">
+                                      <p className="text-sm text-foreground">
                                         {item.quantity} x {formatPrice(item.unitPrice, order.currency)}
                                       </p>
-                                      <p className="text-sm font-medium text-gray-900">
+                                      <p className="text-sm font-medium text-foreground">
                                         {formatPrice(item.totalPrice, order.currency)}
                                       </p>
                                     </div>
@@ -193,26 +194,26 @@ export default function SellerOrdersPage() {
                               </div>
                             </div>
                           ) : (
-                            <p className="text-sm text-gray-500">No item details available.</p>
+                            <p className="text-sm text-muted-foreground">No item details available.</p>
                           )}
 
                           {/* Order summary row */}
-                          <div className="flex items-center justify-between text-sm border-t border-gray-200 pt-3">
-                            <div className="space-x-6 text-gray-600">
+                          <div className="flex items-center justify-between text-sm border-t border-border pt-3">
+                            <div className="space-x-6 text-muted-foreground">
                               <span>Subtotal: {formatPrice(order.subtotal, order.currency)}</span>
                               <span>Shipping: {formatPrice(order.shippingCost, order.currency)}</span>
                               <span>Tax: {formatPrice(order.taxAmount, order.currency)}</span>
                             </div>
-                            <span className="font-semibold text-gray-900">
+                            <span className="font-semibold text-foreground">
                               Total: {formatPrice(order.totalAmount, order.currency)}
                             </span>
                           </div>
 
                           {/* Notes */}
                           {order.notes && (
-                            <div className="border-t border-gray-200 pt-3">
-                              <p className="text-xs font-semibold text-gray-600 mb-1">Notes</p>
-                              <p className="text-sm text-gray-600">{order.notes}</p>
+                            <div className="border-t border-border pt-3">
+                              <p className="text-xs font-semibold text-muted-foreground mb-1">Notes</p>
+                              <p className="text-sm text-muted-foreground">{order.notes}</p>
                             </div>
                           )}
                         </div>

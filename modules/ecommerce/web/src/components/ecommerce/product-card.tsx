@@ -32,7 +32,7 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
 
   return (
     <div
-      className={`group flex flex-col overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md ${
+      className={`group flex flex-col overflow-hidden rounded-lg border border-border bg-card shadow-sm transition-shadow hover:shadow-md ${
         onClick ? 'cursor-pointer' : ''
       }`}
       onClick={onClick ? handleClick : undefined}
@@ -42,7 +42,7 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
       aria-label={onClick ? `View product: ${product.title}` : undefined}
     >
       {/* Image */}
-      <div className="relative aspect-video w-full overflow-hidden bg-gray-100">
+      <div className="relative aspect-video w-full overflow-hidden bg-muted">
         {primaryImage && !imgError ? (
           <img
             src={primaryImage.url}
@@ -87,13 +87,13 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
       {/* Content */}
       <div className="flex flex-1 flex-col p-4">
         {/* Title */}
-        <h3 className="mb-1 line-clamp-2 text-sm font-semibold text-gray-900 group-hover:text-blue-600">
+        <h3 className="mb-1 line-clamp-2 text-sm font-semibold text-foreground group-hover:text-blue-600">
           {product.title}
         </h3>
 
         {/* Seller */}
         {product.sellerName && (
-          <p className="mb-2 text-xs text-gray-500">{product.sellerName}</p>
+          <p className="mb-2 text-xs text-muted-foreground">{product.sellerName}</p>
         )}
 
         {/* Rating */}
@@ -106,7 +106,7 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
             showValue
           />
           {(product.reviewCount ?? 0) > 0 && (
-            <span className="text-sm text-gray-400">
+            <span className="text-sm text-muted-foreground">
               ({(product.reviewCount ?? 0).toLocaleString()})
             </span>
           )}
@@ -117,11 +117,11 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
 
         {/* Price */}
         <div className="mb-2 flex items-center gap-2">
-          <span className="text-lg font-bold text-gray-900">
+          <span className="text-lg font-bold text-foreground">
             {formatPrice(product.price, product.currency)}
           </span>
           {onSale && (
-            <span className="text-sm text-gray-400 line-through">
+            <span className="text-sm text-muted-foreground line-through">
               {formatPrice(product.compareAtPrice!, product.currency)}
             </span>
           )}

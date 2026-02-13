@@ -11,6 +11,8 @@ import ReviewList from "@/components/ecommerce/review-list";
 import ReviewForm from "@/components/ecommerce/review-form";
 import PriceDisplay from "@/components/ecommerce/price-display";
 import { Rating } from "@/components/ui/rating";
+import { Button } from "@/components/ui/button";
+import { Pagination } from "@/components/ui/pagination";
 
 // =============================================================================
 // Product Detail Page
@@ -139,12 +141,12 @@ export default function ProductDetailPage({
           <p className="text-lg font-medium text-destructive">
             {error || "Product not found"}
           </p>
-          <button
+          <Button
             onClick={fetchProduct}
-            className="mt-4 rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground hover:bg-primary/90 transition-colors"
+            className="mt-4"
           >
             Try Again
-          </button>
+          </Button>
           <div className="mt-4">
             <a
               href="/shop"
@@ -324,24 +326,12 @@ export default function ProductDetailPage({
 
           {/* Review Pagination */}
           {reviewTotalPages > 1 && (
-            <div className="mt-6 flex items-center justify-center gap-2">
-              <button
-                onClick={() => setReviewPage((p) => Math.max(1, p - 1))}
-                disabled={reviewPage <= 1}
-                className="rounded-lg border border-input px-4 py-2 text-sm text-foreground hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                Previous
-              </button>
-              <span className="text-sm text-muted-foreground">
-                Page {reviewPage} of {reviewTotalPages}
-              </span>
-              <button
-                onClick={() => setReviewPage((p) => Math.min(reviewTotalPages, p + 1))}
-                disabled={reviewPage >= reviewTotalPages}
-                className="rounded-lg border border-input px-4 py-2 text-sm text-foreground hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                Next
-              </button>
+            <div className="mt-6">
+              <Pagination
+                page={reviewPage}
+                totalPages={reviewTotalPages}
+                onPageChange={setReviewPage}
+              />
             </div>
           )}
         </div>

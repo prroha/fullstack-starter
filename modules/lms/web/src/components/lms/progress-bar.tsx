@@ -44,7 +44,7 @@ export default function ProgressBar({
       {(label || showPercentage) && (
         <div className="mb-1.5 flex items-center justify-between">
           {label && (
-            <span className={`font-medium text-gray-700 ${sizeStyle.label}`}>
+            <span className={`font-medium text-foreground ${sizeStyle.label}`}>
               {label}
             </span>
           )}

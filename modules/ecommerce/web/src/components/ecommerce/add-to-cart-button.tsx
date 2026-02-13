@@ -53,7 +53,7 @@ export default function AddToCartButton({
       {/* Quantity controls */}
       <div className="flex items-center">
         <Label className="mr-3">Qty</Label>
-        <div className="flex items-center overflow-hidden rounded-lg border border-gray-300">
+        <div className="flex items-center overflow-hidden rounded-lg border border-border">
           <Button
             type="button"
             variant="outline"
@@ -86,7 +86,7 @@ export default function AddToCartButton({
             }}
             min={1}
             max={stock}
-            className="h-10 w-12 rounded-none border-x border-y-0 border-gray-300 text-center text-sm font-medium [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+            className="h-10 w-12 rounded-none border-x border-y-0 border-border text-center text-sm font-medium [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
             aria-label="Quantity"
           />
           <Button

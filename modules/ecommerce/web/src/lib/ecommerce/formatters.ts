@@ -38,12 +38,12 @@ const statusColors: Record<EcommerceOrderStatus, string> = {
   PROCESSING: 'bg-indigo-100 text-indigo-800',
   SHIPPED: 'bg-purple-100 text-purple-800',
   DELIVERED: 'bg-green-100 text-green-800',
-  CANCELLED: 'bg-gray-100 text-gray-800',
+  CANCELLED: 'bg-muted text-muted-foreground',
   REFUNDED: 'bg-red-100 text-red-800',
 };
 
 export function getOrderStatusColor(status: EcommerceOrderStatus): string {
-  return statusColors[status] ?? 'bg-gray-100 text-gray-800';
+  return statusColors[status] ?? 'bg-muted text-muted-foreground';
 }
 
 /**

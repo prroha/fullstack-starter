@@ -100,8 +100,8 @@ export default function CreateProductPage() {
     <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Create New Product</h1>
-        <p className="mt-2 text-gray-600">
+        <h1 className="text-3xl font-bold text-foreground">Create New Product</h1>
+        <p className="mt-2 text-muted-foreground">
           Fill in the details below to add a new product to your store.
         </p>
       </div>
@@ -239,9 +239,9 @@ export default function CreateProductPage() {
             Categories
           </Label>
           {loadingCategories ? (
-            <p className="text-sm text-gray-500">Loading categories...</p>
+            <p className="text-sm text-muted-foreground">Loading categories...</p>
           ) : categories.length === 0 ? (
-            <p className="text-sm text-gray-500">No categories available.</p>
+            <p className="text-sm text-muted-foreground">No categories available.</p>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {categories.map((category) => (
@@ -250,16 +250,16 @@ export default function CreateProductPage() {
                   className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${
                     selectedCategoryIds.includes(category.id)
                       ? 'bg-blue-50 border-blue-300'
-                      : 'bg-white border-gray-200 hover:bg-gray-50'
+                      : 'bg-card border-border hover:bg-muted'
                   }`}
                 >
                   <input
                     type="checkbox"
                     checked={selectedCategoryIds.includes(category.id)}
                     onChange={() => handleCategoryToggle(category.id)}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    className="rounded border-border text-blue-600 focus:ring-blue-500"
                   />
-                  <span className="text-sm text-gray-700">{category.name}</span>
+                  <span className="text-sm text-foreground">{category.name}</span>
                 </label>
               ))}
             </div>

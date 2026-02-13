@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Button } from '@/components/ui/button';
 import type { QuizAttempt, Question } from '../../lib/lms/types';
 
 interface QuizResultsProps {
@@ -89,20 +90,20 @@ export default function QuizResults({ attempt, questions }: QuizResultsProps) {
         </span>
 
         {/* Points summary */}
-        <p className="mt-3 text-sm text-gray-600">
+        <p className="mt-3 text-sm text-muted-foreground">
           {earnedPoints} / {totalPoints} points earned
         </p>
 
         {/* Timing info */}
-        <div className="mt-3 flex items-center justify-center gap-4 text-xs text-gray-500">
+        <div className="mt-3 flex items-center justify-center gap-4 text-xs text-muted-foreground">
           <span>Started: {formatDate(attempt.startedAt)}</span>
-          <span className="w-1 h-1 rounded-full bg-gray-300" />
+          <span className="w-1 h-1 rounded-full bg-border" />
           <span>Completed: {formatDate(attempt.completedAt)}</span>
         </div>
       </div>
 
       {/* Per-question breakdown */}
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">
+      <h3 className="text-lg font-semibold text-foreground mb-4">
         Question Breakdown
       </h3>
 
@@ -120,10 +121,11 @@ export default function QuizResults({ attempt, questions }: QuizResultsProps) {
               }`}
             >
               {/* Question header */}
-              <button
+              <Button
                 type="button"
+                variant="ghost"
                 onClick={() => toggleQuestion(question.id)}
-                className="w-full flex items-center gap-3 p-4 text-left hover:bg-gray-50 transition-colors"
+                className="w-full flex items-center gap-3 p-4 text-left hover:bg-muted transition-colors h-auto rounded-none justify-start"
               >
                 {/* Question number & status icon */}
                 <div
@@ -166,10 +168,10 @@ export default function QuizResults({ attempt, questions }: QuizResultsProps) {
 
                 {/* Question text */}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">
+                  <p className="text-sm font-medium text-foreground truncate">
                     Q{index + 1}. {question.text}
                   </p>
-                  <p className="text-xs text-gray-500 mt-0.5">
+                  <p className="text-xs text-muted-foreground mt-0.5">
                     {answer?.points ?? 0} / {question.points} pts
                     {question.type === 'MULTIPLE_CHOICE' && ' - Multiple Choice'}
                     {question.type === 'TRUE_FALSE' && ' - True/False'}
@@ -179,7 +181,7 @@ export default function QuizResults({ attempt, questions }: QuizResultsProps) {
 
                 {/* Expand chevron */}
                 <svg
-                  className={`w-5 h-5 text-gray-400 transition-transform ${
+                  className={`w-5 h-5 text-muted-foreground transition-transform ${
                     isExpanded ? 'rotate-180' : ''
                   }`}
                   fill="none"
@@ -193,13 +195,13 @@ export default function QuizResults({ attempt, questions }: QuizResultsProps) {
                     d="M19 9l-7 7-7-7"
                   />
                 </svg>
-              </button>
+              </Button>
 
               {/* Expanded details */}
               {isExpanded && (
-                <div className="border-t px-4 py-4 bg-gray-50 space-y-3">
+                <div className="border-t px-4 py-4 bg-muted space-y-3">
                   {/* Full question text */}
-                  <p className="text-sm text-gray-800 font-medium">
+                  <p className="text-sm text-foreground font-medium">
                     {question.text}
                   </p>
 
@@ -221,7 +223,7 @@ export default function QuizResults({ attempt, questions }: QuizResultsProps) {
                             ' bg-red-50 border-red-300 text-red-800';
                         } else {
                           optionClasses +=
-                            ' bg-white border-gray-200 text-gray-600';
+                            ' bg-card border-border text-muted-foreground';
                         }
 
                         return (
@@ -272,7 +274,7 @@ export default function QuizResults({ attempt, questions }: QuizResultsProps) {
                   {question.type === 'SHORT_ANSWER' && (
                     <div className="space-y-2">
                       <div className="flex items-start gap-2">
-                        <span className="text-xs font-medium text-gray-500 mt-0.5 w-24 flex-shrink-0">
+                        <span className="text-xs font-medium text-muted-foreground mt-0.5 w-24 flex-shrink-0">
                           Your answer:
                         </span>
                         <span
@@ -285,7 +287,7 @@ export default function QuizResults({ attempt, questions }: QuizResultsProps) {
                       </div>
                       {!isCorrect && question.correctAnswer && (
                         <div className="flex items-start gap-2">
-                          <span className="text-xs font-medium text-gray-500 mt-0.5 w-24 flex-shrink-0">
+                          <span className="text-xs font-medium text-muted-foreground mt-0.5 w-24 flex-shrink-0">
                             Correct answer:
                           </span>
                           <span className="text-sm text-green-700">
@@ -326,24 +328,24 @@ export default function QuizResults({ attempt, questions }: QuizResultsProps) {
       </div>
 
       {/* Summary footer */}
-      <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+      <div className="mt-6 p-4 bg-muted rounded-lg border border-border">
         <div className="flex items-center justify-between text-sm">
-          <span className="text-gray-600">
+          <span className="text-muted-foreground">
             Correct:{' '}
             <span className="font-semibold text-green-700">
               {attempt.answers?.filter((a) => a.isCorrect).length ?? 0}
             </span>{' '}
             / {questions.length}
           </span>
-          <span className="text-gray-600">
+          <span className="text-muted-foreground">
             Score:{' '}
-            <span className="font-semibold text-gray-900">
+            <span className="font-semibold text-foreground">
               {scorePercent}%
             </span>
           </span>
-          <span className="text-gray-600">
+          <span className="text-muted-foreground">
             Points:{' '}
-            <span className="font-semibold text-gray-900">
+            <span className="font-semibold text-foreground">
               {earnedPoints} / {totalPoints}
             </span>
           </span>

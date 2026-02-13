@@ -177,11 +177,11 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
     return (
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="animate-pulse space-y-6">
-          <div className="h-8 w-48 bg-gray-200 rounded" />
-          <div className="h-4 w-32 bg-gray-200 rounded" />
+          <div className="h-8 w-48 bg-muted rounded" />
+          <div className="h-4 w-32 bg-muted rounded" />
           <div className="space-y-4">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="h-10 bg-gray-200 rounded-lg" />
+              <div key={i} className="h-10 bg-muted rounded-lg" />
             ))}
           </div>
         </div>
@@ -213,7 +213,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Edit Product</h1>
+          <h1 className="text-3xl font-bold text-foreground">Edit Product</h1>
           {product && (
             <div className="mt-2 flex items-center gap-3">
               <span
@@ -222,7 +222,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                     ? 'bg-green-100 text-green-700'
                     : product.status === 'ARCHIVED'
                     ? 'bg-yellow-100 text-yellow-700'
-                    : 'bg-gray-100 text-gray-700'
+                    : 'bg-muted text-foreground'
                 }`}
               >
                 {product.status}
@@ -383,7 +383,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
         <div>
           <Label className="mb-2">Categories</Label>
           {categories.length === 0 ? (
-            <p className="text-sm text-gray-500">No categories available.</p>
+            <p className="text-sm text-muted-foreground">No categories available.</p>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {categories.map((category) => (
@@ -392,16 +392,16 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                   className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${
                     selectedCategoryIds.includes(category.id)
                       ? 'bg-blue-50 border-blue-300'
-                      : 'bg-white border-gray-200 hover:bg-gray-50'
+                      : 'bg-card border-border hover:bg-muted'
                   }`}
                 >
                   <input
                     type="checkbox"
                     checked={selectedCategoryIds.includes(category.id)}
                     onChange={() => handleCategoryToggle(category.id)}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    className="rounded border-border text-blue-600 focus:ring-blue-500"
                   />
-                  <span className="text-sm text-gray-700">{category.name}</span>
+                  <span className="text-sm text-foreground">{category.name}</span>
                 </label>
               ))}
             </div>

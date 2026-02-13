@@ -5,12 +5,34 @@ import Link from 'next/link';
 import type { Course, CourseStatus } from '@/lib/lms/types';
 import { courseApi } from '@/lib/lms/api';
 import { formatPrice } from '@/lib/lms/formatters';
+import { Button } from '@/components/ui/button';
+import { SearchInput } from '@/components/ui/search-input';
+import { Select } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Spinner } from '@/components/ui/spinner';
+import { Alert } from '@/components/feedback/alert';
+import { Rating } from '@/components/ui/rating';
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '@/components/ui/table';
 
-const STATUS_STYLES: Record<CourseStatus, string> = {
-  DRAFT: 'bg-gray-100 text-gray-700',
-  PUBLISHED: 'bg-green-100 text-green-700',
-  ARCHIVED: 'bg-yellow-100 text-yellow-700',
+const STATUS_BADGE_VARIANT: Record<CourseStatus, 'secondary' | 'success' | 'warning'> = {
+  DRAFT: 'secondary',
+  PUBLISHED: 'success',
+  ARCHIVED: 'warning',
 };
+
+const STATUS_OPTIONS = [
+  { value: 'ALL', label: 'All Statuses' },
+  { value: 'DRAFT', label: 'Draft' },
+  { value: 'PUBLISHED', label: 'Published' },
+  { value: 'ARCHIVED', label: 'Archived' },
+];
 
 export default function InstructorCoursesPage() {
   const [courses, setCourses] = useState<Course[]>([]);
@@ -47,7 +69,7 @@ export default function InstructorCoursesPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <p className="text-gray-500 text-lg">Loading...</p>
+        <Spinner size="lg" />
       </div>
     );
   }
@@ -55,16 +77,16 @@ export default function InstructorCoursesPage() {
   if (error) {
     return (
       <div className="max-w-4xl mx-auto p-6">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <h2 className="text-red-800 font-semibold text-lg">Error</h2>
-          <p className="text-red-600 mt-1">{error}</p>
-          <button
+        <Alert variant="destructive" title="Error">
+          <p className="mt-1">{error}</p>
+          <Button
+            variant="destructive"
             onClick={() => window.location.reload()}
-            className="mt-3 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+            className="mt-3"
           >
             Retry
-          </button>
-        </div>
+          </Button>
+        </Alert>
       </div>
     );
   }
@@ -74,86 +96,67 @@ export default function InstructorCoursesPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">My Courses</h1>
-          <p className="mt-1 text-gray-600">
+          <h1 className="text-3xl font-bold text-foreground">My Courses</h1>
+          <p className="mt-1 text-muted-foreground">
             Manage your courses and track their performance.
           </p>
         </div>
-        <Link
-          href="/dashboard/instructor/courses/new"
-          className="inline-flex items-center justify-center px-5 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          + Create Course
-        </Link>
+        <Button asChild>
+          <Link href="/dashboard/instructor/courses/new">
+            + Create Course
+          </Link>
+        </Button>
       </div>
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
-        <input
-          type="text"
-          placeholder="Search courses..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-        />
-        <select
+        <div className="flex-1">
+          <SearchInput
+            placeholder="Search courses..."
+            value={searchQuery}
+            onChange={setSearchQuery}
+          />
+        </div>
+        <Select
+          options={STATUS_OPTIONS}
           value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as CourseStatus | 'ALL')}
-          className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
-        >
-          <option value="ALL">All Statuses</option>
-          <option value="DRAFT">Draft</option>
-          <option value="PUBLISHED">Published</option>
-          <option value="ARCHIVED">Archived</option>
-        </select>
+          onChange={(value) => setStatusFilter(value as CourseStatus | 'ALL')}
+        />
       </div>
 
       {/* Course List */}
       {filteredCourses.length === 0 ? (
-        <div className="text-center py-16 bg-white rounded-lg border border-gray-200">
-          <p className="text-gray-500 text-lg">
+        <div className="text-center py-16 bg-card rounded-lg border border-border">
+          <p className="text-muted-foreground text-lg">
             {courses.length === 0
               ? 'You have not created any courses yet.'
               : 'No courses match your filters.'}
           </p>
           {courses.length === 0 && (
-            <Link
-              href="/dashboard/instructor/courses/new"
-              className="inline-block mt-4 px-5 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Create Your First Course
-            </Link>
+            <Button asChild className="mt-4">
+              <Link href="/dashboard/instructor/courses/new">
+                Create Your First Course
+              </Link>
+            </Button>
           )}
         </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full bg-white rounded-lg border border-gray-200">
-            <thead>
-              <tr className="border-b border-gray-200 bg-gray-50">
-                <th className="text-left px-6 py-3 text-sm font-semibold text-gray-700">
-                  Course
-                </th>
-                <th className="text-left px-6 py-3 text-sm font-semibold text-gray-700">
-                  Status
-                </th>
-                <th className="text-left px-6 py-3 text-sm font-semibold text-gray-700">
-                  Students
-                </th>
-                <th className="text-left px-6 py-3 text-sm font-semibold text-gray-700">
-                  Rating
-                </th>
-                <th className="text-left px-6 py-3 text-sm font-semibold text-gray-700">
-                  Price
-                </th>
-                <th className="text-right px-6 py-3 text-sm font-semibold text-gray-700">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
+        <div className="overflow-x-auto rounded-lg border border-border">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted">
+                <TableHead>Course</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Students</TableHead>
+                <TableHead>Rating</TableHead>
+                <TableHead>Price</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {filteredCourses.map((course) => (
-                <tr key={course.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4">
+                <TableRow key={course.id}>
+                  <TableCell>
                     <div className="flex items-center gap-3">
                       {course.thumbnailUrl ? (
                         <img
@@ -162,73 +165,68 @@ export default function InstructorCoursesPage() {
                           className="w-12 h-12 rounded object-cover flex-shrink-0"
                         />
                       ) : (
-                        <div className="w-12 h-12 rounded bg-gray-200 flex items-center justify-center flex-shrink-0">
-                          <span className="text-gray-400 text-xs">IMG</span>
+                        <div className="w-12 h-12 rounded bg-muted flex items-center justify-center flex-shrink-0">
+                          <span className="text-muted-foreground text-xs">IMG</span>
                         </div>
                       )}
                       <div className="min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate max-w-xs">
+                        <p className="text-sm font-medium text-foreground truncate max-w-xs">
                           {course.title}
                         </p>
                         {course.level && (
-                          <p className="text-xs text-gray-500 capitalize">{course.level}</p>
+                          <p className="text-xs text-muted-foreground capitalize">{course.level}</p>
                         )}
                       </div>
                     </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        STATUS_STYLES[course.status]
-                      }`}
-                    >
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={STATUS_BADGE_VARIANT[course.status]}>
                       {course.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-700">
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
                     {course.enrollmentCount ?? 0}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-700">
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
                     {course.avgRating != null ? (
                       <span className="flex items-center gap-1">
-                        <span className="text-yellow-400">★</span>
-                        {course.avgRating.toFixed(1)}
+                        <Rating value={course.avgRating} readOnly size="sm" />
                         {course.reviewCount != null && (
-                          <span className="text-gray-400">({course.reviewCount})</span>
+                          <span className="text-muted-foreground">({course.reviewCount})</span>
                         )}
                       </span>
                     ) : (
-                      <span className="text-gray-400">No ratings</span>
+                      <span className="text-muted-foreground">No ratings</span>
                     )}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-700">
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
                     {formatPrice(course.price, course.currency)}
-                  </td>
-                  <td className="px-6 py-4 text-right">
+                  </TableCell>
+                  <TableCell className="text-right">
                     <Link
                       href={`/dashboard/instructor/courses/${course.id}`}
-                      className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                      className="text-sm text-primary hover:text-primary/80 font-medium"
                     >
                       Edit
                     </Link>
-                    <span className="mx-2 text-gray-300">|</span>
+                    <span className="mx-2 text-border">|</span>
                     <Link
                       href={`/dashboard/instructor/courses/${course.id}/lessons`}
-                      className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                      className="text-sm text-primary hover:text-primary/80 font-medium"
                     >
                       Lessons
                     </Link>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       )}
 
       {/* Summary */}
       {courses.length > 0 && (
-        <div className="mt-4 text-sm text-gray-500">
+        <div className="mt-4 text-sm text-muted-foreground">
           Showing {filteredCourses.length} of {courses.length} courses
         </div>
       )}

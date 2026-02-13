@@ -5,6 +5,7 @@ import { orderApi } from "@/lib/ecommerce/api";
 import { formatPrice } from "@/lib/ecommerce/formatters";
 import type { EcommerceOrder } from "@/lib/ecommerce/types";
 import OrderStatusBadge from "@/components/ecommerce/order-status-badge";
+import { Button } from "@/components/ui/button";
 
 // =============================================================================
 // Order Confirmation Page
@@ -82,18 +83,12 @@ export default function OrderSuccessPage({
             {error || "Order not found"}
           </p>
           <div className="mt-6 flex items-center justify-center gap-4">
-            <a
-              href="/shop"
-              className="rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground hover:bg-primary/90 transition-colors"
-            >
-              Continue Shopping
-            </a>
-            <a
-              href="/dashboard/orders"
-              className="rounded-lg border border-input px-4 py-2 text-sm text-foreground hover:bg-accent transition-colors"
-            >
-              View My Orders
-            </a>
+            <Button asChild>
+              <a href="/shop">Continue Shopping</a>
+            </Button>
+            <Button variant="outline" asChild>
+              <a href="/dashboard/orders">View My Orders</a>
+            </Button>
           </div>
         </div>
       </div>
@@ -259,18 +254,12 @@ export default function OrderSuccessPage({
 
         {/* Action Links */}
         <div className="mt-8 flex items-center justify-center gap-4">
-          <a
-            href="/shop"
-            className="rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-          >
-            Continue Shopping
-          </a>
-          <a
-            href="/dashboard/orders"
-            className="rounded-lg border border-input px-6 py-2.5 text-sm font-medium text-foreground hover:bg-accent transition-colors"
-          >
-            View My Orders
-          </a>
+          <Button asChild>
+            <a href="/shop">Continue Shopping</a>
+          </Button>
+          <Button variant="outline" asChild>
+            <a href="/dashboard/orders">View My Orders</a>
+          </Button>
         </div>
       </div>
     </div>

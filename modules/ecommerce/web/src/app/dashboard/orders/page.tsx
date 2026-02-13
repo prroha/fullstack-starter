@@ -7,6 +7,8 @@ import type { EcommerceOrder, CustomerStats } from "@/lib/ecommerce/types";
 import OrderCard from "@/components/ecommerce/order-card";
 import { StatCard } from "@/components/ui/stat-card";
 import { Pagination } from "@/components/ui/pagination";
+import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 
 // =============================================================================
 // Constants
@@ -114,7 +116,7 @@ export default function MyOrdersPage() {
       {/* Loading State */}
       {loading && (
         <div className="flex items-center justify-center py-20">
-          <p className="text-muted-foreground">Loading...</p>
+          <Spinner size="lg" />
         </div>
       )}
 
@@ -122,12 +124,13 @@ export default function MyOrdersPage() {
       {error && (
         <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-6 text-center">
           <p className="text-destructive">{error}</p>
-          <button
+          <Button
             onClick={fetchOrders}
-            className="mt-4 rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground hover:bg-primary/90 transition-colors"
+            size="sm"
+            className="mt-4"
           >
             Try Again
-          </button>
+          </Button>
         </div>
       )}
 
@@ -166,12 +169,9 @@ export default function MyOrdersPage() {
           <p className="mt-2 text-muted-foreground">
             When you place an order, it will appear here.
           </p>
-          <a
-            href="/shop"
-            className="mt-6 inline-block rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-          >
-            Start Shopping
-          </a>
+          <Button asChild className="mt-6">
+            <a href="/shop">Start Shopping</a>
+          </Button>
         </div>
       )}
 

@@ -8,6 +8,8 @@ import type { Section, Lesson, LessonProgress } from "@/lib/lms/types";
 import { LessonSidebar } from "@/components/lms/lesson-sidebar";
 import { LessonPlayer } from "@/components/lms/lesson-player";
 import { ProgressBar } from "@/components/lms/progress-bar";
+import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 
 // =============================================================================
 // Helper Functions
@@ -220,7 +222,7 @@ export default function CourseLearnPage({
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p className="text-muted-foreground">Loading...</p>
+        <Spinner size="lg" />
       </div>
     );
   }
@@ -235,19 +237,13 @@ export default function CourseLearnPage({
         <div className="text-center">
           <p className="text-lg font-medium text-destructive">{error}</p>
           <div className="mt-4 flex items-center justify-center gap-3">
-            <a
-              href={`/courses/${slug}`}
-              className="rounded-lg border border-input px-4 py-2 text-sm text-foreground hover:bg-accent transition-colors"
-            >
-              Back to Course
-            </a>
+            <Button variant="outline" asChild>
+              <a href={`/courses/${slug}`}>Back to Course</a>
+            </Button>
             {enrollmentId && (
-              <button
-                onClick={fetchData}
-                className="rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground hover:bg-primary/90 transition-colors"
-              >
+              <Button onClick={fetchData} size="sm">
                 Try Again
-              </button>
+              </Button>
             )}
           </div>
         </div>
@@ -285,9 +281,11 @@ export default function CourseLearnPage({
           </a>
 
           {/* Mobile sidebar toggle */}
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="rounded-lg p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground lg:hidden transition-colors"
+            className="lg:hidden"
             aria-label="Toggle sidebar"
           >
             <svg
@@ -303,7 +301,7 @@ export default function CourseLearnPage({
                 d="M4 6h16M4 12h16M4 18h16"
               />
             </svg>
-          </button>
+          </Button>
         </div>
 
         {/* Progress */}
@@ -331,9 +329,10 @@ export default function CourseLearnPage({
           {/* Mobile close button */}
           <div className="flex items-center justify-between border-b border-border px-4 py-3 lg:hidden">
             <span className="font-medium text-foreground">Course Content</span>
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => setSidebarOpen(false)}
-              className="rounded p-1 text-muted-foreground hover:text-foreground"
               aria-label="Close sidebar"
             >
               <svg
@@ -349,7 +348,7 @@ export default function CourseLearnPage({
                   d="M6 18L18 6M6 6l12 12"
                 />
               </svg>
-            </button>
+            </Button>
           </div>
 
           <div className="h-full overflow-y-auto">
@@ -388,13 +387,13 @@ export default function CourseLearnPage({
               <div className="border-t border-border bg-card px-4 py-4">
                 <div className="mx-auto flex max-w-4xl items-center justify-between">
                   {/* Previous Button */}
-                  <button
+                  <Button
+                    variant="outline"
                     onClick={handlePrevLesson}
                     disabled={!prevLesson}
-                    className="flex items-center gap-2 rounded-lg border border-input px-4 py-2 text-sm text-foreground hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     <svg
-                      className="h-4 w-4"
+                      className="mr-2 h-4 w-4"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -410,37 +409,30 @@ export default function CourseLearnPage({
                       {prevLesson ? prevLesson.title : "Previous"}
                     </span>
                     <span className="sm:hidden">Prev</span>
-                  </button>
+                  </Button>
 
                   {/* Complete / Completed Button */}
                   {currentLesson &&
                     !completedLessonIds.has(currentLesson.id) && (
-                      <button
+                      <Button
                         onClick={handleCompleteLesson}
-                        disabled={completingLesson}
-                        className="flex items-center gap-2 rounded-lg bg-primary px-6 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
+                        isLoading={completingLesson}
                       >
-                        {completingLesson ? (
-                          "Marking..."
-                        ) : (
-                          <>
-                            <svg
-                              className="h-4 w-4"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M5 13l4 4L19 7"
-                              />
-                            </svg>
-                            Mark as Complete
-                          </>
-                        )}
-                      </button>
+                        <svg
+                          className="mr-2 h-4 w-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                        Mark as Complete
+                      </Button>
                     )}
 
                   {currentLesson &&
@@ -464,17 +456,17 @@ export default function CourseLearnPage({
                     )}
 
                   {/* Next Button */}
-                  <button
+                  <Button
+                    variant="outline"
                     onClick={handleNextLesson}
                     disabled={!nextLesson}
-                    className="flex items-center gap-2 rounded-lg border border-input px-4 py-2 text-sm text-foreground hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     <span className="hidden sm:inline">
                       {nextLesson ? nextLesson.title : "Next"}
                     </span>
                     <span className="sm:hidden">Next</span>
                     <svg
-                      className="h-4 w-4"
+                      className="ml-2 h-4 w-4"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -486,7 +478,7 @@ export default function CourseLearnPage({
                         d="M9 5l7 7-7 7"
                       />
                     </svg>
-                  </button>
+                  </Button>
                 </div>
               </div>
             </>

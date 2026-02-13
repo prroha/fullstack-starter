@@ -5,8 +5,15 @@ import { useRouter } from 'next/navigation';
 import type { Section, Lesson, LessonType } from '@/lib/lms/types';
 import { lessonApi } from '@/lib/lms/api';
 import { ProgressBar } from '@/components/lms/progress-bar';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Select } from '@/components/ui/select';
+import { Alert } from '@/components/feedback/alert';
+import { Spinner } from '@/components/ui/spinner';
 
-const LESSON_TYPES: { value: LessonType; label: string }[] = [
+const LESSON_TYPES: { value: string; label: string }[] = [
   { value: 'VIDEO', label: 'Video' },
   { value: 'TEXT', label: 'Text' },
   { value: 'PDF', label: 'PDF' },
@@ -47,37 +54,37 @@ function SectionForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
-      <input
+    <form onSubmit={handleSubmit} className="space-y-3 p-4 bg-muted rounded-lg border border-border">
+      <Input
         type="text"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         placeholder="Section title"
         required
-        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
       />
-      <input
+      <Input
         type="text"
         value={description}
         onChange={(e) => setDescription(e.target.value)}
         placeholder="Section description (optional)"
-        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
       />
       <div className="flex items-center gap-2">
-        <button
+        <Button
           type="submit"
-          disabled={submitting || !title.trim()}
-          className="px-4 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
+          size="sm"
+          disabled={!title.trim()}
+          isLoading={submitting}
         >
-          {submitting ? 'Saving...' : initialTitle ? 'Update Section' : 'Add Section'}
-        </button>
-        <button
+          {initialTitle ? 'Update Section' : 'Add Section'}
+        </Button>
+        <Button
           type="button"
+          variant="outline"
+          size="sm"
           onClick={onCancel}
-          className="px-4 py-1.5 bg-white text-gray-700 text-sm font-medium rounded-md border border-gray-300 hover:bg-gray-50 transition-colors"
         >
           Cancel
-        </button>
+        </Button>
       </div>
     </form>
   );
@@ -136,67 +143,57 @@ function LessonForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
+    <form onSubmit={handleSubmit} className="space-y-3 p-4 bg-primary/5 rounded-lg border border-primary/20">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <input
+        <Input
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Lesson title"
           required
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
         />
-        <select
+        <Select
           value={type}
-          onChange={(e) => setType(e.target.value as LessonType)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm bg-white"
-        >
-          {LESSON_TYPES.map((lt) => (
-            <option key={lt.value} value={lt.value}>
-              {lt.label}
-            </option>
-          ))}
-        </select>
+          onChange={(value) => setType(value as LessonType)}
+          options={LESSON_TYPES}
+        />
       </div>
 
-      <input
+      <Input
         type="text"
         value={description}
         onChange={(e) => setDescription(e.target.value)}
         placeholder="Lesson description (optional)"
-        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
       />
 
       {(type === 'VIDEO' || type === 'PDF') && (
-        <input
+        <Input
           type="url"
           value={contentUrl}
           onChange={(e) => setContentUrl(e.target.value)}
           placeholder={type === 'VIDEO' ? 'Video URL' : 'PDF URL'}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
         />
       )}
 
       {type === 'TEXT' && (
-        <textarea
+        <Textarea
           value={contentText}
           onChange={(e) => setContentText(e.target.value)}
           placeholder="Lesson text content..."
           rows={3}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm resize-y"
+          className="resize-y"
         />
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
-          <label className="block text-xs text-gray-600 mb-1">Duration (seconds)</label>
-          <input
+          <Label className="text-xs mb-1">Duration (seconds)</Label>
+          <Input
             type="number"
             min="0"
             value={duration}
             onChange={(e) => setDuration(e.target.value)}
             placeholder="0"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
           />
         </div>
         <div className="flex items-end">
@@ -205,28 +202,30 @@ function LessonForm({
               type="checkbox"
               checked={isFree}
               onChange={(e) => setIsFree(e.target.checked)}
-              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              className="rounded border-border text-primary focus:ring-primary"
             />
-            <span className="text-sm text-gray-700">Free preview</span>
+            <span className="text-sm text-foreground">Free preview</span>
           </label>
         </div>
       </div>
 
       <div className="flex items-center gap-2">
-        <button
+        <Button
           type="submit"
-          disabled={submitting || !title.trim()}
-          className="px-4 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
+          size="sm"
+          disabled={!title.trim()}
+          isLoading={submitting}
         >
-          {submitting ? 'Saving...' : initial ? 'Update Lesson' : 'Add Lesson'}
-        </button>
-        <button
+          {initial ? 'Update Lesson' : 'Add Lesson'}
+        </Button>
+        <Button
           type="button"
+          variant="outline"
+          size="sm"
           onClick={onCancel}
-          className="px-4 py-1.5 bg-white text-gray-700 text-sm font-medium rounded-md border border-gray-300 hover:bg-gray-50 transition-colors"
         >
           Cancel
-        </button>
+        </Button>
       </div>
     </form>
   );
@@ -366,47 +365,53 @@ function SectionCard({
   };
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+    <div className="bg-card rounded-lg border border-border shadow-sm">
       {/* Section Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-        <button
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border/50">
+        <Button
+          variant="ghost"
           onClick={() => setCollapsed(!collapsed)}
-          className="flex items-center gap-2 text-left flex-1 min-w-0"
+          className="flex items-center gap-2 text-left flex-1 min-w-0 h-auto p-0 hover:bg-transparent"
         >
-          <span className="text-gray-400 text-sm flex-shrink-0">
+          <span className="text-muted-foreground text-sm flex-shrink-0">
             {collapsed ? '▸' : '▾'}
           </span>
           <div className="min-w-0">
-            <h3 className="font-semibold text-gray-900 truncate">{section.title}</h3>
+            <h3 className="font-semibold text-foreground truncate">{section.title}</h3>
             {section.description && (
-              <p className="text-xs text-gray-500 truncate">{section.description}</p>
+              <p className="text-xs text-muted-foreground truncate">{section.description}</p>
             )}
           </div>
-          <span className="text-xs text-gray-400 ml-2 flex-shrink-0">
+          <span className="text-xs text-muted-foreground ml-2 flex-shrink-0">
             {section.lessons.length} lesson{section.lessons.length !== 1 ? 's' : ''}
           </span>
-        </button>
+        </Button>
         <div className="flex items-center gap-2 ml-4 flex-shrink-0">
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => setEditingSection(true)}
-            className="text-xs text-blue-600 hover:text-blue-800 font-medium"
           >
             Edit
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={handleDeleteSection}
             disabled={deletingId === section.id}
-            className="text-xs text-red-600 hover:text-red-800 font-medium disabled:opacity-50"
+            className="text-destructive hover:text-destructive"
           >
             Delete
-          </button>
+          </Button>
         </div>
       </div>
 
       {/* Error */}
       {error && (
-        <div className="mx-4 mt-3 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-600">
-          {error}
+        <div className="mx-4 mt-3">
+          <Alert variant="destructive" onDismiss={() => setError(null)}>
+            {error}
+          </Alert>
         </div>
       )}
 
@@ -427,7 +432,7 @@ function SectionCard({
       {!collapsed && (
         <div className="p-4 space-y-2">
           {section.lessons.length === 0 && !showAddLesson && (
-            <p className="text-sm text-gray-400 text-center py-4">
+            <p className="text-sm text-muted-foreground text-center py-4">
               No lessons in this section yet.
             </p>
           )}
@@ -444,16 +449,16 @@ function SectionCard({
                     onCancel={() => setEditingLessonId(null)}
                   />
                 ) : (
-                  <div className="flex items-center justify-between px-3 py-2 bg-gray-50 rounded-md group hover:bg-gray-100 transition-colors">
+                  <div className="flex items-center justify-between px-3 py-2 bg-muted rounded-md group hover:bg-muted/80 transition-colors">
                     <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <span className="text-gray-400 text-xs flex-shrink-0 w-5 text-center" title={lesson.type}>
+                      <span className="text-muted-foreground text-xs flex-shrink-0 w-5 text-center" title={lesson.type}>
                         {lessonTypeIcons[lesson.type]}
                       </span>
                       <div className="min-w-0">
-                        <p className="text-sm font-medium text-gray-800 truncate">
+                        <p className="text-sm font-medium text-foreground truncate">
                           {lesson.title}
                         </p>
-                        <div className="flex items-center gap-2 text-xs text-gray-500">
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
                           <span>{lesson.type}</span>
                           {lesson.duration > 0 && (
                             <span>
@@ -467,19 +472,22 @@ function SectionCard({
                       </div>
                     </div>
                     <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 ml-2">
-                      <button
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => setEditingLessonId(lesson.id)}
-                        className="text-xs text-blue-600 hover:text-blue-800 font-medium"
                       >
                         Edit
-                      </button>
-                      <button
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => handleDeleteLesson(lesson.id, lesson.title)}
                         disabled={deletingId === lesson.id}
-                        className="text-xs text-red-600 hover:text-red-800 font-medium disabled:opacity-50"
+                        className="text-destructive hover:text-destructive"
                       >
                         Delete
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 )}
@@ -496,12 +504,14 @@ function SectionCard({
           )}
 
           {!showAddLesson && (
-            <button
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setShowAddLesson(true)}
-              className="w-full mt-2 px-3 py-2 text-sm text-blue-600 border border-dashed border-blue-300 rounded-md hover:bg-blue-50 transition-colors"
+              className="w-full mt-2 border-dashed border-primary/30 text-primary hover:bg-primary/5"
             >
               + Add Lesson
-            </button>
+            </Button>
           )}
         </div>
       )}
@@ -600,7 +610,7 @@ export default function ManageLessonsPage({ params }: { params: Promise<{ id: st
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <p className="text-gray-500 text-lg">Loading...</p>
+        <Spinner size="lg" />
       </div>
     );
   }
@@ -608,15 +618,16 @@ export default function ManageLessonsPage({ params }: { params: Promise<{ id: st
   if (error && sections.length === 0) {
     return (
       <div className="max-w-4xl mx-auto p-6">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <h2 className="text-red-800 font-semibold text-lg">Error</h2>
-          <p className="text-red-600 mt-1">{error}</p>
-          <button
+        <Alert variant="destructive" title="Error">
+          {error}
+        </Alert>
+        <div className="mt-3">
+          <Button
+            variant="secondary"
             onClick={() => router.push(`/dashboard/instructor/courses/${courseId}`)}
-            className="mt-3 px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
           >
             Back to Course
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -627,45 +638,48 @@ export default function ManageLessonsPage({ params }: { params: Promise<{ id: st
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Manage Lessons</h1>
-          <p className="mt-1 text-gray-600">
+          <h1 className="text-3xl font-bold text-foreground">Manage Lessons</h1>
+          <p className="mt-1 text-muted-foreground">
             Organize sections and lessons for your course.
           </p>
         </div>
-        <button
+        <Button
+          variant="link"
+          size="sm"
           onClick={() => router.push(`/dashboard/instructor/courses/${courseId}`)}
-          className="text-sm text-blue-600 hover:text-blue-800 font-medium"
         >
           Back to Course
-        </button>
+        </Button>
       </div>
 
       {/* Stats Bar */}
-      <div className="flex flex-wrap items-center gap-6 mb-6 p-4 bg-white rounded-lg border border-gray-200">
+      <div className="flex flex-wrap items-center gap-6 mb-6 p-4 bg-card rounded-lg border border-border">
         <div>
-          <p className="text-xs text-gray-500 uppercase tracking-wide">Sections</p>
-          <p className="text-xl font-bold text-gray-900">{sections.length}</p>
+          <p className="text-xs text-muted-foreground uppercase tracking-wide">Sections</p>
+          <p className="text-xl font-bold text-foreground">{sections.length}</p>
         </div>
         <div>
-          <p className="text-xs text-gray-500 uppercase tracking-wide">Lessons</p>
-          <p className="text-xl font-bold text-gray-900">{totalLessons}</p>
+          <p className="text-xs text-muted-foreground uppercase tracking-wide">Lessons</p>
+          <p className="text-xl font-bold text-foreground">{totalLessons}</p>
         </div>
         <div>
-          <p className="text-xs text-gray-500 uppercase tracking-wide">Total Duration</p>
-          <p className="text-xl font-bold text-gray-900">
+          <p className="text-xs text-muted-foreground uppercase tracking-wide">Total Duration</p>
+          <p className="text-xl font-bold text-foreground">
             {Math.floor(totalDuration / 3600)}h {Math.floor((totalDuration % 3600) / 60)}m
           </p>
         </div>
         <div className="flex-1 min-w-[120px]">
-          <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Content Progress</p>
+          <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Content Progress</p>
           <ProgressBar value={totalLessons > 0 ? 100 : 0} />
         </div>
       </div>
 
       {/* Error */}
       {error && (
-        <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-red-600">{error}</p>
+        <div className="mb-6">
+          <Alert variant="destructive" onDismiss={() => setError(null)}>
+            {error}
+          </Alert>
         </div>
       )}
 
@@ -687,9 +701,9 @@ export default function ManageLessonsPage({ params }: { params: Promise<{ id: st
           ))}
 
         {sections.length === 0 && !showAddSection && (
-          <div className="text-center py-16 bg-white rounded-lg border border-gray-200">
-            <p className="text-gray-500 text-lg">No sections yet.</p>
-            <p className="text-gray-400 text-sm mt-1">
+          <div className="text-center py-16 bg-card rounded-lg border border-border">
+            <p className="text-muted-foreground text-lg">No sections yet.</p>
+            <p className="text-muted-foreground/70 text-sm mt-1">
               Start by adding a section to organize your lessons.
             </p>
           </div>
@@ -705,12 +719,13 @@ export default function ManageLessonsPage({ params }: { params: Promise<{ id: st
             onCancel={() => setShowAddSection(false)}
           />
         ) : (
-          <button
+          <Button
+            variant="outline"
             onClick={() => setShowAddSection(true)}
-            className="w-full px-4 py-3 text-sm font-medium text-blue-600 border-2 border-dashed border-blue-300 rounded-lg hover:bg-blue-50 transition-colors"
+            className="w-full border-2 border-dashed border-primary/30 text-primary hover:bg-primary/5"
           >
             + Add Section
-          </button>
+          </Button>
         )}
       </div>
     </div>

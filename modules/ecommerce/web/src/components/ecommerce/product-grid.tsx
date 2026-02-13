@@ -12,7 +12,7 @@ interface ProductGridProps {
 
 function ProductCardSkeleton() {
   return (
-    <div className="flex flex-col overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+    <div className="flex flex-col overflow-hidden rounded-lg border border-border bg-card shadow-sm">
       {/* Image skeleton */}
       <Skeleton className="aspect-video w-full" />
 
@@ -43,9 +43,9 @@ export default function ProductGrid({
 
   if (products.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50 py-16 px-4">
+      <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border bg-muted py-16 px-4">
         <svg
-          className="mb-4 h-12 w-12 text-gray-400"
+          className="mb-4 h-12 w-12 text-muted-foreground"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -57,7 +57,7 @@ export default function ProductGrid({
             d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
           />
         </svg>
-        <p className="text-sm text-gray-500">No products found.</p>
+        <p className="text-sm text-muted-foreground">No products found.</p>
       </div>
     );
   }

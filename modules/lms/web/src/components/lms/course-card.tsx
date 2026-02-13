@@ -26,7 +26,7 @@ export default function CourseCard({ course, onClick }: CourseCardProps) {
 
   return (
     <div
-      className={`group flex flex-col overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md ${
+      className={`group flex flex-col overflow-hidden rounded-lg border border-border bg-card shadow-sm transition-shadow hover:shadow-md ${
         onClick ? 'cursor-pointer' : ''
       }`}
       onClick={onClick ? handleClick : undefined}
@@ -36,7 +36,7 @@ export default function CourseCard({ course, onClick }: CourseCardProps) {
       aria-label={onClick ? `View course: ${course.title}` : undefined}
     >
       {/* Thumbnail */}
-      <div className="relative aspect-video w-full overflow-hidden bg-gray-100">
+      <div className="relative aspect-video w-full overflow-hidden bg-muted">
         {course.thumbnailUrl && !imgError ? (
           <img
             src={course.thumbnailUrl}
@@ -92,7 +92,7 @@ export default function CourseCard({ course, onClick }: CourseCardProps) {
             </span>
           )}
           {course.duration > 0 && (
-            <span className="flex items-center gap-1 text-xs text-gray-500">
+            <span className="flex items-center gap-1 text-xs text-muted-foreground">
               <svg
                 className="h-3.5 w-3.5"
                 fill="none"
@@ -112,13 +112,13 @@ export default function CourseCard({ course, onClick }: CourseCardProps) {
         </div>
 
         {/* Title */}
-        <h3 className="mb-1 line-clamp-2 text-sm font-semibold text-gray-900 group-hover:text-blue-600">
+        <h3 className="mb-1 line-clamp-2 text-sm font-semibold text-foreground group-hover:text-blue-600">
           {course.title}
         </h3>
 
         {/* Instructor */}
         {course.instructorName && (
-          <p className="mb-2 text-xs text-gray-500">
+          <p className="mb-2 text-xs text-muted-foreground">
             {course.instructorName}
           </p>
         )}
@@ -133,7 +133,7 @@ export default function CourseCard({ course, onClick }: CourseCardProps) {
             showValue
           />
           {(course.reviewCount ?? 0) > 0 && (
-            <span className="text-sm text-gray-400">
+            <span className="text-sm text-muted-foreground">
               ({(course.reviewCount ?? 0).toLocaleString()})
             </span>
           )}
@@ -144,11 +144,11 @@ export default function CourseCard({ course, onClick }: CourseCardProps) {
 
         {/* Price */}
         <div className="flex items-center gap-2">
-          <span className="text-lg font-bold text-gray-900">
+          <span className="text-lg font-bold text-foreground">
             {formatPrice(course.price, course.currency)}
           </span>
           {course.compareAtPrice != null && course.compareAtPrice > course.price && (
-            <span className="text-sm text-gray-400 line-through">
+            <span className="text-sm text-muted-foreground line-through">
               {formatPrice(course.compareAtPrice, course.currency)}
             </span>
           )}

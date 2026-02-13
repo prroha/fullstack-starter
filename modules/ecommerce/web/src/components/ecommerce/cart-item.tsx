@@ -24,9 +24,9 @@ export default function CartItem({
   const primaryImage = item.product?.images?.[0];
 
   return (
-    <div className="flex items-start gap-4 rounded-lg border border-gray-200 bg-white p-4">
+    <div className="flex items-start gap-4 rounded-lg border border-border bg-card p-4">
       {/* Product image */}
-      <div className="h-20 w-20 flex-shrink-0 overflow-hidden rounded-md bg-gray-100">
+      <div className="h-20 w-20 flex-shrink-0 overflow-hidden rounded-md bg-muted">
         {primaryImage && !imgError ? (
           <img
             src={primaryImage.url}
@@ -56,19 +56,19 @@ export default function CartItem({
 
       {/* Product info */}
       <div className="flex flex-1 flex-col gap-1">
-        <h4 className="text-sm font-medium text-gray-900">
+        <h4 className="text-sm font-medium text-foreground">
           {item.product?.title || 'Product'}
         </h4>
         {item.variant?.name && (
-          <p className="text-xs text-gray-500">{item.variant.name}</p>
+          <p className="text-xs text-muted-foreground">{item.variant.name}</p>
         )}
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-muted-foreground">
           {formatPrice(unitPrice, currency)}
         </p>
       </div>
 
       {/* Quantity controls */}
-      <div className="flex items-center overflow-hidden rounded-md border border-gray-300">
+      <div className="flex items-center overflow-hidden rounded-md border border-border">
         <Button
           type="button"
           variant="outline"
@@ -94,7 +94,7 @@ export default function CartItem({
             />
           </svg>
         </Button>
-        <span className="flex h-8 w-8 items-center justify-center border-x border-gray-300 text-xs font-medium text-gray-900">
+        <span className="flex h-8 w-8 items-center justify-center border-x border-border text-xs font-medium text-foreground">
           {item.quantity}
         </span>
         <Button
@@ -123,7 +123,7 @@ export default function CartItem({
 
       {/* Line total */}
       <div className="w-20 text-right">
-        <span className="text-sm font-semibold text-gray-900">
+        <span className="text-sm font-semibold text-foreground">
           {formatPrice(lineTotal, currency)}
         </span>
       </div>
@@ -134,7 +134,7 @@ export default function CartItem({
         variant="ghost"
         size="icon"
         onClick={() => onRemove(item.id)}
-        className="flex-shrink-0 text-gray-400 hover:text-red-500"
+        className="flex-shrink-0 text-muted-foreground hover:text-red-500"
         aria-label="Remove item"
       >
         <svg

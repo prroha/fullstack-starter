@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Button } from '@/components/ui/button';
 import type { ProductImage } from '../../lib/ecommerce/types';
 
 interface ProductImagesProps {
@@ -20,9 +21,9 @@ export default function ProductImages({ images, productTitle }: ProductImagesPro
 
   if (!images || images.length === 0) {
     return (
-      <div className="flex aspect-square w-full items-center justify-center rounded-lg bg-gradient-to-br from-gray-100 to-gray-200">
+      <div className="flex aspect-square w-full items-center justify-center rounded-lg bg-gradient-to-br from-muted to-muted">
         <svg
-          className="h-16 w-16 text-gray-400"
+          className="h-16 w-16 text-muted-foreground"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -49,7 +50,7 @@ export default function ProductImages({ images, productTitle }: ProductImagesPro
   return (
     <div className="space-y-3">
       {/* Main image */}
-      <div className="aspect-square w-full overflow-hidden rounded-lg bg-gray-50">
+      <div className="aspect-square w-full overflow-hidden rounded-lg bg-muted">
         {!mainImgError ? (
           <img
             src={currentImage.url}
@@ -58,9 +59,9 @@ export default function ProductImages({ images, productTitle }: ProductImagesPro
             onError={() => setMainImgError(true)}
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
+          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-muted to-muted">
             <svg
-              className="h-16 w-16 text-gray-400"
+              className="h-16 w-16 text-muted-foreground"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -86,14 +87,15 @@ export default function ProductImages({ images, productTitle }: ProductImagesPro
       {images.length > 1 && (
         <div className="flex gap-2">
           {images.map((image, index) => (
-            <button
+            <Button
               key={image.id}
               type="button"
+              variant="outline"
               onClick={() => handleSelect(index)}
-              className={`h-16 w-16 flex-shrink-0 overflow-hidden rounded-md border-2 transition-colors ${
+              className={`h-16 w-16 flex-shrink-0 overflow-hidden rounded-md border-2 p-0 transition-colors ${
                 index === selectedIndex
                   ? 'border-blue-600'
-                  : 'border-gray-200 hover:border-gray-400'
+                  : 'border-border hover:border-muted-foreground'
               }`}
               aria-label={`View image ${index + 1}`}
               aria-current={index === selectedIndex ? 'true' : undefined}
@@ -104,7 +106,7 @@ export default function ProductImages({ images, productTitle }: ProductImagesPro
                 className="h-full w-full cursor-pointer object-cover"
                 loading="lazy"
               />
-            </button>
+            </Button>
           ))}
         </div>
       )}

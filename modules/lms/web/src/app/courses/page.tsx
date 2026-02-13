@@ -4,6 +4,11 @@ import { useState, useEffect, useCallback } from "react";
 import { courseApi } from "@/lib/lms/api";
 import type { Course, Category, CourseFilters } from "@/lib/lms/types";
 import { CourseGrid } from "@/components/lms/course-grid";
+import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
+import { SearchInput } from "@/components/ui/search-input";
+import { Pagination } from "@/components/ui/pagination";
+import { Spinner } from "@/components/ui/spinner";
 
 // =============================================================================
 // Constants
@@ -14,7 +19,7 @@ const PRICE_OPTIONS = [
   { label: "All Prices", value: "" },
   { label: "Free", value: "free" },
   { label: "Paid", value: "paid" },
-] as const;
+];
 const PAGE_SIZE = 12;
 
 // =============================================================================
@@ -99,16 +104,21 @@ export default function CoursesCatalogPage() {
   }, [search, selectedCategory, selectedLevel, selectedPrice]);
 
   // ---------------------------------------------------------------------------
-  // Debounced search
+  // Select Options
   // ---------------------------------------------------------------------------
-  const [searchInput, setSearchInput] = useState("");
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setSearch(searchInput);
-    }, 400);
-    return () => clearTimeout(timer);
-  }, [searchInput]);
+  const categoryOptions = [
+    { label: "All Categories", value: "" },
+    ...categories.map((cat) => ({ label: cat.name, value: cat.slug })),
+  ];
+
+  const levelOptions = [
+    { label: "All Levels", value: "" },
+    ...LEVELS.map((level) => ({
+      label: level.charAt(0).toUpperCase() + level.slice(1),
+      value: level,
+    })),
+  ];
 
   // ---------------------------------------------------------------------------
   // Render
@@ -132,86 +142,53 @@ export default function CoursesCatalogPage() {
         {/* Filters */}
         <div className="mb-8 space-y-4">
           {/* Search Bar */}
-          <div className="relative">
-            <svg
-              className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
-            <input
-              type="text"
-              placeholder="Search courses..."
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              className="w-full rounded-lg border border-input bg-background py-3 pl-10 pr-4 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            />
-          </div>
+          <SearchInput
+            debounceDelay={400}
+            onSearch={setSearch}
+            placeholder="Search courses..."
+            size="lg"
+          />
 
           {/* Filter Row */}
           <div className="flex flex-wrap gap-3">
             {/* Category Filter */}
-            <select
+            <Select
+              options={categoryOptions}
               value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="rounded-lg border border-input bg-background px-4 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            >
-              <option value="">All Categories</option>
-              {categories.map((cat) => (
-                <option key={cat.id} value={cat.slug}>
-                  {cat.name}
-                </option>
-              ))}
-            </select>
+              onChange={setSelectedCategory}
+              size="sm"
+            />
 
             {/* Level Filter */}
-            <select
+            <Select
+              options={levelOptions}
               value={selectedLevel}
-              onChange={(e) => setSelectedLevel(e.target.value)}
-              className="rounded-lg border border-input bg-background px-4 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            >
-              <option value="">All Levels</option>
-              {LEVELS.map((level) => (
-                <option key={level} value={level}>
-                  {level.charAt(0).toUpperCase() + level.slice(1)}
-                </option>
-              ))}
-            </select>
+              onChange={setSelectedLevel}
+              size="sm"
+            />
 
             {/* Price Filter */}
-            <select
+            <Select
+              options={PRICE_OPTIONS}
               value={selectedPrice}
-              onChange={(e) => setSelectedPrice(e.target.value)}
-              className="rounded-lg border border-input bg-background px-4 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            >
-              {PRICE_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
+              onChange={setSelectedPrice}
+              size="sm"
+            />
 
             {/* Clear Filters */}
             {(selectedCategory || selectedLevel || selectedPrice || search) && (
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => {
-                  setSearchInput("");
                   setSearch("");
                   setSelectedCategory("");
                   setSelectedLevel("");
                   setSelectedPrice("");
                 }}
-                className="rounded-lg px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
               >
                 Clear Filters
-              </button>
+              </Button>
             )}
           </div>
         </div>
@@ -228,7 +205,7 @@ export default function CoursesCatalogPage() {
         {/* Loading State */}
         {loading && (
           <div className="flex items-center justify-center py-20">
-            <p className="text-muted-foreground">Loading...</p>
+            <Spinner size="lg" />
           </div>
         )}
 
@@ -236,12 +213,9 @@ export default function CoursesCatalogPage() {
         {error && (
           <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-6 text-center">
             <p className="text-destructive">{error}</p>
-            <button
-              onClick={fetchCourses}
-              className="mt-4 rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground hover:bg-primary/90 transition-colors"
-            >
+            <Button onClick={fetchCourses} className="mt-4" size="sm">
               Try Again
-            </button>
+            </Button>
           </div>
         )}
 
@@ -264,61 +238,15 @@ export default function CoursesCatalogPage() {
 
         {/* Pagination */}
         {!loading && totalPages > 1 && (
-          <div className="mt-10 flex items-center justify-center gap-2">
-            <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page <= 1}
-              className="rounded-lg border border-input px-4 py-2 text-sm text-foreground hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              Previous
-            </button>
-
-            <div className="flex items-center gap-1">
-              {Array.from({ length: totalPages }, (_, i) => i + 1)
-                .filter((p) => {
-                  if (totalPages <= 7) return true;
-                  if (p === 1 || p === totalPages) return true;
-                  if (Math.abs(p - page) <= 1) return true;
-                  return false;
-                })
-                .reduce<(number | string)[]>((acc, p, idx, arr) => {
-                  if (idx > 0 && p - (arr[idx - 1] as number) > 1) {
-                    acc.push("...");
-                  }
-                  acc.push(p);
-                  return acc;
-                }, [])
-                .map((item, idx) =>
-                  typeof item === "string" ? (
-                    <span
-                      key={`ellipsis-${idx}`}
-                      className="px-2 text-muted-foreground"
-                    >
-                      ...
-                    </span>
-                  ) : (
-                    <button
-                      key={item}
-                      onClick={() => setPage(item)}
-                      className={`h-10 w-10 rounded-lg text-sm transition-colors ${
-                        item === page
-                          ? "bg-primary text-primary-foreground"
-                          : "text-foreground hover:bg-accent"
-                      }`}
-                    >
-                      {item}
-                    </button>
-                  ),
-                )}
-            </div>
-
-            <button
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page >= totalPages}
-              className="rounded-lg border border-input px-4 py-2 text-sm text-foreground hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              Next
-            </button>
+          <div className="mt-10">
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+              totalItems={total}
+              pageSize={PAGE_SIZE}
+              showItemCount
+            />
           </div>
         )}
       </div>

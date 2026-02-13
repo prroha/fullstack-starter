@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
 import type { Lesson } from '../../lib/lms/types';
 
 interface LessonPlayerProps {
@@ -84,9 +85,9 @@ function VideoPlayer({ url, title }: { url: string; title: string }) {
 
 function TextContent({ html }: { html: string }) {
   return (
-    <div className="overflow-y-auto rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+    <div className="overflow-y-auto rounded-lg border border-border bg-card p-6 shadow-sm">
       <div
-        className="prose prose-gray max-w-none prose-headings:font-semibold prose-a:text-blue-600 prose-img:rounded-lg prose-pre:bg-gray-900 prose-pre:text-gray-100"
+        className="prose prose-neutral max-w-none prose-headings:font-semibold prose-a:text-blue-600 prose-img:rounded-lg prose-pre:bg-neutral-900 prose-pre:text-neutral-100"
         dangerouslySetInnerHTML={{ __html: html }}
       />
     </div>
@@ -98,9 +99,9 @@ function PdfViewer({ url, title }: { url: string; title: string }) {
 
   if (loadError) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-lg border border-gray-200 bg-gray-50 py-16 px-4">
+      <div className="flex flex-col items-center justify-center rounded-lg border border-border bg-muted py-16 px-4">
         <svg
-          className="mb-4 h-12 w-12 text-gray-400"
+          className="mb-4 h-12 w-12 text-muted-foreground"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -112,31 +113,23 @@ function PdfViewer({ url, title }: { url: string; title: string }) {
             d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
           />
         </svg>
-        <p className="mb-3 text-sm text-gray-600">
+        <p className="mb-3 text-sm text-muted-foreground">
           Unable to display the PDF inline.
         </p>
-        <a
-          href={url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
-        >
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-            />
-          </svg>
-          Download PDF
-        </a>
+        <Button asChild>
+          <a href={url} target="_blank" rel="noopener noreferrer" className="gap-2">
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Download PDF
+          </a>
+        </Button>
       </div>
     );
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+    <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
       <iframe
         src={url}
         title={title}
@@ -167,8 +160,8 @@ export default function LessonPlayer({ lesson, onComplete }: LessonPlayerProps) 
       case 'VIDEO': {
         if (!lesson.contentUrl) {
           return (
-            <div className="flex items-center justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50 py-20">
-              <p className="text-sm text-gray-500">No video URL provided for this lesson.</p>
+            <div className="flex items-center justify-center rounded-lg border border-dashed border-border bg-muted py-20">
+              <p className="text-sm text-muted-foreground">No video URL provided for this lesson.</p>
             </div>
           );
         }
@@ -179,8 +172,8 @@ export default function LessonPlayer({ lesson, onComplete }: LessonPlayerProps) 
         const content = lesson.contentText ?? '';
         if (!content) {
           return (
-            <div className="flex items-center justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50 py-20">
-              <p className="text-sm text-gray-500">No content available for this lesson.</p>
+            <div className="flex items-center justify-center rounded-lg border border-dashed border-border bg-muted py-20">
+              <p className="text-sm text-muted-foreground">No content available for this lesson.</p>
             </div>
           );
         }
@@ -190,8 +183,8 @@ export default function LessonPlayer({ lesson, onComplete }: LessonPlayerProps) 
       case 'PDF': {
         if (!lesson.contentUrl) {
           return (
-            <div className="flex items-center justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50 py-20">
-              <p className="text-sm text-gray-500">No PDF URL provided for this lesson.</p>
+            <div className="flex items-center justify-center rounded-lg border border-dashed border-border bg-muted py-20">
+              <p className="text-sm text-muted-foreground">No PDF URL provided for this lesson.</p>
             </div>
           );
         }
@@ -200,8 +193,8 @@ export default function LessonPlayer({ lesson, onComplete }: LessonPlayerProps) 
 
       case 'QUIZ': {
         return (
-          <div className="flex items-center justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50 py-20">
-            <p className="text-sm text-gray-500">
+          <div className="flex items-center justify-center rounded-lg border border-dashed border-border bg-muted py-20">
+            <p className="text-sm text-muted-foreground">
               This lesson contains a quiz. Please use the quiz component to take it.
             </p>
           </div>
@@ -210,8 +203,8 @@ export default function LessonPlayer({ lesson, onComplete }: LessonPlayerProps) 
 
       default: {
         return (
-          <div className="flex items-center justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50 py-20">
-            <p className="text-sm text-gray-500">Unsupported lesson type.</p>
+          <div className="flex items-center justify-center rounded-lg border border-dashed border-border bg-muted py-20">
+            <p className="text-sm text-muted-foreground">Unsupported lesson type.</p>
           </div>
         );
       }
@@ -223,23 +216,18 @@ export default function LessonPlayer({ lesson, onComplete }: LessonPlayerProps) 
       {/* Lesson header */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">{lesson.title}</h2>
+          <h2 className="text-xl font-semibold text-foreground">{lesson.title}</h2>
           {lesson.description && (
-            <p className="mt-1 text-sm text-gray-600">{lesson.description}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{lesson.description}</p>
           )}
-          <div className="mt-2 flex items-center gap-3 text-xs text-gray-500">
-            <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 font-medium uppercase">
+          <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
+            <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 font-medium uppercase">
               {lesson.type}
             </span>
             {lesson.duration > 0 && (
               <span className="flex items-center gap-1">
                 <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 {lesson.duration} min
               </span>
@@ -259,15 +247,11 @@ export default function LessonPlayer({ lesson, onComplete }: LessonPlayerProps) 
       {/* Complete button */}
       {onComplete && (
         <div className="flex justify-end pt-2">
-          <button
-            type="button"
+          <Button
             onClick={handleMarkComplete}
             disabled={completed}
-            className={`inline-flex items-center gap-2 rounded-md px-5 py-2.5 text-sm font-medium transition-colors ${
-              completed
-                ? 'cursor-not-allowed bg-green-100 text-green-700'
-                : 'bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
-            }`}
+            variant={completed ? 'secondary' : 'default'}
+            className={completed ? 'gap-2 bg-green-100 text-green-700 hover:bg-green-100' : 'gap-2'}
           >
             {completed ? (
               <>
@@ -284,7 +268,7 @@ export default function LessonPlayer({ lesson, onComplete }: LessonPlayerProps) 
                 Mark as Complete
               </>
             )}
-          </button>
+          </Button>
         </div>
       )}
     </div>

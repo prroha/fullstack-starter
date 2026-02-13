@@ -31,5 +31,5 @@ const levelColors: Record<string, string> = {
 };
 
 export function getLevelColor(level: string): string {
-  return levelColors[level.toLowerCase()] ?? 'bg-gray-100 text-gray-800';
+  return levelColors[level.toLowerCase()] ?? 'bg-muted text-foreground';
 }

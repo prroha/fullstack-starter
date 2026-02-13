@@ -8,6 +8,7 @@ import { SearchInput } from "@/components/ui/search-input";
 import { Pagination } from "@/components/ui/pagination";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 
 // =============================================================================
 // Constants
@@ -182,7 +183,7 @@ export default function ShopPage() {
         {/* Loading State */}
         {loading && (
           <div className="flex items-center justify-center py-20">
-            <p className="text-muted-foreground">Loading...</p>
+            <Spinner size="lg" />
           </div>
         )}
 
