@@ -1,0 +1,43 @@
+{
+  "name": "Tasks & Projects",
+  "version": "1.0.0",
+  "description": "Project and task management system with kanban board, comments, labels, and user settings",
+  "tier": "premium",
+  "price": 19900,
+  "category": "productivity",
+  "platforms": "backend,web,mobile",
+  "dependencies": {
+    "backend": {},
+    "web": {},
+    "mobile": {
+      "http": "^1.2.0"
+    }
+  },
+  "env": {},
+  "prismaModels": [
+    "TaskProject",
+    "Task",
+    "TaskComment",
+    "TaskLabel",
+    "TaskLabelLink",
+    "TaskSettings"
+  ],
+  "routes": {
+    "backend": {
+      "prefix": "/api/v1/tasks",
+      "files": [
+        "routes/project.routes.ts",
+        "routes/task.routes.ts",
+        "routes/comment.routes.ts",
+        "routes/label.routes.ts",
+        "routes/settings.routes.ts"
+      ]
+    }
+  },
+  "postInstall": [
+    "Run Prisma migration to add Tasks models",
+    "Seed initial labels and sample project",
+    "Configure task settings"
+  ],
+  "documentation": "https://docs.fullstack-starter.dev/modules/tasks"
+}

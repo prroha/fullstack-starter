@@ -168,6 +168,7 @@ Use these to quickly find what you need:
 
 | Date       | Change                                                                                                                                                    | Files                                                                                                                    |
 | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| 2026-02-14 | Tasks module: Complete implementation — 44 files (backend routes/services, frontend pages/components, Prisma schema, mobile placeholders, seed data)      | `modules/tasks/`, `studio/backend/prisma/seed.ts`, `templates/tasks/config.json`                                         |
 | 2026-02-14 | Helpdesk module: Complete implementation — 47 files (backend routes/services, frontend pages/components, Prisma schema, mobile placeholders, seed data)   | `modules/helpdesk/`, `studio/backend/prisma/seed.ts`, `templates/helpdesk/config.json`                                   |
 | 2026-02-14 | Invoicing module: Complete implementation — 46 files (backend routes/services, frontend pages/components, Prisma schema, mobile placeholders, seed data)  | `modules/invoicing/`, `studio/backend/prisma/seed.ts`, `templates/invoicing/config.json`                                 |
 | 2026-02-13 | Booking module: Complete implementation — 46 files (backend routes/services, frontend pages/components, Prisma schema, mobile placeholders, seed data)    | `modules/booking/`, `studio/backend/prisma/seed.ts`, `templates/booking/config.json`                                     |
@@ -283,6 +284,12 @@ fullstack-starter/
 │   │   ├── web/src/           # Pages (10), components (13), lib (types/api/formatters)
 │   │   ├── mobile/lib/        # Flutter placeholders (3)
 │   │   ├── prisma/lms.prisma  # 12 models + 4 enums
+│   │   └── module.json        # Module metadata
+│   ├── tasks/                 # Tasks & Projects module
+│   │   ├── backend/src/       # Routes (6), services (5), auth middleware
+│   │   ├── web/src/           # Pages (11), components (11), lib (types/api/formatters/constants)
+│   │   ├── mobile/lib/        # Flutter placeholders (3)
+│   │   ├── prisma/tasks.prisma # 6 models + 3 enums
 │   │   └── module.json        # Module metadata
 │   ├── payments/
 │   └── real-time/
@@ -460,7 +467,7 @@ Each template needs: seed data (module + features), `config.json`, and a `module
 | 7   | **Helpdesk**        | Yes (6 features) | Yes            | `helpdesk.*` (6)          | `modules/helpdesk/` (47 files)        | **Done**           |
 | 8   | **Invoicing**       | Yes (6 features) | Yes            | `invoicing.*` (6)         | `modules/invoicing/` (46 files)       | **Done**           |
 | 9   | **Events**          | No               | Empty dir      | Needs `events.*`          | Needs `modules/events/`               | **Not Started**    |
-| 10  | **Tasks**           | No               | Empty dir      | Needs `tasks.*`           | Needs `modules/tasks/`                | **Not Started**    |
+| 10  | **Tasks**           | Yes (6 features) | Yes            | `tasks.*` (6)             | `modules/tasks/` (44 files)           | **Done**           |
 
 ### Existing Generic Modules (shared across templates)
 

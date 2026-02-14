@@ -1,0 +1,152 @@
+// =============================================================================
+// Tasks Module - Prisma Schema
+// =============================================================================
+// Standalone schema for the schema merger. No datasource/generator blocks.
+// Models reference User by foreign key (userId).
+
+// -----------------------------------------------------------------------------
+// Enums
+// -----------------------------------------------------------------------------
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  IN_REVIEW
+  DONE
+  CANCELLED
+}
+
+enum TaskPriority {
+  NONE
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TaskView {
+  LIST
+  BOARD
+  CALENDAR
+}
+
+// -----------------------------------------------------------------------------
+// Project
+// -----------------------------------------------------------------------------
+
+model TaskProject {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  name        String
+  description String?
+  color       String   @default("#6B7280")
+  icon        String?
+  isArchived  Boolean  @default(false) @map("is_archived")
+  position    Int      @default(0)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  tasks Task[]
+
+  @@index([userId])
+  @@map("tasks_projects")
+}
+
+// -----------------------------------------------------------------------------
+// Task
+// -----------------------------------------------------------------------------
+
+model Task {
+  id          String       @id @default(uuid())
+  userId      String       @map("user_id")
+  projectId   String?      @map("project_id")
+  assigneeId  String?      @map("assignee_id")
+  title       String
+  description String?
+  status      TaskStatus   @default(TODO)
+  priority    TaskPriority @default(NONE)
+  dueDate     DateTime?    @map("due_date")
+  position    Int          @default(0)
+  isArchived  Boolean      @default(false) @map("is_archived")
+  completedAt DateTime?    @map("completed_at")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  project  TaskProject?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  comments TaskComment[]
+  labels   TaskLabelLink[]
+
+  @@index([userId])
+  @@index([projectId])
+  @@index([status])
+  @@index([priority])
+  @@index([assigneeId])
+  @@map("tasks_tasks")
+}
+
+// -----------------------------------------------------------------------------
+// Comment
+// -----------------------------------------------------------------------------
+
+model TaskComment {
+  id        String   @id @default(uuid())
+  taskId    String   @map("task_id")
+  userId    String   @map("user_id")
+  content   String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@map("tasks_comments")
+}
+
+// -----------------------------------------------------------------------------
+// Label
+// -----------------------------------------------------------------------------
+
+model TaskLabel {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  name      String
+  color     String   @default("#6B7280")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  tasks TaskLabelLink[]
+
+  @@index([userId])
+  @@map("tasks_labels")
+}
+
+// -----------------------------------------------------------------------------
+// Task-Label Link (M2M)
+// -----------------------------------------------------------------------------
+
+model TaskLabelLink {
+  id      String @id @default(uuid())
+  taskId  String @map("task_id")
+  labelId String @map("label_id")
+
+  task  Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  label TaskLabel @relation(fields: [labelId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, labelId])
+  @@map("tasks_task_labels")
+}
+
+// -----------------------------------------------------------------------------
+// Settings (per-user config)
+// -----------------------------------------------------------------------------
+
+model TaskSettings {
+  id                 String   @id @default(uuid())
+  userId             String   @unique @map("user_id")
+  defaultView        TaskView @default(LIST) @map("default_view")
+  defaultProjectId   String?  @map("default_project_id")
+  showCompletedTasks Boolean  @default(true) @map("show_completed_tasks")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  @@map("tasks_settings")
+}
