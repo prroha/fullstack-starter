@@ -1,6 +1,6 @@
 # CLAUDE.md - Fullstack Starter Template
 
-> **Last Updated**: 2026-02-12
+> **Last Updated**: 2026-02-14
 > **Codebase Version**: 1.3.0
 > **Maintainer**: AI-assisted documentation (auto-update on changes)
 
@@ -168,6 +168,7 @@ Use these to quickly find what you need:
 
 | Date       | Change                                                                                                                                                    | Files                                                                                                                    |
 | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| 2026-02-14 | Invoicing module: Complete implementation — 46 files (backend routes/services, frontend pages/components, Prisma schema, mobile placeholders, seed data)  | `modules/invoicing/`, `studio/backend/prisma/seed.ts`, `templates/invoicing/config.json`                                 |
 | 2026-02-13 | Booking module: Complete implementation — 46 files (backend routes/services, frontend pages/components, Prisma schema, mobile placeholders, seed data)    | `modules/booking/`, `studio/backend/prisma/seed.ts`, `templates/booking/config.json`                                     |
 | 2026-02-13 | E-Commerce module: Complete implementation — 46 files (backend routes/services, frontend pages/components, Prisma schema, mobile placeholders, seed data) | `modules/ecommerce/`, `studio/backend/prisma/seed.ts`, `templates/ecommerce/config.json`                                 |
 | 2026-02-12 | LMS module: DRY refactoring pass — shared formatters, auth middleware, core Rating reuse, prop bug fixes, extracted EnrollmentCard                        | `modules/lms/web/src/lib/lms/formatters.ts`, `modules/lms/backend/src/middleware/auth.ts`, multiple component/page fixes |
@@ -263,6 +264,12 @@ fullstack-starter/
 │   │   ├── web/src/           # Pages (12), components (13), lib (types/api/formatters)
 │   │   ├── mobile/lib/        # Flutter placeholders (3)
 │   │   ├── prisma/ecommerce.prisma # 10 models + 3 enums
+│   │   └── module.json        # Module metadata
+│   ├── invoicing/             # Invoicing & Billing module
+│   │   ├── backend/src/       # Routes (6), services (6), auth middleware
+│   │   ├── web/src/           # Pages (12), components (13), lib (types/api/formatters)
+│   │   ├── mobile/lib/        # Flutter placeholders (3)
+│   │   ├── prisma/invoicing.prisma # 8 models + 4 enums
 │   │   └── module.json        # Module metadata
 │   ├── lms/                   # Learning Management System module
 │   │   ├── backend/src/       # Routes (6), services (7), auth middleware
@@ -444,7 +451,7 @@ Each template needs: seed data (module + features), `config.json`, and a `module
 | 5   | **E-commerce**      | Yes (6 features) | Yes            | `ecommerce.*` (6)         | `modules/ecommerce/` (46 files)       | **Done**           |
 | 6   | **Booking**         | Yes (6 features) | Yes            | `booking.*` (6)           | `modules/booking/` (46 files)         | **Done**           |
 | 7   | **Helpdesk**        | No               | Empty dir      | Needs `helpdesk.*`        | Needs `modules/helpdesk/`             | **Not Started**    |
-| 8   | **Invoicing**       | No               | Empty dir      | Needs `invoicing.*`       | Needs `modules/invoicing/`            | **Not Started**    |
+| 8   | **Invoicing**       | Yes (6 features) | Yes            | `invoicing.*` (6)         | `modules/invoicing/` (46 files)       | **Done**           |
 | 9   | **Events**          | No               | Empty dir      | Needs `events.*`          | Needs `modules/events/`               | **Not Started**    |
 | 10  | **Tasks**           | No               | Empty dir      | Needs `tasks.*`           | Needs `modules/tasks/`                | **Not Started**    |
 

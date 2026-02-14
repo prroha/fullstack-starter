@@ -1,0 +1,234 @@
+// =============================================================================
+// Invoicing Module - Prisma Schema
+// =============================================================================
+// Standalone schema for the schema merger. No datasource/generator blocks.
+// Models reference User by foreign key (userId).
+
+// -----------------------------------------------------------------------------
+// Enums
+// -----------------------------------------------------------------------------
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  VIEWED
+  PARTIALLY_PAID
+  PAID
+  OVERDUE
+  CANCELLED
+  VOID
+}
+
+enum PaymentMethod {
+  BANK_TRANSFER
+  CREDIT_CARD
+  CASH
+  CHECK
+  OTHER
+}
+
+enum RecurringFrequency {
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+enum RecurringStatus {
+  ACTIVE
+  PAUSED
+  CANCELLED
+}
+
+// -----------------------------------------------------------------------------
+// Client
+// -----------------------------------------------------------------------------
+
+model InvoicingClient {
+  id             String   @id @default(uuid())
+  userId         String   @map("user_id")
+  name           String
+  email          String?
+  phone          String?
+  companyName    String?  @map("company_name")
+  taxId          String?  @map("tax_id")
+  billingAddress Json?    @map("billing_address") // { line1, line2, city, state, postalCode, country }
+  notes          String?
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  invoices          Invoice[]
+  recurringInvoices RecurringInvoice[]
+
+  @@index([userId])
+  @@map("invoicing_clients")
+}
+
+// -----------------------------------------------------------------------------
+// Tax Rate
+// -----------------------------------------------------------------------------
+
+model TaxRate {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  name      String
+  rate      Float    // percentage, e.g. 8.5 for 8.5%
+  isDefault Boolean  @default(false) @map("is_default")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  invoiceItems InvoiceItem[]
+
+  @@index([userId])
+  @@map("invoicing_tax_rates")
+}
+
+// -----------------------------------------------------------------------------
+// Invoice
+// -----------------------------------------------------------------------------
+
+model Invoice {
+  id              String        @id @default(uuid())
+  userId          String        @map("user_id")
+  clientId        String        @map("client_id")
+  invoiceNumber   String        @unique @map("invoice_number")
+  status          InvoiceStatus @default(DRAFT)
+  issueDate       DateTime      @map("issue_date")
+  dueDate         DateTime      @map("due_date")
+  subtotal        Int           @default(0) // cents
+  taxTotal        Int           @default(0) @map("tax_total") // cents
+  discountAmount  Int           @default(0) @map("discount_amount") // cents
+  totalAmount     Int           @default(0) @map("total_amount") // cents
+  amountPaid      Int           @default(0) @map("amount_paid") // cents
+  amountDue       Int           @default(0) @map("amount_due") // cents
+  currency        String        @default("usd")
+  notes           String?
+  terms           String?
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  client     InvoicingClient   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  items      InvoiceItem[]
+  payments   InvoicePayment[]
+  activities InvoiceActivity[]
+
+  @@index([userId])
+  @@index([clientId])
+  @@index([status])
+  @@index([dueDate])
+  @@map("invoicing_invoices")
+}
+
+// -----------------------------------------------------------------------------
+// Invoice Item (line items)
+// -----------------------------------------------------------------------------
+
+model InvoiceItem {
+  id          String  @id @default(uuid())
+  invoiceId   String  @map("invoice_id")
+  description String
+  quantity    Float   @default(1)
+  unitPrice   Int     @map("unit_price") // cents
+  totalPrice  Int     @map("total_price") // cents
+  taxRateId   String? @map("tax_rate_id")
+  sortOrder   Int     @default(0) @map("sort_order")
+
+  invoice Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  taxRate TaxRate? @relation(fields: [taxRateId], references: [id], onDelete: SetNull)
+
+  @@index([invoiceId])
+  @@map("invoicing_invoice_items")
+}
+
+// -----------------------------------------------------------------------------
+// Invoice Payment
+// -----------------------------------------------------------------------------
+
+model InvoicePayment {
+  id        String        @id @default(uuid())
+  invoiceId String        @map("invoice_id")
+  amount    Int           // cents
+  method    PaymentMethod @default(BANK_TRANSFER)
+  reference String?
+  paidAt    DateTime      @map("paid_at")
+  createdAt DateTime      @default(now()) @map("created_at")
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+  @@map("invoicing_payments")
+}
+
+// -----------------------------------------------------------------------------
+// Recurring Invoice
+// -----------------------------------------------------------------------------
+
+model RecurringInvoice {
+  id             String             @id @default(uuid())
+  userId         String             @map("user_id")
+  clientId       String             @map("client_id")
+  frequency      RecurringFrequency @default(MONTHLY)
+  status         RecurringStatus    @default(ACTIVE)
+  startDate      DateTime           @map("start_date")
+  endDate        DateTime?          @map("end_date")
+  nextIssueDate  DateTime           @map("next_issue_date")
+  templateItems  Json               @map("template_items") // Array of { description, quantity, unitPrice, taxRateId }
+  currency       String             @default("usd")
+  notes          String?
+  terms          String?
+  occurrences    Int                @default(0)
+  maxOccurrences Int?               @map("max_occurrences")
+  createdAt      DateTime           @default(now()) @map("created_at")
+  updatedAt      DateTime           @updatedAt @map("updated_at")
+
+  client InvoicingClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([clientId])
+  @@index([status])
+  @@index([nextIssueDate])
+  @@map("invoicing_recurring_invoices")
+}
+
+// -----------------------------------------------------------------------------
+// Invoice Activity (audit trail)
+// -----------------------------------------------------------------------------
+
+model InvoiceActivity {
+  id        String   @id @default(uuid())
+  invoiceId String   @map("invoice_id")
+  action    String   // e.g. "created", "sent", "viewed", "payment_recorded", "voided"
+  details   String?
+  actorId   String?  @map("actor_id") // userId who performed the action
+  createdAt DateTime @default(now()) @map("created_at")
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+  @@map("invoicing_activities")
+}
+
+// -----------------------------------------------------------------------------
+// Invoicing Settings (per-user business config)
+// -----------------------------------------------------------------------------
+
+model InvoicingSettings {
+  id              String   @id @default(uuid())
+  userId          String   @unique @map("user_id")
+  businessName    String?  @map("business_name")
+  businessEmail   String?  @map("business_email")
+  businessPhone   String?  @map("business_phone")
+  businessAddress Json?    @map("business_address") // { line1, line2, city, state, postalCode, country }
+  logoUrl         String?  @map("logo_url")
+  invoicePrefix   String   @default("INV") @map("invoice_prefix")
+  nextNumber      Int      @default(1) @map("next_number")
+  defaultCurrency String   @default("usd") @map("default_currency")
+  defaultDueDays  Int      @default(30) @map("default_due_days")
+  defaultTerms    String?  @map("default_terms")
+  defaultNotes    String?  @map("default_notes")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@map("invoicing_settings")
+}

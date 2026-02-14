@@ -1,0 +1,54 @@
+{
+  "name": "Invoicing & Billing",
+  "version": "1.0.0",
+  "description": "Complete invoicing system with client management, invoice creation with line items, payment tracking, recurring billing, tax rates, and business settings",
+  "tier": "premium",
+  "price": "249",
+  "category": "finance",
+  "platforms": "backend,web,mobile",
+  "dependencies": {
+    "backend": {
+      "nanoid": "^5.0.0"
+    },
+    "web": {},
+    "mobile": {
+      "http": "^1.2.0"
+    }
+  },
+  "env": {
+    "INVOICING_DEFAULT_CURRENCY": "usd",
+    "INVOICING_DEFAULT_DUE_DAYS": "30",
+    "INVOICING_INVOICE_PREFIX": "INV"
+  },
+  "prismaModels": [
+    "InvoicingClient",
+    "TaxRate",
+    "Invoice",
+    "InvoiceItem",
+    "InvoicePayment",
+    "RecurringInvoice",
+    "InvoiceActivity",
+    "InvoicingSettings"
+  ],
+  "routes": {
+    "backend": {
+      "prefix": "/api/v1/invoicing",
+      "files": [
+        "routes/client.routes.ts",
+        "routes/invoice.routes.ts",
+        "routes/invoice-item.routes.ts",
+        "routes/payment.routes.ts",
+        "routes/tax-rate.routes.ts",
+        "routes/recurring.routes.ts"
+      ]
+    }
+  },
+  "postInstall": [
+    "Run Prisma migration to add Invoicing models",
+    "Configure default currency and due days environment variables",
+    "Seed initial tax rates",
+    "Configure email service for invoice delivery",
+    "Set up business settings"
+  ],
+  "documentation": "https://docs.fullstack-starter.dev/modules/invoicing"
+}
