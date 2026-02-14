@@ -168,6 +168,7 @@ Use these to quickly find what you need:
 
 | Date       | Change                                                                                                                                                    | Files                                                                                                                    |
 | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| 2026-02-14 | Events module: Complete implementation — 43 files (backend routes/services, frontend pages/components, Prisma schema, mobile placeholders, seed data)     | `modules/events/`, `studio/backend/prisma/seed.ts`, `templates/events/config.json`                                       |
 | 2026-02-14 | Tasks module: Complete implementation — 44 files (backend routes/services, frontend pages/components, Prisma schema, mobile placeholders, seed data)      | `modules/tasks/`, `studio/backend/prisma/seed.ts`, `templates/tasks/config.json`                                         |
 | 2026-02-14 | Helpdesk module: Complete implementation — 47 files (backend routes/services, frontend pages/components, Prisma schema, mobile placeholders, seed data)   | `modules/helpdesk/`, `studio/backend/prisma/seed.ts`, `templates/helpdesk/config.json`                                   |
 | 2026-02-14 | Invoicing module: Complete implementation — 46 files (backend routes/services, frontend pages/components, Prisma schema, mobile placeholders, seed data)  | `modules/invoicing/`, `studio/backend/prisma/seed.ts`, `templates/invoicing/config.json`                                 |
@@ -290,6 +291,12 @@ fullstack-starter/
 │   │   ├── web/src/           # Pages (11), components (11), lib (types/api/formatters/constants)
 │   │   ├── mobile/lib/        # Flutter placeholders (3)
 │   │   ├── prisma/tasks.prisma # 6 models + 3 enums
+│   │   └── module.json        # Module metadata
+│   ├── events/                # Events & Ticketing module
+│   │   ├── backend/src/       # Routes (6), services (5), auth middleware
+│   │   ├── web/src/           # Pages (11), components (11), lib (types/api/formatters/constants)
+│   │   ├── mobile/lib/        # Flutter placeholders (3)
+│   │   ├── prisma/events.prisma # 6 models + 3 enums
 │   │   └── module.json        # Module metadata
 │   ├── payments/
 │   └── real-time/
@@ -466,7 +473,7 @@ Each template needs: seed data (module + features), `config.json`, and a `module
 | 6   | **Booking**         | Yes (6 features) | Yes            | `booking.*` (6)           | `modules/booking/` (46 files)         | **Done**           |
 | 7   | **Helpdesk**        | Yes (6 features) | Yes            | `helpdesk.*` (6)          | `modules/helpdesk/` (47 files)        | **Done**           |
 | 8   | **Invoicing**       | Yes (6 features) | Yes            | `invoicing.*` (6)         | `modules/invoicing/` (46 files)       | **Done**           |
-| 9   | **Events**          | No               | Empty dir      | Needs `events.*`          | Needs `modules/events/`               | **Not Started**    |
+| 9   | **Events**          | Yes (6 features) | Yes            | `events.*` (6)            | `modules/events/` (43 files)          | **Done**           |
 | 10  | **Tasks**           | Yes (6 features) | Yes            | `tasks.*` (6)             | `modules/tasks/` (44 files)           | **Done**           |
 
 ### Existing Generic Modules (shared across templates)

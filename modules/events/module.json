@@ -1,0 +1,43 @@
+{
+  "name": "Events & Ticketing",
+  "version": "1.0.0",
+  "description": "Event management platform with categories, venues, speaker management, attendee registration and check-in, calendar views, and user settings",
+  "tier": "premium",
+  "price": 19900,
+  "category": "events",
+  "platforms": "backend,web,mobile",
+  "dependencies": {
+    "backend": {},
+    "web": {},
+    "mobile": {
+      "http": "^1.2.0"
+    }
+  },
+  "env": {},
+  "prismaModels": [
+    "EventCategory",
+    "EventVenue",
+    "Event",
+    "EventRegistration",
+    "EventSpeaker",
+    "EventSettings"
+  ],
+  "routes": {
+    "backend": {
+      "prefix": "/api/v1/events",
+      "files": [
+        "routes/event.routes.ts",
+        "routes/venue.routes.ts",
+        "routes/registration.routes.ts",
+        "routes/speaker.routes.ts",
+        "routes/settings.routes.ts"
+      ]
+    }
+  },
+  "postInstall": [
+    "Run Prisma migration to add Events models",
+    "Seed initial categories and sample events",
+    "Configure event settings"
+  ],
+  "documentation": "https://docs.fullstack-starter.dev/modules/events"
+}
