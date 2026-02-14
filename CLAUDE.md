@@ -168,6 +168,7 @@ Use these to quickly find what you need:
 
 | Date       | Change                                                                                                                                                    | Files                                                                                                                    |
 | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| 2026-02-14 | Helpdesk module: Complete implementation — 47 files (backend routes/services, frontend pages/components, Prisma schema, mobile placeholders, seed data)   | `modules/helpdesk/`, `studio/backend/prisma/seed.ts`, `templates/helpdesk/config.json`                                   |
 | 2026-02-14 | Invoicing module: Complete implementation — 46 files (backend routes/services, frontend pages/components, Prisma schema, mobile placeholders, seed data)  | `modules/invoicing/`, `studio/backend/prisma/seed.ts`, `templates/invoicing/config.json`                                 |
 | 2026-02-13 | Booking module: Complete implementation — 46 files (backend routes/services, frontend pages/components, Prisma schema, mobile placeholders, seed data)    | `modules/booking/`, `studio/backend/prisma/seed.ts`, `templates/booking/config.json`                                     |
 | 2026-02-13 | E-Commerce module: Complete implementation — 46 files (backend routes/services, frontend pages/components, Prisma schema, mobile placeholders, seed data) | `modules/ecommerce/`, `studio/backend/prisma/seed.ts`, `templates/ecommerce/config.json`                                 |
@@ -264,6 +265,12 @@ fullstack-starter/
 │   │   ├── web/src/           # Pages (12), components (13), lib (types/api/formatters)
 │   │   ├── mobile/lib/        # Flutter placeholders (3)
 │   │   ├── prisma/ecommerce.prisma # 10 models + 3 enums
+│   │   └── module.json        # Module metadata
+│   ├── helpdesk/              # Helpdesk & Support module
+│   │   ├── backend/src/       # Routes (6), services (6), auth middleware
+│   │   ├── web/src/           # Pages (12), components (13), lib (types/api/formatters/constants)
+│   │   ├── mobile/lib/        # Flutter placeholders (3)
+│   │   ├── prisma/helpdesk.prisma # 10 models + 4 enums
 │   │   └── module.json        # Module metadata
 │   ├── invoicing/             # Invoicing & Billing module
 │   │   ├── backend/src/       # Routes (6), services (6), auth middleware
@@ -450,7 +457,7 @@ Each template needs: seed data (module + features), `config.json`, and a `module
 | 4   | **Mobile App Kit**  | Yes              | No (seed only) | None (`mobile.*` generic) | N/A (core mobile)                     | **Done** (generic) |
 | 5   | **E-commerce**      | Yes (6 features) | Yes            | `ecommerce.*` (6)         | `modules/ecommerce/` (46 files)       | **Done**           |
 | 6   | **Booking**         | Yes (6 features) | Yes            | `booking.*` (6)           | `modules/booking/` (46 files)         | **Done**           |
-| 7   | **Helpdesk**        | No               | Empty dir      | Needs `helpdesk.*`        | Needs `modules/helpdesk/`             | **Not Started**    |
+| 7   | **Helpdesk**        | Yes (6 features) | Yes            | `helpdesk.*` (6)          | `modules/helpdesk/` (47 files)        | **Done**           |
 | 8   | **Invoicing**       | Yes (6 features) | Yes            | `invoicing.*` (6)         | `modules/invoicing/` (46 files)       | **Done**           |
 | 9   | **Events**          | No               | Empty dir      | Needs `events.*`          | Needs `modules/events/`               | **Not Started**    |
 | 10  | **Tasks**           | No               | Empty dir      | Needs `tasks.*`           | Needs `modules/tasks/`                | **Not Started**    |

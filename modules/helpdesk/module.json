@@ -1,0 +1,56 @@
+{
+  "name": "Helpdesk & Support",
+  "version": "1.0.0",
+  "description": "Complete helpdesk system with ticket management, agent assignment, knowledge base, canned responses, SLA policies, and settings",
+  "tier": "premium",
+  "price": 24900,
+  "category": "support",
+  "platforms": "backend,web,mobile",
+  "dependencies": {
+    "backend": {
+      "nanoid": "^5.0.0"
+    },
+    "web": {},
+    "mobile": {
+      "http": "^1.2.0"
+    }
+  },
+  "env": {
+    "HELPDESK_TICKET_PREFIX": "TKT",
+    "HELPDESK_AUTO_ASSIGN": "false",
+    "HELPDESK_SUPPORT_EMAIL": "support@example.com"
+  },
+  "prismaModels": [
+    "HelpdeskCategory",
+    "HelpdeskAgent",
+    "SlaPolicy",
+    "Ticket",
+    "TicketMessage",
+    "TicketTag",
+    "TicketTagLink",
+    "KnowledgeBaseArticle",
+    "CannedResponse",
+    "HelpdeskSettings"
+  ],
+  "routes": {
+    "backend": {
+      "prefix": "/api/v1/helpdesk",
+      "files": [
+        "routes/ticket.routes.ts",
+        "routes/category.routes.ts",
+        "routes/agent.routes.ts",
+        "routes/article.routes.ts",
+        "routes/canned-response.routes.ts",
+        "routes/sla.routes.ts"
+      ]
+    }
+  },
+  "postInstall": [
+    "Run Prisma migration to add Helpdesk models",
+    "Configure ticket prefix and support email environment variables",
+    "Seed initial categories and SLA policies",
+    "Configure email service for ticket notifications",
+    "Set up helpdesk settings"
+  ],
+  "documentation": "https://docs.fullstack-starter.dev/modules/helpdesk"
+}
