@@ -1,4 +1,4 @@
-# Starter Studio - Product Documentation
+# Xitolaunch - Product Documentation
 
 > Build Your Own SaaS Platform - A template marketplace with dynamic configuration, live preview, and instant code generation.
 
@@ -23,9 +23,9 @@
 
 ## Vision & Overview
 
-### What is Starter Studio?
+### What is Xitolaunch?
 
-Starter Studio is a **self-service platform** where developers and entrepreneurs can:
+Xitolaunch is a **self-service platform** where developers and entrepreneurs can:
 
 1. **Browse** all available components, features, and layouts
 2. **Configure** their app by selecting features they need
@@ -35,13 +35,13 @@ Starter Studio is a **self-service platform** where developers and entrepreneurs
 
 ### Value Proposition
 
-| For Customers | For Us (Company) |
-|---------------|------------------|
+| For Customers                  | For Us (Company)                    |
+| ------------------------------ | ----------------------------------- |
 | Save weeks of development time | Recurring revenue from one codebase |
-| Pay only for what they need | Scalable business model |
-| Preview before buying | Low support overhead |
-| Production-ready code | Continuous improvement cycle |
-| Multiple app templates | Multiple revenue streams |
+| Pay only for what they need    | Scalable business model             |
+| Preview before buying          | Low support overhead                |
+| Production-ready code          | Continuous improvement cycle        |
+| Multiple app templates         | Multiple revenue streams            |
 
 ### Unique Differentiators
 
@@ -59,7 +59,7 @@ Starter Studio is a **self-service platform** where developers and entrepreneurs
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                         STARTER STUDIO                               │
+│                          XITOLAUNCH                                  │
 │                    (Public-Facing Platform)                          │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                      │
@@ -110,7 +110,7 @@ fullstack-starter/
 │   ├── web/                           # Web components & pages
 │   └── mobile/                        # Mobile widgets & screens
 │
-├── studio/                            # Starter Studio platform
+├── studio/                            # Xitolaunch platform
 │   ├── web/                           # Studio website
 │   │   ├── src/
 │   │   │   ├── app/
@@ -154,7 +154,7 @@ fullstack-starter/
 │   └── helpdesk/                      # Customer Support
 │
 ├── docs/                              # Documentation
-│   ├── STARTER_STUDIO.md              # This file
+│   ├── XITOLAUNCH.md                  # This file
 │   ├── FEATURE_REGISTRY.md            # Feature definitions
 │   ├── PRICING_STRUCTURE.md           # Pricing details
 │   └── API.md                         # API documentation
@@ -252,38 +252,38 @@ fullstack-starter/
 
 ### Individual Add-ons (À La Carte)
 
-| Category | Add-on | Price | Requires |
-|----------|--------|-------|----------|
-| **AUTH** | Social Login (Google, GitHub, Facebook) | $29 | Starter+ |
-| **AUTH** | Two-Factor Authentication | $39 | Starter+ |
-| **AUTH** | Magic Link / Passwordless | $29 | Starter+ |
-| **AUTH** | SSO (SAML/OIDC) | $99 | Pro+ |
-| **SECURITY** | Advanced Rate Limiting | $29 | Starter+ |
-| **SECURITY** | IP Blocking & Geofencing | $39 | Pro+ |
-| **SECURITY** | Audit Logging | $29 | Starter+ |
-| **PAYMENTS** | One-Time Payments (Stripe) | $49 | Starter+ |
-| **PAYMENTS** | Subscriptions & Billing | $79 | Starter+ |
-| **PAYMENTS** | Usage-Based Billing | $49 | Pro+ |
-| **PAYMENTS** | Multi-Currency | $29 | Pro+ |
-| **STORAGE** | File Uploads (S3/R2) | $39 | Basic+ |
-| **STORAGE** | Image Processing | $29 | Basic+ |
-| **STORAGE** | Document Generation (PDF) | $39 | Basic+ |
-| **COMMS** | Transactional Email | $29 | Basic+ |
-| **COMMS** | Email Templates | $19 | Basic+ |
-| **COMMS** | Push Notifications | $39 | Starter+ |
-| **COMMS** | Real-time (WebSockets) | $49 | Starter+ |
-| **COMMS** | SMS Notifications | $39 | Pro+ |
-| **UI** | Dashboard Layout | $29 | Basic+ |
-| **UI** | Admin Panel | $49 | Starter+ |
-| **UI** | Landing Page Templates | $39 | Basic+ |
-| **UI** | Email Templates (HTML) | $29 | Basic+ |
-| **ANALYTICS** | Basic Charts & Stats | $29 | Basic+ |
-| **ANALYTICS** | Advanced Analytics Dashboard | $49 | Pro+ |
-| **ANALYTICS** | Export (CSV/Excel) | $19 | Basic+ |
-| **ANALYTICS** | Report Generation (PDF) | $39 | Pro+ |
-| **MOBILE** | Flutter Mobile App | $99 | Starter+ |
-| **MOBILE** | Push Notifications (Mobile) | $39 | Mobile |
-| **MOBILE** | Offline Support | $49 | Mobile |
+| Category      | Add-on                                  | Price | Requires |
+| ------------- | --------------------------------------- | ----- | -------- |
+| **AUTH**      | Social Login (Google, GitHub, Facebook) | $29   | Starter+ |
+| **AUTH**      | Two-Factor Authentication               | $39   | Starter+ |
+| **AUTH**      | Magic Link / Passwordless               | $29   | Starter+ |
+| **AUTH**      | SSO (SAML/OIDC)                         | $99   | Pro+     |
+| **SECURITY**  | Advanced Rate Limiting                  | $29   | Starter+ |
+| **SECURITY**  | IP Blocking & Geofencing                | $39   | Pro+     |
+| **SECURITY**  | Audit Logging                           | $29   | Starter+ |
+| **PAYMENTS**  | One-Time Payments (Stripe)              | $49   | Starter+ |
+| **PAYMENTS**  | Subscriptions & Billing                 | $79   | Starter+ |
+| **PAYMENTS**  | Usage-Based Billing                     | $49   | Pro+     |
+| **PAYMENTS**  | Multi-Currency                          | $29   | Pro+     |
+| **STORAGE**   | File Uploads (S3/R2)                    | $39   | Basic+   |
+| **STORAGE**   | Image Processing                        | $29   | Basic+   |
+| **STORAGE**   | Document Generation (PDF)               | $39   | Basic+   |
+| **COMMS**     | Transactional Email                     | $29   | Basic+   |
+| **COMMS**     | Email Templates                         | $19   | Basic+   |
+| **COMMS**     | Push Notifications                      | $39   | Starter+ |
+| **COMMS**     | Real-time (WebSockets)                  | $49   | Starter+ |
+| **COMMS**     | SMS Notifications                       | $39   | Pro+     |
+| **UI**        | Dashboard Layout                        | $29   | Basic+   |
+| **UI**        | Admin Panel                             | $49   | Starter+ |
+| **UI**        | Landing Page Templates                  | $39   | Basic+   |
+| **UI**        | Email Templates (HTML)                  | $29   | Basic+   |
+| **ANALYTICS** | Basic Charts & Stats                    | $29   | Basic+   |
+| **ANALYTICS** | Advanced Analytics Dashboard            | $49   | Pro+     |
+| **ANALYTICS** | Export (CSV/Excel)                      | $19   | Basic+   |
+| **ANALYTICS** | Report Generation (PDF)                 | $39   | Pro+     |
+| **MOBILE**    | Flutter Mobile App                      | $99   | Starter+ |
+| **MOBILE**    | Push Notifications (Mobile)             | $39   | Mobile   |
+| **MOBILE**    | Offline Support                         | $49   | Mobile   |
 
 ### Pricing Calculator Example
 
@@ -349,9 +349,10 @@ fullstack-starter/
 ### Company Admin Panel Features
 
 #### 1. Dashboard Overview
+
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│  STARTER STUDIO - ADMIN DASHBOARD                                    │
+│  XITOLAUNCH - ADMIN DASHBOARD                                        │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                      │
 │  📊 TODAY'S STATS                                                    │
@@ -382,6 +383,7 @@ fullstack-starter/
 ```
 
 #### 2. Order Management
+
 - View all orders with filters (date, status, tier, template)
 - Order details (features selected, payment info)
 - Refund management
@@ -389,6 +391,7 @@ fullstack-starter/
 - License management
 
 #### 3. Template Management
+
 - Create/Edit/Delete templates
 - Set template pricing
 - Configure included features
@@ -397,6 +400,7 @@ fullstack-starter/
 - Analytics per template
 
 #### 4. Preview Analytics
+
 - Track preview sessions
 - Feature selection patterns
 - Conversion rates (preview → purchase)
@@ -404,12 +408,14 @@ fullstack-starter/
 - A/B testing data
 
 #### 5. User Management
+
 - Customer list
 - Purchase history per user
 - Account status
 - Support tickets
 
 #### 6. Coupon & Discounts
+
 - Create discount codes
 - Percentage or fixed discounts
 - Usage limits
@@ -417,6 +423,7 @@ fullstack-starter/
 - Tier-specific discounts
 
 #### 7. Reports
+
 - Revenue reports
 - Sales by tier/template
 - Feature popularity
@@ -429,16 +436,16 @@ fullstack-starter/
 
 ### Available Templates
 
-| Template | Description | Price | Tier Equivalent |
-|----------|-------------|-------|-----------------|
-| **LMS** | Learning Management System | $299 | Business + Courses module |
-| **Booking** | Appointment Booking | $249 | Pro + Booking module |
-| **Events** | Event Management & Ticketing | $199 | Pro + Events module |
-| **Invoicing** | Invoice & Client Management | $179 | Pro + Invoicing module |
-| **Tasks** | Project & Task Management | $199 | Pro + Tasks module |
-| **Helpdesk** | Customer Support System | $249 | Business + Tickets module |
-| **CRM** | Customer Relationship Mgmt | $349 | Business + CRM module |
-| **Marketplace** | Multi-vendor Marketplace | $449 | Enterprise + Marketplace |
+| Template        | Description                  | Price | Tier Equivalent           |
+| --------------- | ---------------------------- | ----- | ------------------------- |
+| **LMS**         | Learning Management System   | $299  | Business + Courses module |
+| **Booking**     | Appointment Booking          | $249  | Pro + Booking module      |
+| **Events**      | Event Management & Ticketing | $199  | Pro + Events module       |
+| **Invoicing**   | Invoice & Client Management  | $179  | Pro + Invoicing module    |
+| **Tasks**       | Project & Task Management    | $199  | Pro + Tasks module        |
+| **Helpdesk**    | Customer Support System      | $249  | Business + Tickets module |
+| **CRM**         | Customer Relationship Mgmt   | $349  | Business + CRM module     |
+| **Marketplace** | Multi-vendor Marketplace     | $449  | Enterprise + Marketplace  |
 
 ### Template: LMS (Learning Management System)
 
@@ -498,90 +505,111 @@ export interface Feature {
   description: string;
   category: FeatureCategory;
   price: number;
-  tier?: Tier;                    // Minimum tier required
-  requires?: string[];            // Dependency feature IDs
-  conflicts?: string[];           // Conflicting feature IDs
-  files: FileMapping[];           // Files to include
-  dependencies: PackageDep[];     // npm/pub packages
-  schemas?: SchemaMapping[];      // Prisma schema additions
-  envVars?: EnvVar[];            // Required environment variables
+  tier?: Tier; // Minimum tier required
+  requires?: string[]; // Dependency feature IDs
+  conflicts?: string[]; // Conflicting feature IDs
+  files: FileMapping[]; // Files to include
+  dependencies: PackageDep[]; // npm/pub packages
+  schemas?: SchemaMapping[]; // Prisma schema additions
+  envVars?: EnvVar[]; // Required environment variables
 }
 
 export interface FileMapping {
-  source: string;                 // Source path in core
-  destination: string;            // Destination in generated project
-  transform?: TransformFn;        // Optional transformation
+  source: string; // Source path in core
+  destination: string; // Destination in generated project
+  transform?: TransformFn; // Optional transformation
 }
 
 export const featureRegistry: Record<string, Feature> = {
   // BASIC TIER (Free)
-  'core.setup': {
-    id: 'core.setup',
-    name: 'Project Setup',
-    description: 'TypeScript, ESLint, Prettier configuration',
-    category: 'core',
+  "core.setup": {
+    id: "core.setup",
+    name: "Project Setup",
+    description: "TypeScript, ESLint, Prettier configuration",
+    category: "core",
     price: 0,
-    tier: 'basic',
+    tier: "basic",
     files: [
-      { source: 'core/backend/tsconfig.json', destination: 'backend/tsconfig.json' },
-      { source: 'core/backend/.eslintrc.js', destination: 'backend/.eslintrc.js' },
+      {
+        source: "core/backend/tsconfig.json",
+        destination: "backend/tsconfig.json",
+      },
+      {
+        source: "core/backend/.eslintrc.js",
+        destination: "backend/.eslintrc.js",
+      },
       // ...
     ],
     dependencies: [
-      { name: 'typescript', version: '^5.0.0', dev: true },
-      { name: 'eslint', version: '^9.0.0', dev: true },
+      { name: "typescript", version: "^5.0.0", dev: true },
+      { name: "eslint", version: "^9.0.0", dev: true },
     ],
   },
 
-  'core.crud': {
-    id: 'core.crud',
-    name: 'Basic CRUD Operations',
-    description: 'Create, Read, Update, Delete API structure',
-    category: 'core',
+  "core.crud": {
+    id: "core.crud",
+    name: "Basic CRUD Operations",
+    description: "Create, Read, Update, Delete API structure",
+    category: "core",
     price: 0,
-    tier: 'basic',
-    requires: ['core.setup'],
+    tier: "basic",
+    requires: ["core.setup"],
     files: [
-      { source: 'core/backend/src/utils/response.ts', destination: 'backend/src/utils/response.ts' },
-      { source: 'core/backend/src/utils/errors.ts', destination: 'backend/src/utils/errors.ts' },
+      {
+        source: "core/backend/src/utils/response.ts",
+        destination: "backend/src/utils/response.ts",
+      },
+      {
+        source: "core/backend/src/utils/errors.ts",
+        destination: "backend/src/utils/errors.ts",
+      },
     ],
   },
 
   // STARTER TIER ($49)
-  'auth.basic': {
-    id: 'auth.basic',
-    name: 'Basic Authentication',
-    description: 'Email/Password login with JWT sessions',
-    category: 'auth',
+  "auth.basic": {
+    id: "auth.basic",
+    name: "Basic Authentication",
+    description: "Email/Password login with JWT sessions",
+    category: "auth",
     price: 49,
-    tier: 'starter',
-    requires: ['core.setup', 'core.crud'],
+    tier: "starter",
+    requires: ["core.setup", "core.crud"],
     files: [
-      { source: 'core/backend/src/middleware/auth.middleware.ts', destination: '...' },
-      { source: 'core/backend/src/routes/auth.routes.ts', destination: '...' },
-      { source: 'core/backend/src/services/auth.service.ts', destination: '...' },
-      { source: 'core/web/src/app/(auth)/**/*', destination: '...' },
+      {
+        source: "core/backend/src/middleware/auth.middleware.ts",
+        destination: "...",
+      },
+      { source: "core/backend/src/routes/auth.routes.ts", destination: "..." },
+      {
+        source: "core/backend/src/services/auth.service.ts",
+        destination: "...",
+      },
+      { source: "core/web/src/app/(auth)/**/*", destination: "..." },
     ],
     schemas: [
-      { model: 'User', source: 'core/backend/prisma/models/user.prisma' },
-      { model: 'Session', source: 'core/backend/prisma/models/session.prisma' },
+      { model: "User", source: "core/backend/prisma/models/user.prisma" },
+      { model: "Session", source: "core/backend/prisma/models/session.prisma" },
     ],
     envVars: [
-      { key: 'JWT_SECRET', description: 'JWT signing secret', required: true },
-      { key: 'JWT_EXPIRES_IN', description: 'Token expiration', default: '7d' },
+      { key: "JWT_SECRET", description: "JWT signing secret", required: true },
+      { key: "JWT_EXPIRES_IN", description: "Token expiration", default: "7d" },
     ],
   },
 
-  'security.csrf': {
-    id: 'security.csrf',
-    name: 'CSRF Protection',
-    description: 'Cross-Site Request Forgery protection',
-    category: 'security',
+  "security.csrf": {
+    id: "security.csrf",
+    name: "CSRF Protection",
+    description: "Cross-Site Request Forgery protection",
+    category: "security",
     price: 0, // Included with auth
-    tier: 'starter',
-    requires: ['auth.basic'],
+    tier: "starter",
+    requires: ["auth.basic"],
     files: [
-      { source: 'core/backend/src/middleware/csrf.middleware.ts', destination: '...' },
+      {
+        source: "core/backend/src/middleware/csrf.middleware.ts",
+        destination: "...",
+      },
     ],
   },
 
@@ -660,7 +688,7 @@ export interface GeneratorConfig {
   features: string[];
   templateId?: string;
   projectName: string;
-  outputFormat: 'zip' | 'github';
+  outputFormat: "zip" | "github";
 }
 
 export class ProjectGenerator {
@@ -687,7 +715,9 @@ export class ProjectGenerator {
     return project;
   }
 
-  private async copyFeatureFiles(project: GeneratedProject): Promise<GeneratedProject> {
+  private async copyFeatureFiles(
+    project: GeneratedProject,
+  ): Promise<GeneratedProject> {
     for (const featureId of project.features) {
       const feature = featureRegistry[featureId];
 
@@ -699,19 +729,21 @@ export class ProjectGenerator {
     return project;
   }
 
-  private async generatePrismaSchema(project: GeneratedProject): Promise<GeneratedProject> {
+  private async generatePrismaSchema(
+    project: GeneratedProject,
+  ): Promise<GeneratedProject> {
     let schema = BASE_PRISMA_SCHEMA;
 
     for (const featureId of project.features) {
       const feature = featureRegistry[featureId];
 
       for (const schemaMapping of feature.schemas || []) {
-        const modelSchema = await fs.readFile(schemaMapping.source, 'utf-8');
-        schema += '\n' + modelSchema;
+        const modelSchema = await fs.readFile(schemaMapping.source, "utf-8");
+        schema += "\n" + modelSchema;
       }
     }
 
-    await project.writeFile('prisma/schema.prisma', schema);
+    await project.writeFile("prisma/schema.prisma", schema);
     return project;
   }
 
@@ -1030,33 +1062,33 @@ export class ProjectGenerator {
 
 ### MVP Success Criteria
 
-| Metric | Target |
-|--------|--------|
-| Showcase load time | < 2 seconds |
-| Configuration to preview | < 30 seconds |
-| Preview load time | < 3 seconds |
-| Feature combinations tested | > 50 |
-| Zero critical bugs | ✓ |
+| Metric                      | Target       |
+| --------------------------- | ------------ |
+| Showcase load time          | < 2 seconds  |
+| Configuration to preview    | < 30 seconds |
+| Preview load time           | < 3 seconds  |
+| Feature combinations tested | > 50         |
+| Zero critical bugs          | ✓            |
 
 ### Pilot Release Success Criteria
 
-| Metric | Target |
-|--------|--------|
-| Successful purchases | > 10 |
-| Generated projects working | 100% |
-| Payment success rate | > 95% |
-| Customer satisfaction | > 4/5 |
-| Support tickets | < 5% of orders |
+| Metric                     | Target         |
+| -------------------------- | -------------- |
+| Successful purchases       | > 10           |
+| Generated projects working | 100%           |
+| Payment success rate       | > 95%          |
+| Customer satisfaction      | > 4/5          |
+| Support tickets            | < 5% of orders |
 
 ### Initial Release Success Criteria
 
-| Metric | Target |
-|--------|--------|
-| Monthly revenue | > $5,000 |
-| Conversion rate | > 3% |
-| Customer retention | > 20% |
-| Template downloads | > 100/month |
-| Preview to purchase | > 5% |
+| Metric              | Target      |
+| ------------------- | ----------- |
+| Monthly revenue     | > $5,000    |
+| Conversion rate     | > 3%        |
+| Customer retention  | > 20%       |
+| Template downloads  | > 100/month |
+| Preview to purchase | > 5%        |
 
 ---
 
@@ -1064,16 +1096,16 @@ export class ProjectGenerator {
 
 ### A. Technology Stack
 
-| Layer | Technology |
-|-------|------------|
+| Layer    | Technology                         |
+| -------- | ---------------------------------- |
 | Frontend | Next.js 15, React 19, Tailwind CSS |
-| Backend | Express, TypeScript, Prisma |
-| Database | PostgreSQL |
-| Payments | Stripe |
-| Email | Resend |
-| Storage | Cloudflare R2 / AWS S3 |
-| Hosting | Vercel (web), Railway (API) |
-| Mobile | Flutter, Dart, Riverpod |
+| Backend  | Express, TypeScript, Prisma        |
+| Database | PostgreSQL                         |
+| Payments | Stripe                             |
+| Email    | Resend                             |
+| Storage  | Cloudflare R2 / AWS S3             |
+| Hosting  | Vercel (web), Railway (API)        |
+| Mobile   | Flutter, Dart, Riverpod            |
 
 ### B. Environment Variables
 
@@ -1158,6 +1190,6 @@ model Analytics {
 
 ---
 
-*Document Version: 1.0.0*
-*Last Updated: 2026-02-08*
-*Status: Ready for Implementation*
+_Document Version: 1.0.0_
+_Last Updated: 2026-02-08_
+_Status: Ready for Implementation_

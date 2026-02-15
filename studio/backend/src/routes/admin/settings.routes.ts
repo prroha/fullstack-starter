@@ -48,7 +48,7 @@ router.post("/email/test", async (req, res, next) => {
     const result = await emailService.sendWelcome({
       email,
       name: "Test User",
-      loginUrl: "https://starterstudio.com",
+      loginUrl: "https://xitolaunch.com",
     });
 
     if (!result.success) {

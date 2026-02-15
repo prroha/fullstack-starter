@@ -195,6 +195,67 @@
   transition-timing-function: ease-out !important;
 }
 
+/*
+ * Component Preview Theme Scoping
+ * ================================
+ * Allows the ComponentPreview wrapper to independently set light/dark
+ * themes regardless of the page-level theme.  Works by re-declaring the
+ * full CSS-variable palette on [data-theme] containers.
+ */
+[data-theme="light"] {
+  color-scheme: light;
+  --background: oklch(0.975 0.002 240);
+  --foreground: oklch(0.22 0.025 280);
+  --card: oklch(0.995 0.003 80);
+  --card-foreground: oklch(0.22 0.025 280);
+  --popover: oklch(0.995 0.003 80);
+  --popover-foreground: oklch(0.22 0.025 280);
+  --primary: oklch(0.35 0.08 240);
+  --primary-foreground: oklch(0.975 0.002 240);
+  --secondary: oklch(0.935 0.012 140);
+  --secondary-foreground: oklch(0.30 0.03 140);
+  --muted: oklch(0.92 0.008 250);
+  --muted-foreground: oklch(0.45 0.015 250);
+  --accent: oklch(0.52 0.09 195);
+  --accent-foreground: oklch(0.98 0.005 195);
+  --destructive: oklch(0.62 0.14 35);
+  --destructive-foreground: oklch(0.98 0.005 35);
+  --success: oklch(59.6% 0.145 163.225);
+  --success-foreground: oklch(98.5% 0 0);
+  --warning: oklch(79.5% 0.184 86.047);
+  --warning-foreground: oklch(14.5% 0 0);
+  --border: oklch(0.91 0.005 250);
+  --input: oklch(0.91 0.005 250);
+  --ring: oklch(0.35 0.08 240 / 0.5);
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --background: oklch(0.16 0.015 250);
+  --foreground: oklch(0.92 0.008 80);
+  --card: oklch(0.20 0.015 250);
+  --card-foreground: oklch(0.92 0.008 80);
+  --popover: oklch(0.20 0.015 250);
+  --popover-foreground: oklch(0.92 0.008 80);
+  --primary: oklch(0.58 0.10 220);
+  --primary-foreground: oklch(0.16 0.015 250);
+  --secondary: oklch(0.28 0.02 140);
+  --secondary-foreground: oklch(0.88 0.012 140);
+  --muted: oklch(0.28 0.015 250);
+  --muted-foreground: oklch(0.65 0.01 80);
+  --accent: oklch(0.58 0.10 195);
+  --accent-foreground: oklch(0.16 0.015 250);
+  --destructive: oklch(0.65 0.15 35);
+  --destructive-foreground: oklch(0.16 0.015 250);
+  --success: oklch(59.6% 0.145 163.225);
+  --success-foreground: oklch(98.5% 0 0);
+  --warning: oklch(79.5% 0.184 86.047);
+  --warning-foreground: oklch(14.5% 0 0);
+  --border: oklch(0.30 0.015 250);
+  --input: oklch(0.30 0.015 250);
+  --ring: oklch(0.58 0.10 220 / 0.5);
+}
+
 /* Reduced motion preference */
 @media (prefers-reduced-motion: reduce) {
   *,

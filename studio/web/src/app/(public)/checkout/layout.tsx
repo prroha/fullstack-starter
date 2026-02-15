@@ -1,7 +1,7 @@
 import { ConfiguratorProvider } from "@/components/configurator";
 
 export const metadata = {
-  title: "Checkout - Starter Studio",
+  title: "Checkout - Xitolaunch",
   description: "Complete your order and get instant access to your custom starter kit",
 };
 

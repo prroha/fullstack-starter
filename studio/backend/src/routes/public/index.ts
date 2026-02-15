@@ -12,7 +12,7 @@ const router = Router();
 // API info endpoint
 router.get("/", (_req, res) => {
   res.json({
-    name: "Starter Studio API",
+    name: "Xitolaunch API",
     version: "1.0.0",
     endpoints: {
       features: "/api/features",

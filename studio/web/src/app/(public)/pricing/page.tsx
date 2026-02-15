@@ -20,11 +20,11 @@ import type { PricingTier } from "@studio/shared";
 import { TIER_ORDER, TIER_INFO, formatDisplayPrice } from "@/lib/pricing";
 
 export const metadata: Metadata = {
-  title: "Pricing - Starter Studio",
+  title: "Pricing - Xitolaunch",
   description:
     "Choose the right plan for your project. From basic templates to enterprise solutions, we have pricing options for developers of all sizes.",
   openGraph: {
-    title: "Pricing | Starter Studio",
+    title: "Pricing | Xitolaunch",
     description:
       "Flexible pricing for your next SaaS project. Start free, scale as you grow.",
   },

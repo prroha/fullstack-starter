@@ -63,7 +63,7 @@ function ShowcasePageContent() {
       </div>
 
       {/* Category Navigation */}
-      <div className="mb-8">
+      <div className="sticky top-16 z-10 bg-background pt-4 pb-4 -mt-4">
         <CategoryNav />
       </div>
 

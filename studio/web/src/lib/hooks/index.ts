@@ -19,3 +19,4 @@
 // =====================================================
 
 export * from "@core/lib/hooks";
+export { useNavigationProgress } from "./use-navigation-progress";

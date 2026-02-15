@@ -23,6 +23,8 @@ import {
 } from "lucide-react";
 import { Toaster } from "sonner";
 import { cn } from "@/lib/utils";
+import { NavigationProgress } from "@/components/ui";
+import { useNavigationProgress } from "@/lib/hooks";
 import { AuthProvider, useAuth } from "@/contexts/auth-context";
 
 const navItems = [
@@ -99,6 +101,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { user, logout, isAuthenticated } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { navigating, progress, handleLinkClick } = useNavigationProgress();
 
   // If on login page, render children without the layout
   const isLoginPage = pathname === "/login";
@@ -166,7 +169,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:bg-accent hover:text-foreground"
                 )}
-                onClick={() => setSidebarOpen(false)}
+                onClick={() => { handleLinkClick(item.href); setSidebarOpen(false); }}
                 aria-current={isActive(item.href) ? "page" : undefined}
               >
                 <Icon className="h-5 w-5" aria-hidden="true" />
@@ -186,6 +189,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
           </button>
           <Link
             href="/"
+            onClick={() => handleLinkClick("/")}
             className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground px-2 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded-md"
           >
             <ChevronLeft className="h-4 w-4" aria-hidden="true" />
@@ -197,7 +201,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
       {/* Main content */}
       <div className="md:pl-64">
         {/* Header */}
-        <header className="sticky top-0 z-30 bg-background border-b h-16 flex items-center px-4 gap-4" role="banner">
+        <header className="sticky top-0 z-30 bg-background border-b h-16 flex items-center px-4 gap-4 relative" role="banner">
           <button
             className="md:hidden p-2 hover:bg-accent rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
             onClick={() => setSidebarOpen(true)}
@@ -216,6 +220,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
               {user?.name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || "A"}
             </div>
           </div>
+          <NavigationProgress navigating={navigating} progress={progress} />
         </header>
 
         {/* Page content */}

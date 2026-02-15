@@ -9,17 +9,6 @@ const footerLinks = {
     { href: "/templates", label: "Templates" },
     { href: "/pricing", label: "Pricing" },
   ],
-  resources: [
-    { href: "/docs", label: "Documentation" },
-    { href: "/changelog", label: "Changelog" },
-    { href: "/examples", label: "Examples" },
-    { href: "/blog", label: "Blog" },
-  ],
-  legal: [
-    { href: "/privacy", label: "Privacy Policy" },
-    { href: "/terms", label: "Terms of Service" },
-    { href: "/license", label: "License" },
-  ],
 };
 
 export function PublicFooter() {
@@ -28,14 +17,14 @@ export function PublicFooter() {
   return (
     <footer className="border-t bg-muted/30" role="contentinfo">
       <Container>
-        <div className="py-12 grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+        <div className="py-12 grid gap-8 md:grid-cols-2">
           {/* Brand */}
-          <div className="lg:col-span-1">
+          <div>
             <Link href="/" className="flex items-center gap-2 mb-4">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
                 <Layers className="h-5 w-5 text-primary-foreground" aria-hidden="true" />
               </div>
-              <span className="font-bold text-lg">Starter Studio</span>
+              <span className="font-bold text-lg">Xitolaunch</span>
             </Link>
             <p className="text-sm text-muted-foreground mb-4">
               Build production-ready fullstack applications with configurable features and live preview.
@@ -79,45 +68,12 @@ export function PublicFooter() {
             </ul>
           </nav>
 
-          {/* Resources Links */}
-          <nav aria-labelledby="footer-resources-heading">
-            <h3 id="footer-resources-heading" className="font-semibold mb-4">Resources</h3>
-            <ul className="space-y-2">
-              {footerLinks.resources.map((link) => (
-                <li key={link.href}>
-                  <Link
-                    href={link.href}
-                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
-
-          {/* Legal Links */}
-          <nav aria-labelledby="footer-legal-heading">
-            <h3 id="footer-legal-heading" className="font-semibold mb-4">Legal</h3>
-            <ul className="space-y-2">
-              {footerLinks.legal.map((link) => (
-                <li key={link.href}>
-                  <Link
-                    href={link.href}
-                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
         </div>
 
         {/* Bottom Bar */}
         <div className="border-t py-6 flex items-center justify-center">
           <p className="text-sm text-muted-foreground">
-            &copy; {currentYear} Starter Studio. All rights reserved.
+            &copy; {currentYear} Xitolaunch. All rights reserved.
           </p>
         </div>
       </Container>

@@ -1772,23 +1772,23 @@ export function getCategories(): ComponentCategory[] {
 export function getCategoryInfo(category: ComponentCategory) {
   const info = {
     atoms: {
-      name: "Atoms",
-      description: "Basic building blocks - single HTML elements with styling",
+      name: "Basics",
+      description: "Core building blocks — buttons, inputs, badges, and other foundational elements",
       icon: "Atom" as IconName,
     },
     molecules: {
-      name: "Molecules",
-      description: "Combinations of atoms forming functional units",
+      name: "Composites",
+      description: "Functional combinations — avatars, search fields, confirm buttons, and more",
       icon: "Component" as IconName,
     },
     organisms: {
-      name: "Organisms",
-      description: "Complex UI patterns with multiple molecules",
+      name: "Patterns",
+      description: "Interactive UI patterns — dialogs, tabs, accordions, steppers, and data tables",
       icon: "Boxes" as IconName,
     },
     layouts: {
       name: "Layouts",
-      description: "Page structure and composition components",
+      description: "Page structure — containers, grids, dashboards, and split panels",
       icon: "LayoutTemplate" as IconName,
     },
   };

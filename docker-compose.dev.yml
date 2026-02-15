@@ -150,7 +150,7 @@ services:
     environment:
       NODE_ENV: development
       NEXT_PUBLIC_API_URL: http://localhost:3003/api
-      NEXT_PUBLIC_APP_NAME: Starter Studio
+      NEXT_PUBLIC_APP_NAME: Xitolaunch
       NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY:-pk_test_...}
       WATCHPACK_POLLING: "true"
     volumes:

@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   description:
     "Preview your configured SaaS application in real-time. Test responsive layouts across desktop, tablet, and mobile devices. See your features in action before you download.",
   openGraph: {
-    title: "Live Preview | Starter Studio",
+    title: "Live Preview | Xitolaunch",
     description:
       "See your configured application working before you buy. Preview responsive layouts and test all selected features in action.",
   },

@@ -1,7 +1,7 @@
 "use client";
 
 import { use } from "react";
-import { notFound } from "next/navigation";
+import { notFound, useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 import {
@@ -27,6 +27,7 @@ import {
   getComponentExamples,
   getCategoryInfo,
   getTierInfo,
+  getComponentPreview,
   type ComponentCategory,
 } from "@/lib/showcase";
 
@@ -36,9 +37,11 @@ interface ComponentDetailPageProps {
 
 export default function ComponentDetailPage({ params }: ComponentDetailPageProps) {
   const { category, slug } = use(params);
+  const router = useRouter();
 
   const component = getComponentBySlug(slug);
   const examples = getComponentExamples(slug);
+  const preview = getComponentPreview(slug);
 
   if (!component || component.category !== category) {
     notFound();
@@ -64,11 +67,9 @@ export default function ComponentDetailPage({ params }: ComponentDetailPageProps
 
       {/* Back Button */}
       <div className="mb-6">
-        <Button asChild variant="ghost" size="sm">
-          <Link href={`/showcase/${category}`}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to {categoryInfo.name}
-          </Link>
+        <Button variant="ghost" size="sm" onClick={() => router.back()}>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to {categoryInfo.name}
         </Button>
       </div>
 
@@ -145,10 +146,12 @@ export default function ComponentDetailPage({ params }: ComponentDetailPageProps
                       {examples.basic.description}
                     </p>
                   )}
-                  <ComponentPreview>
-                    <div className="text-center text-muted-foreground">
-                      Live preview coming soon
-                    </div>
+                  <ComponentPreview label={`${component.name} Preview`}>
+                    {preview || (
+                      <div className="text-center text-muted-foreground">
+                        Live preview coming soon
+                      </div>
+                    )}
                   </ComponentPreview>
                   <div className="mt-4">
                     <CodeBlock

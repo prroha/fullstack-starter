@@ -65,6 +65,10 @@ export function FeatureFlagProvider({
       hasTier: (tierSlug: string) => {
         const currentIndex = TIER_ORDER.indexOf(tier);
         const requiredIndex = TIER_ORDER.indexOf(tierSlug);
+        // If either tier is unknown, fall back to exact match
+        if (currentIndex === -1 || requiredIndex === -1) {
+          return tier === tierSlug;
+        }
         return currentIndex >= requiredIndex;
       },
 

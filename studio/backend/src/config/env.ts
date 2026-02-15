@@ -28,7 +28,7 @@ const envSchema = z.object({
 
   // Email
   RESEND_API_KEY: z.string().optional(),
-  EMAIL_FROM: z.string().default("noreply@starterstudio.com"),
+  EMAIL_FROM: z.string().default("noreply@xitolaunch.com"),
 
   // Storage
   S3_ENDPOINT: z.string().optional(),

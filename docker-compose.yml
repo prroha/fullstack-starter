@@ -124,7 +124,7 @@ services:
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
-      EMAIL_FROM: ${EMAIL_FROM:-noreply@starterstudio.com}
+      EMAIL_FROM: ${EMAIL_FROM:-noreply@xitolaunch.com}
     ports:
       - "${STUDIO_BACKEND_PORT:-3003}:3003"
     networks:
@@ -162,7 +162,7 @@ services:
     environment:
       NODE_ENV: production
       NEXT_PUBLIC_API_URL: ${STUDIO_API_URL:-http://localhost:3003/api}
-      NEXT_PUBLIC_APP_NAME: ${STUDIO_APP_NAME:-Starter Studio}
+      NEXT_PUBLIC_APP_NAME: ${STUDIO_APP_NAME:-Xitolaunch}
       NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY:-}
     ports:
       - "${STUDIO_WEB_PORT:-3002}:3002"

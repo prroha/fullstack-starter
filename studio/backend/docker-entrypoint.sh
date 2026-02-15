@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-echo "Starting Starter Studio Backend..."
+echo "Starting Xitolaunch Backend..."
 
 # Run database migrations
 echo "Running database migrations..."

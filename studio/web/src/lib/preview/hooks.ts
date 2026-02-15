@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
+import { API_CONFIG } from "@/lib/constants";
 
 // ============================================================================
 // Device Types
@@ -102,7 +103,6 @@ interface PreviewSession {
   tier: string;
   features: string[];
   startedAt: Date;
-  duration: number;
   expiresAt?: Date;
 }
 
@@ -115,15 +115,19 @@ interface UsePreviewSessionReturn {
   loadSessionFromToken: (token: string) => Promise<PreviewSession | null>;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
-
 export function usePreviewSession(): UsePreviewSessionReturn {
   const [session, setSession] = useState<PreviewSession | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Use a ref to track the session token for cleanup, avoiding stale closures
+  const sessionTokenRef = useRef<string | undefined>();
+  useEffect(() => {
+    sessionTokenRef.current = session?.sessionToken;
+  }, [session?.sessionToken]);
+
   const startSession = useCallback(async (tier: string, features: string[], templateSlug?: string) => {
-    const id = `preview_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const id = `preview_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 
     // Create local session immediately for responsive UI
     const localSession: PreviewSession = {
@@ -131,7 +135,6 @@ export function usePreviewSession(): UsePreviewSessionReturn {
       tier,
       features,
       startedAt: new Date(),
-      duration: 0,
     };
 
     setSession(localSession);
@@ -139,42 +142,38 @@ export function usePreviewSession(): UsePreviewSessionReturn {
 
     // Optionally create backend session for persistence/sharing
     // This is non-blocking - the preview works without backend
-    if (features.length > 0) {
-      try {
-        const response = await fetch(`${API_BASE_URL}/preview/sessions`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            selectedFeatures: features,
-            tier,
-            templateSlug,
-          }),
-        });
+    try {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/preview/sessions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          selectedFeatures: features,
+          tier,
+          templateSlug,
+        }),
+      });
 
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success && data.data) {
-            setSession((prev) => prev ? {
-              ...prev,
-              sessionToken: data.data.sessionToken,
-              expiresAt: new Date(data.data.expiresAt),
-            } : prev);
-          }
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data) {
+          setSession((prev) => prev ? {
+            ...prev,
+            sessionToken: data.data.sessionToken,
+            expiresAt: new Date(data.data.expiresAt),
+          } : prev);
         }
-      } catch {
-        // Backend session creation is optional - continue without it
-        console.debug("Backend session creation skipped - preview works offline");
       }
+    } catch {
+      // Backend session creation is optional - continue without it
     }
   }, []);
 
   const endSession = useCallback(async () => {
-    if (session?.sessionToken) {
-      // Optionally delete backend session
+    // Use ref to get latest token without depending on session state
+    const token = sessionTokenRef.current;
+    if (token) {
       try {
-        await fetch(`${API_BASE_URL}/preview/sessions/${session.sessionToken}`, {
+        await fetch(`${API_CONFIG.BASE_URL}/preview/sessions/${token}`, {
           method: "DELETE",
         });
       } catch {
@@ -183,7 +182,7 @@ export function usePreviewSession(): UsePreviewSessionReturn {
     }
     setSession(null);
     setError(null);
-  }, [session]);
+  }, []);
 
   // Load session configuration from a token (for shared preview links)
   const loadSessionFromToken = useCallback(async (token: string): Promise<PreviewSession | null> => {
@@ -191,15 +190,21 @@ export function usePreviewSession(): UsePreviewSessionReturn {
     setError(null);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/preview/sessions/${token}`);
-      const data = await response.json();
+      const response = await fetch(`${API_CONFIG.BASE_URL}/preview/sessions/${token}`);
 
       if (!response.ok) {
-        const errorMessage = data.error || "Failed to load preview session";
+        const data = await response.json().catch(() => null);
+        const errorMessage =
+          response.status === 410
+            ? "This preview session has expired"
+            : response.status === 404
+              ? "Preview session not found"
+              : (data?.error || "Failed to load preview session");
         setError(errorMessage);
         return null;
       }
 
+      const data = await response.json();
       if (data.success && data.data) {
         const loadedSession: PreviewSession = {
           id: `preview_${Date.now()}`,
@@ -207,7 +212,6 @@ export function usePreviewSession(): UsePreviewSessionReturn {
           tier: data.data.tier,
           features: data.data.selectedFeatures,
           startedAt: new Date(),
-          duration: 0,
           expiresAt: new Date(data.data.expiresAt),
         };
         setSession(loadedSession);
@@ -223,23 +227,6 @@ export function usePreviewSession(): UsePreviewSessionReturn {
       setIsLoading(false);
     }
   }, []);
-
-  // Update duration every minute
-  useEffect(() => {
-    if (!session) return;
-
-    const interval = setInterval(() => {
-      setSession((prev) => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          duration: Date.now() - prev.startedAt.getTime(),
-        };
-      });
-    }, 60000);
-
-    return () => clearInterval(interval);
-  }, [session]);
 
   return {
     session,

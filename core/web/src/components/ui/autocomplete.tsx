@@ -49,6 +49,8 @@ interface AutocompleteProps {
   id?: string;
   /** Name attribute for form submission */
   name?: string;
+  /** Show a clear (X) button when there is a value */
+  clearable?: boolean;
 }
 
 const normalizeOption = (option: AutocompleteOptionInput): AutocompleteOption => {
@@ -82,6 +84,7 @@ const Autocomplete = React.forwardRef<HTMLInputElement, AutocompleteProps>(
       className,
       id,
       name,
+      clearable = false,
     },
     ref
   ) => {
@@ -162,6 +165,14 @@ const Autocomplete = React.forwardRef<HTMLInputElement, AutocompleteProps>(
       if (allowCustomValue) {
         onChange?.(newValue);
       }
+    };
+
+    const handleClear = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      setInputValue("");
+      onChange?.("");
+      setIsOpen(false);
+      inputRef.current?.focus();
     };
 
     const handleInputFocus = () => {
@@ -266,7 +277,7 @@ const Autocomplete = React.forwardRef<HTMLInputElement, AutocompleteProps>(
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
               "disabled:cursor-not-allowed disabled:opacity-50",
               sizes[size],
-              "pr-8", // Space for dropdown arrow/loading indicator
+              clearable && inputValue ? "pr-14" : "pr-8", // Space for clear + dropdown arrow
               error
                 ? "border-destructive ring-destructive focus-visible:ring-destructive"
                 : "",
@@ -279,6 +290,30 @@ const Autocomplete = React.forwardRef<HTMLInputElement, AutocompleteProps>(
             placeholder={placeholder}
             disabled={disabled}
           />
+          {/* Clear button */}
+          {clearable && inputValue && !disabled && (
+            <button
+              type="button"
+              tabIndex={-1}
+              onClick={handleClear}
+              className="absolute right-7 top-1/2 -translate-y-1/2 rounded p-0.5 hover:bg-muted text-muted-foreground hover:text-foreground"
+              aria-label="Clear selection"
+            >
+              <svg
+                className="h-3.5 w-3.5"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M18 6 6 18" />
+                <path d="m6 6 12 12" />
+              </svg>
+            </button>
+          )}
           {/* Dropdown arrow or loading spinner */}
           <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none">
             {loading ? (

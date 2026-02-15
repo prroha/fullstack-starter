@@ -1,5 +1,5 @@
 /**
- * Email Service for Starter Studio
+ * Email Service for Xitolaunch
  *
  * Handles all transactional emails using Resend:
  * - Order confirmations
@@ -214,7 +214,7 @@ function orderConfirmationTemplate(data: OrderEmailData): { html: string; text: 
 <body>
   <div class="container">
     <div class="header">
-      <div class="logo">⚡ Starter Studio</div>
+      <div class="logo">⚡ Xitolaunch</div>
       <h1>Thank You for Your Purchase!</h1>
       <p style="color: #6b7280;">Order #${data.orderNumber}</p>
     </div>
@@ -268,7 +268,7 @@ function orderConfirmationTemplate(data: OrderEmailData): { html: string; text: 
 
     <div class="footer">
       <p>Questions? Reply to this email or visit our <a href="#">documentation</a>.</p>
-      <p>© ${new Date().getFullYear()} Starter Studio. All rights reserved.</p>
+      <p>© ${new Date().getFullYear()} Xitolaunch. All rights reserved.</p>
     </div>
   </div>
 </body>
@@ -304,7 +304,7 @@ NEXT STEPS:
 4. Start building your project!
 
 Questions? Reply to this email.
-© ${new Date().getFullYear()} Starter Studio
+© ${new Date().getFullYear()} Xitolaunch
   `.trim();
 
   return { html, text };
@@ -327,7 +327,7 @@ function downloadLinkTemplate(data: DownloadLinkEmailData): { html: string; text
 <body>
   <div class="container">
     <div class="header">
-      <div class="logo">⚡ Starter Studio</div>
+      <div class="logo">⚡ Xitolaunch</div>
       <h1>Your Download Link</h1>
       <p style="color: #6b7280;">Order #${data.orderNumber}</p>
     </div>
@@ -350,7 +350,7 @@ function downloadLinkTemplate(data: DownloadLinkEmailData): { html: string; text
 
     <div class="footer">
       <p>Questions? Reply to this email.</p>
-      <p>© ${new Date().getFullYear()} Starter Studio. All rights reserved.</p>
+      <p>© ${new Date().getFullYear()} Xitolaunch. All rights reserved.</p>
     </div>
   </div>
 </body>
@@ -371,7 +371,7 @@ DOWNLOAD LINK: ${data.downloadUrl}
 ${expiresText}
 
 Questions? Reply to this email.
-© ${new Date().getFullYear()} Starter Studio
+© ${new Date().getFullYear()} Xitolaunch
   `.trim();
 
   return { html, text };
@@ -391,7 +391,7 @@ function refundConfirmationTemplate(data: RefundEmailData): { html: string; text
 <body>
   <div class="container">
     <div class="header">
-      <div class="logo">⚡ Starter Studio</div>
+      <div class="logo">⚡ Xitolaunch</div>
       <h1>Refund Processed</h1>
       <p style="color: #6b7280;">Order #${data.orderNumber}</p>
     </div>
@@ -421,7 +421,7 @@ function refundConfirmationTemplate(data: RefundEmailData): { html: string; text
 
     <div class="footer">
       <p>Questions? Reply to this email.</p>
-      <p>© ${new Date().getFullYear()} Starter Studio. All rights reserved.</p>
+      <p>© ${new Date().getFullYear()} Xitolaunch. All rights reserved.</p>
     </div>
   </div>
 </body>
@@ -445,7 +445,7 @@ The refund will appear on your original payment method within 5-10 business days
 We're sorry to see you go. If there's anything we could have done better, please let us know.
 
 Questions? Reply to this email.
-© ${new Date().getFullYear()} Starter Studio
+© ${new Date().getFullYear()} Xitolaunch
   `.trim();
 
   return { html, text };
@@ -466,8 +466,8 @@ function welcomeTemplate(data: WelcomeEmailData): { html: string; text: string }
 <body>
   <div class="container">
     <div class="header">
-      <div class="logo">⚡ Starter Studio</div>
-      <h1>Welcome to Starter Studio!</h1>
+      <div class="logo">⚡ Xitolaunch</div>
+      <h1>Welcome to Xitolaunch!</h1>
     </div>
 
     <p>Hi ${name},</p>
@@ -487,7 +487,7 @@ function welcomeTemplate(data: WelcomeEmailData): { html: string; text: string }
 
     <div class="footer">
       <p>Questions? Reply to this email.</p>
-      <p>© ${new Date().getFullYear()} Starter Studio. All rights reserved.</p>
+      <p>© ${new Date().getFullYear()} Xitolaunch. All rights reserved.</p>
     </div>
   </div>
 </body>
@@ -495,7 +495,7 @@ function welcomeTemplate(data: WelcomeEmailData): { html: string; text: string }
   `.trim();
 
   const text = `
-Welcome to Starter Studio!
+Welcome to Xitolaunch!
 
 Hi ${name},
 
@@ -510,7 +510,7 @@ WHAT YOU CAN DO:
 • Get priority support
 
 Questions? Reply to this email.
-© ${new Date().getFullYear()} Starter Studio
+© ${new Date().getFullYear()} Xitolaunch
   `.trim();
 
   return { html, text };
@@ -656,7 +656,7 @@ class EmailService {
    */
   async sendWelcome(data: WelcomeEmailData): Promise<SendEmailResult> {
     const { html, text } = welcomeTemplate(data);
-    return this.send(data.email, "Welcome to Starter Studio!", html, text);
+    return this.send(data.email, "Welcome to Xitolaunch!", html, text);
   }
 }
 

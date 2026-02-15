@@ -1,7 +1,7 @@
 {
-  "name": "@starter-studio/backend",
+  "name": "@xitolaunch/backend",
   "version": "1.0.0",
-  "description": "Starter Studio Platform API",
+  "description": "Xitolaunch Platform API",
   "main": "dist/index.js",
   "prisma": {
     "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"

@@ -216,7 +216,7 @@ export default function OrdersPage() {
 
       // Get filename from Content-Disposition header or use default
       const contentDisposition = response.headers.get("Content-Disposition");
-      let filename = `starter-studio-${orderId}.zip`;
+      let filename = `xitolaunch-${orderId}.zip`;
       if (contentDisposition) {
         const match = contentDisposition.match(/filename="?([^"]+)"?/);
         if (match) {

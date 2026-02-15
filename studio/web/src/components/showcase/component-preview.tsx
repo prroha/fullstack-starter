@@ -45,12 +45,12 @@ export function ComponentPreview({ children, className, label }: ComponentPrevie
 
   return (
     <div
-      className={cn("rounded-lg border overflow-hidden", className)}
+      className={cn("rounded-lg border", className)}
       role="region"
       aria-labelledby={`${previewId}-label`}
     >
       {/* Toolbar */}
-      <div className="flex items-center justify-between border-b px-4 py-2 bg-muted/50">
+      <div className="flex items-center justify-between border-b px-4 py-2 bg-muted/50 rounded-t-lg">
         <span id={`${previewId}-label`} className="text-sm font-medium">
           {label ?? "Preview"}
         </span>
@@ -100,21 +100,12 @@ export function ComponentPreview({ children, className, label }: ComponentPrevie
       {/* Preview Area */}
       <div
         className={cn(
-          "p-8 transition-all duration-300",
-          device === "mobile" && "max-w-sm mx-auto",
-          theme === "light" ? "bg-white" : "bg-zinc-950"
+          "p-8 transition-all duration-300 bg-background text-foreground",
+          device === "mobile" && "max-w-sm mx-auto"
         )}
         data-theme={theme}
-        style={{
-          colorScheme: theme,
-        }}
       >
-        <div
-          className={cn(
-            "flex items-center justify-center min-h-[200px]",
-            theme === "dark" && "text-white"
-          )}
-        >
+        <div className="flex items-center justify-center min-h-[200px]">
           {children}
         </div>
       </div>

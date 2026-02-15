@@ -1,0 +1,19 @@
+[build]
+# Use the existing Dockerfile for builds
+builder = "dockerfile"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+# Health check endpoint
+healthcheckPath = "/health"
+healthcheckTimeout = 10
+
+# Start command (handled by docker-entrypoint.sh via ENTRYPOINT)
+# Runs: prisma migrate deploy -> prisma db seed -> node dist/index.js
+
+# Number of replicas (increase for production)
+numReplicas = 1
+
+# Restart policy
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 5

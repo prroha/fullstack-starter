@@ -24,19 +24,19 @@ export function DeviceFrame({
     return (
       <div
         className={cn(
-          "w-full h-full rounded-lg border border-zinc-200 dark:border-zinc-800 overflow-hidden shadow-lg",
+          "w-full h-full rounded-lg border border-border overflow-hidden shadow-lg",
           className
         )}
       >
         {/* Desktop browser chrome */}
-        <div className="h-8 bg-zinc-100 dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-700 flex items-center px-3 gap-2">
+        <div className="h-8 bg-muted border-b border-border flex items-center px-3 gap-2">
           <div className="flex gap-1.5">
             <div className="w-3 h-3 rounded-full bg-red-500" />
             <div className="w-3 h-3 rounded-full bg-yellow-500" />
             <div className="w-3 h-3 rounded-full bg-green-500" />
           </div>
           <div className="flex-1 flex justify-center">
-            <div className="bg-white dark:bg-zinc-900 rounded px-4 py-1 text-xs text-zinc-500 dark:text-zinc-400 max-w-xs truncate">
+            <div className="bg-background rounded px-4 py-1 text-xs text-muted-foreground max-w-xs truncate">
               localhost:3000
             </div>
           </div>
@@ -48,22 +48,24 @@ export function DeviceFrame({
     );
   }
 
+  // Physical device bezels use neutral grays — these are intentionally
+  // hardcoded to simulate real hardware regardless of theme.
   const tabletStyles = {
-    wrapper: "bg-zinc-800 rounded-[2rem] p-3 shadow-xl transition-transform",
-    screen: "rounded-[1.5rem] overflow-hidden bg-white",
+    wrapper: "bg-neutral-800 rounded-[2rem] p-3 shadow-xl transition-transform",
+    screen: "rounded-[1.5rem] overflow-hidden bg-background",
     bezel: "h-4 flex justify-center items-center mb-2",
-    camera: "w-2 h-2 rounded-full bg-zinc-600",
+    camera: "w-2 h-2 rounded-full bg-neutral-600",
     homeButton: "h-4 flex justify-center items-center mt-2",
-    homeButtonInner: "w-8 h-1 rounded-full bg-zinc-600",
+    homeButtonInner: "w-8 h-1 rounded-full bg-neutral-600",
   };
 
   const mobileStyles = {
-    wrapper: "bg-zinc-900 rounded-[3rem] p-2 shadow-2xl transition-transform",
-    screen: "rounded-[2.5rem] overflow-hidden bg-white relative",
+    wrapper: "bg-neutral-900 rounded-[3rem] p-2 shadow-2xl transition-transform",
+    screen: "rounded-[2.5rem] overflow-hidden bg-background relative",
     bezel: "",
     camera: "",
-    notch: "absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-zinc-900 rounded-b-2xl z-10",
-    homeIndicator: "absolute bottom-1 left-1/2 -translate-x-1/2 w-32 h-1 bg-zinc-300 rounded-full",
+    notch: "absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-neutral-900 rounded-b-2xl z-10",
+    homeIndicator: "absolute bottom-1 left-1/2 -translate-x-1/2 w-32 h-1 bg-neutral-300 rounded-full",
   };
 
   const styles = device === "mobile" ? mobileStyles : tabletStyles;

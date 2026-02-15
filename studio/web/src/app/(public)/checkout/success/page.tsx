@@ -209,7 +209,7 @@ function CheckoutSuccessContent() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `starter-studio-${order?.tier}-${order?.orderNumber}.zip`;
+      a.download = `xitolaunch-${order?.tier}-${order?.orderNumber}.zip`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -476,7 +476,7 @@ function CheckoutSuccessContent() {
                   <FileCode className="h-8 w-8 text-primary" />
                   <div>
                     <p className="font-medium">
-                      Starter Studio - {tierName}
+                      Xitolaunch - {tierName}
                     </p>
                     <p className="text-sm text-muted-foreground">
                       {order.template?.name || "Custom Configuration"} | {order.selectedFeatures.length} features
@@ -633,7 +633,7 @@ function CheckoutSuccessContent() {
 
                 {/* View Documentation */}
                 <Button asChild variant="outline" size="lg" className="h-auto py-4">
-                  <Link href="https://docs.starter.studio" target="_blank" rel="noopener noreferrer">
+                  <Link href="https://docs.xitolaunch.com" target="_blank" rel="noopener noreferrer">
                     <div className="flex items-center gap-3">
                       <div className="flex items-center justify-center w-10 h-10 rounded-full bg-muted">
                         <BookOpen className="h-5 w-5" />

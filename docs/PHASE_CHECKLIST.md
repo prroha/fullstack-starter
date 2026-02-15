@@ -1,4 +1,4 @@
-# Starter Studio - Phase Checklists
+# Xitolaunch - Phase Checklists
 
 > Quick reference checklist for tracking development progress.
 
@@ -367,7 +367,7 @@
 
 ## Phase 0.2: Studio Foundation & Platform Admin (~2 weeks)
 
-> Set up the Starter Studio platform directory structure and Company Admin panel for managing the platform.
+> Set up the Xitolaunch platform directory structure and Company Admin panel for managing the platform.
 
 ### Studio Project Setup
 

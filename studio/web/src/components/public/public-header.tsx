@@ -4,7 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X, Layers } from "lucide-react";
 import { useState } from "react";
-import { Button, ThemeToggle, Container } from "@/components/ui";
+import { Button, ThemeToggle, Container, NavigationProgress } from "@/components/ui";
+import { useNavigationProgress } from "@/lib/hooks";
 import { cn } from "@/lib/utils";
 
 const navLinks = [
@@ -17,6 +18,7 @@ const navLinks = [
 export function PublicHeader() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { navigating, progress, handleLinkClick } = useNavigationProgress();
 
   const isActive = (href: string) => {
     if (href === "/") return pathname === "/";
@@ -32,7 +34,7 @@ export function PublicHeader() {
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
               <Layers className="h-5 w-5 text-primary-foreground" />
             </div>
-            <span className="font-bold text-lg">Starter Studio</span>
+            <span className="font-bold text-lg">Xitolaunch</span>
           </Link>
 
           {/* Desktop Navigation */}
@@ -41,6 +43,7 @@ export function PublicHeader() {
               <Link
                 key={link.href}
                 href={link.href}
+                onClick={() => handleLinkClick(link.href)}
                 className={cn(
                   "text-sm font-medium transition-colors hover:text-foreground",
                   isActive(link.href)
@@ -58,10 +61,10 @@ export function PublicHeader() {
           <div className="flex items-center gap-2">
             <ThemeToggle variant="icon" size="sm" />
             <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
-              <Link href="/admin">Admin</Link>
+              <Link href="/admin" onClick={() => handleLinkClick("/admin")}>Admin</Link>
             </Button>
             <Button asChild size="sm" className="hidden sm:inline-flex">
-              <Link href="/configure">Start Building</Link>
+              <Link href="/configure" onClick={() => handleLinkClick("/configure")}>Start Building</Link>
             </Button>
 
             {/* Mobile Menu Button - 44px min touch target */}
@@ -91,7 +94,7 @@ export function PublicHeader() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  onClick={() => setMobileMenuOpen(false)}
+                  onClick={() => { handleLinkClick(link.href); setMobileMenuOpen(false); }}
                   className={cn(
                     "px-4 py-3 min-h-[44px] flex items-center rounded-md text-sm font-medium transition-colors",
                     isActive(link.href)
@@ -105,12 +108,12 @@ export function PublicHeader() {
               ))}
               <div className="pt-2 flex flex-col gap-2">
                 <Button asChild variant="outline" className="min-h-[44px]">
-                  <Link href="/admin" onClick={() => setMobileMenuOpen(false)}>
+                  <Link href="/admin" onClick={() => { handleLinkClick("/admin"); setMobileMenuOpen(false); }}>
                     Admin
                   </Link>
                 </Button>
                 <Button asChild className="min-h-[44px]">
-                  <Link href="/configure" onClick={() => setMobileMenuOpen(false)}>
+                  <Link href="/configure" onClick={() => { handleLinkClick("/configure"); setMobileMenuOpen(false); }}>
                     Start Building
                   </Link>
                 </Button>
@@ -119,6 +122,8 @@ export function PublicHeader() {
           </Container>
         </div>
       )}
+
+      <NavigationProgress navigating={navigating} progress={progress} />
     </header>
   );
 }

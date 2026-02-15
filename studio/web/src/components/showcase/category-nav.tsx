@@ -88,7 +88,7 @@ export function CategoryNav({
   return (
     <nav
       className={cn(
-        "flex flex-wrap gap-2 border-b pb-4 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0",
+        "flex flex-wrap gap-2 border-b pb-4 overflow-x-auto",
         className
       )}
       aria-label="Component categories"

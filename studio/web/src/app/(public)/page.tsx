@@ -6,9 +6,9 @@ import { Button, Container, Card, CardContent, Badge } from "@/components/ui";
 export const metadata: Metadata = {
   title: "Build Your SaaS in Days, Not Months",
   description:
-    "Starter Studio helps you build production-ready SaaS applications with 112+ UI components, modular features like authentication, payments, and storage. Configure, preview, and download your app.",
+    "Xitolaunch helps you build production-ready SaaS applications with 112+ UI components, modular features like authentication, payments, and storage. Configure, preview, and download your app.",
   openGraph: {
-    title: "Build Your SaaS in Days, Not Months | Starter Studio",
+    title: "Build Your SaaS in Days, Not Months | Xitolaunch",
     description:
       "Configure your app by selecting the features you need, preview it live, and download production-ready code. From authentication to payments, we have got you covered.",
   },

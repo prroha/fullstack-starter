@@ -28,29 +28,51 @@ export function CartSummary() {
   const handlePreview = useCallback(async () => {
     setIsCreatingPreview(true);
     setPreviewError(null);
+
     try {
-      const response = await fetch(`${API_CONFIG.BASE_URL}/preview/sessions`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          selectedFeatures,
-          tier: selectedTier,
-          templateSlug: template?.slug,
-        }),
-      });
+      // Create backend session for analytics/sharing (non-blocking failure)
+      let sessionToken: string | null = null;
+      try {
+        const response = await fetch(`${API_CONFIG.BASE_URL}/preview/sessions`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            selectedFeatures,
+            tier: selectedTier,
+            templateSlug: template?.slug,
+          }),
+        });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error: ${response.status}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.data?.sessionToken) {
+            sessionToken = data.data.sessionToken;
+          }
+        }
+      } catch {
+        // Backend session is optional — preview works without it
       }
 
-      const data = await response.json();
-      if (data.success && data.data?.previewUrl) {
-        window.open(data.data.previewUrl, "_blank", "noopener,noreferrer");
+      // Construct preview URL on the frontend (avoids broken backend URL defaults)
+      const origin = typeof window !== "undefined" ? window.location.origin : "";
+      const params = new URLSearchParams();
+      if (sessionToken) {
+        params.set("preview", sessionToken);
       } else {
-        setPreviewError(data.error?.message || "Failed to create preview");
+        // Fallback: pass config directly via URL params
+        params.set("tier", selectedTier);
+        if (selectedFeatures.length > 0) {
+          params.set("features", selectedFeatures.join(","));
+        }
+        if (template?.slug) {
+          params.set("template", template.slug);
+        }
       }
-    } catch (error) {
-      console.error("Failed to create preview:", error);
+
+      const previewUrl = `${origin}/preview?${params.toString()}`;
+      window.open(previewUrl, "_blank", "noopener,noreferrer");
+    } catch (err) {
+      console.error("Failed to create preview:", err);
       setPreviewError("Failed to create preview. Please try again.");
     } finally {
       setIsCreatingPreview(false);
@@ -70,10 +92,10 @@ export function CartSummary() {
       aria-label="Cart summary"
     >
       {/* Tier Selector */}
-      <section className="mb-6" aria-labelledby="tier-section-heading">
+      <section className="mb-4" aria-labelledby="tier-section-heading">
         <h2
           id="tier-section-heading"
-          className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-3"
+          className="font-semibold text-xs text-muted-foreground uppercase tracking-wide mb-2"
         >
           Select Tier
         </h2>
@@ -83,10 +105,10 @@ export function CartSummary() {
       <Divider />
 
       {/* Selection Summary */}
-      <section className="py-4" aria-labelledby="selection-section-heading">
+      <section className="py-3" aria-labelledby="selection-section-heading">
         <h2
           id="selection-section-heading"
-          className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-3"
+          className="font-semibold text-xs text-muted-foreground uppercase tracking-wide mb-2"
         >
           Your Selection
         </h2>
@@ -133,10 +155,10 @@ export function CartSummary() {
       <Divider />
 
       {/* Pricing Breakdown */}
-      <section className="py-4 flex-1" aria-labelledby="pricing-section-heading">
+      <section className="py-3 flex-1" aria-labelledby="pricing-section-heading">
         <h2
           id="pricing-section-heading"
-          className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-3"
+          className="font-semibold text-xs text-muted-foreground uppercase tracking-wide mb-2"
         >
           Pricing
         </h2>

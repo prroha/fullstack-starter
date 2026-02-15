@@ -143,21 +143,21 @@ const sizeConfig: Record<
 > = {
   sm: {
     container: "h-8",
-    input: "text-xs px-7",
+    input: "text-xs pl-7 pr-7",
     icon: "h-3.5 w-3.5 left-2",
     clearButton: "h-3.5 w-3.5",
     shortcutBadge: "text-[9px] px-1 py-0.5",
   },
   md: {
     container: "h-9",
-    input: "text-sm px-9",
+    input: "text-sm pl-9 pr-9",
     icon: "h-4 w-4 left-2.5",
     clearButton: "h-4 w-4",
     shortcutBadge: "text-[10px] px-1.5 py-0.5",
   },
   lg: {
     container: "h-11",
-    input: "text-base px-11",
+    input: "text-base pl-11 pr-11",
     icon: "h-5 w-5 left-3",
     clearButton: "h-5 w-5",
     shortcutBadge: "text-xs px-1.5 py-0.5",

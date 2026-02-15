@@ -8,8 +8,8 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: {
-    default: "Starter Studio - Build Your SaaS in Days",
-    template: "%s | Starter Studio",
+    default: "Xitolaunch - Build Your SaaS in Days",
+    template: "%s | Xitolaunch",
   },
   description:
     "Configure, preview, and download production-ready fullstack applications. Build your SaaS with 112+ components, modular features, and enterprise-ready code.",
@@ -21,19 +21,19 @@ export const metadata: Metadata = {
     "Flutter mobile app",
     "production-ready code",
   ],
-  authors: [{ name: "Starter Studio" }],
-  creator: "Starter Studio",
+  authors: [{ name: "Xitolaunch" }],
+  creator: "Xitolaunch",
   openGraph: {
     type: "website",
     locale: "en_US",
-    siteName: "Starter Studio",
-    title: "Starter Studio - Build Your SaaS in Days",
+    siteName: "Xitolaunch",
+    title: "Xitolaunch - Build Your SaaS in Days",
     description:
       "Configure, preview, and download production-ready fullstack applications with 112+ components and modular features.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Starter Studio - Build Your SaaS in Days",
+    title: "Xitolaunch - Build Your SaaS in Days",
     description:
       "Configure, preview, and download production-ready fullstack applications.",
   },

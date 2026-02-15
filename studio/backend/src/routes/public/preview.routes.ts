@@ -44,7 +44,7 @@ const validateTokenFormat = (req: Request<{ token: string }>, res: Response, nex
 // Schema for creating a preview session
 const createPreviewSessionSchema = z.object({
   body: z.object({
-    selectedFeatures: z.array(z.string()).min(1),
+    selectedFeatures: z.array(z.string()),
     tier: z.string(),
     templateSlug: z.string().optional(),
   }),
@@ -71,9 +71,13 @@ router.post(
         },
       });
 
-      // Generate preview URL
-      const previewBaseUrl = process.env.PREVIEW_APP_URL || "http://localhost:3000";
-      const previewUrl = `${previewBaseUrl}?preview=${session.sessionToken}`;
+      // Generate preview URL using the frontend origin from request headers,
+      // falling back to CORS_ORIGIN env var or the studio web app default
+      const frontendOrigin =
+        req.headers.origin ||
+        process.env.CORS_ORIGIN ||
+        "http://localhost:3002";
+      const previewUrl = `${frontendOrigin}/preview?preview=${session.sessionToken}`;
 
       res.status(201).json({
         success: true,
@@ -143,7 +147,20 @@ router.delete<{ token: string }>("/sessions/:token", validateTokenFormat, async 
       success: true,
       message: "Preview session deleted",
     });
-  } catch (error) {
+  } catch (error: unknown) {
+    // Handle "record not found" gracefully (already deleted or expired)
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      (error as { code: string }).code === "P2025"
+    ) {
+      res.json({
+        success: true,
+        message: "Preview session already deleted",
+      });
+      return;
+    }
     next(error);
   }
 });

@@ -89,9 +89,9 @@ interface PricingTier {
 
 const DEFAULT_SETTINGS: SettingsState = {
   // General Settings
-  siteName: "Starter Studio",
+  siteName: "Xitolaunch",
   siteDescription: "Build production-ready fullstack applications in days, not months.",
-  supportEmail: "support@starterstudio.dev",
+  supportEmail: "support@xitolaunch.dev",
   contactPhone: "+1 (555) 123-4567",
   logoUrl: "/logo.svg",
 
@@ -109,8 +109,8 @@ const DEFAULT_SETTINGS: SettingsState = {
   enableDownloadNotifications: true,
 
   // Email Settings
-  fromEmail: "noreply@starterstudio.dev",
-  fromName: "Starter Studio",
+  fromEmail: "noreply@xitolaunch.dev",
+  fromName: "Xitolaunch",
   enableOrderConfirmationEmails: true,
   enableDownloadReadyEmails: true,
 

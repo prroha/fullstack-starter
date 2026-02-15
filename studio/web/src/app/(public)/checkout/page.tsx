@@ -4,11 +4,11 @@ import { CheckoutContent } from "./checkout-content";
 import CheckoutLoading from "./loading";
 
 export const metadata: Metadata = {
-  title: "Checkout - Starter Studio",
+  title: "Checkout - Xitolaunch",
   description:
     "Complete your purchase and get instant access to your customized starter kit. Secure payment powered by Stripe.",
   openGraph: {
-    title: "Checkout | Starter Studio",
+    title: "Checkout | Xitolaunch",
     description:
       "Secure checkout for your customized starter kit. Get instant access after payment.",
   },

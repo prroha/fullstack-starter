@@ -361,7 +361,7 @@ fullstack-starter/
 │   ├── payments/
 │   └── real-time/
 │
-├── studio/                    # Starter Studio - Configuration & Pricing Platform
+├── studio/                    # Xitolaunch - Configuration & Pricing Platform
 │   ├── backend/               # Express API (port 3001)
 │   ├── web/                   # Next.js frontend (port 3002)
 │   ├── shared/                # Shared TypeScript types

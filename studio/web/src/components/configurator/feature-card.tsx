@@ -157,11 +157,13 @@ export function FeatureCard({ feature, className }: FeatureCardProps) {
                 <Lock className="h-4 w-4 text-muted-foreground" />
               </div>
             ) : (
-              <Switch
-                checked={isSelected}
-                onChange={handleToggle}
-                aria-label={`Toggle ${feature.name}`}
-              />
+              <div onClick={(e) => e.stopPropagation()}>
+                <Switch
+                  checked={isSelected}
+                  onChange={handleToggle}
+                  aria-label={`Toggle ${feature.name}`}
+                />
+              </div>
             )}
           </div>
         </div>

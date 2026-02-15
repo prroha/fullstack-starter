@@ -1,4 +1,4 @@
-// Starter Studio Database Schema
+// Xitolaunch Database Schema
 // This is separate from the core template database
 
 generator client {

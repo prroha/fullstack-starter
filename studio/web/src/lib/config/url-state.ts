@@ -7,6 +7,7 @@ export interface URLConfig {
   tier?: string;
   template?: string;
   features?: string[];
+  step?: string;
 }
 
 /**
@@ -30,6 +31,11 @@ export function parseURLConfig(searchParams: URLSearchParams): URLConfig {
     config.features = features.split(",").filter(Boolean);
   }
 
+  const step = searchParams.get("step");
+  if (step) {
+    config.step = step;
+  }
+
   return config;
 }
 
@@ -49,6 +55,10 @@ export function encodeURLConfig(config: URLConfig): URLSearchParams {
 
   if (config.features && config.features.length > 0) {
     params.set("features", config.features.join(","));
+  }
+
+  if (config.step) {
+    params.set("step", config.step);
   }
 
   return params;

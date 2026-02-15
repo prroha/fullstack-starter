@@ -524,7 +524,7 @@ export function CheckoutContent() {
 
         {/* Right Column - Order Summary */}
         <div className="lg:col-span-1">
-          <div className="sticky top-4">
+          <div className="sticky top-20 max-h-[calc(100vh-6rem)] overflow-y-auto">
             <Card>
               <CardHeader>
                 <CardTitle>Order Summary</CardTitle>
@@ -539,10 +539,6 @@ export function CheckoutContent() {
                       </Badge>
                       <span className="text-sm font-medium">Tier</span>
                     </div>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {TIER_INFO[selectedTier as keyof typeof TIER_INFO]?.description ||
-                        "Base tier with core features"}
-                    </p>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       {currentTier.includedFeatures.length} features included
                     </p>

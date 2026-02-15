@@ -1,9 +1,9 @@
 "use client";
 
 import { ReactNode } from "react";
-import { Search, X } from "lucide-react";
+import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Button, Input, Select } from "@/components/ui";
+import { Button, Input, Select, SearchInput } from "@/components/ui";
 
 // =====================================================
 // Types
@@ -99,22 +99,15 @@ export function AdminFilterBar({
         return (
           <div
             key={filter.key}
-            className={cn("relative", filter.width ?? "w-full sm:flex-1 sm:min-w-[240px]")}
+            className={cn(filter.width ?? "w-full sm:flex-1 sm:min-w-[240px]")}
           >
-            <label htmlFor={`filter-${filter.key}`} className="sr-only">
-              {filter.label}
-            </label>
-            <Search
-              className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"
-              aria-hidden="true"
-            />
-            <Input
+            <SearchInput
               id={`filter-${filter.key}`}
-              type="search"
               placeholder={filter.placeholder ?? `Search...`}
               value={value}
-              onChange={(e) => onChange(filter.key, e.target.value)}
-              className="w-full pl-10 pr-4"
+              onChange={(val) => onChange(filter.key, val)}
+              debounceDelay={0}
+              aria-label={filter.label}
             />
           </div>
         );

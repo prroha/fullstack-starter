@@ -54,7 +54,7 @@ export default function AdminDashboardPage() {
       <div className="space-y-6">
         <AdminPageHeader
           title="Dashboard"
-          description="Welcome to Starter Studio Admin Panel"
+          description="Welcome to Xitolaunch Admin Panel"
         />
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           {[...Array(4)].map((_, i) => (
@@ -73,7 +73,7 @@ export default function AdminDashboardPage() {
       <div className="space-y-6">
         <AdminPageHeader
           title="Dashboard"
-          description="Welcome to Starter Studio Admin Panel"
+          description="Welcome to Xitolaunch Admin Panel"
         />
         <Card className="p-8 text-center">
           <p className="text-muted-foreground mb-4">{error || "Failed to load dashboard data"}</p>
@@ -90,7 +90,7 @@ export default function AdminDashboardPage() {
     <div className="space-y-6">
       <AdminPageHeader
         title="Dashboard"
-        description="Welcome to Starter Studio Admin Panel"
+        description="Welcome to Xitolaunch Admin Panel"
         actions={
           <Button variant="outline" size="sm" onClick={fetchStats}>
             <RefreshCw className="h-4 w-4 mr-2" />

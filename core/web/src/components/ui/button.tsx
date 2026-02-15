@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 // =====================================================
@@ -48,15 +49,76 @@ function getButtonClasses(
   );
 }
 
+const LoadingSpinner = () => (
+  <svg
+    className="mr-2 h-4 w-4 animate-spin"
+    xmlns="http://www.w3.org/2000/svg"
+    fill="none"
+    viewBox="0 0 24 24"
+    aria-hidden="true"
+  >
+    <circle
+      className="opacity-25"
+      cx="12"
+      cy="12"
+      r="10"
+      stroke="currentColor"
+      strokeWidth="4"
+    />
+    <path
+      className="opacity-75"
+      fill="currentColor"
+      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+    />
+  </svg>
+);
+
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = "default", size = "default", isLoading, asChild, children, disabled, ...props }, ref) => {
+  ({ className, variant = "default", size = "default", isLoading, asChild, children, disabled, onClick, ...props }, ref) => {
+    const [asyncLoading, setAsyncLoading] = React.useState(false);
+    const pathname = usePathname();
+    const loading = isLoading || asyncLoading;
+
+    // Clear navigation loading when the route changes
+    React.useEffect(() => {
+      setAsyncLoading(false);
+    }, [pathname]);
+
+    const handleClick = React.useCallback(
+      (e: React.MouseEvent<HTMLButtonElement>) => {
+        if (!onClick) return;
+        const result = onClick(e);
+        // If onClick returns a Promise, auto-manage loading state
+        if (result && typeof (result as Promise<unknown>).then === "function") {
+          setAsyncLoading(true);
+          (result as Promise<unknown>).finally(() => setAsyncLoading(false));
+        }
+      },
+      [onClick]
+    );
+
     const buttonClasses = getButtonClasses(variant, size, className);
 
-    // If asChild, clone the child element with button styles
+    // If asChild, clone the child element with button styles and navigation loading
     if (asChild && React.isValidElement(children)) {
       const childElement = children as React.ReactElement<Record<string, unknown>>;
+      const childOnClick = childElement.props.onClick as ((e: React.MouseEvent) => void) | undefined;
+
+      const handleNavClick = (e: React.MouseEvent) => {
+        setAsyncLoading(true);
+        if (childOnClick) childOnClick(e);
+      };
+
       return React.cloneElement(childElement, {
-        className: cn(buttonClasses, childElement.props.className as string | undefined),
+        className: cn(buttonClasses, loading && "pointer-events-none opacity-50", childElement.props.className as string | undefined),
+        onClick: handleNavClick,
+        "aria-busy": loading || undefined,
+        children: (
+          <>
+            {loading && <LoadingSpinner />}
+            {childElement.props.children as React.ReactNode}
+          </>
+        ),
       } as Record<string, unknown>);
     }
 
@@ -64,33 +126,12 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       <button
         className={buttonClasses}
         ref={ref}
-        disabled={disabled || isLoading}
-        aria-busy={isLoading || undefined}
+        disabled={disabled || loading}
+        aria-busy={loading || undefined}
+        onClick={handleClick}
         {...props}
       >
-        {isLoading && (
-          <svg
-            className="mr-2 h-4 w-4 animate-spin"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            aria-hidden="true"
-          >
-            <circle
-              className="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              strokeWidth="4"
-            />
-            <path
-              className="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-            />
-          </svg>
-        )}
+        {loading && <LoadingSpinner />}
         {children}
       </button>
     );

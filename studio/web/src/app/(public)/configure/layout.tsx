@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   description:
     "Build your custom SaaS application by selecting from 50+ modular features including authentication, payments, storage, and more. Choose a pricing tier and get production-ready code.",
   openGraph: {
-    title: "Configure Your App | Starter Studio",
+    title: "Configure Your App | Xitolaunch",
     description:
       "Select features, choose your template, and configure your custom fullstack application. From authentication to payments, pick only what you need.",
   },

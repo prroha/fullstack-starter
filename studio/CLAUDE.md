@@ -1,8 +1,8 @@
-# Starter Studio Module
+# Xitolaunch Module
 
 ## Overview
 
-The **Starter Studio** is a full-stack configuration and pricing platform that allows users to:
+The **Xitolaunch** is a full-stack configuration and pricing platform that allows users to:
 
 1. **Configure custom starter templates** by selecting features from a catalog
 2. **View live previews** of their configured application

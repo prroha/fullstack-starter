@@ -37,7 +37,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
           type={type}
           className={cn(
             // Content-first sizing: 36px height (was 40px), 10px horizontal padding (was 12px)
-            "flex h-9 w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-sm ring-offset-background",
+            "flex h-9 w-full rounded-md border border-input bg-background pl-2.5 pr-2.5 py-1.5 text-sm ring-offset-background",
             "file:border-0 file:bg-transparent file:text-sm file:font-medium",
             "placeholder:text-muted-foreground",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",

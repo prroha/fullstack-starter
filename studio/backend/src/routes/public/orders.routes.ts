@@ -78,7 +78,7 @@ router.get("/:id/download", async (req, res, next) => {
     }
 
     // Set response headers for ZIP download
-    const filename = `starter-studio-${order.tier}-${order.orderNumber}.zip`;
+    const filename = `xitolaunch-${order.tier}-${order.orderNumber}.zip`;
     res.setHeader("Content-Type", "application/zip");
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
     res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");

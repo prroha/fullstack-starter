@@ -15,11 +15,11 @@ import { API_CONFIG } from "@/lib/constants";
 import type { Template } from "@studio/shared";
 
 export const metadata: Metadata = {
-  title: "Templates - Starter Studio",
+  title: "Templates - Xitolaunch",
   description:
     "Jump-start your project with professionally designed templates. Pre-configured setups for SaaS, e-commerce, dashboards, and more.",
   openGraph: {
-    title: "Pre-Built Templates | Starter Studio",
+    title: "Pre-Built Templates | Xitolaunch",
     description:
       "Choose from professionally designed templates with pre-selected features for common use cases. Save hours of configuration time.",
   },

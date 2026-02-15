@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, Suspense, useCallback } from "react";
+import { useEffect, useMemo, useState, Suspense, useCallback, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Settings, Share2, AlertCircle } from "lucide-react";
@@ -49,6 +49,12 @@ function PreviewContent() {
   const tier = session?.tier || config.tier || "starter";
   const features = session?.features || config.features || [];
 
+  // Ref to always access latest endSession without re-running effect
+  const endSessionRef = useRef(endSession);
+  useEffect(() => {
+    endSessionRef.current = endSession;
+  }, [endSession]);
+
   // Load session from token if provided, otherwise start from URL params
   useEffect(() => {
     let isMounted = true;
@@ -69,7 +75,7 @@ function PreviewContent() {
 
     return () => {
       isMounted = false;
-      endSession();
+      endSessionRef.current();
     };
   // Only run on mount and when token changes
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -81,8 +87,13 @@ function PreviewContent() {
   }, [setDevice, setTheme]);
 
   const handleOpenExternal = useCallback(() => {
-    const url = `/preview/standalone?tier=${tier}&features=${features.join(",")}`;
-    window.open(url, "_blank");
+    const params = new URLSearchParams();
+    params.set("tier", tier);
+    if (features.length > 0) {
+      params.set("features", features.join(","));
+    }
+    const url = `/preview?${params.toString()}`;
+    window.open(url, "_blank", "noopener,noreferrer");
   }, [tier, features]);
 
   const handleSharePreview = useCallback(async () => {

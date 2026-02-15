@@ -1,9 +1,9 @@
 "use client";
 
 import { ReactNode } from "react";
-import { Search, X } from "lucide-react";
+import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Button, Input } from "@/components/ui";
+import { Button, SearchInput } from "@/components/ui";
 
 export interface AdminFiltersProps {
   /** Search input value */
@@ -37,16 +37,13 @@ export function AdminFilters({
     <div className={cn("flex flex-col gap-4 sm:flex-row sm:items-center sm:flex-wrap", className)}>
       {/* Search Input */}
       {onSearchChange && (
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            type="text"
-            placeholder={searchPlaceholder}
-            value={search}
-            onChange={(e) => onSearchChange(e.target.value)}
-            className="pl-10 sm:w-64"
-          />
-        </div>
+        <SearchInput
+          value={search}
+          onChange={onSearchChange}
+          placeholder={searchPlaceholder}
+          className="sm:w-64"
+          debounceDelay={0}
+        />
       )}
 
       {/* Custom Filters */}
