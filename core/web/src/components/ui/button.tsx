@@ -87,7 +87,8 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     const handleClick = React.useCallback(
       (e: React.MouseEvent<HTMLButtonElement>) => {
         if (!onClick) return;
-        const result = onClick(e);
+        // Cast to unknown first to safely check for Promise return
+        const result: unknown = onClick(e);
         // If onClick returns a Promise, auto-manage loading state
         if (result && typeof (result as Promise<unknown>).then === "function") {
           setAsyncLoading(true);

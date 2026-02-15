@@ -121,7 +121,7 @@ export function usePreviewSession(): UsePreviewSessionReturn {
   const [error, setError] = useState<string | null>(null);
 
   // Use a ref to track the session token for cleanup, avoiding stale closures
-  const sessionTokenRef = useRef<string | undefined>();
+  const sessionTokenRef = useRef<string | undefined>(undefined);
   useEffect(() => {
     sessionTokenRef.current = session?.sessionToken;
   }, [session?.sessionToken]);
