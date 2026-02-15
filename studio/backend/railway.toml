@@ -6,7 +6,7 @@ dockerfilePath = "Dockerfile"
 [deploy]
 # Health check endpoint
 healthcheckPath = "/health"
-healthcheckTimeout = 10
+healthcheckTimeout = 120
 
 # Start command (handled by docker-entrypoint.sh via ENTRYPOINT)
 # Runs: prisma migrate deploy -> prisma db seed -> node dist/index.js
