@@ -6,13 +6,13 @@
  */
 
 import { Request, Response, NextFunction } from "express";
-import { AuthenticatedRequest } from "../types";
-import { faqService } from "../services/faq.service";
-import { auditService } from "../services/audit.service";
-import { successResponse } from "../utils/response";
+import { AuthenticatedRequest } from "../types/index.js";
+import { faqService } from "../services/faq.service.js";
+import { auditService } from "../services/audit.service.js";
+import { successResponse } from "../utils/response.js";
 import { z } from "zod";
-import { slugSchema } from "../utils/validation-schemas";
-import { validateOrRespond, sendCsvExport } from "../utils/controller-helpers";
+import { slugSchema } from "../utils/validation-schemas.js";
+import { validateOrRespond, sendCsvExport } from "../utils/controller-helpers.js";
 
 // ============================================================================
 // Validation Schemas

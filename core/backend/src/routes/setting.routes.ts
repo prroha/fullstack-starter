@@ -1,7 +1,7 @@
 import { Router, Request } from "express";
-import { settingController } from "../controllers/setting.controller";
-import { authMiddleware, adminMiddleware } from "../middleware/auth.middleware";
-import { AuthenticatedRequest } from "../types";
+import { settingController } from "../controllers/setting.controller.js";
+import { authMiddleware, adminMiddleware } from "../middleware/auth.middleware.js";
+import { AuthenticatedRequest } from "../types/index.js";
 
 const router = Router();
 

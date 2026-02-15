@@ -141,7 +141,7 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
       totalPages: result.totalPages,
     });
   } catch (error) {
-    console.error('[AuditRoutes] Query error:', error);
+    console.error('[AuditRoutes] Query error:', error instanceof Error ? error.message : error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch audit logs',
@@ -165,7 +165,7 @@ router.get('/stats', async (req: Request, res: Response): Promise<void> => {
       stats,
     });
   } catch (error) {
-    console.error('[AuditRoutes] Stats error:', error);
+    console.error('[AuditRoutes] Stats error:', error instanceof Error ? error.message : error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch audit statistics',
@@ -238,7 +238,7 @@ router.get('/export', async (req: Request, res: Response): Promise<void> => {
       metadata: { format, filters: { startDate, endDate, level, category } },
     });
   } catch (error) {
-    console.error('[AuditRoutes] Export error:', error);
+    console.error('[AuditRoutes] Export error:', error instanceof Error ? error.message : error);
     res.status(500).json({
       success: false,
       error: 'Failed to export audit logs',
@@ -268,7 +268,7 @@ router.get('/:id', async (req: Request, res: Response): Promise<void> => {
       log,
     });
   } catch (error) {
-    console.error('[AuditRoutes] Get by ID error:', error);
+    console.error('[AuditRoutes] Get by ID error:', error instanceof Error ? error.message : error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch audit log',
@@ -300,7 +300,7 @@ router.delete('/cleanup', async (req: Request, res: Response): Promise<void> => 
       message: `Deleted ${deletedCount} old audit log entries`,
     });
   } catch (error) {
-    console.error('[AuditRoutes] Cleanup error:', error);
+    console.error('[AuditRoutes] Cleanup error:', error instanceof Error ? error.message : error);
     res.status(500).json({
       success: false,
       error: 'Failed to cleanup audit logs',

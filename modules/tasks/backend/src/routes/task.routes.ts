@@ -29,7 +29,7 @@ router.get('/stats', authMiddleware, async (req: Request, res: Response): Promis
     const stats = await taskService.getDashboardStats(authReq.user.userId);
     res.json({ success: true, data: stats });
   } catch (error) {
-    console.error('[TaskRoutes] Stats error:', error);
+    console.error('[TaskRoutes] Stats error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get task stats' });
   }
 });
@@ -59,7 +59,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response): Promise<voi
 
     res.json({ success: true, data: result });
   } catch (error) {
-    console.error('[TaskRoutes] List error:', error);
+    console.error('[TaskRoutes] List error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to list tasks' });
   }
 });
@@ -79,7 +79,7 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response): Promise<
     }
     res.json({ success: true, data: task });
   } catch (error) {
-    console.error('[TaskRoutes] Get error:', error);
+    console.error('[TaskRoutes] Get error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get task' });
   }
 });
@@ -111,7 +111,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response): Promise<vo
 
     res.status(201).json({ success: true, data: task });
   } catch (error) {
-    console.error('[TaskRoutes] Create error:', error);
+    console.error('[TaskRoutes] Create error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to create task',
     });
@@ -144,7 +144,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promis
 
     res.json({ success: true, data: task });
   } catch (error) {
-    console.error('[TaskRoutes] Update error:', error);
+    console.error('[TaskRoutes] Update error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to update task',
     });
@@ -162,7 +162,7 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response): Promi
     await taskService.delete(req.params.id, authReq.user.userId);
     res.json({ success: true, message: 'Task deleted' });
   } catch (error) {
-    console.error('[TaskRoutes] Delete error:', error);
+    console.error('[TaskRoutes] Delete error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to delete task',
     });
@@ -187,7 +187,7 @@ router.post('/reorder', authMiddleware, async (req: Request, res: Response): Pro
     await taskService.reorder(authReq.user.userId, ids);
     res.json({ success: true, message: 'Tasks reordered' });
   } catch (error) {
-    console.error('[TaskRoutes] Reorder error:', error);
+    console.error('[TaskRoutes] Reorder error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to reorder tasks',
     });
@@ -215,7 +215,7 @@ router.post('/:id/status', authMiddleware, async (req: Request, res: Response): 
     }
     res.json({ success: true, data: task });
   } catch (error) {
-    console.error('[TaskRoutes] Status update error:', error);
+    console.error('[TaskRoutes] Status update error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to update task status',
     });
@@ -238,7 +238,7 @@ router.post('/:id/assign', authMiddleware, async (req: Request, res: Response): 
     }
     res.json({ success: true, data: task });
   } catch (error) {
-    console.error('[TaskRoutes] Assign error:', error);
+    console.error('[TaskRoutes] Assign error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to assign task',
     });
@@ -260,7 +260,7 @@ router.get('/:id/comments', authMiddleware, async (req: Request, res: Response):
     const comments = await commentService.listByTask(req.params.id, authReq.user.userId);
     res.json({ success: true, data: comments });
   } catch (error) {
-    console.error('[TaskRoutes] Get comments error:', error);
+    console.error('[TaskRoutes] Get comments error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get comments' });
   }
 });
@@ -287,7 +287,7 @@ router.post('/:id/comments', authMiddleware, async (req: Request, res: Response)
 
     res.status(201).json({ success: true, data: comment });
   } catch (error) {
-    console.error('[TaskRoutes] Add comment error:', error);
+    console.error('[TaskRoutes] Add comment error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to add comment',
     });
@@ -315,7 +315,7 @@ router.post('/:id/labels', authMiddleware, async (req: Request, res: Response): 
     await labelService.addToTask(req.params.id, labelId, authReq.user.userId);
     res.json({ success: true, message: 'Label added to task' });
   } catch (error) {
-    console.error('[TaskRoutes] Add label error:', error);
+    console.error('[TaskRoutes] Add label error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to add label to task',
     });
@@ -333,7 +333,7 @@ router.delete('/:id/labels/:labelId', authMiddleware, async (req: Request, res: 
     await labelService.removeFromTask(req.params.id, req.params.labelId, authReq.user.userId);
     res.json({ success: true, message: 'Label removed from task' });
   } catch (error) {
-    console.error('[TaskRoutes] Remove label error:', error);
+    console.error('[TaskRoutes] Remove label error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to remove label from task',
     });

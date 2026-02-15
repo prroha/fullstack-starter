@@ -32,7 +32,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response): Promise<voi
     });
     res.json({ success: true, data: categories });
   } catch (error) {
-    console.error('[CategoryRoutes] List error:', error);
+    console.error('[CategoryRoutes] List error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to list categories' });
   }
 });
@@ -52,7 +52,7 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response): Promise<
     }
     res.json({ success: true, data: category });
   } catch (error) {
-    console.error('[CategoryRoutes] Get error:', error);
+    console.error('[CategoryRoutes] Get error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get category' });
   }
 });
@@ -81,7 +81,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response): Promise<vo
 
     res.status(201).json({ success: true, data: category });
   } catch (error) {
-    console.error('[CategoryRoutes] Create error:', error);
+    console.error('[CategoryRoutes] Create error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to create category',
     });
@@ -111,7 +111,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promis
 
     res.json({ success: true, data: category });
   } catch (error) {
-    console.error('[CategoryRoutes] Update error:', error);
+    console.error('[CategoryRoutes] Update error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to update category',
     });
@@ -129,7 +129,7 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response): Promi
     await categoryService.delete(req.params.id, authReq.user.userId);
     res.json({ success: true, message: 'Category deleted' });
   } catch (error) {
-    console.error('[CategoryRoutes] Delete error:', error);
+    console.error('[CategoryRoutes] Delete error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to delete category',
     });
@@ -154,7 +154,7 @@ router.post('/reorder', authMiddleware, async (req: Request, res: Response): Pro
     await categoryService.reorder(authReq.user.userId, updates);
     res.json({ success: true, message: 'Categories reordered' });
   } catch (error) {
-    console.error('[CategoryRoutes] Reorder error:', error);
+    console.error('[CategoryRoutes] Reorder error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to reorder categories',
     });
@@ -176,7 +176,7 @@ router.post('/:id/toggle-active', authMiddleware, async (req: Request, res: Resp
     }
     res.json({ success: true, data: category });
   } catch (error) {
-    console.error('[CategoryRoutes] Toggle active error:', error);
+    console.error('[CategoryRoutes] Toggle active error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to toggle category status',
     });

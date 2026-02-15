@@ -6,8 +6,8 @@
  */
 
 import { User } from "@prisma/client";
-import { db } from "../lib/db";
-import { logger } from "../lib/logger";
+import { db } from "../lib/db.js";
+import { logger } from "../lib/logger.js";
 
 // Lockout configuration
 const MAX_FAILED_ATTEMPTS = 5;

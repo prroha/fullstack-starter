@@ -4,7 +4,7 @@
  * Sent to users to verify their email address after registration.
  */
 
-import { config } from "../../config";
+import { config } from "../../config/index.js";
 import {
   baseTemplate,
   emailButton,
@@ -14,7 +14,7 @@ import {
   emailInfoBox,
   emailDivider,
   EmailOutput,
-} from "./base.template";
+} from "./base.template.js";
 
 export interface EmailVerificationData {
   name: string | null;

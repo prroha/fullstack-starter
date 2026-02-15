@@ -4,8 +4,8 @@
  * Business logic for announcement management.
  */
 
-import { db } from "../lib/db";
-import { ApiError } from "../middleware/error.middleware";
+import { db } from "../lib/db.js";
+import { ApiError } from "../middleware/error.middleware.js";
 
 // ============================================================================
 // Types

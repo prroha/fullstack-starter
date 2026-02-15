@@ -32,7 +32,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response): Promise<voi
 
     res.json({ success: true, data: result });
   } catch (error) {
-    console.error('[RegistrationRoutes] List error:', error);
+    console.error('[RegistrationRoutes] List error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to list registrations' });
   }
 });
@@ -52,7 +52,7 @@ router.post('/:id/confirm', authMiddleware, async (req: Request, res: Response):
     }
     res.json({ success: true, data: registration });
   } catch (error) {
-    console.error('[RegistrationRoutes] Confirm error:', error);
+    console.error('[RegistrationRoutes] Confirm error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to confirm registration',
     });
@@ -74,7 +74,7 @@ router.post('/:id/check-in', authMiddleware, async (req: Request, res: Response)
     }
     res.json({ success: true, data: registration });
   } catch (error) {
-    console.error('[RegistrationRoutes] Check-in error:', error);
+    console.error('[RegistrationRoutes] Check-in error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to check in',
     });
@@ -96,7 +96,7 @@ router.post('/:id/cancel', authMiddleware, async (req: Request, res: Response): 
     }
     res.json({ success: true, data: registration });
   } catch (error) {
-    console.error('[RegistrationRoutes] Cancel error:', error);
+    console.error('[RegistrationRoutes] Cancel error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to cancel registration',
     });

@@ -127,7 +127,7 @@ router.get(
 
       res.redirect(redirectUrl + `?provider=google&userId=${user.id}`);
     } catch (error) {
-      console.error('[OAuthRoutes] Google callback error:', error);
+      console.error('[OAuthRoutes] Google callback error:', error instanceof Error ? error.message : error);
       res.redirect(FAILURE_REDIRECT);
     }
   }
@@ -198,7 +198,7 @@ router.get(
 
       res.redirect(redirectUrl + `?provider=github&userId=${user.id}`);
     } catch (error) {
-      console.error('[OAuthRoutes] GitHub callback error:', error);
+      console.error('[OAuthRoutes] GitHub callback error:', error instanceof Error ? error.message : error);
       res.redirect(FAILURE_REDIRECT);
     }
   }
@@ -242,7 +242,7 @@ router.post('/mobile/google', async (req: Request, res: Response): Promise<void>
       refreshToken,
     });
   } catch (error) {
-    console.error('[OAuthRoutes] Mobile Google auth error:', error);
+    console.error('[OAuthRoutes] Mobile Google auth error:', error instanceof Error ? error.message : error);
     res.status(500).json({
       error: error instanceof Error ? error.message : 'Authentication failed',
     });
@@ -283,7 +283,7 @@ router.post('/mobile/github', async (req: Request, res: Response): Promise<void>
       refreshToken,
     });
   } catch (error) {
-    console.error('[OAuthRoutes] Mobile GitHub auth error:', error);
+    console.error('[OAuthRoutes] Mobile GitHub auth error:', error instanceof Error ? error.message : error);
     res.status(500).json({
       error: error instanceof Error ? error.message : 'Authentication failed',
     });
@@ -330,7 +330,7 @@ router.post('/mobile/apple', async (req: Request, res: Response): Promise<void> 
       refreshToken,
     });
   } catch (error) {
-    console.error('[OAuthRoutes] Mobile Apple auth error:', error);
+    console.error('[OAuthRoutes] Mobile Apple auth error:', error instanceof Error ? error.message : error);
     res.status(500).json({
       error: error instanceof Error ? error.message : 'Authentication failed',
     });
@@ -382,7 +382,7 @@ router.get('/accounts', async (req: AuthenticatedRequest, res: Response): Promis
       canDisconnect: !!user.passwordHash || user.socialAccounts.length > 1,
     });
   } catch (error) {
-    console.error('[OAuthRoutes] Get accounts error:', error);
+    console.error('[OAuthRoutes] Get accounts error:', error instanceof Error ? error.message : error);
     res.status(500).json({
       error: error instanceof Error ? error.message : 'Failed to get linked accounts',
     });
@@ -472,7 +472,7 @@ router.post(
         },
       });
     } catch (error) {
-      console.error('[OAuthRoutes] Link account error:', error);
+      console.error('[OAuthRoutes] Link account error:', error instanceof Error ? error.message : error);
       res.status(500).json({
         error: error instanceof Error ? error.message : 'Failed to link account',
       });
@@ -540,7 +540,7 @@ router.delete(
         message: `${provider} account disconnected`,
       });
     } catch (error) {
-      console.error('[OAuthRoutes] Disconnect account error:', error);
+      console.error('[OAuthRoutes] Disconnect account error:', error instanceof Error ? error.message : error);
       res.status(500).json({
         error: error instanceof Error ? error.message : 'Failed to disconnect account',
       });

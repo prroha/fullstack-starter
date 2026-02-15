@@ -1,8 +1,8 @@
 import { Response, NextFunction } from "express";
-import { searchService, SearchType } from "../services/search.service";
-import { successResponse } from "../utils/response";
+import { searchService, SearchType } from "../services/search.service.js";
+import { successResponse } from "../utils/response.js";
 import { z } from "zod";
-import { AppRequest, AuthenticatedRequest } from "../types";
+import { AppRequest, AuthenticatedRequest } from "../types/index.js";
 import { UserRole } from "@prisma/client";
 
 // Validation schema for search query params

@@ -29,7 +29,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response): Promise<voi
 
     res.json({ success: true, data: result });
   } catch (error) {
-    console.error('[RecurringRoutes] List error:', error);
+    console.error('[RecurringRoutes] List error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to list recurring invoices' });
   }
 });
@@ -49,7 +49,7 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response): Promise<
     }
     res.json({ success: true, data: recurring });
   } catch (error) {
-    console.error('[RecurringRoutes] Get error:', error);
+    console.error('[RecurringRoutes] Get error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get recurring invoice' });
   }
 });
@@ -98,7 +98,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response): Promise<vo
 
     res.status(201).json({ success: true, data: recurring });
   } catch (error) {
-    console.error('[RecurringRoutes] Create error:', error);
+    console.error('[RecurringRoutes] Create error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to create recurring invoice',
     });
@@ -143,7 +143,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promis
 
     res.json({ success: true, data: recurring });
   } catch (error) {
-    console.error('[RecurringRoutes] Update error:', error);
+    console.error('[RecurringRoutes] Update error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to update recurring invoice',
     });
@@ -165,7 +165,7 @@ router.post('/:id/pause', authMiddleware, async (req: Request, res: Response): P
     }
     res.json({ success: true, data: recurring });
   } catch (error) {
-    console.error('[RecurringRoutes] Pause error:', error);
+    console.error('[RecurringRoutes] Pause error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to pause recurring invoice',
     });
@@ -187,7 +187,7 @@ router.post('/:id/resume', authMiddleware, async (req: Request, res: Response): 
     }
     res.json({ success: true, data: recurring });
   } catch (error) {
-    console.error('[RecurringRoutes] Resume error:', error);
+    console.error('[RecurringRoutes] Resume error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to resume recurring invoice',
     });
@@ -209,7 +209,7 @@ router.post('/:id/cancel', authMiddleware, async (req: Request, res: Response): 
     }
     res.json({ success: true, data: recurring });
   } catch (error) {
-    console.error('[RecurringRoutes] Cancel error:', error);
+    console.error('[RecurringRoutes] Cancel error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to cancel recurring invoice',
     });

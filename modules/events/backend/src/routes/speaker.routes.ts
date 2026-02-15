@@ -31,7 +31,7 @@ router.post('/reorder', authMiddleware, async (req: Request, res: Response): Pro
     await speakerService.reorder(authReq.user.userId, ids);
     res.json({ success: true, message: 'Speakers reordered' });
   } catch (error) {
-    console.error('[SpeakerRoutes] Reorder error:', error);
+    console.error('[SpeakerRoutes] Reorder error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to reorder speakers',
     });
@@ -63,7 +63,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promis
 
     res.json({ success: true, data: speaker });
   } catch (error) {
-    console.error('[SpeakerRoutes] Update error:', error);
+    console.error('[SpeakerRoutes] Update error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to update speaker',
     });
@@ -81,7 +81,7 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response): Promi
     await speakerService.delete(req.params.id, authReq.user.userId);
     res.json({ success: true, message: 'Speaker deleted' });
   } catch (error) {
-    console.error('[SpeakerRoutes] Delete error:', error);
+    console.error('[SpeakerRoutes] Delete error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to delete speaker',
     });

@@ -37,7 +37,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response): Promise<vo
 
     res.status(201).json({ success: true, data: item });
   } catch (error) {
-    console.error('[InvoiceItemRoutes] Add error:', error);
+    console.error('[InvoiceItemRoutes] Add error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to add invoice item',
     });
@@ -67,7 +67,7 @@ router.patch('/:itemId', authMiddleware, async (req: Request, res: Response): Pr
 
     res.json({ success: true, data: item });
   } catch (error) {
-    console.error('[InvoiceItemRoutes] Update error:', error);
+    console.error('[InvoiceItemRoutes] Update error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to update invoice item',
     });
@@ -85,7 +85,7 @@ router.delete('/:itemId', authMiddleware, async (req: Request, res: Response): P
     await invoiceItemService.delete(req.params.itemId, authReq.user.userId);
     res.json({ success: true, message: 'Invoice item deleted' });
   } catch (error) {
-    console.error('[InvoiceItemRoutes] Delete error:', error);
+    console.error('[InvoiceItemRoutes] Delete error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to delete invoice item',
     });
@@ -110,7 +110,7 @@ router.post('/reorder', authMiddleware, async (req: Request, res: Response): Pro
     const items = await invoiceItemService.reorder(invoiceId, authReq.user.userId, itemIds);
     res.json({ success: true, data: items });
   } catch (error) {
-    console.error('[InvoiceItemRoutes] Reorder error:', error);
+    console.error('[InvoiceItemRoutes] Reorder error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to reorder invoice items',
     });

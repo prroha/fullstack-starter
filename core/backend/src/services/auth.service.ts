@@ -1,15 +1,15 @@
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
-import { db } from "../lib/db";
-import { config } from "../config";
-import { generateTokenPair, verifyToken, JwtPayload } from "../utils/jwt";
-import { ApiError } from "../middleware/error.middleware";
-import { ErrorCodes } from "../utils/response";
-import { lockoutService, LockoutStatus } from "./lockout.service";
-import { emailVerificationService } from "./email-verification.service";
-import { emailService } from "./email.service";
-import { sessionService } from "./session.service";
-import { logger } from "../lib/logger";
+import { db } from "../lib/db.js";
+import { config } from "../config/index.js";
+import { generateTokenPair, verifyToken, JwtPayload } from "../utils/jwt.js";
+import { ApiError } from "../middleware/error.middleware.js";
+import { ErrorCodes } from "../utils/response.js";
+import { lockoutService, LockoutStatus } from "./lockout.service.js";
+import { emailVerificationService } from "./email-verification.service.js";
+import { emailService } from "./email.service.js";
+import { sessionService } from "./session.service.js";
+import { logger } from "../lib/logger.js";
 
 interface RegisterInput {
   email: string;

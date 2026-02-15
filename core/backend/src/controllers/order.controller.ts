@@ -1,21 +1,21 @@
 import { Response, NextFunction } from "express";
 import { AuditAction, OrderStatus, PaymentMethod } from "@prisma/client";
-import { orderService } from "../services/order.service";
-import { auditService } from "../services/audit.service";
+import { orderService } from "../services/order.service.js";
+import { auditService } from "../services/audit.service.js";
 import {
   successResponse,
   paginatedResponse,
   errorResponse,
   ErrorCodes,
-} from "../utils/response";
+} from "../utils/response.js";
 import { z } from "zod";
-import { AuthenticatedRequest } from "../types";
-import { paginationSchema } from "../utils/validation-schemas";
+import { AuthenticatedRequest } from "../types/index.js";
+import { paginationSchema } from "../utils/validation-schemas.js";
 import {
   ensureParam,
   getUserIdFromToken,
   sendCsvExport,
-} from "../utils/controller-helpers";
+} from "../utils/controller-helpers.js";
 
 // ============================================================================
 // Validation Schemas

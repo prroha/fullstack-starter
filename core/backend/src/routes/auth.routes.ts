@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { authController } from "../controllers/auth.controller";
-import { authMiddleware } from "../middleware/auth.middleware";
-import { authRateLimiter } from "../middleware/rate-limit.middleware";
+import { authController } from "../controllers/auth.controller.js";
+import { authMiddleware } from "../middleware/auth.middleware.js";
+import { authRateLimiter } from "../middleware/rate-limit.middleware.js";
 
 const router = Router();
 
@@ -279,7 +279,7 @@ router.get("/verify-email/:token", authRateLimiter, (req, res, next) => authCont
  *       401:
  *         description: Unauthorized
  */
-router.post("/send-verification", authMiddleware, authRateLimiter, (req, res, next) => authController.sendVerification(req, res, next));
+router.post("/send-verification", authRateLimiter, authMiddleware, (req, res, next) => authController.sendVerification(req, res, next));
 
 /**
  * @swagger
@@ -343,7 +343,7 @@ router.get("/me", authMiddleware, (req, res, next) => authController.me(req, res
  *       401:
  *         description: Unauthorized or incorrect current password
  */
-router.post("/change-password", authMiddleware, authRateLimiter, (req, res, next) => authController.changePassword(req, res, next));
+router.post("/change-password", authRateLimiter, authMiddleware, (req, res, next) => authController.changePassword(req, res, next));
 
 /**
  * @swagger

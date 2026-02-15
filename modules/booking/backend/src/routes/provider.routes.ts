@@ -28,7 +28,7 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
 
     res.json({ success: true, data: result });
   } catch (error) {
-    console.error('[ProviderRoutes] List error:', error);
+    console.error('[ProviderRoutes] List error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to list providers' });
   }
 });
@@ -46,7 +46,7 @@ router.get('/:id', async (req: Request, res: Response): Promise<void> => {
     }
     res.json({ success: true, data: provider });
   } catch (error) {
-    console.error('[ProviderRoutes] Get by id error:', error);
+    console.error('[ProviderRoutes] Get by id error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get provider' });
   }
 });
@@ -72,7 +72,7 @@ router.get('/:id/availability', async (req: Request, res: Response): Promise<voi
 
     res.json({ success: true, data: slots });
   } catch (error) {
-    console.error('[ProviderRoutes] Availability error:', error);
+    console.error('[ProviderRoutes] Availability error:', error instanceof Error ? error.message : error);
     res.status(500).json({
       error: error instanceof Error ? error.message : 'Failed to get availability',
     });
@@ -103,7 +103,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response): Promise<vo
 
     res.status(201).json({ success: true, data: provider });
   } catch (error) {
-    console.error('[ProviderRoutes] Create error:', error);
+    console.error('[ProviderRoutes] Create error:', error instanceof Error ? error.message : error);
     res.status(500).json({
       error: error instanceof Error ? error.message : 'Failed to create provider profile',
     });
@@ -133,7 +133,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promis
 
     res.json({ success: true, data: provider });
   } catch (error) {
-    console.error('[ProviderRoutes] Update error:', error);
+    console.error('[ProviderRoutes] Update error:', error instanceof Error ? error.message : error);
     res.status(500).json({
       error: error instanceof Error ? error.message : 'Failed to update provider profile',
     });
@@ -156,7 +156,7 @@ router.post('/:id/services', authMiddleware, async (req: Request, res: Response)
     const result = await providerService.linkService(req.params.id, serviceId);
     res.status(201).json({ success: true, data: result });
   } catch (error) {
-    console.error('[ProviderRoutes] Link service error:', error);
+    console.error('[ProviderRoutes] Link service error:', error instanceof Error ? error.message : error);
     res.status(500).json({
       error: error instanceof Error ? error.message : 'Failed to link service',
     });
@@ -172,7 +172,7 @@ router.delete('/:id/services/:serviceId', authMiddleware, async (req: Request, r
     await providerService.unlinkService(req.params.id, req.params.serviceId);
     res.json({ success: true, message: 'Service unlinked from provider' });
   } catch (error) {
-    console.error('[ProviderRoutes] Unlink service error:', error);
+    console.error('[ProviderRoutes] Unlink service error:', error instanceof Error ? error.message : error);
     res.status(500).json({
       error: error instanceof Error ? error.message : 'Failed to unlink service',
     });

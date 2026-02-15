@@ -1,7 +1,7 @@
 import { Request } from "express";
 import { AuditAction, Prisma } from "@prisma/client";
-import { db } from "../lib/db";
-import { logger } from "../lib/logger";
+import { db } from "../lib/db.js";
+import { logger } from "../lib/logger.js";
 
 /**
  * Sensitive fields that should never be logged

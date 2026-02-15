@@ -25,7 +25,7 @@ router.get('/check-breaches', authMiddleware, async (req: Request, res: Response
     const breaches = await slaService.checkBreaches(authReq.user.userId);
     res.json({ success: true, data: breaches });
   } catch (error) {
-    console.error('[SlaRoutes] Check breaches error:', error);
+    console.error('[SlaRoutes] Check breaches error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to check SLA breaches' });
   }
 });
@@ -49,7 +49,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response): Promise<voi
     });
     res.json({ success: true, data: policies });
   } catch (error) {
-    console.error('[SlaRoutes] List error:', error);
+    console.error('[SlaRoutes] List error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to list SLA policies' });
   }
 });
@@ -69,7 +69,7 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response): Promise<
     }
     res.json({ success: true, data: policy });
   } catch (error) {
-    console.error('[SlaRoutes] Get error:', error);
+    console.error('[SlaRoutes] Get error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get SLA policy' });
   }
 });
@@ -101,7 +101,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response): Promise<vo
 
     res.status(201).json({ success: true, data: policy });
   } catch (error) {
-    console.error('[SlaRoutes] Create error:', error);
+    console.error('[SlaRoutes] Create error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to create SLA policy',
     });
@@ -134,7 +134,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promis
 
     res.json({ success: true, data: policy });
   } catch (error) {
-    console.error('[SlaRoutes] Update error:', error);
+    console.error('[SlaRoutes] Update error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to update SLA policy',
     });
@@ -152,7 +152,7 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response): Promi
     await slaService.delete(req.params.id, authReq.user.userId);
     res.json({ success: true, message: 'SLA policy deleted' });
   } catch (error) {
-    console.error('[SlaRoutes] Delete error:', error);
+    console.error('[SlaRoutes] Delete error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to delete SLA policy',
     });
@@ -174,7 +174,7 @@ router.post('/:id/toggle-active', authMiddleware, async (req: Request, res: Resp
     }
     res.json({ success: true, data: policy });
   } catch (error) {
-    console.error('[SlaRoutes] Toggle active error:', error);
+    console.error('[SlaRoutes] Toggle active error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to toggle SLA policy status',
     });

@@ -29,7 +29,7 @@ router.get('/me', authMiddleware, async (req: Request, res: Response): Promise<v
     }
     res.json({ success: true, data: agent });
   } catch (error) {
-    console.error('[AgentRoutes] Get me error:', error);
+    console.error('[AgentRoutes] Get me error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get agent profile' });
   }
 });
@@ -46,7 +46,7 @@ router.get('/workload', authMiddleware, async (req: Request, res: Response): Pro
     const workload = await agentService.getAllWorkloads(authReq.user.userId);
     res.json({ success: true, data: workload });
   } catch (error) {
-    console.error('[AgentRoutes] Workload error:', error);
+    console.error('[AgentRoutes] Workload error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get agents workload' });
   }
 });
@@ -70,7 +70,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response): Promise<voi
     });
     res.json({ success: true, data: agents });
   } catch (error) {
-    console.error('[AgentRoutes] List error:', error);
+    console.error('[AgentRoutes] List error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to list agents' });
   }
 });
@@ -90,7 +90,7 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response): Promise<
     }
     res.json({ success: true, data: agent });
   } catch (error) {
-    console.error('[AgentRoutes] Get error:', error);
+    console.error('[AgentRoutes] Get error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get agent' });
   }
 });
@@ -121,7 +121,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response): Promise<vo
 
     res.status(201).json({ success: true, data: agent });
   } catch (error) {
-    console.error('[AgentRoutes] Create error:', error);
+    console.error('[AgentRoutes] Create error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to create agent',
     });
@@ -153,7 +153,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promis
 
     res.json({ success: true, data: agent });
   } catch (error) {
-    console.error('[AgentRoutes] Update error:', error);
+    console.error('[AgentRoutes] Update error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to update agent',
     });
@@ -171,7 +171,7 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response): Promi
     await agentService.delete(req.params.id, authReq.user.userId);
     res.json({ success: true, message: 'Agent deleted' });
   } catch (error) {
-    console.error('[AgentRoutes] Delete error:', error);
+    console.error('[AgentRoutes] Delete error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to delete agent',
     });
@@ -193,7 +193,7 @@ router.post('/:id/toggle-active', authMiddleware, async (req: Request, res: Resp
     }
     res.json({ success: true, data: agent });
   } catch (error) {
-    console.error('[AgentRoutes] Toggle active error:', error);
+    console.error('[AgentRoutes] Toggle active error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to toggle agent status',
     });

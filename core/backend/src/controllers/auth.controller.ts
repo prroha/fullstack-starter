@@ -1,24 +1,24 @@
 import { Response, NextFunction } from "express";
 import { AuditAction } from "@prisma/client";
-import { authService, AccountLockedError } from "../services/auth.service";
-import { emailVerificationService } from "../services/email-verification.service";
-import { auditService } from "../services/audit.service";
-import { successResponse, errorResponse, ErrorCodes } from "../utils/response";
+import { authService, AccountLockedError } from "../services/auth.service.js";
+import { emailVerificationService } from "../services/email-verification.service.js";
+import { auditService } from "../services/audit.service.js";
+import { successResponse, errorResponse, ErrorCodes } from "../utils/response.js";
 import { z } from "zod";
-import { AppRequest, AuthenticatedRequest } from "../types";
-import { generateCsrfToken } from "../middleware/csrf.middleware";
+import { AppRequest, AuthenticatedRequest } from "../types/index.js";
+import { generateCsrfToken } from "../middleware/csrf.middleware.js";
 import {
   setAuthCookies,
   clearAuthCookies,
   extractRefreshToken,
-} from "../utils/cookies";
+} from "../utils/cookies.js";
 import {
   emailSchema,
   passwordSchema,
   strongPasswordSchema,
   nameSchema,
-} from "../utils/validation-schemas";
-import { ensureParam } from "../utils/controller-helpers";
+} from "../utils/validation-schemas.js";
+import { ensureParam } from "../utils/controller-helpers.js";
 
 // ============================================================================
 // Validation Schemas

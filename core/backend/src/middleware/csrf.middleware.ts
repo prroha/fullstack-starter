@@ -1,8 +1,8 @@
 import { Response, NextFunction } from "express";
 import crypto from "crypto";
-import { AppRequest } from "../types";
-import { logger } from "../lib/logger";
-import { config } from "../config";
+import { AppRequest } from "../types/index.js";
+import { logger } from "../lib/logger.js";
+import { config } from "../config/index.js";
 
 /**
  * CSRF Error Codes

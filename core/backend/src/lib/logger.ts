@@ -8,7 +8,7 @@
  */
 
 import { AsyncLocalStorage } from "async_hooks";
-import { config } from "../config";
+import { config } from "../config/index.js";
 
 type LogLevel = "debug" | "info" | "warn" | "error";
 

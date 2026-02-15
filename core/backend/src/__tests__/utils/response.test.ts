@@ -4,7 +4,7 @@ import {
   errorResponse,
   paginatedResponse,
   ErrorCodes,
-} from "../../utils/response";
+} from "../../utils/response.js";
 
 describe("Response Utilities", () => {
   describe("successResponse", () => {

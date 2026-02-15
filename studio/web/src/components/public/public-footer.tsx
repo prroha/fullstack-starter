@@ -115,12 +115,9 @@ export function PublicFooter() {
         </div>
 
         {/* Bottom Bar */}
-        <div className="border-t py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="border-t py-6 flex items-center justify-center">
           <p className="text-sm text-muted-foreground">
             &copy; {currentYear} Starter Studio. All rights reserved.
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Built with Next.js, TypeScript, and Tailwind CSS
           </p>
         </div>
       </Container>

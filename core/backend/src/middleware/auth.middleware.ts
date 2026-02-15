@@ -1,12 +1,12 @@
 import { Response, NextFunction } from "express";
-import { verifyToken, JwtPayload } from "../utils/jwt";
-import { db } from "../lib/db";
+import { verifyToken, JwtPayload } from "../utils/jwt.js";
+import { db } from "../lib/db.js";
 import { UserRole } from "@prisma/client";
-import { logger } from "../lib/logger";
-import { AppRequest, AuthenticatedRequest } from "../types";
+import { logger } from "../lib/logger.js";
+import { AppRequest, AuthenticatedRequest } from "../types/index.js";
 
 // Re-export AuthenticatedRequest for backwards compatibility
-export type { AuthenticatedRequest } from "../types";
+export type { AuthenticatedRequest } from "../types/index.js";
 
 /**
  * Error codes for authentication failures
@@ -222,7 +222,10 @@ export async function optionalAuthMiddleware(
     (req as AuthenticatedRequest).dbUser = user;
 
     next();
-  } catch {
+  } catch (error) {
+    logger.warn("Optional auth middleware error", {
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
     next();
   }
 }

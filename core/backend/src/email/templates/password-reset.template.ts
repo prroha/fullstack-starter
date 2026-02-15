@@ -4,7 +4,7 @@
  * Sent when a user requests to reset their password.
  */
 
-import { config } from "../../config";
+import { config } from "../../config/index.js";
 import {
   baseTemplate,
   emailButton,
@@ -14,7 +14,7 @@ import {
   emailWarningBox,
   emailDivider,
   EmailOutput,
-} from "./base.template";
+} from "./base.template.js";
 
 export interface PasswordResetEmailData {
   name: string | null;

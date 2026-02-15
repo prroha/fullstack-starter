@@ -15,7 +15,7 @@ interface SeedUser {
 
 const defaultUsers: SeedUser[] = [
   {
-    email: "admin@proha.com",
+    email: "admin@studio.com",
     password: "Admin@123",
     name: "Platform Admin",
     role: "SUPER_ADMIN",

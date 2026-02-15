@@ -23,7 +23,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response): Promise<voi
     const certificates = await certificateService.getUserCertificates(authReq.user.userId);
     res.json({ success: true, data: certificates });
   } catch (error) {
-    console.error('[CertificateRoutes] List error:', error);
+    console.error('[CertificateRoutes] List error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to list certificates' });
   }
 });
@@ -41,7 +41,7 @@ router.get('/:id', async (req: Request, res: Response): Promise<void> => {
     }
     res.json({ success: true, data: certificate });
   } catch (error) {
-    console.error('[CertificateRoutes] Get error:', error);
+    console.error('[CertificateRoutes] Get error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get certificate' });
   }
 });
@@ -69,7 +69,7 @@ router.post('/generate', authMiddleware, async (req: Request, res: Response): Pr
 
     res.status(201).json({ success: true, data: certificate });
   } catch (error) {
-    console.error('[CertificateRoutes] Generate error:', error);
+    console.error('[CertificateRoutes] Generate error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to generate certificate',
     });
@@ -88,7 +88,7 @@ router.get('/:id/download', async (req: Request, res: Response): Promise<void> =
     res.setHeader('Content-Disposition', `attachment; filename=certificate-${req.params.id}.pdf`);
     res.send(pdfBuffer);
   } catch (error) {
-    console.error('[CertificateRoutes] Download error:', error);
+    console.error('[CertificateRoutes] Download error:', error instanceof Error ? error.message : error);
     res.status(500).json({
       error: error instanceof Error ? error.message : 'Failed to generate PDF',
     });
@@ -110,7 +110,7 @@ router.get('/:id/qr', async (req: Request, res: Response): Promise<void> => {
     const qrDataUrl = await certificateService.generateQrCode(certificate.verificationCode);
     res.json({ success: true, data: { qrCode: qrDataUrl } });
   } catch (error) {
-    console.error('[CertificateRoutes] QR error:', error);
+    console.error('[CertificateRoutes] QR error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to generate QR code' });
   }
 });
@@ -124,7 +124,7 @@ router.get('/verify/:code', async (req: Request, res: Response): Promise<void> =
     const result = await certificateService.verifyCertificate(req.params.code);
     res.json({ success: true, data: result });
   } catch (error) {
-    console.error('[CertificateRoutes] Verify error:', error);
+    console.error('[CertificateRoutes] Verify error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to verify certificate' });
   }
 });

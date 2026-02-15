@@ -4,10 +4,10 @@
  * Business logic for coupon management and validation.
  */
 
-import { db } from "../lib/db";
+import { db } from "../lib/db.js";
 import { DiscountType } from "@prisma/client";
-import { ApiError } from "../middleware/error.middleware";
-import { ErrorCodes } from "../utils/response";
+import { ApiError } from "../middleware/error.middleware.js";
+import { ErrorCodes } from "../utils/response.js";
 
 // ============================================================================
 // Types

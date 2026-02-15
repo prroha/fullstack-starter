@@ -166,7 +166,7 @@ function TierCard({
   onEdit: (tier: PricingTier) => void;
 }) {
   const icon = TIER_ICONS[tier.slug] || <Package className="h-6 w-6" />;
-  const colorClass = TIER_COLORS[tier.slug] || "text-gray-500";
+  const colorClass = TIER_COLORS[tier.slug] || "text-muted-foreground";
 
   return (
     <Card className={cn("relative", !tier.isActive && "opacity-60")}>

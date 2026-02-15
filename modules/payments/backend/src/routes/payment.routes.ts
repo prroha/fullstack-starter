@@ -283,7 +283,7 @@ router.post('/checkout', authMiddleware, async (req: Request, res: Response): Pr
       url: session.url,
     });
   } catch (error) {
-    console.error('[PaymentRoutes] Checkout error:', error);
+    console.error('[PaymentRoutes] Checkout error:', error instanceof Error ? error.message : error);
     res.status(500).json({
       error: error instanceof Error ? error.message : 'Checkout failed',
     });
@@ -321,7 +321,7 @@ router.post(
         url: session.url,
       });
     } catch (error) {
-      console.error('[PaymentRoutes] One-time checkout error:', error);
+      console.error('[PaymentRoutes] One-time checkout error:', error instanceof Error ? error.message : error);
       res.status(500).json({
         error: error instanceof Error ? error.message : 'Checkout failed',
       });
@@ -357,7 +357,7 @@ router.get(
         },
       });
     } catch (error) {
-      console.error('[PaymentRoutes] Get session error:', error);
+      console.error('[PaymentRoutes] Get session error:', error instanceof Error ? error.message : error);
       res.status(500).json({ error: 'Failed to get session' });
     }
   }
@@ -391,7 +391,7 @@ router.post('/portal', authMiddleware, async (req: Request, res: Response): Prom
       url: session.url,
     });
   } catch (error) {
-    console.error('[PaymentRoutes] Portal error:', error);
+    console.error('[PaymentRoutes] Portal error:', error instanceof Error ? error.message : error);
     res.status(500).json({
       error: error instanceof Error ? error.message : 'Portal creation failed',
     });
@@ -425,7 +425,7 @@ router.get(
         subscription,
       });
     } catch (error) {
-      console.error('[PaymentRoutes] Get subscription error:', error);
+      console.error('[PaymentRoutes] Get subscription error:', error instanceof Error ? error.message : error);
       res.status(500).json({ error: 'Failed to get subscription' });
     }
   }
@@ -449,7 +449,7 @@ router.get(
         subscriptions,
       });
     } catch (error) {
-      console.error('[PaymentRoutes] Get customer subscriptions error:', error);
+      console.error('[PaymentRoutes] Get customer subscriptions error:', error instanceof Error ? error.message : error);
       res.status(500).json({ error: 'Failed to get subscriptions' });
     }
   }
@@ -481,7 +481,7 @@ router.post(
           : 'Subscription will cancel at period end',
       });
     } catch (error) {
-      console.error('[PaymentRoutes] Cancel subscription error:', error);
+      console.error('[PaymentRoutes] Cancel subscription error:', error instanceof Error ? error.message : error);
       res.status(500).json({
         error: error instanceof Error ? error.message : 'Cancellation failed',
       });
@@ -507,7 +507,7 @@ router.post(
         message: 'Subscription resumed',
       });
     } catch (error) {
-      console.error('[PaymentRoutes] Resume subscription error:', error);
+      console.error('[PaymentRoutes] Resume subscription error:', error instanceof Error ? error.message : error);
       res.status(500).json({
         error: error instanceof Error ? error.message : 'Resume failed',
       });
@@ -546,7 +546,7 @@ router.post(
         },
       });
     } catch (error) {
-      console.error('[PaymentRoutes] Change plan error:', error);
+      console.error('[PaymentRoutes] Change plan error:', error instanceof Error ? error.message : error);
       res.status(500).json({
         error: error instanceof Error ? error.message : 'Plan change failed',
       });
@@ -584,7 +584,7 @@ router.get('/prices', async (_req: Request, res: Response): Promise<void> => {
       prices: formattedPrices,
     });
   } catch (error) {
-    console.error('[PaymentRoutes] List prices error:', error);
+    console.error('[PaymentRoutes] List prices error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to list prices' });
   }
 });
@@ -898,7 +898,7 @@ router.post(
 
       res.json({ received: true });
     } catch (error) {
-      console.error('[PaymentRoutes] Webhook error:', error);
+      console.error('[PaymentRoutes] Webhook error:', error instanceof Error ? error.message : error);
       res.status(400).json({
         error: error instanceof Error ? error.message : 'Webhook failed',
       });

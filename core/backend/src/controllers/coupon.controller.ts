@@ -6,14 +6,14 @@
  */
 
 import { Request, Response, NextFunction } from "express";
-import { AuthenticatedRequest } from "../types";
-import { couponService } from "../services/coupon.service";
-import { auditService } from "../services/audit.service";
-import { successResponse, paginatedResponse } from "../utils/response";
+import { AuthenticatedRequest } from "../types/index.js";
+import { couponService } from "../services/coupon.service.js";
+import { auditService } from "../services/audit.service.js";
+import { successResponse, paginatedResponse } from "../utils/response.js";
 import { z } from "zod";
 import { DiscountType } from "@prisma/client";
-import { booleanFilterSchema, paginationSchema } from "../utils/validation-schemas";
-import { validateOrRespond, sendCsvExport } from "../utils/controller-helpers";
+import { booleanFilterSchema, paginationSchema } from "../utils/validation-schemas.js";
+import { validateOrRespond, sendCsvExport } from "../utils/controller-helpers.js";
 
 // ============================================================================
 // Validation Schemas

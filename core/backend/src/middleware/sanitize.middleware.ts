@@ -1,5 +1,5 @@
 import { Response, NextFunction } from "express";
-import { AppRequest } from "../types";
+import { AppRequest } from "../types/index.js";
 
 /**
  * HTML entities to escape for XSS prevention

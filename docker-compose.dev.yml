@@ -11,7 +11,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: localpass
       POSTGRES_DB: fullstack_dev
     volumes:
       - postgres_data_dev:/var/lib/postgresql/data
@@ -37,7 +37,7 @@ services:
     environment:
       NODE_ENV: development
       PORT: 3001
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/fullstack_dev?schema=public
+      DATABASE_URL: postgresql://postgres:localpass@postgres:5432/fullstack_dev?schema=public
       JWT_SECRET: dev-secret-change-in-production
       JWT_EXPIRES_IN: 7d
       CORS_ORIGIN: http://localhost:3000
@@ -115,7 +115,7 @@ services:
     environment:
       NODE_ENV: development
       PORT: 3003
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/studio_dev?schema=public
+      DATABASE_URL: postgresql://postgres:localpass@postgres:5432/studio_dev?schema=public
       JWT_SECRET: dev-secret-change-in-production
       JWT_EXPIRES_IN: 7d
       CORS_ORIGIN: http://localhost:3002

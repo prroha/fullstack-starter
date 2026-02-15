@@ -25,7 +25,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response): Promise<voi
     const projects = await projectService.list(authReq.user.userId, includeArchived);
     res.json({ success: true, data: projects });
   } catch (error) {
-    console.error('[ProjectRoutes] List error:', error);
+    console.error('[ProjectRoutes] List error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to list projects' });
   }
 });
@@ -48,7 +48,7 @@ router.post('/reorder', authMiddleware, async (req: Request, res: Response): Pro
     await projectService.reorder(authReq.user.userId, ids);
     res.json({ success: true, message: 'Projects reordered' });
   } catch (error) {
-    console.error('[ProjectRoutes] Reorder error:', error);
+    console.error('[ProjectRoutes] Reorder error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to reorder projects',
     });
@@ -70,7 +70,7 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response): Promise<
     }
     res.json({ success: true, data: project });
   } catch (error) {
-    console.error('[ProjectRoutes] Get error:', error);
+    console.error('[ProjectRoutes] Get error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get project' });
   }
 });
@@ -86,7 +86,7 @@ router.get('/:id/stats', authMiddleware, async (req: Request, res: Response): Pr
     const stats = await projectService.getStats(req.params.id, authReq.user.userId);
     res.json({ success: true, data: stats });
   } catch (error) {
-    console.error('[ProjectRoutes] Stats error:', error);
+    console.error('[ProjectRoutes] Stats error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get project stats' });
   }
 });
@@ -115,7 +115,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response): Promise<vo
 
     res.status(201).json({ success: true, data: project });
   } catch (error) {
-    console.error('[ProjectRoutes] Create error:', error);
+    console.error('[ProjectRoutes] Create error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to create project',
     });
@@ -145,7 +145,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promis
 
     res.json({ success: true, data: project });
   } catch (error) {
-    console.error('[ProjectRoutes] Update error:', error);
+    console.error('[ProjectRoutes] Update error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to update project',
     });
@@ -163,7 +163,7 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response): Promi
     await projectService.delete(req.params.id, authReq.user.userId);
     res.json({ success: true, message: 'Project deleted' });
   } catch (error) {
-    console.error('[ProjectRoutes] Delete error:', error);
+    console.error('[ProjectRoutes] Delete error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to delete project',
     });
@@ -185,7 +185,7 @@ router.post('/:id/archive', authMiddleware, async (req: Request, res: Response):
     }
     res.json({ success: true, data: project });
   } catch (error) {
-    console.error('[ProjectRoutes] Archive error:', error);
+    console.error('[ProjectRoutes] Archive error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to archive project',
     });
@@ -207,7 +207,7 @@ router.post('/:id/unarchive', authMiddleware, async (req: Request, res: Response
     }
     res.json({ success: true, data: project });
   } catch (error) {
-    console.error('[ProjectRoutes] Unarchive error:', error);
+    console.error('[ProjectRoutes] Unarchive error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to unarchive project',
     });

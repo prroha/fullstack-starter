@@ -5,15 +5,15 @@
  * Currently logs emails to console, ready for SMTP/SendGrid/Resend integration.
  */
 
-import { config } from "../config";
-import { logger } from "../lib/logger";
+import { config } from "../config/index.js";
+import { logger } from "../lib/logger.js";
 import {
   welcomeEmail,
   passwordResetEmail,
   emailVerificationEmail,
   passwordChangedEmail,
   contactFormEmail,
-} from "../email/templates";
+} from "../email/templates/index.js";
 
 export interface SendEmailOptions {
   /** Recipient email address */

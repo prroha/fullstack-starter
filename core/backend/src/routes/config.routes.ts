@@ -7,7 +7,7 @@
  */
 
 import { Router, Request, Response } from "express";
-import { getStarterConfig } from "../middleware/preview.middleware";
+import { getStarterConfig } from "../middleware/preview.middleware.js";
 
 const router = Router();
 

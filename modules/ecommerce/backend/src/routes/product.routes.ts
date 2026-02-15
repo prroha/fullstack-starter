@@ -34,7 +34,7 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
 
     res.json({ success: true, data: result });
   } catch (error) {
-    console.error('[ProductRoutes] List error:', error);
+    console.error('[ProductRoutes] List error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to list products' });
   }
 });
@@ -48,7 +48,7 @@ router.get('/categories', async (_req: Request, res: Response): Promise<void> =>
     const categories = await productService.listCategories();
     res.json({ success: true, data: categories });
   } catch (error) {
-    console.error('[ProductRoutes] Categories error:', error);
+    console.error('[ProductRoutes] Categories error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to list categories' });
   }
 });
@@ -66,7 +66,7 @@ router.get('/:slug', async (req: Request, res: Response): Promise<void> => {
     }
     res.json({ success: true, data: product });
   } catch (error) {
-    console.error('[ProductRoutes] Get by slug error:', error);
+    console.error('[ProductRoutes] Get by slug error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get product' });
   }
 });
@@ -104,7 +104,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response): Promise<vo
 
     res.status(201).json({ success: true, data: product });
   } catch (error) {
-    console.error('[ProductRoutes] Create error:', error);
+    console.error('[ProductRoutes] Create error:', error instanceof Error ? error.message : error);
     res.status(500).json({
       error: error instanceof Error ? error.message : 'Failed to create product',
     });
@@ -138,7 +138,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promis
 
     res.json({ success: true, data: product });
   } catch (error) {
-    console.error('[ProductRoutes] Update error:', error);
+    console.error('[ProductRoutes] Update error:', error instanceof Error ? error.message : error);
     res.status(500).json({
       error: error instanceof Error ? error.message : 'Failed to update product',
     });
@@ -154,7 +154,7 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response): Promi
     await productService.deleteProduct(req.params.id);
     res.json({ success: true, message: 'Product deleted' });
   } catch (error) {
-    console.error('[ProductRoutes] Delete error:', error);
+    console.error('[ProductRoutes] Delete error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to delete product' });
   }
 });
@@ -172,7 +172,7 @@ router.post('/:id/publish', authMiddleware, async (req: Request, res: Response):
     }
     res.json({ success: true, data: product });
   } catch (error) {
-    console.error('[ProductRoutes] Publish error:', error);
+    console.error('[ProductRoutes] Publish error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to publish product' });
   }
 });
@@ -190,7 +190,7 @@ router.post('/:id/unpublish', authMiddleware, async (req: Request, res: Response
     }
     res.json({ success: true, data: product });
   } catch (error) {
-    console.error('[ProductRoutes] Unpublish error:', error);
+    console.error('[ProductRoutes] Unpublish error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to unpublish product' });
   }
 });
@@ -215,7 +215,7 @@ router.post('/categories', authMiddleware, async (req: Request, res: Response): 
     const category = await productService.createCategory({ name, description, imageUrl });
     res.status(201).json({ success: true, data: category });
   } catch (error) {
-    console.error('[ProductRoutes] Create category error:', error);
+    console.error('[ProductRoutes] Create category error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to create category' });
   }
 });

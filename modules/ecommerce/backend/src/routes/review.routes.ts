@@ -29,7 +29,7 @@ router.get('/product/:productId', async (req: Request, res: Response): Promise<v
 
     res.json({ success: true, data: result });
   } catch (error) {
-    console.error('[ReviewRoutes] List product reviews error:', error);
+    console.error('[ReviewRoutes] List product reviews error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to list reviews' });
   }
 });
@@ -43,7 +43,7 @@ router.get('/product/:productId/stats', async (req: Request, res: Response): Pro
     const stats = await reviewService.getProductRatingStats(req.params.productId);
     res.json({ success: true, data: stats });
   } catch (error) {
-    console.error('[ReviewRoutes] Rating stats error:', error);
+    console.error('[ReviewRoutes] Rating stats error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get rating stats' });
   }
 });
@@ -80,7 +80,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response): Promise<vo
 
     res.status(201).json({ success: true, data: review });
   } catch (error) {
-    console.error('[ReviewRoutes] Create error:', error);
+    console.error('[ReviewRoutes] Create error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to create review',
     });
@@ -112,7 +112,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promis
 
     res.json({ success: true, data: review });
   } catch (error) {
-    console.error('[ReviewRoutes] Update error:', error);
+    console.error('[ReviewRoutes] Update error:', error instanceof Error ? error.message : error);
     res.status(500).json({
       error: error instanceof Error ? error.message : 'Failed to update review',
     });
@@ -128,7 +128,7 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response): Promi
     await reviewService.deleteReview(req.params.id);
     res.json({ success: true, message: 'Review deleted' });
   } catch (error) {
-    console.error('[ReviewRoutes] Delete error:', error);
+    console.error('[ReviewRoutes] Delete error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to delete review' });
   }
 });

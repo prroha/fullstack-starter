@@ -29,7 +29,7 @@ const handleGetStats = async (req: Request, res: Response): Promise<void> => {
     const stats = await eventService.getDashboardStats(authReq.user.userId);
     res.json({ success: true, data: stats });
   } catch (error) {
-    console.error('[EventRoutes] Stats error:', error);
+    console.error('[EventRoutes] Stats error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get event stats' });
   }
 };
@@ -60,7 +60,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response): Promise<voi
 
     res.json({ success: true, data: result });
   } catch (error) {
-    console.error('[EventRoutes] List error:', error);
+    console.error('[EventRoutes] List error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to list events' });
   }
 });
@@ -80,7 +80,7 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response): Promise<
     }
     res.json({ success: true, data: event });
   } catch (error) {
-    console.error('[EventRoutes] Get error:', error);
+    console.error('[EventRoutes] Get error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get event' });
   }
 });
@@ -118,7 +118,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response): Promise<vo
 
     res.status(201).json({ success: true, data: event });
   } catch (error) {
-    console.error('[EventRoutes] Create error:', error);
+    console.error('[EventRoutes] Create error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to create event',
     });
@@ -157,7 +157,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promis
 
     res.json({ success: true, data: event });
   } catch (error) {
-    console.error('[EventRoutes] Update error:', error);
+    console.error('[EventRoutes] Update error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to update event',
     });
@@ -175,7 +175,7 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response): Promi
     await eventService.delete(req.params.id, authReq.user.userId);
     res.json({ success: true, message: 'Event deleted' });
   } catch (error) {
-    console.error('[EventRoutes] Delete error:', error);
+    console.error('[EventRoutes] Delete error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to delete event',
     });
@@ -197,7 +197,7 @@ router.post('/:id/publish', authMiddleware, async (req: Request, res: Response):
     }
     res.json({ success: true, data: event });
   } catch (error) {
-    console.error('[EventRoutes] Publish error:', error);
+    console.error('[EventRoutes] Publish error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to publish event',
     });
@@ -219,7 +219,7 @@ router.post('/:id/cancel', authMiddleware, async (req: Request, res: Response): 
     }
     res.json({ success: true, data: event });
   } catch (error) {
-    console.error('[EventRoutes] Cancel error:', error);
+    console.error('[EventRoutes] Cancel error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to cancel event',
     });
@@ -241,7 +241,7 @@ router.post('/:id/complete', authMiddleware, async (req: Request, res: Response)
     }
     res.json({ success: true, data: event });
   } catch (error) {
-    console.error('[EventRoutes] Complete error:', error);
+    console.error('[EventRoutes] Complete error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to complete event',
     });
@@ -261,7 +261,7 @@ router.get('/:id/speakers', authMiddleware, async (req: Request, res: Response):
     const speakers = await speakerService.listByEvent(req.params.id);
     res.json({ success: true, data: speakers });
   } catch (error) {
-    console.error('[EventRoutes] Get speakers error:', error);
+    console.error('[EventRoutes] Get speakers error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get speakers' });
   }
 });
@@ -293,7 +293,7 @@ router.post('/:id/speakers', authMiddleware, async (req: Request, res: Response)
 
     res.status(201).json({ success: true, data: speaker });
   } catch (error) {
-    console.error('[EventRoutes] Add speaker error:', error);
+    console.error('[EventRoutes] Add speaker error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to add speaker',
     });
@@ -313,7 +313,7 @@ router.get('/:id/registrations', authMiddleware, async (req: Request, res: Respo
     const registrations = await registrationService.listByEvent(req.params.id);
     res.json({ success: true, data: registrations });
   } catch (error) {
-    console.error('[EventRoutes] Get registrations error:', error);
+    console.error('[EventRoutes] Get registrations error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get registrations' });
   }
 });
@@ -342,7 +342,7 @@ router.post('/:id/registrations', authMiddleware, async (req: Request, res: Resp
 
     res.status(201).json({ success: true, data: registration });
   } catch (error) {
-    console.error('[EventRoutes] Register error:', error);
+    console.error('[EventRoutes] Register error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to register for event',
     });

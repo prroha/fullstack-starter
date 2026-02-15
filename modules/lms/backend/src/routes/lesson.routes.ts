@@ -22,7 +22,7 @@ router.get('/sections/:courseId', async (req: Request, res: Response): Promise<v
     const sections = await lessonService.listSections(req.params.courseId);
     res.json({ success: true, data: sections });
   } catch (error) {
-    console.error('[LessonRoutes] List sections error:', error);
+    console.error('[LessonRoutes] List sections error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to list sections' });
   }
 });
@@ -43,7 +43,7 @@ router.post('/sections', authMiddleware, async (req: Request, res: Response): Pr
     const section = await lessonService.createSection({ courseId, title, description });
     res.status(201).json({ success: true, data: section });
   } catch (error) {
-    console.error('[LessonRoutes] Create section error:', error);
+    console.error('[LessonRoutes] Create section error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to create section' });
   }
 });
@@ -64,7 +64,7 @@ router.patch('/sections/:id', authMiddleware, async (req: Request, res: Response
 
     res.json({ success: true, data: section });
   } catch (error) {
-    console.error('[LessonRoutes] Update section error:', error);
+    console.error('[LessonRoutes] Update section error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to update section' });
   }
 });
@@ -78,7 +78,7 @@ router.delete('/sections/:id', authMiddleware, async (req: Request, res: Respons
     await lessonService.deleteSection(req.params.id);
     res.json({ success: true, message: 'Section deleted' });
   } catch (error) {
-    console.error('[LessonRoutes] Delete section error:', error);
+    console.error('[LessonRoutes] Delete section error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to delete section' });
   }
 });
@@ -99,7 +99,7 @@ router.put('/sections/:courseId/reorder', authMiddleware, async (req: Request, r
     await lessonService.reorderSections(req.params.courseId, orderedIds);
     res.json({ success: true, message: 'Sections reordered' });
   } catch (error) {
-    console.error('[LessonRoutes] Reorder sections error:', error);
+    console.error('[LessonRoutes] Reorder sections error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to reorder sections' });
   }
 });
@@ -121,7 +121,7 @@ router.get('/:id', async (req: Request, res: Response): Promise<void> => {
     }
     res.json({ success: true, data: lesson });
   } catch (error) {
-    console.error('[LessonRoutes] Get lesson error:', error);
+    console.error('[LessonRoutes] Get lesson error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get lesson' });
   }
 });
@@ -152,7 +152,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response): Promise<vo
 
     res.status(201).json({ success: true, data: lesson });
   } catch (error) {
-    console.error('[LessonRoutes] Create lesson error:', error);
+    console.error('[LessonRoutes] Create lesson error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to create lesson' });
   }
 });
@@ -182,7 +182,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promis
 
     res.json({ success: true, data: lesson });
   } catch (error) {
-    console.error('[LessonRoutes] Update lesson error:', error);
+    console.error('[LessonRoutes] Update lesson error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to update lesson' });
   }
 });
@@ -196,7 +196,7 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response): Promi
     await lessonService.deleteLesson(req.params.id);
     res.json({ success: true, message: 'Lesson deleted' });
   } catch (error) {
-    console.error('[LessonRoutes] Delete lesson error:', error);
+    console.error('[LessonRoutes] Delete lesson error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to delete lesson' });
   }
 });
@@ -217,7 +217,7 @@ router.put('/reorder/:sectionId', authMiddleware, async (req: Request, res: Resp
     await lessonService.reorderLessons(req.params.sectionId, orderedIds);
     res.json({ success: true, message: 'Lessons reordered' });
   } catch (error) {
-    console.error('[LessonRoutes] Reorder lessons error:', error);
+    console.error('[LessonRoutes] Reorder lessons error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to reorder lessons' });
   }
 });

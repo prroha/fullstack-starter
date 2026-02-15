@@ -1,10 +1,9 @@
 import crypto from "crypto";
-import { db } from "../lib/db";
-import { config as _config } from "../config";
-import { ApiError } from "../middleware/error.middleware";
-import { ErrorCodes } from "../utils/response";
-import { emailService } from "./email.service";
-import { logger } from "../lib/logger";
+import { db } from "../lib/db.js";
+import { ApiError } from "../middleware/error.middleware.js";
+import { ErrorCodes } from "../utils/response.js";
+import { emailService } from "./email.service.js";
+import { logger } from "../lib/logger.js";
 
 // Email verification token expiry in milliseconds (24 hours)
 const VERIFICATION_TOKEN_EXPIRY_MS = 24 * 60 * 60 * 1000;

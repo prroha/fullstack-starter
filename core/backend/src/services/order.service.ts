@@ -1,7 +1,7 @@
-import { db } from "../lib/db";
+import { db } from "../lib/db.js";
 import { OrderStatus, PaymentMethod, Prisma } from "@prisma/client";
-import { ApiError } from "../middleware/error.middleware";
-import { ErrorCodes } from "../utils/response";
+import { ApiError } from "../middleware/error.middleware.js";
+import { ErrorCodes } from "../utils/response.js";
 
 /**
  * Order item structure stored in the items JSON field

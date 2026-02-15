@@ -3,8 +3,8 @@ import path from "path";
 import fs from "fs";
 import crypto from "crypto";
 import { Request } from "express";
-import { ApiError } from "./error.middleware";
-import { ErrorCodes } from "../utils/response";
+import { ApiError } from "./error.middleware.js";
+import { ErrorCodes } from "../utils/response.js";
 
 // Allowed image types
 const ALLOWED_MIME_TYPES = [

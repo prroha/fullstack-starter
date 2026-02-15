@@ -1,17 +1,17 @@
 import { Router } from "express";
-import authRoutes from "./auth.routes";
-import userRoutes from "./user.routes";
-import adminRoutes from "./admin.routes";
-import searchRoutes from "./search.routes";
-import contactRoutes from "./contact.routes";
-import notificationRoutes from "./notification.routes";
-import faqRoutes from "./faq.routes";
-import announcementRoutes from "./announcement.routes";
-import settingRoutes from "./setting.routes";
-import contentRoutes from "./content.routes";
-import couponRoutes from "./coupon.routes";
-import configRoutes from "./config.routes";
-import { orderRoutes, adminOrderRoutes } from "./order.routes";
+import authRoutes from "./auth.routes.js";
+import userRoutes from "./user.routes.js";
+import adminRoutes from "./admin.routes.js";
+import searchRoutes from "./search.routes.js";
+import contactRoutes from "./contact.routes.js";
+import notificationRoutes from "./notification.routes.js";
+import faqRoutes from "./faq.routes.js";
+import announcementRoutes from "./announcement.routes.js";
+import settingRoutes from "./setting.routes.js";
+import contentRoutes from "./content.routes.js";
+import couponRoutes from "./coupon.routes.js";
+import configRoutes from "./config.routes.js";
+import { orderRoutes, adminOrderRoutes } from "./order.routes.js";
 
 const router = Router();
 

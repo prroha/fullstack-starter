@@ -7,9 +7,9 @@
 
 import { Response } from "express";
 import { z, ZodSchema, ZodError } from "zod";
-import { AppRequest, AuthenticatedRequest } from "../types";
-import { errorResponse, ErrorCodes } from "./response";
-import { exportService, CsvColumn } from "../services/export.service";
+import { AppRequest, AuthenticatedRequest } from "../types/index.js";
+import { errorResponse, ErrorCodes } from "./response.js";
+import { exportService, CsvColumn } from "../services/export.service.js";
 
 // ============================================================================
 // Validation Helpers

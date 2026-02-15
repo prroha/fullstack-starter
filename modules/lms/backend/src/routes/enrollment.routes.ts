@@ -34,7 +34,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response): Promise<vo
 
     res.status(201).json({ success: true, data: enrollment });
   } catch (error) {
-    console.error('[EnrollmentRoutes] Enroll error:', error);
+    console.error('[EnrollmentRoutes] Enroll error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Enrollment failed',
     });
@@ -51,7 +51,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response): Promise<voi
     const enrollments = await enrollmentService.getUserEnrollments(authReq.user.userId);
     res.json({ success: true, data: enrollments });
   } catch (error) {
-    console.error('[EnrollmentRoutes] List error:', error);
+    console.error('[EnrollmentRoutes] List error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to list enrollments' });
   }
 });
@@ -65,7 +65,7 @@ router.get('/course/:courseId', authMiddleware, async (req: Request, res: Respon
     const enrollments = await enrollmentService.getCourseEnrollments(req.params.courseId);
     res.json({ success: true, data: enrollments });
   } catch (error) {
-    console.error('[EnrollmentRoutes] Course enrollments error:', error);
+    console.error('[EnrollmentRoutes] Course enrollments error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get course enrollments' });
   }
 });
@@ -79,7 +79,7 @@ router.get('/:enrollmentId/progress', authMiddleware, async (req: Request, res: 
     const progress = await enrollmentService.getProgress(req.params.enrollmentId);
     res.json({ success: true, data: progress });
   } catch (error) {
-    console.error('[EnrollmentRoutes] Get progress error:', error);
+    console.error('[EnrollmentRoutes] Get progress error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get progress' });
   }
 });
@@ -107,7 +107,7 @@ router.post('/:enrollmentId/progress', authMiddleware, async (req: Request, res:
 
     res.json({ success: true, data: progress });
   } catch (error) {
-    console.error('[EnrollmentRoutes] Update progress error:', error);
+    console.error('[EnrollmentRoutes] Update progress error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to update progress' });
   }
 });
@@ -127,7 +127,7 @@ router.post(
       );
       res.json({ success: true, data: progress });
     } catch (error) {
-      console.error('[EnrollmentRoutes] Complete lesson error:', error);
+      console.error('[EnrollmentRoutes] Complete lesson error:', error instanceof Error ? error.message : error);
       res.status(500).json({ error: 'Failed to complete lesson' });
     }
   },
@@ -142,7 +142,7 @@ router.post('/:enrollmentId/drop', authMiddleware, async (req: Request, res: Res
     const enrollment = await enrollmentService.dropEnrollment(req.params.enrollmentId);
     res.json({ success: true, data: enrollment });
   } catch (error) {
-    console.error('[EnrollmentRoutes] Drop error:', error);
+    console.error('[EnrollmentRoutes] Drop error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to drop enrollment' });
   }
 });

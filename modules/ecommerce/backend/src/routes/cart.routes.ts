@@ -42,7 +42,7 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
     const cart = await cartService.getCart(userId, sessionId);
     res.json({ success: true, data: cart });
   } catch (error) {
-    console.error('[CartRoutes] Get cart error:', error);
+    console.error('[CartRoutes] Get cart error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get cart' });
   }
 });
@@ -75,7 +75,7 @@ router.post('/items', async (req: Request, res: Response): Promise<void> => {
 
     res.status(201).json({ success: true, data: cart });
   } catch (error) {
-    console.error('[CartRoutes] Add item error:', error);
+    console.error('[CartRoutes] Add item error:', error instanceof Error ? error.message : error);
     res.status(500).json({
       error: error instanceof Error ? error.message : 'Failed to add item to cart',
     });
@@ -104,7 +104,7 @@ router.patch('/items/:itemId', async (req: Request, res: Response): Promise<void
 
     res.json({ success: true, data: cart });
   } catch (error) {
-    console.error('[CartRoutes] Update item error:', error);
+    console.error('[CartRoutes] Update item error:', error instanceof Error ? error.message : error);
     res.status(500).json({
       error: error instanceof Error ? error.message : 'Failed to update cart item',
     });
@@ -120,7 +120,7 @@ router.delete('/items/:itemId', async (req: Request, res: Response): Promise<voi
     await cartService.removeItem(req.params.itemId);
     res.json({ success: true, message: 'Item removed from cart' });
   } catch (error) {
-    console.error('[CartRoutes] Remove item error:', error);
+    console.error('[CartRoutes] Remove item error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to remove item from cart' });
   }
 });
@@ -142,7 +142,7 @@ router.delete('/', async (req: Request, res: Response): Promise<void> => {
     await cartService.clearCart(cart.id);
     res.json({ success: true, message: 'Cart cleared' });
   } catch (error) {
-    console.error('[CartRoutes] Clear cart error:', error);
+    console.error('[CartRoutes] Clear cart error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to clear cart' });
   }
 });
@@ -166,7 +166,7 @@ router.post('/merge', authMiddleware, async (req: Request, res: Response): Promi
     const cart = await cartService.getCart(authReq.user.userId, undefined);
     res.json({ success: true, data: cart });
   } catch (error) {
-    console.error('[CartRoutes] Merge cart error:', error);
+    console.error('[CartRoutes] Merge cart error:', error instanceof Error ? error.message : error);
     res.status(500).json({
       error: error instanceof Error ? error.message : 'Failed to merge carts',
     });

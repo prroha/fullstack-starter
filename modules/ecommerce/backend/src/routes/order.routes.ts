@@ -36,7 +36,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response): Promise<vo
 
     res.status(201).json({ success: true, data: order });
   } catch (error) {
-    console.error('[OrderRoutes] Create error:', error);
+    console.error('[OrderRoutes] Create error:', error instanceof Error ? error.message : error);
     res.status(500).json({
       error: error instanceof Error ? error.message : 'Failed to create order',
     });
@@ -60,7 +60,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response): Promise<voi
 
     res.json({ success: true, data: result });
   } catch (error) {
-    console.error('[OrderRoutes] List error:', error);
+    console.error('[OrderRoutes] List error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to list orders' });
   }
 });
@@ -79,7 +79,7 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response): Promise<
 
     res.json({ success: true, data: order });
   } catch (error) {
-    console.error('[OrderRoutes] Get by id error:', error);
+    console.error('[OrderRoutes] Get by id error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get order' });
   }
 });
@@ -98,7 +98,7 @@ router.post('/:id/cancel', authMiddleware, async (req: Request, res: Response): 
 
     res.json({ success: true, data: order });
   } catch (error) {
-    console.error('[OrderRoutes] Cancel error:', error);
+    console.error('[OrderRoutes] Cancel error:', error instanceof Error ? error.message : error);
     res.status(500).json({
       error: error instanceof Error ? error.message : 'Failed to cancel order',
     });

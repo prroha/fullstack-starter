@@ -215,7 +215,7 @@ router.post(
         messageId: result.messageId,
       } as EmailResponse);
     } catch (error) {
-      console.error('[EmailRoutes] Send email error:', error);
+      console.error('[EmailRoutes] Send email error:', error instanceof Error ? error.message : error);
       res.status(500).json({
         success: false,
         error: 'Internal server error',
@@ -317,7 +317,7 @@ router.post(
         messageId: result.messageId,
       } as EmailResponse);
     } catch (error) {
-      console.error('[EmailRoutes] Send template email error:', error);
+      console.error('[EmailRoutes] Send template email error:', error instanceof Error ? error.message : error);
       res.status(500).json({
         success: false,
         error: 'Internal server error',
@@ -362,7 +362,7 @@ router.get('/templates', authMiddleware, async (_req: Request, res: Response): P
       templates,
     });
   } catch (error) {
-    console.error('[EmailRoutes] List templates error:', error);
+    console.error('[EmailRoutes] List templates error:', error instanceof Error ? error.message : error);
     res.status(500).json({
       success: false,
       error: 'Internal server error',

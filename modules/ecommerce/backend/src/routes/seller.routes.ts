@@ -25,7 +25,7 @@ router.get('/stats', authMiddleware, async (req: Request, res: Response): Promis
     const stats = await sellerService.getDashboardStats(authReq.user.userId);
     res.json({ success: true, data: stats });
   } catch (error) {
-    console.error('[SellerRoutes] Stats error:', error);
+    console.error('[SellerRoutes] Stats error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get seller stats' });
   }
 });
@@ -47,7 +47,7 @@ router.get('/products', authMiddleware, async (req: Request, res: Response): Pro
 
     res.json({ success: true, data: result });
   } catch (error) {
-    console.error('[SellerRoutes] Products error:', error);
+    console.error('[SellerRoutes] Products error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get seller products' });
   }
 });
@@ -62,7 +62,7 @@ router.get('/products/analytics', authMiddleware, async (req: Request, res: Resp
     const analytics = await sellerService.getProductAnalytics(authReq.user.userId);
     res.json({ success: true, data: analytics });
   } catch (error) {
-    console.error('[SellerRoutes] Product analytics error:', error);
+    console.error('[SellerRoutes] Product analytics error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get product analytics' });
   }
 });
@@ -84,7 +84,7 @@ router.get('/orders', authMiddleware, async (req: Request, res: Response): Promi
 
     res.json({ success: true, data: result });
   } catch (error) {
-    console.error('[SellerRoutes] Orders error:', error);
+    console.error('[SellerRoutes] Orders error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get seller orders' });
   }
 });
@@ -99,7 +99,7 @@ router.get('/orders/recent', authMiddleware, async (req: Request, res: Response)
     const orders = await sellerService.getRecentOrders(authReq.user.userId, 5);
     res.json({ success: true, data: orders });
   } catch (error) {
-    console.error('[SellerRoutes] Recent orders error:', error);
+    console.error('[SellerRoutes] Recent orders error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get recent orders' });
   }
 });
@@ -114,7 +114,7 @@ router.get('/reviews/recent', authMiddleware, async (req: Request, res: Response
     const reviews = await sellerService.getRecentReviews(authReq.user.userId, 5);
     res.json({ success: true, data: reviews });
   } catch (error) {
-    console.error('[SellerRoutes] Recent reviews error:', error);
+    console.error('[SellerRoutes] Recent reviews error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get recent reviews' });
   }
 });
@@ -135,7 +135,7 @@ router.get('/revenue', authMiddleware, async (req: Request, res: Response): Prom
 
     res.json({ success: true, data: revenue });
   } catch (error) {
-    console.error('[SellerRoutes] Revenue error:', error);
+    console.error('[SellerRoutes] Revenue error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get revenue data' });
   }
 });

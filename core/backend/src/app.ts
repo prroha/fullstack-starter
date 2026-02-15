@@ -5,17 +5,18 @@ import cookieParser from "cookie-parser";
 import path from "path";
 import swaggerUi from "swagger-ui-express";
 
-import { config } from "./config";
-import { errorMiddleware } from "./middleware/error.middleware";
-import { csrfProtection } from "./middleware/csrf.middleware";
-import { sanitizeInput } from "./middleware/sanitize.middleware";
-import { generalRateLimiter } from "./middleware/rate-limit.middleware";
-import { requestIdMiddleware, REQUEST_ID_HEADER } from "./middleware/request-id.middleware";
-import { previewMiddleware } from "./middleware/preview.middleware";
-import { UPLOAD_DIR as _UPLOAD_DIR } from "./middleware/upload.middleware";
-import { logger, requestContext } from "./lib/logger";
-import routes from "./routes";
-import { swaggerSpec } from "./swagger";
+import { config } from "./config/index.js";
+import { errorMiddleware } from "./middleware/error.middleware.js";
+import { csrfProtection } from "./middleware/csrf.middleware.js";
+import { sanitizeInput } from "./middleware/sanitize.middleware.js";
+import { generalRateLimiter, cleanupRateLimitStores } from "./middleware/rate-limit.middleware.js";
+import { requestIdMiddleware, REQUEST_ID_HEADER } from "./middleware/request-id.middleware.js";
+import { previewMiddleware } from "./middleware/preview.middleware.js";
+import { UPLOAD_DIR as _UPLOAD_DIR } from "./middleware/upload.middleware.js";
+import { logger, requestContext } from "./lib/logger.js";
+import { db } from "./lib/db.js";
+import routes from "./routes/index.js";
+import { swaggerSpec } from "./swagger.js";
 
 const app = express();
 
@@ -95,8 +96,13 @@ app.use(previewMiddleware);
 app.use(generalRateLimiter);
 
 // Health check (before CSRF to allow monitoring)
-app.get("/health", (_req, res) => {
-  res.json({ status: "ok", timestamp: new Date().toISOString() });
+app.get("/health", async (_req, res) => {
+  try {
+    await db.$queryRaw`SELECT 1`;
+    res.json({ status: "ok", timestamp: new Date().toISOString() });
+  } catch {
+    res.status(503).json({ status: "error", timestamp: new Date().toISOString() });
+  }
 });
 
 // Swagger API documentation
@@ -138,7 +144,7 @@ app.use(errorMiddleware);
 // Start server
 const PORT = config.port;
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   logger.info(`Server started`, {
     port: PORT,
     environment: config.nodeEnv,
@@ -146,4 +152,16 @@ app.listen(PORT, () => {
   });
 });
 
-export default app;
+// Graceful shutdown
+const shutdown = () => {
+  logger.info("Shutting down gracefully...");
+  server.close(() => {
+    cleanupRateLimitStores();
+    process.exit(0);
+  });
+};
+
+process.on("SIGTERM", shutdown);
+process.on("SIGINT", shutdown);
+
+export { app, server };

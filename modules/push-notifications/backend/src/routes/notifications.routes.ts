@@ -101,7 +101,7 @@ router.post('/register', async (req: AuthenticatedRequest, res: Response): Promi
       });
     }
   } catch (error) {
-    console.error('[NotificationsRoutes] Register token error:', error);
+    console.error('[NotificationsRoutes] Register token error:', error instanceof Error ? error.message : error);
     res.status(500).json({
       error: error instanceof Error ? error.message : 'Failed to register token',
     });
@@ -136,7 +136,7 @@ router.delete('/unregister', async (req: AuthenticatedRequest, res: Response): P
       });
     }
   } catch (error) {
-    console.error('[NotificationsRoutes] Unregister token error:', error);
+    console.error('[NotificationsRoutes] Unregister token error:', error instanceof Error ? error.message : error);
     res.status(500).json({
       error: error instanceof Error ? error.message : 'Failed to unregister token',
     });
@@ -170,7 +170,7 @@ router.get('/devices', async (req: AuthenticatedRequest, res: Response): Promise
       })),
     });
   } catch (error) {
-    console.error('[NotificationsRoutes] Get devices error:', error);
+    console.error('[NotificationsRoutes] Get devices error:', error instanceof Error ? error.message : error);
     res.status(500).json({
       error: error instanceof Error ? error.message : 'Failed to get devices',
     });
@@ -278,7 +278,7 @@ router.post('/send', async (req: AuthenticatedRequest, res: Response): Promise<v
 
     res.status(400).json({ error: 'No valid target specified' });
   } catch (error) {
-    console.error('[NotificationsRoutes] Send notification error:', error);
+    console.error('[NotificationsRoutes] Send notification error:', error instanceof Error ? error.message : error);
     res.status(500).json({
       error: error instanceof Error ? error.message : 'Failed to send notification',
     });
@@ -318,7 +318,7 @@ router.post('/send-topic', async (req: AuthenticatedRequest, res: Response): Pro
       error: result.error,
     });
   } catch (error) {
-    console.error('[NotificationsRoutes] Send to topic error:', error);
+    console.error('[NotificationsRoutes] Send to topic error:', error instanceof Error ? error.message : error);
     res.status(500).json({
       error: error instanceof Error ? error.message : 'Failed to send topic notification',
     });
@@ -373,7 +373,7 @@ router.post('/broadcast', async (req: AuthenticatedRequest, res: Response): Prom
       error: sendResult.error,
     });
   } catch (error) {
-    console.error('[NotificationsRoutes] Broadcast error:', error);
+    console.error('[NotificationsRoutes] Broadcast error:', error instanceof Error ? error.message : error);
     res.status(500).json({
       error: error instanceof Error ? error.message : 'Failed to broadcast notification',
     });
@@ -413,7 +413,7 @@ router.post(
         errors: result.errors,
       });
     } catch (error) {
-      console.error('[NotificationsRoutes] Subscribe to topic error:', error);
+      console.error('[NotificationsRoutes] Subscribe to topic error:', error instanceof Error ? error.message : error);
       res.status(500).json({
         error: error instanceof Error ? error.message : 'Failed to subscribe to topic',
       });
@@ -450,7 +450,7 @@ router.post(
         errors: result.errors,
       });
     } catch (error) {
-      console.error('[NotificationsRoutes] Unsubscribe from topic error:', error);
+      console.error('[NotificationsRoutes] Unsubscribe from topic error:', error instanceof Error ? error.message : error);
       res.status(500).json({
         error: error instanceof Error ? error.message : 'Failed to unsubscribe from topic',
       });
@@ -497,7 +497,7 @@ router.get('/history', async (req: AuthenticatedRequest, res: Response): Promise
       },
     });
   } catch (error) {
-    console.error('[NotificationsRoutes] Get history error:', error);
+    console.error('[NotificationsRoutes] Get history error:', error instanceof Error ? error.message : error);
     res.status(500).json({
       error: error instanceof Error ? error.message : 'Failed to get notification history',
     });
@@ -526,7 +526,7 @@ router.get('/stats', async (req: AuthenticatedRequest, res: Response): Promise<v
       stats,
     });
   } catch (error) {
-    console.error('[NotificationsRoutes] Get stats error:', error);
+    console.error('[NotificationsRoutes] Get stats error:', error instanceof Error ? error.message : error);
     res.status(500).json({
       error: error instanceof Error ? error.message : 'Failed to get stats',
     });
@@ -553,7 +553,7 @@ router.post('/cleanup', async (req: AuthenticatedRequest, res: Response): Promis
       deletedCount,
     });
   } catch (error) {
-    console.error('[NotificationsRoutes] Cleanup error:', error);
+    console.error('[NotificationsRoutes] Cleanup error:', error instanceof Error ? error.message : error);
     res.status(500).json({
       error: error instanceof Error ? error.message : 'Failed to cleanup tokens',
     });
@@ -578,7 +578,7 @@ router.get('/status', async (_req: Request, res: Response): Promise<void> => {
       deviceStats: stats,
     });
   } catch (error) {
-    console.error('[NotificationsRoutes] Status check error:', error);
+    console.error('[NotificationsRoutes] Status check error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to check status' });
   }
 });

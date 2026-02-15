@@ -5,7 +5,7 @@
  * Uses inline CSS for maximum email client compatibility.
  */
 
-import { config } from "../../config";
+import { config } from "../../config/index.js";
 
 export interface BaseTemplateOptions {
   /** Main content HTML */

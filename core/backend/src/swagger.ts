@@ -1,5 +1,5 @@
 import swaggerJsdoc from "swagger-jsdoc";
-import { config } from "./config";
+import { config } from "./config/index.js";
 
 /**
  * Shared OpenAPI schemas - Single source of truth for all types

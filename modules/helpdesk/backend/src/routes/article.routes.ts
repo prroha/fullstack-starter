@@ -26,7 +26,7 @@ router.get('/search', authMiddleware, async (req: Request, res: Response): Promi
     const results = await articleService.search(authReq.user.userId, q as string);
     res.json({ success: true, data: results });
   } catch (error) {
-    console.error('[ArticleRoutes] Search error:', error);
+    console.error('[ArticleRoutes] Search error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to search articles' });
   }
 });
@@ -50,7 +50,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response): Promise<voi
 
     res.json({ success: true, data: result });
   } catch (error) {
-    console.error('[ArticleRoutes] List error:', error);
+    console.error('[ArticleRoutes] List error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to list articles' });
   }
 });
@@ -70,7 +70,7 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response): Promise<
     }
     res.json({ success: true, data: article });
   } catch (error) {
-    console.error('[ArticleRoutes] Get error:', error);
+    console.error('[ArticleRoutes] Get error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get article' });
   }
 });
@@ -103,7 +103,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response): Promise<vo
 
     res.status(201).json({ success: true, data: article });
   } catch (error) {
-    console.error('[ArticleRoutes] Create error:', error);
+    console.error('[ArticleRoutes] Create error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to create article',
     });
@@ -137,7 +137,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promis
 
     res.json({ success: true, data: article });
   } catch (error) {
-    console.error('[ArticleRoutes] Update error:', error);
+    console.error('[ArticleRoutes] Update error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to update article',
     });
@@ -155,7 +155,7 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response): Promi
     await articleService.delete(req.params.id, authReq.user.userId);
     res.json({ success: true, message: 'Article deleted' });
   } catch (error) {
-    console.error('[ArticleRoutes] Delete error:', error);
+    console.error('[ArticleRoutes] Delete error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to delete article',
     });
@@ -177,7 +177,7 @@ router.post('/:id/publish', authMiddleware, async (req: Request, res: Response):
     }
     res.json({ success: true, data: article });
   } catch (error) {
-    console.error('[ArticleRoutes] Publish error:', error);
+    console.error('[ArticleRoutes] Publish error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to publish article',
     });
@@ -199,7 +199,7 @@ router.post('/:id/archive', authMiddleware, async (req: Request, res: Response):
     }
     res.json({ success: true, data: article });
   } catch (error) {
-    console.error('[ArticleRoutes] Archive error:', error);
+    console.error('[ArticleRoutes] Archive error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to archive article',
     });
@@ -227,7 +227,7 @@ router.post('/:id/feedback', authMiddleware, async (req: Request, res: Response)
     });
     res.json({ success: true, data: feedback });
   } catch (error) {
-    console.error('[ArticleRoutes] Feedback error:', error);
+    console.error('[ArticleRoutes] Feedback error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to submit article feedback',
     });

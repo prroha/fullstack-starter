@@ -1,11 +1,11 @@
 import { Response, NextFunction } from "express";
-import { contactService } from "../services/contact.service";
-import { successResponse, paginatedResponse } from "../utils/response";
+import { contactService } from "../services/contact.service.js";
+import { successResponse, paginatedResponse } from "../utils/response.js";
 import { z } from "zod";
-import { AppRequest } from "../types";
+import { AppRequest } from "../types/index.js";
 import { ContactMessageStatus } from "@prisma/client";
-import { emailSchema, paginationSchema } from "../utils/validation-schemas";
-import { sendCsvExport } from "../utils/controller-helpers";
+import { emailSchema, paginationSchema } from "../utils/validation-schemas.js";
+import { sendCsvExport } from "../utils/controller-helpers.js";
 
 // ============================================================================
 // Validation Schemas

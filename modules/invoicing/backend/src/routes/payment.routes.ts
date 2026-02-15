@@ -25,7 +25,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response): Promise<voi
     const payments = await paymentService.list(invoiceId, authReq.user.userId);
     res.json({ success: true, data: payments });
   } catch (error) {
-    console.error('[PaymentRoutes] List error:', error);
+    console.error('[PaymentRoutes] List error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to list payments' });
   }
 });
@@ -55,7 +55,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response): Promise<vo
 
     res.status(201).json({ success: true, data: payment });
   } catch (error) {
-    console.error('[PaymentRoutes] Record error:', error);
+    console.error('[PaymentRoutes] Record error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to record payment',
     });
@@ -73,7 +73,7 @@ router.delete('/:paymentId', authMiddleware, async (req: Request, res: Response)
     await paymentService.delete(req.params.paymentId, authReq.user.userId);
     res.json({ success: true, message: 'Payment deleted' });
   } catch (error) {
-    console.error('[PaymentRoutes] Delete error:', error);
+    console.error('[PaymentRoutes] Delete error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to delete payment',
     });

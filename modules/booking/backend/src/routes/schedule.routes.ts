@@ -22,7 +22,7 @@ router.get('/:providerId', authMiddleware, async (req: Request, res: Response): 
     const schedule = await scheduleService.getWeeklySchedule(req.params.providerId);
     res.json({ success: true, data: schedule });
   } catch (error) {
-    console.error('[ScheduleRoutes] Get schedule error:', error);
+    console.error('[ScheduleRoutes] Get schedule error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get schedule' });
   }
 });
@@ -43,7 +43,7 @@ router.put('/:providerId', authMiddleware, async (req: Request, res: Response): 
     const result = await scheduleService.updateWeeklySchedule(req.params.providerId, schedules);
     res.json({ success: true, data: result });
   } catch (error) {
-    console.error('[ScheduleRoutes] Update schedule error:', error);
+    console.error('[ScheduleRoutes] Update schedule error:', error instanceof Error ? error.message : error);
     res.status(500).json({
       error: error instanceof Error ? error.message : 'Failed to update schedule',
     });
@@ -70,7 +70,7 @@ router.get('/:providerId/overrides', authMiddleware, async (req: Request, res: R
 
     res.json({ success: true, data: overrides });
   } catch (error) {
-    console.error('[ScheduleRoutes] List overrides error:', error);
+    console.error('[ScheduleRoutes] List overrides error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to list schedule overrides' });
   }
 });
@@ -98,7 +98,7 @@ router.post('/:providerId/overrides', authMiddleware, async (req: Request, res: 
 
     res.status(201).json({ success: true, data: override });
   } catch (error) {
-    console.error('[ScheduleRoutes] Create override error:', error);
+    console.error('[ScheduleRoutes] Create override error:', error instanceof Error ? error.message : error);
     res.status(500).json({
       error: error instanceof Error ? error.message : 'Failed to create schedule override',
     });
@@ -114,7 +114,7 @@ router.delete('/:providerId/overrides/:id', authMiddleware, async (req: Request,
     await scheduleService.deleteOverride(req.params.id);
     res.json({ success: true, message: 'Schedule override removed' });
   } catch (error) {
-    console.error('[ScheduleRoutes] Delete override error:', error);
+    console.error('[ScheduleRoutes] Delete override error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to delete schedule override' });
   }
 });

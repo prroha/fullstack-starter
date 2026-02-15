@@ -20,7 +20,7 @@ import {
 import { cn, formatNumber, formatDate, formatDateTime } from "@/lib/utils";
 import { showSuccess, showError, showLoading, dismissToast } from "@/lib/toast";
 import { adminApi, ApiError, type License as ApiLicense, type LicenseStatus, type PaginationInfo } from "@/lib/api";
-import { Button, Modal, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, StatCard, CopyButton } from "@/components/ui";
+import { Button, Modal, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, StatCard, CopyButton, Input, Textarea, DropdownMenu } from "@/components/ui";
 import { EmptyList } from "@/components/ui";
 import { EmptyState } from "@core/components/shared";
 import { AdminPageHeader, AdminFilterBar, type FilterConfig, LicenseStatusBadge, AdminTableSkeleton } from "@/components/admin";
@@ -144,7 +144,7 @@ function ExtendLicenseModal({
           <label htmlFor="days" className="block text-sm font-medium mb-1">
             Extend by (days) <span className="text-red-500">*</span>
           </label>
-          <input
+          <Input
             type="number"
             id="days"
             value={days}
@@ -152,7 +152,6 @@ function ExtendLicenseModal({
             min={1}
             max={365}
             required
-            className="w-full px-3 py-2 rounded-md border bg-background focus:outline-none focus:ring-2 focus:ring-primary"
           />
           <p className="text-xs text-muted-foreground mt-1">
             New expiration: {formatDateTime(newExpiry.toISOString())}
@@ -212,7 +211,7 @@ function RevokeLicenseModal({
             type="submit"
             disabled={loading || !reason.trim()}
             onClick={handleSubmit}
-            className="bg-red-600 text-white hover:bg-red-700"
+            variant="destructive"
           >
             {loading ? "Revoking..." : "Revoke License"}
           </Button>
@@ -247,14 +246,14 @@ function RevokeLicenseModal({
           <label htmlFor="revokeReason" className="block text-sm font-medium mb-1">
             Reason <span className="text-red-500">*</span>
           </label>
-          <textarea
+          <Textarea
             id="revokeReason"
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             placeholder="e.g., Refund requested, policy violation, fraud..."
             rows={3}
             required
-            className="w-full px-3 py-2 rounded-md border bg-background focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+            className="resize-none"
           />
         </div>
       </form>
@@ -392,17 +391,18 @@ function LicenseDetailsModal({
               <code className="flex-1 px-3 py-2 rounded-md bg-muted text-sm font-mono break-all">
                 {showToken ? license.downloadToken : "••••••••••••••••••••••••"}
               </code>
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={() => setShowToken(!showToken)}
-                className="p-1 rounded hover:bg-muted transition-colors"
-                title={showToken ? "Hide token" : "Reveal token"}
+                aria-label={showToken ? "Hide token" : "Reveal token"}
               >
                 {showToken ? (
                   <EyeOff className="h-4 w-4 text-muted-foreground" />
                 ) : (
                   <Eye className="h-4 w-4 text-muted-foreground" />
                 )}
-              </button>
+              </Button>
               <CopyButton text={license.downloadToken} size="sm" variant="ghost" />
             </div>
           </div>
@@ -478,77 +478,54 @@ function ActionsDropdown({
   onRegenerate: () => void;
   onViewDetails: () => void;
 }) {
-  const [open, setOpen] = useState(false);
+  const baseItems = [
+    {
+      key: "view-details",
+      label: "View Details",
+      icon: <Eye className="h-4 w-4" />,
+      onClick: onViewDetails,
+    },
+  ];
+
+  const activeItems = license.status !== "REVOKED"
+    ? [
+        {
+          key: "extend",
+          label: "Extend License",
+          icon: <Calendar className="h-4 w-4" />,
+          onClick: onExtend,
+        },
+        {
+          key: "regenerate",
+          label: "Regenerate Token",
+          icon: <RefreshCw className="h-4 w-4" />,
+          onClick: onRegenerate,
+        },
+        { type: "divider" as const, key: "divider-1" },
+        {
+          key: "revoke",
+          label: "Revoke License",
+          icon: <Ban className="h-4 w-4" />,
+          onClick: onRevoke,
+          destructive: true,
+        },
+      ]
+    : [];
 
   return (
-    <div className="relative">
-      <button
-        onClick={() => setOpen(!open)}
-        className="p-1 rounded hover:bg-muted transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-        aria-label={`Actions for license ${license.licenseKey.substring(0, 8)}...`}
-        aria-expanded={open}
-        aria-haspopup="menu"
-      >
-        <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
-      </button>
-
-      {open && (
-        <>
-          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} aria-hidden="true" />
-          <div className="absolute right-0 mt-1 w-48 bg-background border rounded-md shadow-lg z-20 py-1" role="menu" aria-orientation="vertical">
-            <button
-              onClick={() => {
-                setOpen(false);
-                onViewDetails();
-              }}
-              className="w-full px-3 py-2 text-sm text-left hover:bg-muted flex items-center gap-2 focus:outline-none focus:bg-muted"
-              role="menuitem"
-            >
-              <Eye className="h-4 w-4" aria-hidden="true" />
-              View Details
-            </button>
-            {license.status !== "REVOKED" && (
-              <>
-                <button
-                  onClick={() => {
-                    setOpen(false);
-                    onExtend();
-                  }}
-                  className="w-full px-3 py-2 text-sm text-left hover:bg-muted flex items-center gap-2 focus:outline-none focus:bg-muted"
-                  role="menuitem"
-                >
-                  <Calendar className="h-4 w-4" aria-hidden="true" />
-                  Extend License
-                </button>
-                <button
-                  onClick={() => {
-                    setOpen(false);
-                    onRegenerate();
-                  }}
-                  className="w-full px-3 py-2 text-sm text-left hover:bg-muted flex items-center gap-2 focus:outline-none focus:bg-muted"
-                  role="menuitem"
-                >
-                  <RefreshCw className="h-4 w-4" aria-hidden="true" />
-                  Regenerate Token
-                </button>
-                <hr className="my-1" aria-hidden="true" />
-                <button
-                  onClick={() => {
-                    setOpen(false);
-                    onRevoke();
-                  }}
-                  className="w-full px-3 py-2 text-sm text-left hover:bg-muted flex items-center gap-2 text-red-600 focus:outline-none focus:bg-muted"
-                  role="menuitem"
-                >
-                  <Ban className="h-4 w-4" aria-hidden="true" />
-                  Revoke License
-                </button>
-              </>
-            )}
-          </div>
-        </>
-      )}
-    </div>
+    <DropdownMenu
+      trigger={
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label={`Actions for license ${license.licenseKey.substring(0, 8)}...`}
+        >
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      }
+      content={[...baseItems, ...activeItems]}
+      position="bottom-end"
+    />
   );
 }
 
@@ -568,14 +545,15 @@ function Pagination({
         Page {currentPage} of {totalPages}
       </p>
       <nav className="flex items-center gap-2" aria-label="Pagination">
-        <button
+        <Button
+          variant="outline"
+          size="icon"
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage <= 1}
-          className="p-2 rounded hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
           aria-label="Go to previous page"
         >
           <ChevronLeft className="h-4 w-4" aria-hidden="true" />
-        </button>
+        </Button>
         {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
           let pageNum: number;
           if (totalPages <= 5) {
@@ -588,28 +566,25 @@ function Pagination({
             pageNum = currentPage - 2 + i;
           }
           return (
-            <button
+            <Button
               key={pageNum}
+              variant={currentPage === pageNum ? "default" : "ghost"}
+              size="icon"
               onClick={() => onPageChange(pageNum)}
-              className={cn(
-                "w-8 h-8 rounded text-sm font-medium transition-colors",
-                currentPage === pageNum
-                  ? "bg-primary text-primary-foreground"
-                  : "hover:bg-muted"
-              )}
             >
               {pageNum}
-            </button>
+            </Button>
           );
         })}
-        <button
+        <Button
+          variant="outline"
+          size="icon"
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage >= totalPages}
-          className="p-2 rounded hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
           aria-label="Go to next page"
         >
           <ChevronRight className="h-4 w-4" aria-hidden="true" />
-        </button>
+        </Button>
       </nav>
     </div>
   );

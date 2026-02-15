@@ -4,9 +4,9 @@
  * Business logic for application settings management.
  */
 
-import { db } from "../lib/db";
-import { ApiError } from "../middleware/error.middleware";
-import { ErrorCodes } from "../utils/response";
+import { db } from "../lib/db.js";
+import { ApiError } from "../middleware/error.middleware.js";
+import { ErrorCodes } from "../utils/response.js";
 
 // ============================================================================
 // Types

@@ -9,11 +9,18 @@ export function errorHandler(
   res: Response,
   _next: NextFunction
 ): Response {
-  console.error("Error:", err);
-
   if (err instanceof ApiError) {
+    // Client errors (4xx) are expected — log briefly, no stack trace
+    if (err.statusCode < 500) {
+      console.warn(`[${err.statusCode}] ${err.code}: ${err.message}`);
+    } else {
+      console.error("Error:", err);
+    }
     return sendError(res, err.message, err.statusCode, err.code, err.details);
   }
+
+  // Unexpected errors always get full logging
+  console.error("Error:", err);
 
   // Handle Prisma errors
   if (err.name === "PrismaClientKnownRequestError") {

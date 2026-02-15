@@ -34,7 +34,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response): Promise<voi
 
     res.json({ success: true, data: result });
   } catch (error) {
-    console.error('[AdminBookingRoutes] List error:', error);
+    console.error('[AdminBookingRoutes] List error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to list bookings' });
   }
 });
@@ -48,7 +48,7 @@ router.get('/stats', authMiddleware, async (req: Request, res: Response): Promis
     const stats = await bookingService.getBookingStats();
     res.json({ success: true, data: stats });
   } catch (error) {
-    console.error('[AdminBookingRoutes] Stats error:', error);
+    console.error('[AdminBookingRoutes] Stats error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get booking stats' });
   }
 });
@@ -74,7 +74,7 @@ router.patch('/:id/status', authMiddleware, async (req: Request, res: Response):
 
     res.json({ success: true, data: booking });
   } catch (error) {
-    console.error('[AdminBookingRoutes] Update status error:', error);
+    console.error('[AdminBookingRoutes] Update status error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to update booking status',
     });
@@ -99,7 +99,7 @@ router.get('/export', authMiddleware, async (req: Request, res: Response): Promi
     res.setHeader('Content-Disposition', 'attachment; filename=bookings-export.csv');
     res.send(csv);
   } catch (error) {
-    console.error('[AdminBookingRoutes] Export error:', error);
+    console.error('[AdminBookingRoutes] Export error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to export bookings' });
   }
 });

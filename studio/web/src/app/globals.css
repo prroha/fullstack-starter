@@ -1,55 +1,160 @@
 @import "tailwindcss";
 
-@theme {
-  /* Colors - Same as core for consistency */
-  --color-background: oklch(100% 0 0);
-  --color-foreground: oklch(14.5% 0 0);
-  --color-muted: oklch(96.7% 0 0);
-  --color-muted-foreground: oklch(55.6% 0 0);
-  --color-popover: oklch(100% 0 0);
-  --color-popover-foreground: oklch(14.5% 0 0);
-  --color-card: oklch(100% 0 0);
-  --color-card-foreground: oklch(14.5% 0 0);
-  --color-border: oklch(91.4% 0 0);
-  --color-input: oklch(91.4% 0 0);
-  --color-primary: oklch(20.5% 0 0);
-  --color-primary-foreground: oklch(98.5% 0 0);
-  --color-secondary: oklch(96.7% 0 0);
-  --color-secondary-foreground: oklch(14.5% 0 0);
-  --color-accent: oklch(96.7% 0 0);
-  --color-accent-foreground: oklch(14.5% 0 0);
-  --color-destructive: oklch(57.7% 0.245 27.325);
-  --color-destructive-foreground: oklch(98.5% 0 0);
-  --color-success: oklch(59.6% 0.145 163.225);
-  --color-success-foreground: oklch(98.5% 0 0);
-  --color-warning: oklch(79.5% 0.184 86.047);
-  --color-warning-foreground: oklch(14.5% 0 0);
-  --color-ring: oklch(20.5% 0 0);
-  --radius: 0.5rem;
+/*
+ * Scientifically-Backed Calming Color Palette
+ * ============================================
+ *
+ * Adopted from core/web — same research-backed palette:
+ * - Blue hues (195-220): Reduce heart rate, promote calm
+ * - Sage/green undertones: Nature-associated restoration
+ * - Reduced saturation: Lower chroma reduces visual stimulation
+ * - Off-white backgrounds: Reduce eye strain vs pure white
+ * - Warm off-black text: Softer contrast reduces cognitive load
+ *
+ * WCAG 2.1 AA Compliance: All color pairs tested for accessibility
+ */
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
 }
 
-@media (prefers-color-scheme: dark) {
-  @theme {
-    --color-background: oklch(14.5% 0 0);
-    --color-foreground: oklch(98.5% 0 0);
-    --color-muted: oklch(26.9% 0 0);
-    --color-muted-foreground: oklch(70.7% 0 0);
-    --color-popover: oklch(14.5% 0 0);
-    --color-popover-foreground: oklch(98.5% 0 0);
-    --color-card: oklch(14.5% 0 0);
-    --color-card-foreground: oklch(98.5% 0 0);
-    --color-border: oklch(26.9% 0 0);
-    --color-input: oklch(26.9% 0 0);
-    --color-primary: oklch(98.5% 0 0);
-    --color-primary-foreground: oklch(14.5% 0 0);
-    --color-secondary: oklch(26.9% 0 0);
-    --color-secondary-foreground: oklch(98.5% 0 0);
-    --color-accent: oklch(26.9% 0 0);
-    --color-accent-foreground: oklch(98.5% 0 0);
-    --color-destructive: oklch(57.7% 0.245 27.325);
-    --color-destructive-foreground: oklch(98.5% 0 0);
-    --color-ring: oklch(83.9% 0 0);
-  }
+:root {
+  --radius: 0.625rem;
+
+  /*
+   * Light Mode - Calming, reduces eye strain
+   * Optimized for extended reading and focus work
+   */
+
+  /* Background: Off-white - reduces eye strain vs pure white */
+  --background: oklch(0.975 0.002 240);
+
+  /* Foreground: Dark charcoal - softer than pure black, warm undertone */
+  --foreground: oklch(0.22 0.025 280);
+
+  /* Card: Warm white with subtle depth */
+  --card: oklch(0.995 0.003 80);
+  --card-foreground: oklch(0.22 0.025 280);
+
+  /* Popover: Matches card for consistency */
+  --popover: oklch(0.995 0.003 80);
+  --popover-foreground: oklch(0.22 0.025 280);
+
+  /* Primary: Deep calming blue - trust, focus, calm */
+  --primary: oklch(0.35 0.08 240);
+  --primary-foreground: oklch(0.975 0.002 240);
+
+  /* Secondary: Soft sage - natural, restorative */
+  --secondary: oklch(0.935 0.012 140);
+  --secondary-foreground: oklch(0.30 0.03 140);
+
+  /* Muted: Warm gray - neutral, non-distracting */
+  --muted: oklch(0.92 0.008 250);
+  --muted-foreground: oklch(0.45 0.015 250);
+
+  /* Accent: Muted teal - balance, clarity, calm energy */
+  --accent: oklch(0.52 0.09 195);
+  --accent-foreground: oklch(0.98 0.005 195);
+
+  /* Destructive: Muted coral - attention without anxiety */
+  --destructive: oklch(0.62 0.14 35);
+  --destructive-foreground: oklch(0.98 0.005 35);
+
+  /* Success */
+  --success: oklch(59.6% 0.145 163.225);
+  --success-foreground: oklch(98.5% 0 0);
+
+  /* Warning */
+  --warning: oklch(79.5% 0.184 86.047);
+  --warning-foreground: oklch(14.5% 0 0);
+
+  /* Border: Soft gray - subtle definition without harsh lines */
+  --border: oklch(0.91 0.005 250);
+  --input: oklch(0.91 0.005 250);
+
+  /* Ring: Primary with transparency for focus indication */
+  --ring: oklch(0.35 0.08 240 / 0.5);
+}
+
+.dark {
+  /*
+   * Dark Mode - Easy on eyes, reduces blue light emission
+   * Optimized for low-light environments and evening use
+   */
+
+  /* Background: Deep charcoal - not pure black, easier on eyes */
+  --background: oklch(0.16 0.015 250);
+
+  /* Foreground: Warm off-white - reduces harsh contrast */
+  --foreground: oklch(0.92 0.008 80);
+
+  /* Card: Elevated surface */
+  --card: oklch(0.20 0.015 250);
+  --card-foreground: oklch(0.92 0.008 80);
+
+  /* Popover: Matches card */
+  --popover: oklch(0.20 0.015 250);
+  --popover-foreground: oklch(0.92 0.008 80);
+
+  /* Primary: Lighter calming blue - maintains calm, readable */
+  --primary: oklch(0.58 0.10 220);
+  --primary-foreground: oklch(0.16 0.015 250);
+
+  /* Secondary: Muted sage for dark mode */
+  --secondary: oklch(0.28 0.02 140);
+  --secondary-foreground: oklch(0.88 0.012 140);
+
+  /* Muted: Dark warm gray */
+  --muted: oklch(0.28 0.015 250);
+  --muted-foreground: oklch(0.65 0.01 80);
+
+  /* Accent: Lighter teal for dark mode visibility */
+  --accent: oklch(0.58 0.10 195);
+  --accent-foreground: oklch(0.16 0.015 250);
+
+  /* Destructive: Softer coral for dark mode */
+  --destructive: oklch(0.65 0.15 35);
+  --destructive-foreground: oklch(0.16 0.015 250);
+
+  /* Success */
+  --success: oklch(59.6% 0.145 163.225);
+  --success-foreground: oklch(98.5% 0 0);
+
+  /* Warning */
+  --warning: oklch(79.5% 0.184 86.047);
+  --warning-foreground: oklch(14.5% 0 0);
+
+  /* Border: Subtle warm gray */
+  --border: oklch(0.30 0.015 250);
+  --input: oklch(0.30 0.015 250);
+
+  /* Ring: Primary with transparency */
+  --ring: oklch(0.58 0.10 220 / 0.5);
 }
 
 @layer base {
@@ -57,7 +162,46 @@
     @apply border-border;
   }
 
+  /*
+   * Color scheme declarations
+   */
+  :root {
+    color-scheme: light;
+  }
+
+  .dark {
+    color-scheme: dark;
+  }
+
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+/*
+ * Theme Transition System
+ * =======================
+ * Transitions are ONLY active during theme changes to prevent
+ * "flash" effects on hover states. The .theme-transitioning class
+ * is temporarily added when switching themes and removed after
+ * the transition completes.
+ */
+.theme-transitioning,
+.theme-transitioning *,
+.theme-transitioning *::before,
+.theme-transitioning *::after {
+  transition-property: color, background-color, border-color, box-shadow, fill, stroke !important;
+  transition-duration: 200ms !important;
+  transition-timing-function: ease-out !important;
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

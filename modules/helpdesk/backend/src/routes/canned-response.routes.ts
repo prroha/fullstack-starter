@@ -27,7 +27,7 @@ router.get('/mine', authMiddleware, async (req: Request, res: Response): Promise
     });
     res.json({ success: true, data: responses });
   } catch (error) {
-    console.error('[CannedResponseRoutes] Get mine error:', error);
+    console.error('[CannedResponseRoutes] Get mine error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get canned responses' });
   }
 });
@@ -50,7 +50,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response): Promise<voi
 
     res.json({ success: true, data: result });
   } catch (error) {
-    console.error('[CannedResponseRoutes] List error:', error);
+    console.error('[CannedResponseRoutes] List error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to list canned responses' });
   }
 });
@@ -70,7 +70,7 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response): Promise<
     }
     res.json({ success: true, data: response });
   } catch (error) {
-    console.error('[CannedResponseRoutes] Get error:', error);
+    console.error('[CannedResponseRoutes] Get error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get canned response' });
   }
 });
@@ -100,7 +100,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response): Promise<vo
 
     res.status(201).json({ success: true, data: response });
   } catch (error) {
-    console.error('[CannedResponseRoutes] Create error:', error);
+    console.error('[CannedResponseRoutes] Create error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to create canned response',
     });
@@ -131,7 +131,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promis
 
     res.json({ success: true, data: response });
   } catch (error) {
-    console.error('[CannedResponseRoutes] Update error:', error);
+    console.error('[CannedResponseRoutes] Update error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to update canned response',
     });
@@ -149,7 +149,7 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response): Promi
     await cannedResponseService.delete(req.params.id, authReq.user.userId);
     res.json({ success: true, message: 'Canned response deleted' });
   } catch (error) {
-    console.error('[CannedResponseRoutes] Delete error:', error);
+    console.error('[CannedResponseRoutes] Delete error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to delete canned response',
     });

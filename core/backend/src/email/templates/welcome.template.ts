@@ -4,7 +4,7 @@
  * Sent to new users after registration to welcome them to the app.
  */
 
-import { config } from "../../config";
+import { config } from "../../config/index.js";
 import {
   baseTemplate,
   emailButton,
@@ -13,7 +13,7 @@ import {
   emailMutedText,
   emailDivider,
   EmailOutput,
-} from "./base.template";
+} from "./base.template.js";
 
 export interface WelcomeEmailData {
   name: string | null;

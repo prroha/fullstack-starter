@@ -6,13 +6,13 @@
  */
 
 import { Request, Response, NextFunction } from "express";
-import { AuthenticatedRequest } from "../types";
-import { announcementService } from "../services/announcement.service";
-import { auditService } from "../services/audit.service";
-import { successResponse, paginatedResponse } from "../utils/response";
+import { AuthenticatedRequest } from "../types/index.js";
+import { announcementService } from "../services/announcement.service.js";
+import { auditService } from "../services/audit.service.js";
+import { successResponse, paginatedResponse } from "../utils/response.js";
 import { z } from "zod";
-import { booleanFilterSchema, paginationSchema } from "../utils/validation-schemas";
-import { validateOrRespond, sendCsvExport } from "../utils/controller-helpers";
+import { booleanFilterSchema, paginationSchema } from "../utils/validation-schemas.js";
+import { validateOrRespond, sendCsvExport } from "../utils/controller-helpers.js";
 
 // ============================================================================
 // Validation Schemas

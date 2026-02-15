@@ -1,9 +1,8 @@
 import crypto from "crypto";
-import { db } from "../lib/db";
-import { config as _config } from "../config";
-import { ApiError } from "../middleware/error.middleware";
-import { ErrorCodes } from "../utils/response";
-import { logger } from "../lib/logger";
+import { db } from "../lib/db.js";
+import { ApiError } from "../middleware/error.middleware.js";
+import { ErrorCodes } from "../utils/response.js";
+import { logger } from "../lib/logger.js";
 
 // ua-parser-js is MIT licensed - we'll use a simple implementation for now
 // to avoid adding a dependency. For production, consider using ua-parser-js.

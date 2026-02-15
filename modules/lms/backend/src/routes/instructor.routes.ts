@@ -23,7 +23,7 @@ router.get('/stats', authMiddleware, async (req: Request, res: Response): Promis
     const stats = await instructorService.getDashboardStats(authReq.user.userId);
     res.json({ success: true, data: stats });
   } catch (error) {
-    console.error('[InstructorRoutes] Stats error:', error);
+    console.error('[InstructorRoutes] Stats error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get instructor stats' });
   }
 });
@@ -38,7 +38,7 @@ router.get('/courses/analytics', authMiddleware, async (req: Request, res: Respo
     const analytics = await instructorService.getCourseAnalytics(authReq.user.userId);
     res.json({ success: true, data: analytics });
   } catch (error) {
-    console.error('[InstructorRoutes] Course analytics error:', error);
+    console.error('[InstructorRoutes] Course analytics error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get course analytics' });
   }
 });
@@ -61,7 +61,7 @@ router.get('/earnings', authMiddleware, async (req: Request, res: Response): Pro
 
     res.json({ success: true, data: earnings });
   } catch (error) {
-    console.error('[InstructorRoutes] Earnings error:', error);
+    console.error('[InstructorRoutes] Earnings error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get earnings' });
   }
 });
@@ -78,7 +78,7 @@ router.get('/enrollments/recent', authMiddleware, async (req: Request, res: Resp
     const enrollments = await instructorService.getRecentEnrollments(authReq.user.userId, limit);
     res.json({ success: true, data: enrollments });
   } catch (error) {
-    console.error('[InstructorRoutes] Recent enrollments error:', error);
+    console.error('[InstructorRoutes] Recent enrollments error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get recent enrollments' });
   }
 });
@@ -95,7 +95,7 @@ router.get('/reviews/recent', authMiddleware, async (req: Request, res: Response
     const reviews = await instructorService.getRecentReviews(authReq.user.userId, limit);
     res.json({ success: true, data: reviews });
   } catch (error) {
-    console.error('[InstructorRoutes] Recent reviews error:', error);
+    console.error('[InstructorRoutes] Recent reviews error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get recent reviews' });
   }
 });

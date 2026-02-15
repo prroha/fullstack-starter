@@ -25,7 +25,7 @@ router.get('/stats', authMiddleware, async (req: Request, res: Response): Promis
     const stats = await ticketService.getStats(authReq.user.userId);
     res.json({ success: true, data: stats });
   } catch (error) {
-    console.error('[TicketRoutes] Stats error:', error);
+    console.error('[TicketRoutes] Stats error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get ticket stats' });
   }
 });
@@ -54,7 +54,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response): Promise<voi
 
     res.json({ success: true, data: result });
   } catch (error) {
-    console.error('[TicketRoutes] List error:', error);
+    console.error('[TicketRoutes] List error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to list tickets' });
   }
 });
@@ -74,7 +74,7 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response): Promise<
     }
     res.json({ success: true, data: ticket });
   } catch (error) {
-    console.error('[TicketRoutes] Get error:', error);
+    console.error('[TicketRoutes] Get error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get ticket' });
   }
 });
@@ -103,7 +103,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response): Promise<vo
 
     res.status(201).json({ success: true, data: ticket });
   } catch (error) {
-    console.error('[TicketRoutes] Create error:', error);
+    console.error('[TicketRoutes] Create error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to create ticket',
     });
@@ -133,7 +133,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promis
 
     res.json({ success: true, data: ticket });
   } catch (error) {
-    console.error('[TicketRoutes] Update error:', error);
+    console.error('[TicketRoutes] Update error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to update ticket',
     });
@@ -151,7 +151,7 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response): Promi
     await ticketService.delete(req.params.id, authReq.user.userId);
     res.json({ success: true, message: 'Ticket deleted' });
   } catch (error) {
-    console.error('[TicketRoutes] Delete error:', error);
+    console.error('[TicketRoutes] Delete error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to delete ticket',
     });
@@ -174,7 +174,7 @@ router.post('/:id/assign', authMiddleware, async (req: Request, res: Response): 
     }
     res.json({ success: true, data: ticket });
   } catch (error) {
-    console.error('[TicketRoutes] Assign error:', error);
+    console.error('[TicketRoutes] Assign error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to assign ticket',
     });
@@ -202,7 +202,7 @@ router.post('/:id/status', authMiddleware, async (req: Request, res: Response): 
     }
     res.json({ success: true, data: ticket });
   } catch (error) {
-    console.error('[TicketRoutes] Status update error:', error);
+    console.error('[TicketRoutes] Status update error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to update ticket status',
     });
@@ -220,7 +220,7 @@ router.get('/:id/messages', authMiddleware, async (req: Request, res: Response):
     const messages = await ticketService.getMessages(req.params.id, authReq.user.userId);
     res.json({ success: true, data: messages });
   } catch (error) {
-    console.error('[TicketRoutes] Get messages error:', error);
+    console.error('[TicketRoutes] Get messages error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get ticket messages' });
   }
 });
@@ -248,7 +248,7 @@ router.post('/:id/messages', authMiddleware, async (req: Request, res: Response)
 
     res.status(201).json({ success: true, data: message });
   } catch (error) {
-    console.error('[TicketRoutes] Add message error:', error);
+    console.error('[TicketRoutes] Add message error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to add message',
     });
@@ -272,7 +272,7 @@ router.post('/:id/tags', authMiddleware, async (req: Request, res: Response): Pr
     await ticketService.addTag(req.params.id, authReq.user.userId, tagId);
     res.json({ success: true, message: 'Tag added to ticket' });
   } catch (error) {
-    console.error('[TicketRoutes] Add tag error:', error);
+    console.error('[TicketRoutes] Add tag error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to add tag to ticket',
     });
@@ -290,7 +290,7 @@ router.delete('/:id/tags/:tagId', authMiddleware, async (req: Request, res: Resp
     await ticketService.removeTag(req.params.id, authReq.user.userId, req.params.tagId);
     res.json({ success: true, message: 'Tag removed from ticket' });
   } catch (error) {
-    console.error('[TicketRoutes] Remove tag error:', error);
+    console.error('[TicketRoutes] Remove tag error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to remove tag from ticket',
     });

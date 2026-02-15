@@ -25,7 +25,7 @@ router.get('/stats', authMiddleware, async (req: Request, res: Response): Promis
     const stats = await venueService.getStats(authReq.user.userId);
     res.json({ success: true, data: stats });
   } catch (error) {
-    console.error('[VenueRoutes] Stats error:', error);
+    console.error('[VenueRoutes] Stats error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get venue stats' });
   }
 });
@@ -48,7 +48,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response): Promise<voi
 
     res.json({ success: true, data: result });
   } catch (error) {
-    console.error('[VenueRoutes] List error:', error);
+    console.error('[VenueRoutes] List error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to list venues' });
   }
 });
@@ -68,7 +68,7 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response): Promise<
     }
     res.json({ success: true, data: venue });
   } catch (error) {
-    console.error('[VenueRoutes] Get error:', error);
+    console.error('[VenueRoutes] Get error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get venue' });
   }
 });
@@ -101,7 +101,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response): Promise<vo
 
     res.status(201).json({ success: true, data: venue });
   } catch (error) {
-    console.error('[VenueRoutes] Create error:', error);
+    console.error('[VenueRoutes] Create error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to create venue',
     });
@@ -135,7 +135,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promis
 
     res.json({ success: true, data: venue });
   } catch (error) {
-    console.error('[VenueRoutes] Update error:', error);
+    console.error('[VenueRoutes] Update error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to update venue',
     });
@@ -153,7 +153,7 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response): Promi
     await venueService.delete(req.params.id, authReq.user.userId);
     res.json({ success: true, message: 'Venue deleted' });
   } catch (error) {
-    console.error('[VenueRoutes] Delete error:', error);
+    console.error('[VenueRoutes] Delete error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to delete venue',
     });

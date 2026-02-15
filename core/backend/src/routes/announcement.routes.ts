@@ -1,7 +1,7 @@
 import { Router, Request } from "express";
-import { announcementController } from "../controllers/announcement.controller";
-import { authMiddleware, adminMiddleware } from "../middleware/auth.middleware";
-import { AuthenticatedRequest } from "../types";
+import { announcementController } from "../controllers/announcement.controller.js";
+import { authMiddleware, adminMiddleware } from "../middleware/auth.middleware.js";
+import { AuthenticatedRequest } from "../types/index.js";
 
 const router = Router();
 

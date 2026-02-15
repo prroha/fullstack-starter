@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import { config } from "../config";
+import { config } from "../config/index.js";
 
 // Global type declaration to prevent multiple instances in development
 declare global {

@@ -212,7 +212,7 @@ function ConversionFunnel({ data }: { data: FunnelAnalytics }) {
                   )}
                   style={{ width: `${Math.max(widthPercent, 5)}%` }}
                 >
-                  <span className="text-white text-sm font-medium">
+                  <span className="text-primary-foreground text-sm font-medium">
                     {formatNumber(stage.count)}
                   </span>
                 </div>
@@ -315,30 +315,6 @@ function TierDistribution({
   );
 }
 
-function StarRating({ rating }: { rating: number }) {
-  return (
-    <div className="flex items-center gap-1">
-      {[1, 2, 3, 4, 5].map((star) => (
-        <svg
-          key={star}
-          className={cn(
-            "w-4 h-4",
-            star <= Math.round(rating)
-              ? "text-yellow-500 fill-current"
-              : "text-gray-300"
-          )}
-          viewBox="0 0 20 20"
-          fill="currentColor"
-        >
-          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-        </svg>
-      ))}
-      <span className="text-sm text-muted-foreground ml-1">
-        {rating.toFixed(1)}
-      </span>
-    </div>
-  );
-}
 
 export default function AnalyticsPage() {
   const [period, setPeriod] = useState<Period>("30d");
@@ -496,22 +472,23 @@ export default function AnalyticsPage() {
             { value: "custom", label: "Custom" },
           ] as const
         ).map((option) => (
-          <button
+          <Button
             key={option.value}
+            variant="ghost"
+            size="sm"
             onClick={() =>
               option.value !== "custom" && setPeriod(option.value)
             }
             disabled={option.value === "custom"}
             className={cn(
-              "px-4 py-2 text-sm font-medium rounded-md transition-colors",
+              "rounded-md",
               period === option.value
                 ? "bg-background shadow text-foreground"
-                : "text-muted-foreground hover:text-foreground",
-              option.value === "custom" && "opacity-50 cursor-not-allowed"
+                : "text-muted-foreground hover:text-foreground"
             )}
           >
             {option.label}
-          </button>
+          </Button>
         ))}
         <div className="hidden sm:flex items-center gap-2 ml-2 pl-2 border-l">
           <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -570,18 +547,20 @@ export default function AnalyticsPage() {
             <h2 className="text-lg font-semibold">Revenue Over Time</h2>
             <div className="flex items-center gap-1 p-1 bg-muted rounded-lg">
               {(["daily", "weekly", "monthly"] as const).map((mode) => (
-                <button
+                <Button
                   key={mode}
+                  variant="ghost"
+                  size="sm"
                   onClick={() => setViewMode(mode)}
                   className={cn(
-                    "px-3 py-1 text-sm font-medium rounded transition-colors capitalize",
+                    "rounded capitalize",
                     viewMode === mode
                       ? "bg-background shadow text-foreground"
                       : "text-muted-foreground hover:text-foreground"
                   )}
                 >
                   {mode}
-                </button>
+                </Button>
               ))}
             </div>
           </div>

@@ -152,6 +152,10 @@ function LogRow({
           isExpanded && "bg-muted/30"
         )}
         onClick={onToggle}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onToggle(); } }}
+        role="button"
+        tabIndex={0}
+        aria-expanded={isExpanded}
       >
         <td className="px-4 py-3">
           <Button

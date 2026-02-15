@@ -3,6 +3,7 @@
 import { ReactNode } from "react";
 import { Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button, Input, Select } from "@/components/ui";
 
 // =====================================================
 // Types
@@ -107,13 +108,13 @@ export function AdminFilterBar({
               className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"
               aria-hidden="true"
             />
-            <input
+            <Input
               id={`filter-${filter.key}`}
               type="search"
               placeholder={filter.placeholder ?? `Search...`}
               value={value}
               onChange={(e) => onChange(filter.key, e.target.value)}
-              className="w-full h-10 pl-10 pr-4 rounded-md border border-input bg-background text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              className="w-full pl-10 pr-4"
             />
           </div>
         );
@@ -124,26 +125,13 @@ export function AdminFilterBar({
             <label htmlFor={`filter-${filter.key}`} className="sr-only">
               {filter.label}
             </label>
-            <select
+            <Select
               id={`filter-${filter.key}`}
               value={value}
-              onChange={(e) => onChange(filter.key, e.target.value)}
-              className={cn(
-                "h-10 w-full sm:w-auto px-4 rounded-md border border-input bg-background text-sm",
-                "ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-                "appearance-none cursor-pointer",
-                // Custom dropdown arrow
-                "bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23666%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E')]",
-                "bg-no-repeat bg-[right_0.75rem_center] bg-[length:16px_16px]",
-                "pr-10 sm:min-w-[120px]"
-              )}
-            >
-              {filter.options?.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+              onChange={(v) => onChange(filter.key, v)}
+              options={filter.options || []}
+              className="sm:min-w-[120px]"
+            />
           </div>
         );
 
@@ -153,15 +141,12 @@ export function AdminFilterBar({
             <label htmlFor={`filter-${filter.key}`} className="sr-only">
               {filter.label}
             </label>
-            <input
+            <Input
               id={`filter-${filter.key}`}
               type="date"
               value={value}
               onChange={(e) => onChange(filter.key, e.target.value)}
-              className={cn(
-                "h-10 w-full sm:w-auto px-3 rounded-md border border-input bg-background text-sm",
-                "ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-              )}
+              className="sm:w-auto"
               aria-label={filter.label}
             />
           </div>
@@ -214,14 +199,10 @@ export function AdminFilterBar({
 
       {/* Reset Button */}
       {hasActiveFilters && onReset && (
-        <button
-          onClick={onReset}
-          className="inline-flex h-10 items-center gap-2 rounded-md border border-input px-3 text-sm text-muted-foreground hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-          type="button"
-        >
+        <Button variant="outline" onClick={onReset} type="button">
           <X className="h-4 w-4" aria-hidden="true" />
           Clear Filters
-        </button>
+        </Button>
       )}
     </div>
   );

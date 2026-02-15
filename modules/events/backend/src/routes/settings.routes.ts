@@ -24,7 +24,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response): Promise<voi
     const settings = await settingsService.get(authReq.user.userId);
     res.json({ success: true, data: settings });
   } catch (error) {
-    console.error('[SettingsRoutes] Get error:', error);
+    console.error('[SettingsRoutes] Get error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get settings' });
   }
 });
@@ -47,7 +47,7 @@ router.patch('/', authMiddleware, async (req: Request, res: Response): Promise<v
 
     res.json({ success: true, data: settings });
   } catch (error) {
-    console.error('[SettingsRoutes] Update error:', error);
+    console.error('[SettingsRoutes] Update error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to update settings',
     });

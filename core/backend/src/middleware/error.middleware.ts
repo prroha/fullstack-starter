@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import { ZodError } from "zod";
-import { config } from "../config";
-import { logger } from "../lib/logger";
-import { errorResponse, ErrorCodes, ErrorCode } from "../utils/response";
+import { config } from "../config/index.js";
+import { logger } from "../lib/logger.js";
+import { errorResponse, ErrorCodes, ErrorCode } from "../utils/response.js";
 
 /**
  * Custom error class for API errors
@@ -55,16 +55,10 @@ export function errorMiddleware(
 ): void {
   const requestId = req.id;
 
-  // Log all errors with request ID for correlation
-  logger.error("Request error", {
-    requestId,
-    name: err.name,
-    message: err.message,
-    stack: config.isDevelopment() ? err.stack : undefined,
-  });
-
   // Handle Zod validation errors
   if (err instanceof ZodError) {
+    logger.warn("Validation error", { requestId, errors: err.errors.length });
+
     const details = err.errors.map((e) => ({
       field: e.path.join("."),
       message: e.message,
@@ -79,8 +73,13 @@ export function errorMiddleware(
     return;
   }
 
-  // Handle API errors
+  // Handle API errors — log 4xx as warn, 5xx as error
   if (err instanceof ApiError) {
+    if (err.statusCode < 500) {
+      logger.warn(`[${err.statusCode}] ${err.code}: ${err.message}`, { requestId });
+    } else {
+      logger.error("Server error", { requestId, message: err.message, stack: config.isDevelopment() ? err.stack : undefined });
+    }
     const response = errorResponse(err.code, err.message);
     (response.error as { requestId?: string }).requestId = requestId;
     if (config.isDevelopment() && !err.isOperational) {
@@ -92,6 +91,7 @@ export function errorMiddleware(
 
   // Handle Prisma errors
   if (err.name === "PrismaClientKnownRequestError") {
+    logger.warn("Database error", { requestId, message: err.message });
     const details = config.isDevelopment() ? err.message : undefined;
     const response = errorResponse(
       ErrorCodes.DATABASE_ERROR,
@@ -103,7 +103,8 @@ export function errorMiddleware(
     return;
   }
 
-  // Handle unknown errors
+  // Handle unknown errors — always log with full details
+  logger.error("Unhandled error", { requestId, name: err.name, message: err.message, stack: config.isDevelopment() ? err.stack : undefined });
   const message = config.isProduction() ? "Internal server error" : err.message;
   const response = errorResponse(ErrorCodes.INTERNAL_ERROR, message);
   (response.error as { requestId?: string }).requestId = requestId;

@@ -1,10 +1,16 @@
-import { Router } from "express";
-import { adminController } from "../controllers/admin.controller";
-import { contactController } from "../controllers/contact.controller";
-import { auditController } from "../controllers/audit.controller";
-import { authMiddleware, adminMiddleware } from "../middleware/auth.middleware";
-import { requireFeature } from "../middleware/preview.middleware";
-import { AuthenticatedRequest } from "../types";
+import { Router, Request, Response, NextFunction } from "express";
+import { adminController } from "../controllers/admin.controller.js";
+import { contactController } from "../controllers/contact.controller.js";
+import { auditController } from "../controllers/audit.controller.js";
+import { authMiddleware, adminMiddleware } from "../middleware/auth.middleware.js";
+import { requireFeature } from "../middleware/preview.middleware.js";
+import { AuthenticatedRequest } from "../types/index.js";
+
+type AuthHandler = (req: AuthenticatedRequest, res: Response, next: NextFunction) => void | Promise<void>;
+
+function authRoute(handler: AuthHandler) {
+  return (req: Request, res: Response, next: NextFunction) => handler(req as AuthenticatedRequest, res, next);
+}
 
 const router = Router();
 
@@ -13,52 +19,52 @@ router.use(authMiddleware);
 router.use(adminMiddleware);
 
 // Dashboard stats
-router.get("/stats", (req, res, next) =>
-  adminController.getStats(req as unknown as AuthenticatedRequest, res, next)
-);
+router.get("/stats", authRoute((req, res, next) =>
+  adminController.getStats(req, res, next)
+));
 
 // User management
-router.get("/users", (req, res, next) =>
-  adminController.getUsers(req as unknown as AuthenticatedRequest, res, next)
-);
+router.get("/users", authRoute((req, res, next) =>
+  adminController.getUsers(req, res, next)
+));
 
 // Export users to CSV (must be before /users/:id to avoid matching "export" as id)
-router.get("/users/export", (req, res, next) =>
-  adminController.exportUsers(req as unknown as AuthenticatedRequest, res, next)
-);
+router.get("/users/export", authRoute((req, res, next) =>
+  adminController.exportUsers(req, res, next)
+));
 
-router.get("/users/:id", (req, res, next) =>
-  adminController.getUser(req as unknown as AuthenticatedRequest, res, next)
-);
+router.get("/users/:id", authRoute((req, res, next) =>
+  adminController.getUser(req, res, next)
+));
 
-router.patch("/users/:id", (req, res, next) =>
-  adminController.updateUser(req as unknown as AuthenticatedRequest, res, next)
-);
+router.patch("/users/:id", authRoute((req, res, next) =>
+  adminController.updateUser(req, res, next)
+));
 
-router.delete("/users/:id", (req, res, next) =>
-  adminController.deleteUser(req as unknown as AuthenticatedRequest, res, next)
-);
+router.delete("/users/:id", authRoute((req, res, next) =>
+  adminController.deleteUser(req, res, next)
+));
 
 // Audit logs management
-router.get("/audit-logs/entity-types", requireFeature("security.audit"), (req, res, next) =>
-  auditController.getEntityTypes(req as unknown as AuthenticatedRequest, res, next)
-);
+router.get("/audit-logs/entity-types", requireFeature("security.audit"), authRoute((req, res, next) =>
+  auditController.getEntityTypes(req, res, next)
+));
 
-router.get("/audit-logs/action-types", requireFeature("security.audit"), (req, res, next) =>
-  auditController.getActionTypes(req as unknown as AuthenticatedRequest, res, next)
-);
+router.get("/audit-logs/action-types", requireFeature("security.audit"), authRoute((req, res, next) =>
+  auditController.getActionTypes(req, res, next)
+));
 
-router.get("/audit-logs/export", requireFeature("security.audit"), (req, res, next) =>
-  adminController.exportAuditLogs(req as unknown as AuthenticatedRequest, res, next)
-);
+router.get("/audit-logs/export", requireFeature("security.audit"), authRoute((req, res, next) =>
+  adminController.exportAuditLogs(req, res, next)
+));
 
-router.get("/audit-logs/:id", requireFeature("security.audit"), (req, res, next) =>
-  auditController.getLogById(req as unknown as AuthenticatedRequest, res, next)
-);
+router.get("/audit-logs/:id", requireFeature("security.audit"), authRoute((req, res, next) =>
+  auditController.getLogById(req, res, next)
+));
 
-router.get("/audit-logs", requireFeature("security.audit"), (req, res, next) =>
-  auditController.getLogs(req as unknown as AuthenticatedRequest, res, next)
-);
+router.get("/audit-logs", requireFeature("security.audit"), authRoute((req, res, next) =>
+  auditController.getLogs(req, res, next)
+));
 
 // Contact messages management
 router.get("/contact-messages/unread-count", (req, res, next) =>

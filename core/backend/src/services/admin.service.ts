@@ -1,7 +1,7 @@
-import { db } from "../lib/db";
+import { db } from "../lib/db.js";
 import { UserRole, ContactMessageStatus, OrderStatus } from "@prisma/client";
-import { ApiError } from "../middleware/error.middleware";
-import { ErrorCodes } from "../utils/response";
+import { ApiError } from "../middleware/error.middleware.js";
+import { ErrorCodes } from "../utils/response.js";
 
 /**
  * Dashboard statistics response - comprehensive stats for all admin sections
@@ -257,41 +257,26 @@ class AdminService {
     startDate.setDate(startDate.getDate() - days);
     startDate.setHours(0, 0, 0, 0);
 
-    // Query users created in the date range
-    const users = await db.user.findMany({
-      where: {
-        createdAt: {
-          gte: startDate,
-        },
-      },
-      select: {
-        createdAt: true,
-      },
-    });
+    // Database-side grouping for efficiency
+    const rows = await db.$queryRaw<Array<{ date: string; count: bigint }>>`
+      SELECT DATE(created_at) as date, COUNT(*) as count
+      FROM users
+      WHERE created_at >= ${startDate}
+      GROUP BY DATE(created_at)
+    `;
 
-    // Group by date
-    const countByDate: Record<string, number> = {};
+    const dbCounts = new Map(rows.map(r => [r.date, Number(r.count)]));
 
-    // Initialize all days with 0
-    for (let i = 0; i <= days; i++) {
+    // Fill in all days (including zeros)
+    const result: Array<{ date: string; count: number }> = [];
+    for (let i = days; i >= 0; i--) {
       const date = new Date();
       date.setDate(date.getDate() - i);
       const dateStr = date.toISOString().split("T")[0];
-      countByDate[dateStr] = 0;
+      result.push({ date: dateStr, count: dbCounts.get(dateStr) ?? 0 });
     }
 
-    // Count users per day
-    for (const user of users) {
-      const dateStr = user.createdAt.toISOString().split("T")[0];
-      if (countByDate[dateStr] !== undefined) {
-        countByDate[dateStr]++;
-      }
-    }
-
-    // Convert to array and sort by date
-    return Object.entries(countByDate)
-      .map(([date, count]) => ({ date, count }))
-      .sort((a, b) => a.date.localeCompare(b.date));
+    return result;
   }
 
   /**

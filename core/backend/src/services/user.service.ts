@@ -1,7 +1,7 @@
-import { db } from "../lib/db";
-import { ApiError } from "../middleware/error.middleware";
-import { ErrorCodes } from "../utils/response";
-import { deleteUploadedFile, getAvatarPath, getAvatarUrl } from "../middleware/upload.middleware";
+import { db } from "../lib/db.js";
+import { ApiError } from "../middleware/error.middleware.js";
+import { ErrorCodes } from "../utils/response.js";
+import { deleteUploadedFile, getAvatarPath, getAvatarUrl } from "../middleware/upload.middleware.js";
 
 interface UpdateProfileInput {
   name?: string;

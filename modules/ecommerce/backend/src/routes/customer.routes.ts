@@ -30,7 +30,7 @@ router.get('/orders', authMiddleware, async (req: Request, res: Response): Promi
 
     res.json({ success: true, data: result });
   } catch (error) {
-    console.error('[CustomerRoutes] Order history error:', error);
+    console.error('[CustomerRoutes] Order history error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get order history' });
   }
 });
@@ -51,7 +51,7 @@ router.get('/orders/:id', authMiddleware, async (req: Request, res: Response): P
 
     res.json({ success: true, data: order });
   } catch (error) {
-    console.error('[CustomerRoutes] Order detail error:', error);
+    console.error('[CustomerRoutes] Order detail error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get order detail' });
   }
 });
@@ -67,7 +67,7 @@ router.get('/stats', authMiddleware, async (req: Request, res: Response): Promis
     const stats = await customerService.getStats(authReq.user.userId);
     res.json({ success: true, data: stats });
   } catch (error) {
-    console.error('[CustomerRoutes] Stats error:', error);
+    console.error('[CustomerRoutes] Stats error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get customer stats' });
   }
 });

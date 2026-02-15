@@ -244,7 +244,7 @@ router.post(
         'Event tracked successfully'
       ));
     } catch (error) {
-      console.error('[Analytics] Track error:', error);
+      console.error('[Analytics] Track error:', error instanceof Error ? error.message : error);
       res.status(500).json(errorResponse(
         'INTERNAL_ERROR',
         'Failed to track event'
@@ -316,7 +316,7 @@ router.post(
         `Tracked ${count} of ${events.length} events`
       ));
     } catch (error) {
-      console.error('[Analytics] Batch track error:', error);
+      console.error('[Analytics] Batch track error:', error instanceof Error ? error.message : error);
       res.status(500).json(errorResponse(
         'INTERNAL_ERROR',
         'Failed to track events'
@@ -407,7 +407,7 @@ router.get(
         },
       }));
     } catch (error) {
-      console.error('[Analytics] Query events error:', error);
+      console.error('[Analytics] Query events error:', error instanceof Error ? error.message : error);
       res.status(500).json(errorResponse(
         'INTERNAL_ERROR',
         'Failed to query events'
@@ -466,7 +466,7 @@ router.get(
         stats,
       }));
     } catch (error) {
-      console.error('[Analytics] Get stats error:', error);
+      console.error('[Analytics] Get stats error:', error instanceof Error ? error.message : error);
       res.status(500).json(errorResponse(
         'INTERNAL_ERROR',
         'Failed to get statistics'
@@ -504,7 +504,7 @@ router.get(
 
       res.json(successResponse(overview));
     } catch (error) {
-      console.error('[Analytics] Get overview error:', error);
+      console.error('[Analytics] Get overview error:', error instanceof Error ? error.message : error);
       res.status(500).json(errorResponse(
         'INTERNAL_ERROR',
         'Failed to get overview'
@@ -531,7 +531,7 @@ router.get(
         events: eventNames,
       }));
     } catch (error) {
-      console.error('[Analytics] Get event names error:', error);
+      console.error('[Analytics] Get event names error:', error instanceof Error ? error.message : error);
       res.status(500).json(errorResponse(
         'INTERNAL_ERROR',
         'Failed to get event names'
@@ -593,7 +593,7 @@ router.get(
       res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
       res.send(exportData);
     } catch (error) {
-      console.error('[Analytics] Export error:', error);
+      console.error('[Analytics] Export error:', error instanceof Error ? error.message : error);
       res.status(500).json(errorResponse(
         'INTERNAL_ERROR',
         'Failed to export events'
@@ -621,7 +621,7 @@ router.post(
         `Cleaned up ${deletedCount} old events`
       ));
     } catch (error) {
-      console.error('[Analytics] Cleanup error:', error);
+      console.error('[Analytics] Cleanup error:', error instanceof Error ? error.message : error);
       res.status(500).json(errorResponse(
         'INTERNAL_ERROR',
         'Failed to cleanup events'
@@ -693,7 +693,7 @@ router.get(
         },
       }));
     } catch (error) {
-      console.error('[Analytics] Get user events error:', error);
+      console.error('[Analytics] Get user events error:', error instanceof Error ? error.message : error);
       res.status(500).json(errorResponse(
         'INTERNAL_ERROR',
         'Failed to get events'

@@ -34,7 +34,7 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
 
     res.json({ success: true, data: result });
   } catch (error) {
-    console.error('[CourseRoutes] List error:', error);
+    console.error('[CourseRoutes] List error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to list courses' });
   }
 });
@@ -48,7 +48,7 @@ router.get('/categories', async (_req: Request, res: Response): Promise<void> =>
     const categories = await courseService.listCategories();
     res.json({ success: true, data: categories });
   } catch (error) {
-    console.error('[CourseRoutes] Categories error:', error);
+    console.error('[CourseRoutes] Categories error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to list categories' });
   }
 });
@@ -66,7 +66,7 @@ router.get('/:slug', async (req: Request, res: Response): Promise<void> => {
     }
     res.json({ success: true, data: course });
   } catch (error) {
-    console.error('[CourseRoutes] Get by slug error:', error);
+    console.error('[CourseRoutes] Get by slug error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get course' });
   }
 });
@@ -105,7 +105,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response): Promise<vo
 
     res.status(201).json({ success: true, data: course });
   } catch (error) {
-    console.error('[CourseRoutes] Create error:', error);
+    console.error('[CourseRoutes] Create error:', error instanceof Error ? error.message : error);
     res.status(500).json({
       error: error instanceof Error ? error.message : 'Failed to create course',
     });
@@ -140,7 +140,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promis
 
     res.json({ success: true, data: course });
   } catch (error) {
-    console.error('[CourseRoutes] Update error:', error);
+    console.error('[CourseRoutes] Update error:', error instanceof Error ? error.message : error);
     res.status(500).json({
       error: error instanceof Error ? error.message : 'Failed to update course',
     });
@@ -156,7 +156,7 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response): Promi
     await courseService.deleteCourse(req.params.id);
     res.json({ success: true, message: 'Course deleted' });
   } catch (error) {
-    console.error('[CourseRoutes] Delete error:', error);
+    console.error('[CourseRoutes] Delete error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to delete course' });
   }
 });
@@ -174,7 +174,7 @@ router.post('/:id/publish', authMiddleware, async (req: Request, res: Response):
     }
     res.json({ success: true, data: course });
   } catch (error) {
-    console.error('[CourseRoutes] Publish error:', error);
+    console.error('[CourseRoutes] Publish error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to publish course' });
   }
 });
@@ -192,7 +192,7 @@ router.post('/:id/unpublish', authMiddleware, async (req: Request, res: Response
     }
     res.json({ success: true, data: course });
   } catch (error) {
-    console.error('[CourseRoutes] Unpublish error:', error);
+    console.error('[CourseRoutes] Unpublish error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to unpublish course' });
   }
 });
@@ -217,7 +217,7 @@ router.post('/categories', authMiddleware, async (req: Request, res: Response): 
     const category = await courseService.createCategory({ name, description, iconName });
     res.status(201).json({ success: true, data: category });
   } catch (error) {
-    console.error('[CourseRoutes] Create category error:', error);
+    console.error('[CourseRoutes] Create category error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to create category' });
   }
 });

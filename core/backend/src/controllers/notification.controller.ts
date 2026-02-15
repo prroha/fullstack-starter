@@ -1,8 +1,8 @@
 import { Response, NextFunction } from "express";
-import { notificationService } from "../services/notification.service";
-import { successResponse, paginatedResponse, errorResponse, ErrorCodes } from "../utils/response";
+import { notificationService } from "../services/notification.service.js";
+import { successResponse, paginatedResponse, errorResponse, ErrorCodes } from "../utils/response.js";
 import { z } from "zod";
-import { AppRequest, AuthenticatedRequest } from "../types";
+import { AppRequest, AuthenticatedRequest } from "../types/index.js";
 import { NotificationType } from "@prisma/client";
 
 // ============================================================================

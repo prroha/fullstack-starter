@@ -1,8 +1,8 @@
 import { Router, Request } from "express";
-import { couponController } from "../controllers/coupon.controller";
-import { authMiddleware, adminMiddleware } from "../middleware/auth.middleware";
-import { requireFeature } from "../middleware/preview.middleware";
-import { AuthenticatedRequest } from "../types";
+import { couponController } from "../controllers/coupon.controller.js";
+import { authMiddleware, adminMiddleware } from "../middleware/auth.middleware.js";
+import { requireFeature } from "../middleware/preview.middleware.js";
+import { AuthenticatedRequest } from "../types/index.js";
 
 const router = Router();
 

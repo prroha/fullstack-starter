@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { contactController } from "../controllers/contact.controller";
-import { createRateLimiter } from "../middleware/rate-limit.middleware";
+import { contactController } from "../controllers/contact.controller.js";
+import { createRateLimiter } from "../middleware/rate-limit.middleware.js";
 
 const router = Router();
 

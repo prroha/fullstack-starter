@@ -1,8 +1,8 @@
 import { Router } from "express";
-import { orderController } from "../controllers/order.controller";
-import { authMiddleware, adminMiddleware } from "../middleware/auth.middleware";
-import { requireFeature } from "../middleware/preview.middleware";
-import { AuthenticatedRequest } from "../types";
+import { orderController } from "../controllers/order.controller.js";
+import { authMiddleware, adminMiddleware } from "../middleware/auth.middleware.js";
+import { requireFeature } from "../middleware/preview.middleware.js";
+import { AuthenticatedRequest } from "../types/index.js";
 
 const router = Router();
 

@@ -4,7 +4,7 @@
  * Sent to administrators when someone submits the contact form.
  */
 
-import { config } from "../../config";
+import { config } from "../../config/index.js";
 import {
   baseTemplate,
   emailButton,
@@ -13,7 +13,7 @@ import {
   emailInfoBox,
   emailDivider,
   EmailOutput,
-} from "./base.template";
+} from "./base.template.js";
 
 export interface ContactFormEmailData {
   /** Sender's name */

@@ -86,8 +86,8 @@ let _isFeatureEnabled = (_req: Request, _featureSlug: string): boolean => {
 // Load full preview middleware if in preview mode
 if (PREVIEW_MODE) {
   try {
-    // Dynamic require to avoid bundling preview code in production
-    const previewModule = require("./_preview/preview.middleware");
+    // Dynamic import to avoid bundling preview code in production
+    const previewModule = await import("./_preview/preview.middleware.js");
     _previewMiddleware = previewModule.previewMiddleware;
     _requireFeature = previewModule.requireFeature;
     _isFeatureEnabled = previewModule.isFeatureEnabled;

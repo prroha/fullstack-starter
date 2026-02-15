@@ -37,7 +37,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promis
 
     res.json({ success: true, data: comment });
   } catch (error) {
-    console.error('[CommentRoutes] Update error:', error);
+    console.error('[CommentRoutes] Update error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to update comment',
     });
@@ -55,7 +55,7 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response): Promi
     await commentService.delete(req.params.id, authReq.user.userId);
     res.json({ success: true, message: 'Comment deleted' });
   } catch (error) {
-    console.error('[CommentRoutes] Delete error:', error);
+    console.error('[CommentRoutes] Delete error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to delete comment',
     });

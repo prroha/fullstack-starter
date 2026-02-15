@@ -34,7 +34,7 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
 
     res.json({ success: true, data: result });
   } catch (error) {
-    console.error('[ServiceRoutes] List error:', error);
+    console.error('[ServiceRoutes] List error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to list services' });
   }
 });
@@ -48,7 +48,7 @@ router.get('/categories', async (_req: Request, res: Response): Promise<void> =>
     const categories = await serviceService.listCategories();
     res.json({ success: true, data: categories });
   } catch (error) {
-    console.error('[ServiceRoutes] Categories error:', error);
+    console.error('[ServiceRoutes] Categories error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to list categories' });
   }
 });
@@ -66,7 +66,7 @@ router.get('/:slug', async (req: Request, res: Response): Promise<void> => {
     }
     res.json({ success: true, data: service });
   } catch (error) {
-    console.error('[ServiceRoutes] Get by slug error:', error);
+    console.error('[ServiceRoutes] Get by slug error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get service' });
   }
 });
@@ -102,7 +102,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response): Promise<vo
 
     res.status(201).json({ success: true, data: service });
   } catch (error) {
-    console.error('[ServiceRoutes] Create error:', error);
+    console.error('[ServiceRoutes] Create error:', error instanceof Error ? error.message : error);
     res.status(500).json({
       error: error instanceof Error ? error.message : 'Failed to create service',
     });
@@ -134,7 +134,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promis
 
     res.json({ success: true, data: service });
   } catch (error) {
-    console.error('[ServiceRoutes] Update error:', error);
+    console.error('[ServiceRoutes] Update error:', error instanceof Error ? error.message : error);
     res.status(500).json({
       error: error instanceof Error ? error.message : 'Failed to update service',
     });
@@ -150,7 +150,7 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response): Promi
     await serviceService.deleteService(req.params.id);
     res.json({ success: true, message: 'Service deleted' });
   } catch (error) {
-    console.error('[ServiceRoutes] Delete error:', error);
+    console.error('[ServiceRoutes] Delete error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to delete service' });
   }
 });
@@ -168,7 +168,7 @@ router.post('/:id/publish', authMiddleware, async (req: Request, res: Response):
     }
     res.json({ success: true, data: service });
   } catch (error) {
-    console.error('[ServiceRoutes] Publish error:', error);
+    console.error('[ServiceRoutes] Publish error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to publish service' });
   }
 });
@@ -186,7 +186,7 @@ router.post('/:id/unpublish', authMiddleware, async (req: Request, res: Response
     }
     res.json({ success: true, data: service });
   } catch (error) {
-    console.error('[ServiceRoutes] Unpublish error:', error);
+    console.error('[ServiceRoutes] Unpublish error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to unpublish service' });
   }
 });
@@ -211,7 +211,7 @@ router.post('/categories', authMiddleware, async (req: Request, res: Response): 
     const category = await serviceService.createCategory({ name, description, iconName });
     res.status(201).json({ success: true, data: category });
   } catch (error) {
-    console.error('[ServiceRoutes] Create category error:', error);
+    console.error('[ServiceRoutes] Create category error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to create category' });
   }
 });

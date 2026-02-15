@@ -127,9 +127,16 @@ export default function LoginPage() {
           </form>
 
           {/* Footer */}
-          <p className="text-xs text-center text-muted-foreground mt-6">
-            Protected admin area. Unauthorized access is prohibited.
-          </p>
+          <div className="mt-6 space-y-2">
+            <p className="text-xs text-center text-muted-foreground">
+              Protected admin area. Unauthorized access is prohibited.
+            </p>
+            <p className="text-xs text-center">
+              <a href="/" className="text-primary hover:underline">
+                &larr; Back to Studio
+              </a>
+            </p>
+          </div>
         </div>
       </div>
     </main>

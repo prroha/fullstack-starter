@@ -1,7 +1,7 @@
 import rateLimit, { RateLimitRequestHandler, Options } from "express-rate-limit";
 import { Request, Response, NextFunction, RequestHandler } from "express";
-import { config } from "../config";
-import { AppRequest } from "../types";
+import { config } from "../config/index.js";
+import { AppRequest } from "../types/index.js";
 
 // ============================================================================
 // Types & Interfaces
@@ -296,8 +296,8 @@ class RedisStore implements RateLimitStore {
       this.client = redis.createClient({ url: this.redisUrl }) as unknown as RedisClientType;
 
       this.client.on("error", (err: unknown) => {
-        const error = err as Error;
-        console.error("[rate-limit] Redis client error:", error.message);
+        const message = err instanceof Error ? err.message : String(err);
+        console.error("[rate-limit] Redis client error:", message);
         this.isConnected = false;
       });
 

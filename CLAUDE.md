@@ -130,6 +130,66 @@ When fixing bugs, ALL rules above still apply:
 - Fix root causes, not symptoms
 - Don't refactor surrounding code unless directly related to the bug
 
+### Rule 8: Storybook-Driven Component Development
+
+Every reusable UI component MUST have a Storybook story. Stories live in `core/web/src/stories/components/` organized by category.
+
+**Before building UI:**
+
+1. **Check existing stories** — browse `core/web/src/stories/components/` to discover available components and their usage patterns
+2. **Use existing components** — if a story exists for what you need, import and use that component instead of building a new one
+
+**When adding a new reusable component to core:**
+
+1. Create the component in `core/web/src/components/ui/` (or `feedback/`, `forms/`, `shared/`)
+2. Add to barrel export in `ui/index.ts`
+3. **Create a Storybook story** in the matching category directory:
+
+| Component Category                                | Story Location                   |
+| ------------------------------------------------- | -------------------------------- |
+| Atoms & Molecules (display)                       | `stories/components/Display/`    |
+| Form inputs                                       | `stories/components/Forms/`      |
+| Feedback & confirmations                          | `stories/components/Feedback/`   |
+| Overlays (dialog, tooltip, popover, dropdown)     | `stories/components/Overlay/`    |
+| Navigation (tabs, accordion, pagination, stepper) | `stories/components/Navigation/` |
+| Layout (container, grid, stack)                   | `stories/components/Layout/`     |
+
+**Story file pattern:**
+
+```tsx
+import type { Meta, StoryObj } from "@storybook/react";
+import { ComponentName } from "@/components/ui/component-name";
+
+const meta: Meta<typeof ComponentName> = {
+  title: "Components/{Category}/ComponentName",
+  component: ComponentName,
+  parameters: {
+    layout: "centered", // or "padded" or "fullscreen"
+    docs: { description: { component: "Brief description." } },
+  },
+  tags: ["autodocs"],
+  argTypes: {
+    /* interactive controls */
+  },
+};
+
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+export const Default: Story = {
+  args: {
+    /* default props */
+  },
+};
+// Add 2-5 variant stories (Sizes, Variants, InContext, etc.)
+```
+
+**When NOT to create a story:**
+
+- Domain-specific components that only make sense inside one module (e.g., `CourseProgressBar` in LMS)
+- Page-level components (full pages are not stories)
+- Provider/context components with no visual output
+
 ---
 
 ## Registries (Detailed in Sub-Files)

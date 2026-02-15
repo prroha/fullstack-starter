@@ -24,7 +24,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response): Promise<voi
     const labels = await labelService.list(authReq.user.userId);
     res.json({ success: true, data: labels });
   } catch (error) {
-    console.error('[LabelRoutes] List error:', error);
+    console.error('[LabelRoutes] List error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to list labels' });
   }
 });
@@ -51,7 +51,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response): Promise<vo
 
     res.status(201).json({ success: true, data: label });
   } catch (error) {
-    console.error('[LabelRoutes] Create error:', error);
+    console.error('[LabelRoutes] Create error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to create label',
     });
@@ -75,7 +75,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promis
 
     res.json({ success: true, data: label });
   } catch (error) {
-    console.error('[LabelRoutes] Update error:', error);
+    console.error('[LabelRoutes] Update error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to update label',
     });
@@ -93,7 +93,7 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response): Promi
     await labelService.delete(req.params.id, authReq.user.userId);
     res.json({ success: true, message: 'Label deleted' });
   } catch (error) {
-    console.error('[LabelRoutes] Delete error:', error);
+    console.error('[LabelRoutes] Delete error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to delete label',
     });

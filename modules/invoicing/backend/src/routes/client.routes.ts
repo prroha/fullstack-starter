@@ -30,7 +30,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response): Promise<voi
 
     res.json({ success: true, data: result });
   } catch (error) {
-    console.error('[ClientRoutes] List error:', error);
+    console.error('[ClientRoutes] List error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to list clients' });
   }
 });
@@ -50,7 +50,7 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response): Promise<
     }
     res.json({ success: true, data: client });
   } catch (error) {
-    console.error('[ClientRoutes] Get error:', error);
+    console.error('[ClientRoutes] Get error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get client' });
   }
 });
@@ -70,7 +70,7 @@ router.get('/:id/stats', authMiddleware, async (req: Request, res: Response): Pr
     }
     res.json({ success: true, data: stats });
   } catch (error) {
-    console.error('[ClientRoutes] Stats error:', error);
+    console.error('[ClientRoutes] Stats error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get client stats' });
   }
 });
@@ -102,7 +102,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response): Promise<vo
 
     res.status(201).json({ success: true, data: client });
   } catch (error) {
-    console.error('[ClientRoutes] Create error:', error);
+    console.error('[ClientRoutes] Create error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to create client',
     });
@@ -135,7 +135,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promis
 
     res.json({ success: true, data: client });
   } catch (error) {
-    console.error('[ClientRoutes] Update error:', error);
+    console.error('[ClientRoutes] Update error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to update client',
     });
@@ -153,7 +153,7 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response): Promi
     await clientService.delete(req.params.id, authReq.user.userId);
     res.json({ success: true, message: 'Client deleted' });
   } catch (error) {
-    console.error('[ClientRoutes] Delete error:', error);
+    console.error('[ClientRoutes] Delete error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to delete client',
     });

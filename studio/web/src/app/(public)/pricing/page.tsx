@@ -258,7 +258,7 @@ function getTierColorClass(tier: PricingTier): string {
 function getTierBorderClass(tier: PricingTier): string {
   if (!tier.isPopular) return "border-border";
   const colorMap: Record<string, string> = {
-    gray: "border-gray-500",
+    gray: "border-muted-foreground",
     blue: "border-blue-500",
     purple: "border-purple-500",
     orange: "border-orange-500",

@@ -1,14 +1,14 @@
 import { Response, NextFunction } from "express";
 import { AuditAction } from "@prisma/client";
-import { auditService } from "../services/audit.service";
+import { auditService } from "../services/audit.service.js";
 import {
   successResponse,
   paginatedResponse,
-} from "../utils/response";
+} from "../utils/response.js";
 import { z } from "zod";
-import { AuthenticatedRequest } from "../types";
-import { paginationSchema } from "../utils/validation-schemas";
-import { ensureParam, ensureExists } from "../utils/controller-helpers";
+import { AuthenticatedRequest } from "../types/index.js";
+import { paginationSchema } from "../utils/validation-schemas.js";
+import { ensureParam, ensureExists } from "../utils/controller-helpers.js";
 
 // ============================================================================
 // Validation Schemas

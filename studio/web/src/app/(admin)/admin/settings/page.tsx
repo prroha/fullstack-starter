@@ -274,52 +274,22 @@ function MaskedInput({ className, ...props }: MaskedInputProps) {
         type={showValue ? "text" : "password"}
         className={cn("pr-10", className)}
       />
-      <button
+      <Button
         type="button"
+        variant="ghost"
+        size="icon"
         onClick={() => setShowValue(!showValue)}
-        className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded"
+        className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7"
         aria-label={showValue ? "Hide value" : "Show value"}
       >
         {showValue ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}
-      </button>
+      </Button>
     </div>
   );
 }
 
-interface ToggleProps {
-  checked: boolean;
-  onChange: (checked: boolean) => void;
-  disabled?: boolean;
-  warning?: boolean;
-}
-
-function Toggle({ checked, onChange, disabled, warning }: ToggleProps) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      onClick={() => !disabled && onChange(!checked)}
-      disabled={disabled}
-      className={cn(
-        "relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-        checked
-          ? warning
-            ? "bg-warning"
-            : "bg-primary"
-          : "bg-muted",
-        disabled && "opacity-50 cursor-not-allowed"
-      )}
-    >
-      <span
-        className={cn(
-          "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
-          checked ? "translate-x-6" : "translate-x-1"
-        )}
-      />
-    </button>
-  );
-}
+// Toggle removed — use Switch from @/components/ui for standard toggles.
+// For warning-styled toggles, Switch with className override is used inline.
 
 interface LogoPreviewProps {
   url: string;
@@ -907,10 +877,9 @@ export default function SettingsPage() {
                     Process real payments (disable for testing)
                   </p>
                 </div>
-                <Toggle
+                <Switch
                   checked={settings.stripeLiveMode}
                   onChange={(checked) => updateSetting("stripeLiveMode", checked)}
-                  warning={settings.stripeLiveMode}
                 />
               </div>
 
@@ -1163,10 +1132,9 @@ export default function SettingsPage() {
                   Take your store offline temporarily
                 </p>
               </div>
-              <Toggle
+              <Switch
                 checked={settings.maintenanceMode}
                 onChange={(checked) => updateSetting("maintenanceMode", checked)}
-                warning
               />
             </div>
 

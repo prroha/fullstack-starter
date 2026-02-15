@@ -1,7 +1,7 @@
-import { db } from "../lib/db";
+import { db } from "../lib/db.js";
 import { ContactMessageStatus } from "@prisma/client";
-import { ApiError } from "../middleware/error.middleware";
-import { logger } from "../lib/logger";
+import { ApiError } from "../middleware/error.middleware.js";
+import { logger } from "../lib/logger.js";
 
 // ============================================================================
 // Types

@@ -6,12 +6,12 @@
  */
 
 import { Request, Response, NextFunction } from "express";
-import { AuthenticatedRequest } from "../types";
-import { settingService } from "../services/setting.service";
-import { auditService } from "../services/audit.service";
-import { successResponse } from "../utils/response";
+import { AuthenticatedRequest } from "../types/index.js";
+import { settingService } from "../services/setting.service.js";
+import { auditService } from "../services/audit.service.js";
+import { successResponse } from "../utils/response.js";
 import { z } from "zod";
-import { validateOrRespond, sendCsvExport } from "../utils/controller-helpers";
+import { validateOrRespond, sendCsvExport } from "../utils/controller-helpers.js";
 
 // ============================================================================
 // Validation Schemas

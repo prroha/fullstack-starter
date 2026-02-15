@@ -1,25 +1,25 @@
 import { Response, NextFunction } from "express";
 import { AuditAction, UserRole } from "@prisma/client";
-import { adminService } from "../services/admin.service";
-import { exportService } from "../services/export.service";
-import { auditService } from "../services/audit.service";
+import { adminService } from "../services/admin.service.js";
+import { exportService } from "../services/export.service.js";
+import { auditService } from "../services/audit.service.js";
 import {
   successResponse,
   paginatedResponse,
   errorResponse,
   ErrorCodes,
-} from "../utils/response";
+} from "../utils/response.js";
 import { z } from "zod";
-import { AuthenticatedRequest } from "../types";
+import { AuthenticatedRequest } from "../types/index.js";
 import {
   paginationSchema,
   booleanFilterSchema,
   nameSchema,
-} from "../utils/validation-schemas";
+} from "../utils/validation-schemas.js";
 import {
   ensureParam,
   getUserIdFromToken,
-} from "../utils/controller-helpers";
+} from "../utils/controller-helpers.js";
 
 // ============================================================================
 // Validation Schemas

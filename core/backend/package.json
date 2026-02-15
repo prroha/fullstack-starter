@@ -2,10 +2,11 @@
   "name": "fullstack-backend",
   "version": "1.0.0",
   "description": "Express + Prisma + TypeScript Backend",
+  "type": "module",
   "main": "dist/app.js",
   "scripts": {
-    "dev": "nodemon --exec ts-node src/app.ts",
-    "build": "prisma generate && tsc && tsc prisma/seed.ts --outDir dist/prisma --esModuleInterop --skipLibCheck",
+    "dev": "tsx watch src/app.ts",
+    "build": "prisma generate && tsc",
     "start": "node dist/app.js",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
@@ -14,15 +15,15 @@
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
     "db:generate": "prisma generate",
-    "db:seed": "ts-node prisma/seed.ts",
-    "db:seed:prod": "NODE_ENV=production ts-node prisma/seed.ts",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:seed:prod": "NODE_ENV=production tsx prisma/seed.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "openapi:export": "ts-node scripts/export-openapi.ts"
+    "openapi:export": "tsx scripts/export-openapi.ts"
   },
   "prisma": {
-    "seed": "node dist/prisma/seed.js || ts-node prisma/seed.ts"
+    "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.3.0",
@@ -57,10 +58,9 @@
     "@vitest/coverage-v8": "^4.0.18",
     "eslint": "^9.18.0",
     "globals": "^15.14.0",
-    "nodemon": "^3.1.9",
     "prisma": "^6.3.0",
     "supertest": "^7.2.2",
-    "ts-node": "^10.9.2",
+    "tsx": "^4.21.0",
     "typescript": "^5.7.3",
     "vitest": "^4.0.18"
   },

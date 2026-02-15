@@ -5,7 +5,7 @@
  * This is a security notification to alert users of account changes.
  */
 
-import { config } from "../../config";
+import { config } from "../../config/index.js";
 import {
   baseTemplate,
   emailButton,
@@ -15,7 +15,7 @@ import {
   emailWarningBox,
   emailDivider,
   EmailOutput,
-} from "./base.template";
+} from "./base.template.js";
 
 export interface PasswordChangedEmailData {
   name: string | null;

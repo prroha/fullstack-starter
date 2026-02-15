@@ -102,7 +102,7 @@ router.post(
         },
       } as UploadResponse);
     } catch (error) {
-      console.error('[UploadRoutes] Upload error:', error);
+      console.error('[UploadRoutes] Upload error:', error instanceof Error ? error.message : error);
       res.status(500).json({
         success: false,
         error: 'Internal server error',
@@ -169,7 +169,7 @@ router.post(
         },
       } as UploadResponse);
     } catch (error) {
-      console.error('[UploadRoutes] Public upload error:', error);
+      console.error('[UploadRoutes] Public upload error:', error instanceof Error ? error.message : error);
       res.status(500).json({
         success: false,
         error: 'Internal server error',
@@ -245,7 +245,7 @@ router.post(
         ...(errors.length > 0 && { partialErrors: errors }),
       });
     } catch (error) {
-      console.error('[UploadRoutes] Multiple upload error:', error);
+      console.error('[UploadRoutes] Multiple upload error:', error instanceof Error ? error.message : error);
       res.status(500).json({
         success: false,
         error: 'Internal server error',
@@ -286,7 +286,7 @@ router.get('/signed-url/*', authMiddleware, async (req: Request, res: Response):
       expiresIn,
     });
   } catch (error) {
-    console.error('[UploadRoutes] Signed URL error:', error);
+    console.error('[UploadRoutes] Signed URL error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to generate signed URL' });
   }
 });
@@ -328,7 +328,7 @@ router.post('/presigned', authMiddleware, async (req: Request, res: Response): P
       expiresIn,
     });
   } catch (error) {
-    console.error('[UploadRoutes] Presigned URL error:', error);
+    console.error('[UploadRoutes] Presigned URL error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to generate presigned URL' });
   }
 });
@@ -365,7 +365,7 @@ router.delete('/*', authMiddleware, async (req: Request, res: Response): Promise
 
     res.json({ success: true });
   } catch (error) {
-    console.error('[UploadRoutes] Delete error:', error);
+    console.error('[UploadRoutes] Delete error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to delete file' });
   }
 });
@@ -391,7 +391,7 @@ router.get('/list', authMiddleware, async (req: Request, res: Response): Promise
       ...result,
     });
   } catch (error) {
-    console.error('[UploadRoutes] List error:', error);
+    console.error('[UploadRoutes] List error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to list files' });
   }
 });

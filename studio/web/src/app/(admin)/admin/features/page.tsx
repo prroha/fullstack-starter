@@ -33,6 +33,7 @@ import {
   Switch,
   Select,
   Input,
+  Textarea,
   Tabs,
   TabList,
   Tab,
@@ -189,19 +190,17 @@ function MultiSelect({
 
   return (
     <div className="relative">
-      <button
+      <Button
         type="button"
+        variant="outline"
         onClick={() => setIsOpen(!isOpen)}
-        className={cn(
-          "flex h-9 w-full items-center justify-between rounded-md border border-input bg-background px-2.5 py-1.5 text-sm",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-        )}
+        className="flex h-9 w-full items-center justify-between px-2.5 py-1.5 text-sm font-normal"
       >
         <span className={cn("truncate", value.length === 0 && "text-muted-foreground")}>
           {value.length > 0 ? `${value.length} selected` : placeholder || "Select..."}
         </span>
         <ChevronDown className="h-4 w-4 text-muted-foreground" />
-      </button>
+      </Button>
       {isOpen && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
@@ -256,9 +255,10 @@ function ModuleCard({
 }) {
   return (
     <div className="bg-background rounded-lg border">
-      <button
+      <Button
+        variant="ghost"
         onClick={onToggle}
-        className="w-full flex items-center gap-3 p-4 text-left hover:bg-muted/50 transition-colors"
+        className="w-full flex items-center gap-3 p-4 h-auto text-left hover:bg-muted/50"
       >
         {isExpanded ? (
           <ChevronDown className="h-5 w-5 text-muted-foreground" />
@@ -280,23 +280,27 @@ function ModuleCard({
             <p className="text-xs text-muted-foreground">features</p>
           </div>
           <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={onEdit}
-              className="p-1.5 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              className="h-7 w-7 text-muted-foreground hover:text-foreground"
               aria-label={`Edit module ${module.name}`}
             >
               <Pencil className="h-4 w-4" aria-hidden="true" />
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={onDelete}
-              className="p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
               aria-label={`Delete module ${module.name}`}
             >
               <Trash2 className="h-4 w-4" aria-hidden="true" />
-            </button>
+            </Button>
           </div>
         </div>
-      </button>
+      </Button>
       {isExpanded && (
         <div className="px-4 pb-4 border-t">
           <dl className="grid grid-cols-2 gap-4 mt-4 text-sm">
@@ -451,20 +455,24 @@ function FeaturesTable({
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center justify-end gap-1">
-                      <button
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={() => onEdit(feature)}
-                        className="p-1.5 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                        className="h-7 w-7 text-muted-foreground hover:text-foreground"
                         aria-label={`Edit feature ${feature.name}`}
                       >
                         <Pencil className="h-4 w-4" aria-hidden="true" />
-                      </button>
-                      <button
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={() => onDelete(feature)}
-                        className="p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                        className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                         aria-label={`Delete feature ${feature.name}`}
                       >
                         <Trash2 className="h-4 w-4" aria-hidden="true" />
-                      </button>
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -620,11 +628,10 @@ function FeatureModal({
           </div>
 
           <FormField label="Description" required error={errors.description}>
-            <textarea
+            <Textarea
               value={formData.description || ""}
               onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
               rows={2}
-              className="flex min-h-[72px] w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               placeholder="Brief description of the feature"
             />
           </FormField>
@@ -682,11 +689,11 @@ function FeatureModal({
           </div>
 
           <FormField label="File Mappings (JSON)" error={errors.fileMappings}>
-            <textarea
+            <Textarea
               value={fileMappingsJson}
               onChange={(e) => setFileMappingsJson(e.target.value)}
               rows={4}
-              className="flex w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-sm font-mono focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="font-mono"
               placeholder='{"folder": ["file1.tsx", "file2.ts"]}'
             />
           </FormField>
@@ -818,11 +825,10 @@ function ModuleModal({
           </FormField>
 
           <FormField label="Description" required error={errors.description}>
-            <textarea
+            <Textarea
               value={formData.description || ""}
               onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
               rows={3}
-              className="flex min-h-[72px] w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               placeholder="Brief description of the module (at least 10 characters)"
             />
           </FormField>

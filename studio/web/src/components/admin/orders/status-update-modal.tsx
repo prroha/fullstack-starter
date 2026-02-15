@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Button, Modal } from "@/components/ui";
+import { Button, Modal, Select } from "@/components/ui";
 import type { Order, OrderStatus } from "@/lib/api";
 
 // Order status options for the dropdown
@@ -74,19 +74,12 @@ export function StatusUpdateModal({
           <label htmlFor="order-status-select" className="block text-sm font-medium mb-2">
             Order: {order.orderNumber}
           </label>
-          <select
+          <Select
             id="order-status-select"
             value={status}
-            onChange={(e) => setStatus(e.target.value as OrderStatus)}
-            className="w-full px-3 py-2 border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-            aria-label="Select order status"
-          >
-            {ORDER_STATUSES.map((s) => (
-              <option key={s.value} value={s.value}>
-                {s.label}
-              </option>
-            ))}
-          </select>
+            onChange={(v) => setStatus(v as OrderStatus)}
+            options={ORDER_STATUSES}
+          />
         </div>
       </form>
     </Modal>

@@ -25,7 +25,7 @@ router.get('/stats', authMiddleware, async (req: Request, res: Response): Promis
     const stats = await invoiceService.getStats(authReq.user.userId);
     res.json({ success: true, data: stats });
   } catch (error) {
-    console.error('[InvoiceRoutes] Stats error:', error);
+    console.error('[InvoiceRoutes] Stats error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get invoice stats' });
   }
 });
@@ -51,7 +51,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response): Promise<voi
 
     res.json({ success: true, data: result });
   } catch (error) {
-    console.error('[InvoiceRoutes] List error:', error);
+    console.error('[InvoiceRoutes] List error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to list invoices' });
   }
 });
@@ -71,7 +71,7 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response): Promise<
     }
     res.json({ success: true, data: invoice });
   } catch (error) {
-    console.error('[InvoiceRoutes] Get error:', error);
+    console.error('[InvoiceRoutes] Get error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get invoice' });
   }
 });
@@ -104,7 +104,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response): Promise<vo
 
     res.status(201).json({ success: true, data: invoice });
   } catch (error) {
-    console.error('[InvoiceRoutes] Create error:', error);
+    console.error('[InvoiceRoutes] Create error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to create invoice',
     });
@@ -137,7 +137,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promis
 
     res.json({ success: true, data: invoice });
   } catch (error) {
-    console.error('[InvoiceRoutes] Update error:', error);
+    console.error('[InvoiceRoutes] Update error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to update invoice',
     });
@@ -155,7 +155,7 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response): Promi
     await invoiceService.delete(req.params.id, authReq.user.userId);
     res.json({ success: true, message: 'Invoice deleted' });
   } catch (error) {
-    console.error('[InvoiceRoutes] Delete error:', error);
+    console.error('[InvoiceRoutes] Delete error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to delete invoice',
     });
@@ -177,7 +177,7 @@ router.post('/:id/send', authMiddleware, async (req: Request, res: Response): Pr
     }
     res.json({ success: true, data: invoice });
   } catch (error) {
-    console.error('[InvoiceRoutes] Send error:', error);
+    console.error('[InvoiceRoutes] Send error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to send invoice',
     });
@@ -199,7 +199,7 @@ router.post('/:id/void', authMiddleware, async (req: Request, res: Response): Pr
     }
     res.json({ success: true, data: invoice });
   } catch (error) {
-    console.error('[InvoiceRoutes] Void error:', error);
+    console.error('[InvoiceRoutes] Void error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to void invoice',
     });
@@ -221,7 +221,7 @@ router.post('/:id/duplicate', authMiddleware, async (req: Request, res: Response
     }
     res.status(201).json({ success: true, data: invoice });
   } catch (error) {
-    console.error('[InvoiceRoutes] Duplicate error:', error);
+    console.error('[InvoiceRoutes] Duplicate error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to duplicate invoice',
     });

@@ -24,7 +24,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response): Promise<voi
     const taxRates = await taxRateService.list(authReq.user.userId);
     res.json({ success: true, data: taxRates });
   } catch (error) {
-    console.error('[TaxRateRoutes] List error:', error);
+    console.error('[TaxRateRoutes] List error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to list tax rates' });
   }
 });
@@ -52,7 +52,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response): Promise<vo
 
     res.status(201).json({ success: true, data: taxRate });
   } catch (error) {
-    console.error('[TaxRateRoutes] Create error:', error);
+    console.error('[TaxRateRoutes] Create error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to create tax rate',
     });
@@ -81,7 +81,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promis
 
     res.json({ success: true, data: taxRate });
   } catch (error) {
-    console.error('[TaxRateRoutes] Update error:', error);
+    console.error('[TaxRateRoutes] Update error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to update tax rate',
     });
@@ -99,7 +99,7 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response): Promi
     await taxRateService.delete(req.params.id, authReq.user.userId);
     res.json({ success: true, message: 'Tax rate deleted' });
   } catch (error) {
-    console.error('[TaxRateRoutes] Delete error:', error);
+    console.error('[TaxRateRoutes] Delete error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to delete tax rate',
     });
@@ -121,7 +121,7 @@ router.post('/:id/default', authMiddleware, async (req: Request, res: Response):
     }
     res.json({ success: true, data: taxRate });
   } catch (error) {
-    console.error('[TaxRateRoutes] Set default error:', error);
+    console.error('[TaxRateRoutes] Set default error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to set default tax rate',
     });

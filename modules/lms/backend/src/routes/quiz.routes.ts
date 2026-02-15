@@ -22,7 +22,7 @@ router.get('/lesson/:lessonId', async (req: Request, res: Response): Promise<voi
     const quizzes = await quizService.getQuizzesByLesson(req.params.lessonId);
     res.json({ success: true, data: quizzes });
   } catch (error) {
-    console.error('[QuizRoutes] List quizzes error:', error);
+    console.error('[QuizRoutes] List quizzes error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to list quizzes' });
   }
 });
@@ -40,7 +40,7 @@ router.get('/:id', async (req: Request, res: Response): Promise<void> => {
     }
     res.json({ success: true, data: quiz });
   } catch (error) {
-    console.error('[QuizRoutes] Get quiz error:', error);
+    console.error('[QuizRoutes] Get quiz error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get quiz' });
   }
 });
@@ -70,7 +70,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response): Promise<vo
 
     res.status(201).json({ success: true, data: quiz });
   } catch (error) {
-    console.error('[QuizRoutes] Create quiz error:', error);
+    console.error('[QuizRoutes] Create quiz error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to create quiz' });
   }
 });
@@ -99,7 +99,7 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promis
 
     res.json({ success: true, data: quiz });
   } catch (error) {
-    console.error('[QuizRoutes] Update quiz error:', error);
+    console.error('[QuizRoutes] Update quiz error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to update quiz' });
   }
 });
@@ -113,7 +113,7 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response): Promi
     await quizService.deleteQuiz(req.params.id);
     res.json({ success: true, message: 'Quiz deleted' });
   } catch (error) {
-    console.error('[QuizRoutes] Delete quiz error:', error);
+    console.error('[QuizRoutes] Delete quiz error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to delete quiz' });
   }
 });
@@ -131,7 +131,7 @@ router.get('/:quizId/questions', async (req: Request, res: Response): Promise<vo
     const questions = await quizService.getQuestions(req.params.quizId);
     res.json({ success: true, data: questions });
   } catch (error) {
-    console.error('[QuizRoutes] List questions error:', error);
+    console.error('[QuizRoutes] List questions error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to list questions' });
   }
 });
@@ -161,7 +161,7 @@ router.post('/:quizId/questions', authMiddleware, async (req: Request, res: Resp
 
     res.status(201).json({ success: true, data: question });
   } catch (error) {
-    console.error('[QuizRoutes] Create question error:', error);
+    console.error('[QuizRoutes] Create question error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to create question' });
   }
 });
@@ -190,7 +190,7 @@ router.patch('/questions/:id', authMiddleware, async (req: Request, res: Respons
 
     res.json({ success: true, data: question });
   } catch (error) {
-    console.error('[QuizRoutes] Update question error:', error);
+    console.error('[QuizRoutes] Update question error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to update question' });
   }
 });
@@ -204,7 +204,7 @@ router.delete('/questions/:id', authMiddleware, async (req: Request, res: Respon
     await quizService.deleteQuestion(req.params.id);
     res.json({ success: true, message: 'Question deleted' });
   } catch (error) {
-    console.error('[QuizRoutes] Delete question error:', error);
+    console.error('[QuizRoutes] Delete question error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to delete question' });
   }
 });
@@ -235,7 +235,7 @@ router.post('/:quizId/submit', authMiddleware, async (req: Request, res: Respons
 
     res.json({ success: true, data: attempt });
   } catch (error) {
-    console.error('[QuizRoutes] Submit attempt error:', error);
+    console.error('[QuizRoutes] Submit attempt error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to submit quiz',
     });
@@ -252,7 +252,7 @@ router.get('/:quizId/attempts', authMiddleware, async (req: Request, res: Respon
     const attempts = await quizService.getAttempts(req.params.quizId, authReq.user.userId);
     res.json({ success: true, data: attempts });
   } catch (error) {
-    console.error('[QuizRoutes] Get attempts error:', error);
+    console.error('[QuizRoutes] Get attempts error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get attempts' });
   }
 });
@@ -267,7 +267,7 @@ router.get('/:quizId/best', authMiddleware, async (req: Request, res: Response):
     const attempt = await quizService.getBestAttempt(req.params.quizId, authReq.user.userId);
     res.json({ success: true, data: attempt });
   } catch (error) {
-    console.error('[QuizRoutes] Get best attempt error:', error);
+    console.error('[QuizRoutes] Get best attempt error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get best attempt' });
   }
 });

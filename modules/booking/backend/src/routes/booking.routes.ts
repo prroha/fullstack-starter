@@ -38,7 +38,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response): Promise<vo
 
     res.status(201).json({ success: true, data: booking });
   } catch (error) {
-    console.error('[BookingRoutes] Create error:', error);
+    console.error('[BookingRoutes] Create error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to create booking',
     });
@@ -63,7 +63,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response): Promise<voi
 
     res.json({ success: true, data: result });
   } catch (error) {
-    console.error('[BookingRoutes] List error:', error);
+    console.error('[BookingRoutes] List error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to list bookings' });
   }
 });
@@ -81,7 +81,7 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response): Promise<
     }
     res.json({ success: true, data: booking });
   } catch (error) {
-    console.error('[BookingRoutes] Get error:', error);
+    console.error('[BookingRoutes] Get error:', error instanceof Error ? error.message : error);
     res.status(500).json({ error: 'Failed to get booking' });
   }
 });
@@ -102,7 +102,7 @@ router.post('/:id/cancel', authMiddleware, async (req: Request, res: Response): 
 
     res.json({ success: true, data: booking });
   } catch (error) {
-    console.error('[BookingRoutes] Cancel error:', error);
+    console.error('[BookingRoutes] Cancel error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to cancel booking',
     });
@@ -130,7 +130,7 @@ router.post('/:id/reschedule', authMiddleware, async (req: Request, res: Respons
 
     res.json({ success: true, data: booking });
   } catch (error) {
-    console.error('[BookingRoutes] Reschedule error:', error);
+    console.error('[BookingRoutes] Reschedule error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to reschedule booking',
     });
@@ -154,7 +154,7 @@ router.post('/:id/confirm', authMiddleware, async (req: Request, res: Response):
     }
     res.json({ success: true, data: booking });
   } catch (error) {
-    console.error('[BookingRoutes] Confirm error:', error);
+    console.error('[BookingRoutes] Confirm error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to confirm booking',
     });
@@ -174,7 +174,7 @@ router.post('/:id/complete', authMiddleware, async (req: Request, res: Response)
     }
     res.json({ success: true, data: booking });
   } catch (error) {
-    console.error('[BookingRoutes] Complete error:', error);
+    console.error('[BookingRoutes] Complete error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to complete booking',
     });
@@ -194,7 +194,7 @@ router.post('/:id/no-show', authMiddleware, async (req: Request, res: Response):
     }
     res.json({ success: true, data: booking });
   } catch (error) {
-    console.error('[BookingRoutes] No-show error:', error);
+    console.error('[BookingRoutes] No-show error:', error instanceof Error ? error.message : error);
     res.status(400).json({
       error: error instanceof Error ? error.message : 'Failed to mark booking as no-show',
     });
