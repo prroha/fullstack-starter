@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import path from "path";
 
 const nextConfig: NextConfig = {
   // Enable standalone output for Docker deployments
@@ -28,6 +29,15 @@ const nextConfig: NextConfig = {
         hostname: "**",
       },
     ],
+  },
+
+  // Resolve packages from studio/web/node_modules for @core/* imports
+  webpack: (config) => {
+    config.resolve.modules = [
+      path.resolve(__dirname, "node_modules"),
+      "node_modules",
+    ];
+    return config;
   },
 };
 
