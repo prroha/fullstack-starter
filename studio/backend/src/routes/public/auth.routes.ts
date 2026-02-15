@@ -87,6 +87,7 @@ router.post(
         httpOnly: true,
         secure: env.NODE_ENV === "production",
         sameSite: env.NODE_ENV === "production" ? "strict" : "lax",
+        path: "/",
         maxAge: 24 * 60 * 60 * 1000, // 24 hours
       });
 
@@ -185,6 +186,7 @@ router.post("/logout", (_req: Request, res: Response) => {
     httpOnly: true,
     secure: env.NODE_ENV === "production",
     sameSite: env.NODE_ENV === "production" ? "strict" : "lax",
+    path: "/",
   });
 
   res.json({
