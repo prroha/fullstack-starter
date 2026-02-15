@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
+import { Spinner } from '@/components/ui/spinner';
 import { uploadService, formatFileSize, type UploadedFile } from '../lib/upload';
 
 // =============================================================================
@@ -244,7 +245,7 @@ export function FileList({
   if (isLoading && files.length === 0) {
     return (
       <div className={`p-8 text-center ${className}`}>
-        <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent" />
+        <Spinner size="md" />
         <p className="mt-2 text-sm text-gray-500">Loading files...</p>
       </div>
     );
@@ -436,7 +437,7 @@ function FileListItem({
           className="flex-shrink-0 p-1 text-gray-400 hover:text-red-500 disabled:opacity-50"
         >
           {file.isDeleting ? (
-            <div className="w-5 h-5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+            <Spinner size="sm" />
           ) : (
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path
@@ -513,7 +514,7 @@ function FileGridItem({
           className="absolute top-2 right-2 p-1 bg-white rounded-full shadow opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-red-500 disabled:opacity-50"
         >
           {file.isDeleting ? (
-            <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+            <Spinner size="xs" />
           ) : (
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path

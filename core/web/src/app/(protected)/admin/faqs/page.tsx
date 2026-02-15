@@ -18,6 +18,7 @@ import {
   DataTable,
   IconButton,
   Label,
+  ConfirmButton,
 } from "@/components/ui";
 import {
   api,
@@ -196,7 +197,6 @@ export default function AdminFaqsPage() {
   };
 
   const deleteFaq = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this FAQ?")) return;
     try {
       await api.deleteFaq(id);
       toast.success("FAQ deleted");
@@ -241,7 +241,6 @@ export default function AdminFaqsPage() {
   };
 
   const deleteCategory = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this category? FAQs will be uncategorized.")) return;
     try {
       await api.deleteFaqCategory(id);
       toast.success("Category deleted");
@@ -317,13 +316,16 @@ export default function AdminFaqsPage() {
             variant="ghost"
             onClick={() => openFaqModal(faq)}
           />
-          <IconButton
-            aria-label="Delete"
-            icon={<Icon name="Trash2" size="sm" />}
+          <ConfirmButton
             size="sm"
             variant="ghost"
-            onClick={() => deleteFaq(faq.id)}
-          />
+            confirmMode="dialog"
+            confirmTitle="Delete FAQ"
+            confirmMessage="Are you sure you want to delete this FAQ?"
+            onConfirm={() => deleteFaq(faq.id)}
+          >
+            <Icon name="Trash2" size="sm" />
+          </ConfirmButton>
         </div>
       ),
     },
@@ -385,13 +387,16 @@ export default function AdminFaqsPage() {
                     variant="ghost"
                     onClick={() => openCategoryModal(cat)}
                   />
-                  <IconButton
-                    aria-label="Delete"
-                    icon={<Icon name="Trash2" size="xs" />}
+                  <ConfirmButton
                     size="xs"
                     variant="ghost"
-                    onClick={() => deleteCategory(cat.id)}
-                  />
+                    confirmMode="dialog"
+                    confirmTitle="Delete Category"
+                    confirmMessage="Are you sure you want to delete this category? FAQs will be uncategorized."
+                    onConfirm={() => deleteCategory(cat.id)}
+                  >
+                    <Icon name="Trash2" size="xs" />
+                  </ConfirmButton>
                 </div>
               ))}
             </div>

@@ -2,6 +2,24 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
+import { Spinner } from '@/components/ui/spinner';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
+import { ConfirmButton } from '@/components/ui/confirm-button';
+import { Pagination } from '@/components/ui/pagination';
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '@/components/ui/table';
+import { EmptyState } from '@/components/shared/empty-state';
+import { Alert } from '@/components/feedback/alert';
+import { toast } from '@/lib/toast';
 
 // =============================================================================
 // Types
@@ -16,12 +34,17 @@ interface User {
   updatedAt: string;
 }
 
-interface Pagination {
+interface PaginationData {
   page: number;
   limit: number;
   total: number;
   totalPages: number;
 }
+
+const roleOptions = [
+  { value: 'USER', label: 'User' },
+  { value: 'ADMIN', label: 'Admin' },
+];
 
 // =============================================================================
 // Admin Users Page
@@ -29,7 +52,7 @@ interface Pagination {
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
-  const [pagination, setPagination] = useState<Pagination>({
+  const [pagination, setPagination] = useState<PaginationData>({
     page: 1,
     limit: 20,
     total: 0,
@@ -85,8 +108,6 @@ export default function AdminUsersPage() {
   };
 
   const handleDelete = async (userId: string) => {
-    if (!confirm('Are you sure you want to delete this user?')) return;
-
     setDeleteLoading(userId);
     try {
       const response = await fetch(`/api/admin/users/${userId}`, {
@@ -98,12 +119,13 @@ export default function AdminUsersPage() {
       if (data.success) {
         setUsers((prev) => prev.filter((u) => u.id !== userId));
         setPagination((prev) => ({ ...prev, total: prev.total - 1 }));
+        toast.success('User deleted successfully');
       } else {
-        alert(data.error || 'Failed to delete user');
+        toast.error(data.error || 'Failed to delete user');
       }
     } catch (err) {
       console.error('Delete error:', err);
-      alert('Failed to delete user');
+      toast.error('Failed to delete user');
     } finally {
       setDeleteLoading(null);
     }
@@ -123,12 +145,13 @@ export default function AdminUsersPage() {
         setUsers((prev) =>
           prev.map((u) => (u.id === userId ? { ...u, role: newRole } : u))
         );
+        toast.success('Role updated successfully');
       } else {
-        alert(data.error || 'Failed to update role');
+        toast.error(data.error || 'Failed to update role');
       }
     } catch (err) {
       console.error('Update role error:', err);
-      alert('Failed to update role');
+      toast.error('Failed to update role');
     }
   };
 
@@ -141,35 +164,23 @@ export default function AdminUsersPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200">
+      <header className="bg-card border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <Link
                 href="/admin"
-                className="text-gray-500 hover:text-gray-700"
+                className="text-muted-foreground hover:text-foreground"
               >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 19l-7-7 7-7"
-                  />
-                </svg>
+                <ArrowLeft className="w-5 h-5" />
               </Link>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">
+                <h1 className="text-2xl font-bold text-foreground">
                   User Management
                 </h1>
-                <p className="text-sm text-gray-500 mt-1">
+                <p className="text-sm text-muted-foreground mt-1">
                   {pagination.total} total users
                 </p>
               </div>
@@ -182,129 +193,111 @@ export default function AdminUsersPage() {
         {/* Search */}
         <form onSubmit={handleSearch} className="mb-6">
           <div className="flex gap-4">
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by email or name..."
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-            <button
-              type="submit"
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
+            <div className="flex-1">
+              <Input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search by email or name..."
+              />
+            </div>
+            <Button type="submit">
               Search
-            </button>
+            </Button>
           </div>
         </form>
 
         {/* Error State */}
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-600">
-            {error}
-            <button
-              onClick={() => fetchUsers(1, search)}
-              className="ml-4 underline"
-            >
-              Retry
-            </button>
+          <div className="mb-6">
+            <Alert variant="destructive">
+              {error}
+              <Button
+                variant="link"
+                size="sm"
+                onClick={() => fetchUsers(1, search)}
+                className="ml-4 text-destructive underline"
+              >
+                Retry
+              </Button>
+            </Alert>
           </div>
         )}
 
         {/* Users Table */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
           {loading ? (
             <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+              <Spinner size="md" />
             </div>
           ) : users.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-gray-500">No users found</p>
+            <div className="py-12">
+              <EmptyState title="No users found" />
             </div>
           ) : (
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    User
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Role
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Joined
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>User</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Joined</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {users.map((user) => (
-                  <tr key={user.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
+                  <TableRow key={user.id}>
+                    <TableCell className="whitespace-nowrap">
                       <div>
-                        <p className="text-sm font-medium text-gray-900">
+                        <p className="text-sm font-medium text-foreground">
                           {user.name || 'No name'}
                         </p>
-                        <p className="text-sm text-gray-500">{user.email}</p>
+                        <p className="text-sm text-muted-foreground">{user.email}</p>
                       </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <select
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      <Select
                         value={user.role}
-                        onChange={(e) =>
-                          handleRoleChange(user.id, e.target.value)
-                        }
-                        className="text-sm border border-gray-300 rounded px-2 py-1 focus:ring-2 focus:ring-blue-500"
-                      >
-                        <option value="USER">User</option>
-                        <option value="ADMIN">Admin</option>
-                      </select>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        onChange={(value) => handleRoleChange(user.id, value)}
+                        options={roleOptions}
+                        size="sm"
+                      />
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
                       {formatDate(user.createdAt)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                      <button
-                        onClick={() => handleDelete(user.id)}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap text-right text-sm">
+                      <ConfirmButton
+                        confirmMode="dialog"
+                        confirmTitle="Delete User"
+                        confirmMessage="Are you sure you want to delete this user?"
+                        variant="ghost"
+                        size="sm"
+                        onConfirm={() => handleDelete(user.id)}
                         disabled={deleteLoading === user.id}
-                        className="text-red-600 hover:text-red-700 disabled:opacity-50"
+                        className="text-destructive hover:text-destructive"
                       >
                         {deleteLoading === user.id ? 'Deleting...' : 'Delete'}
-                      </button>
-                    </td>
-                  </tr>
+                      </ConfirmButton>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           )}
         </div>
 
         {/* Pagination */}
         {pagination.totalPages > 1 && (
-          <div className="mt-6 flex items-center justify-between">
-            <p className="text-sm text-gray-500">
-              Showing {(pagination.page - 1) * pagination.limit + 1} to{' '}
-              {Math.min(pagination.page * pagination.limit, pagination.total)}{' '}
-              of {pagination.total}
-            </p>
-            <div className="flex gap-2">
-              <button
-                onClick={() => handlePageChange(pagination.page - 1)}
-                disabled={pagination.page === 1}
-                className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-              >
-                Previous
-              </button>
-              <button
-                onClick={() => handlePageChange(pagination.page + 1)}
-                disabled={pagination.page >= pagination.totalPages}
-                className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-              >
-                Next
-              </button>
-            </div>
+          <div className="mt-6">
+            <Pagination
+              page={pagination.page}
+              totalPages={pagination.totalPages}
+              onPageChange={handlePageChange}
+              totalItems={pagination.total}
+              pageSize={pagination.limit}
+              showItemCount
+            />
           </div>
         )}
       </main>

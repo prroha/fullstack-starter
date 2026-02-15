@@ -7,7 +7,7 @@ import { toast } from "@/lib/toast";
 import { useAuth } from "@/lib/auth-context";
 import { api, ApiError, Notification, NotificationType } from "@/lib/api";
 import { logger } from "@/lib/logger";
-import { Button, Spinner, Badge, Text } from "@/components/ui";
+import { Button, Spinner, Badge, Text, ConfirmButton, Pagination } from "@/components/ui";
 import { NotificationItem } from "@/components/notifications";
 import { EmptyState } from "@/components/shared";
 import { FeatureGate } from "@/components";
@@ -25,7 +25,7 @@ import {
 // Notifications Page
 // =====================================================
 
-interface Pagination {
+interface PaginationData {
   page: number;
   limit: number;
   total: number;
@@ -41,7 +41,7 @@ export default function NotificationsPage() {
   const { user, logout } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [pagination, setPagination] = useState<Pagination | null>(null);
+  const [pagination, setPagination] = useState<PaginationData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterType>("all");
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -146,10 +146,6 @@ export default function NotificationsPage() {
 
   // Delete all notifications
   const handleDeleteAll = async () => {
-    if (!confirm("Are you sure you want to delete all notifications?")) {
-      return;
-    }
-
     try {
       await api.deleteAllNotifications();
       setNotifications([]);
@@ -307,15 +303,18 @@ export default function NotificationsPage() {
                       <CheckCheck className="h-4 w-4 mr-2" />
                       Mark all read
                     </Button>
-                    <Button
+                    <ConfirmButton
                       variant="outline"
                       size="sm"
-                      onClick={handleDeleteAll}
+                      confirmMode="dialog"
+                      confirmTitle="Delete All Notifications"
+                      confirmMessage="Are you sure you want to delete all notifications?"
+                      onConfirm={handleDeleteAll}
                       className="text-destructive hover:text-destructive"
                     >
                       <Trash2 className="h-4 w-4 mr-2" />
                       Delete all
-                    </Button>
+                    </ConfirmButton>
                   </>
                 )}
               </div>
@@ -388,26 +387,15 @@ export default function NotificationsPage() {
 
             {/* Pagination */}
             {pagination && pagination.totalPages > 1 && (
-              <div className="flex items-center justify-center gap-4 pt-4">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => fetchNotifications(pagination.page - 1)}
-                  disabled={!pagination.hasPrev}
-                >
-                  Previous
-                </Button>
-                <span className="text-sm text-muted-foreground">
-                  Page {pagination.page} of {pagination.totalPages}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => fetchNotifications(pagination.page + 1)}
-                  disabled={!pagination.hasNext}
-                >
-                  Next
-                </Button>
+              <div className="pt-4">
+                <Pagination
+                  page={pagination.page}
+                  totalPages={pagination.totalPages}
+                  onPageChange={(page) => fetchNotifications(page)}
+                  totalItems={pagination.total}
+                  pageSize={pagination.limit}
+                  showItemCount
+                />
               </div>
             )}
 

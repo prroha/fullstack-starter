@@ -8,6 +8,7 @@ import { formatPrice, formatOrderStatus } from '@/lib/ecommerce/formatters';
 import OrderStatusBadge from '@/components/ecommerce/order-status-badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
+import { ConfirmButton } from '@/components/ui/confirm-button';
 
 const ORDER_TIMELINE_STEPS: EcommerceOrderStatus[] = [
   'PENDING',
@@ -48,8 +49,6 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
   }, [fetchOrder]);
 
   async function handleCancel() {
-    if (!window.confirm('Are you sure you want to cancel this order?')) return;
-
     try {
       setCancelling(true);
       await orderApi.cancel(id);
@@ -131,14 +130,18 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
         <div className="flex items-center gap-3">
           <OrderStatusBadge status={order.status} />
           {canCancel && (
-            <Button
+            <ConfirmButton
+              confirmMode="dialog"
+              confirmTitle="Cancel Order"
+              confirmMessage="Are you sure you want to cancel this order?"
+              confirmLabel="Cancel Order"
               variant="destructive"
               size="sm"
-              onClick={handleCancel}
+              onConfirm={handleCancel}
               isLoading={cancelling}
             >
               {cancelling ? 'Cancelling...' : 'Cancel Order'}
-            </Button>
+            </ConfirmButton>
           )}
         </div>
       </div>

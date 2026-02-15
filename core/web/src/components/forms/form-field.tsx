@@ -3,8 +3,8 @@
 import * as React from "react";
 import { ControllerProps, FieldValues, FieldPath } from "react-hook-form";
 import { cn } from "@/lib/utils";
-import { Input, type InputProps } from "@/components/ui/input";
-import { Textarea, type TextareaProps } from "@/components/ui/textarea";
+import { Input, type InputProps } from "../ui/input";
+import { Textarea, type TextareaProps } from "../ui/textarea";
 import {
   FormField,
   FormItem,

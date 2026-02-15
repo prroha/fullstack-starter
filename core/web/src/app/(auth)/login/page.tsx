@@ -10,6 +10,7 @@ import { toast } from "@/lib/toast";
 import {
   Form,
   FormFieldInput,
+  FormFieldPassword,
   FormStatusMessage,
   useZodForm,
 } from "@/components/forms";
@@ -104,14 +105,13 @@ export default function LoginPage() {
             inputProps={{ autoComplete: "email" }}
           />
 
-          <FormFieldInput
+          <FormFieldPassword
             control={form.control}
             name="password"
             label="Password"
             required
-            type="password"
             placeholder="Enter your password"
-            inputProps={{ autoComplete: "current-password" }}
+            autoComplete="current-password"
           />
 
           <Button

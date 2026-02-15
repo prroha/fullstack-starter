@@ -14,6 +14,12 @@ import {
   AccordionItem,
   AccordionTrigger,
   AccordionContent,
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
 } from "@/components/ui";
 import { API_CONFIG } from "@/lib/constants";
 import type { PricingTier } from "@studio/shared";
@@ -314,19 +320,19 @@ export default async function PricingPage() {
 
           {/* Desktop Table */}
           <div className="hidden lg:block overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr>
-                  <th className="text-left p-4 border-b border-border font-semibold">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-left font-semibold">
                     Features
-                  </th>
+                  </TableHead>
                   {TIER_ORDER.map((tierSlug) => {
                     const tier = tiers.find((t) => t.slug === tierSlug);
                     const tierInfo = TIER_INFO[tierSlug];
                     return (
-                      <th
+                      <TableHead
                         key={tierSlug}
-                        className="text-center p-4 border-b border-border"
+                        className="text-center"
                       >
                         <div className="font-semibold">
                           {tier?.name || tierInfo?.name || tierSlug}
@@ -334,43 +340,43 @@ export default async function PricingPage() {
                         <div className="text-sm text-muted-foreground font-normal">
                           {tier ? formatDisplayPrice(tier.price) : "-"}
                         </div>
-                      </th>
+                      </TableHead>
                     );
                   })}
-                </tr>
-              </thead>
-              <tbody>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {featureCategories.map((category) => (
                   <Fragment key={`category-${category.name}`}>
-                    <tr>
-                      <td
+                    <TableRow>
+                      <TableCell
                         colSpan={TIER_ORDER.length + 1}
                         className="bg-muted/50 p-3 font-semibold text-sm"
                       >
                         {category.name}
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                     {category.features.map((feature) => (
-                      <tr
+                      <TableRow
                         key={feature.name}
-                        className="border-b border-border/50 hover:bg-muted/20"
+                        className="hover:bg-muted/20"
                       >
-                        <td className="p-4 text-sm">{feature.name}</td>
+                        <TableCell className="text-sm">{feature.name}</TableCell>
                         {TIER_ORDER.map((tierSlug) => (
-                          <td key={tierSlug} className="p-4 text-center">
+                          <TableCell key={tierSlug} className="text-center">
                             {feature.tiers.includes(tierSlug) ? (
                               <Check className="h-5 w-5 text-green-500 mx-auto" />
                             ) : (
                               <X className="h-5 w-5 text-muted-foreground/30 mx-auto" />
                             )}
-                          </td>
+                          </TableCell>
                         ))}
-                      </tr>
+                      </TableRow>
                     ))}
                   </Fragment>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
 
           {/* Mobile Comparison */}

@@ -2,6 +2,23 @@
 
 import { useState, useCallback } from 'react';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { Select } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { ConfirmButton } from '@/components/ui/confirm-button';
+import { Pagination } from '@/components/ui/pagination';
+import { SkeletonTable } from '@/components/ui/skeleton';
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '@/components/ui/table';
+import { StatusBadge } from '@/components/ui/status-badge';
+import { EmptyState } from '@/components/shared/empty-state';
+import { Alert } from '@/components/feedback/alert';
 
 // =============================================================================
 // Types
@@ -20,7 +37,7 @@ export interface AdminUser {
   updatedAt: string;
 }
 
-export interface Pagination {
+export interface PaginationData {
   page: number;
   limit: number;
   total: number;
@@ -33,7 +50,7 @@ export interface AdminUsersTableProps {
   /** Array of users to display */
   users: AdminUser[];
   /** Pagination info */
-  pagination: Pagination;
+  pagination: PaginationData;
   /** Loading state */
   loading?: boolean;
   /** Error message */
@@ -59,115 +76,20 @@ export interface AdminUsersTableProps {
 }
 
 // =============================================================================
-// Helper Components
+// Constants
 // =============================================================================
 
-function TableSkeleton({ rows = 5 }: { rows?: number }) {
-  return (
-    <div className="animate-pulse">
-      <div className="flex gap-4 p-4 border-b border-gray-200">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="flex-1 h-4 bg-gray-200 rounded" />
-        ))}
-      </div>
-      {Array.from({ length: rows }).map((_, rowIndex) => (
-        <div key={rowIndex} className="flex gap-4 p-4 border-b border-gray-100">
-          {Array.from({ length: 4 }).map((_, colIndex) => (
-            <div key={colIndex} className="flex-1 h-4 bg-gray-100 rounded" />
-          ))}
-        </div>
-      ))}
-    </div>
-  );
-}
+const roleOptions = [
+  { value: 'USER', label: 'User' },
+  { value: 'MANAGER', label: 'Manager' },
+  { value: 'ADMIN', label: 'Admin' },
+];
 
-function EmptyState({ message = 'No users found' }: { message?: string }) {
-  return (
-    <div className="text-center py-12">
-      <svg
-        className="mx-auto h-12 w-12 text-gray-400"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"
-        />
-      </svg>
-      <p className="mt-4 text-gray-500">{message}</p>
-    </div>
-  );
-}
-
-function ErrorState({
-  message,
-  onRetry,
-}: {
-  message: string;
-  onRetry?: () => void;
-}) {
-  return (
-    <div className="text-center py-12">
-      <svg
-        className="mx-auto h-12 w-12 text-red-400"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-        />
-      </svg>
-      <p className="mt-4 text-red-600">{message}</p>
-      {onRetry && (
-        <button
-          onClick={onRetry}
-          className="mt-4 px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 underline"
-        >
-          Try again
-        </button>
-      )}
-    </div>
-  );
-}
-
-function StatusBadge({ isActive }: { isActive: boolean }) {
-  return (
-    <span
-      className={cn(
-        'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium',
-        isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-      )}
-    >
-      {isActive ? 'Active' : 'Inactive'}
-    </span>
-  );
-}
-
-function RoleBadge({ role }: { role: UserRole }) {
-  const roleStyles: Record<UserRole, string> = {
-    ADMIN: 'bg-purple-100 text-purple-800',
-    MANAGER: 'bg-blue-100 text-blue-800',
-    USER: 'bg-gray-100 text-gray-800',
-  };
-
-  return (
-    <span
-      className={cn(
-        'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium',
-        roleStyles[role]
-      )}
-    >
-      {role}
-    </span>
-  );
-}
+const roleBadgeVariants: Record<UserRole, 'default' | 'secondary' | 'outline'> = {
+  ADMIN: 'default',
+  MANAGER: 'secondary',
+  USER: 'outline',
+};
 
 // =============================================================================
 // Main Component
@@ -211,7 +133,6 @@ export function AdminUsersTable({
 
   const handleDelete = async (userId: string) => {
     if (!onDelete) return;
-    if (!window.confirm('Are you sure you want to delete this user?')) return;
 
     setProcessingId(userId);
     try {
@@ -223,9 +144,6 @@ export function AdminUsersTable({
 
   const handleToggleActive = async (userId: string, currentActive: boolean) => {
     if (!onToggleActive) return;
-
-    const action = currentActive ? 'deactivate' : 'activate';
-    if (!window.confirm(`Are you sure you want to ${action} this user?`)) return;
 
     setProcessingId(userId);
     try {
@@ -239,11 +157,25 @@ export function AdminUsersTable({
     return (
       <div
         className={cn(
-          'bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden',
+          'bg-card rounded-xl shadow-sm border border-border overflow-hidden',
           className
         )}
       >
-        <ErrorState message={error} onRetry={() => onPageChange?.(pagination.page)} />
+        <div className="p-6">
+          <Alert variant="destructive" title="Error loading users">
+            {error}
+          </Alert>
+          {onPageChange && (
+            <div className="mt-4 text-center">
+              <Button
+                variant="outline"
+                onClick={() => onPageChange(pagination.page)}
+              >
+                Try again
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
     );
   }
@@ -251,208 +183,172 @@ export function AdminUsersTable({
   return (
     <div
       className={cn(
-        'bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden',
+        'bg-card rounded-xl shadow-sm border border-border overflow-hidden',
         className
       )}
     >
       {loading ? (
-        <TableSkeleton rows={pagination.limit || 5} />
+        <div className="p-4">
+          <SkeletonTable rows={pagination.limit || 5} columns={5} />
+        </div>
       ) : users.length === 0 ? (
-        <EmptyState />
+        <EmptyState
+          title="No users found"
+          description="There are no users to display yet. When users sign up, they will appear here."
+          className="border-0 rounded-none"
+        />
       ) : (
         <>
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    User
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Role
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Status
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Joined
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>User</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Joined</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {users.map((user) => {
                   const isProcessing = processingId === user.id;
                   const isSelf = user.id === currentUserId;
 
                   return (
-                    <tr
+                    <TableRow
                       key={user.id}
                       className={cn(
-                        'hover:bg-gray-50 transition-colors',
                         onUserClick && 'cursor-pointer'
                       )}
                       onClick={() => onUserClick?.(user)}
                     >
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <TableCell className="whitespace-nowrap">
                         <div className="flex items-center">
                           <div className="h-10 w-10 flex-shrink-0">
-                            <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
-                              <span className="text-sm font-medium text-gray-600">
+                            <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+                              <span className="text-sm font-medium text-muted-foreground">
                                 {(user.name?.[0] || user.email[0]).toUpperCase()}
                               </span>
                             </div>
                           </div>
                           <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900">
+                            <div className="text-sm font-medium text-foreground">
                               {user.name || 'No name'}
                             </div>
-                            <div className="text-sm text-gray-500">{user.email}</div>
+                            <div className="text-sm text-muted-foreground">{user.email}</div>
                           </div>
                         </div>
-                      </td>
-                      <td
-                        className="px-6 py-4 whitespace-nowrap"
+                      </TableCell>
+                      <TableCell
+                        className="whitespace-nowrap"
                         onClick={(e) => e.stopPropagation()}
                       >
                         {canManageRoles && onRoleChange && !isSelf ? (
-                          <select
+                          <Select
                             value={user.role}
-                            onChange={(e) =>
-                              handleRoleChange(user.id, e.target.value as UserRole)
+                            onChange={(value) =>
+                              handleRoleChange(user.id, value as UserRole)
                             }
                             disabled={isProcessing}
-                            className={cn(
-                              'text-sm border border-gray-300 rounded px-2 py-1 focus:ring-2 focus:ring-blue-500 focus:border-transparent',
-                              isProcessing && 'opacity-50 cursor-not-allowed'
-                            )}
-                          >
-                            <option value="USER">User</option>
-                            <option value="MANAGER">Manager</option>
-                            <option value="ADMIN">Admin</option>
-                          </select>
+                            options={roleOptions}
+                            size="sm"
+                          />
                         ) : (
-                          <RoleBadge role={user.role} />
+                          <Badge variant={roleBadgeVariants[user.role]}>
+                            {user.role}
+                          </Badge>
                         )}
-                      </td>
-                      <td
-                        className="px-6 py-4 whitespace-nowrap"
+                      </TableCell>
+                      <TableCell
+                        className="whitespace-nowrap"
                         onClick={(e) => e.stopPropagation()}
                       >
                         {onToggleActive && !isSelf ? (
-                          <button
-                            onClick={() =>
+                          <ConfirmButton
+                            confirmMode="dialog"
+                            confirmTitle={`${(user.isActive ?? true) ? 'Deactivate' : 'Activate'} User`}
+                            confirmMessage={`Are you sure you want to ${(user.isActive ?? true) ? 'deactivate' : 'activate'} this user?`}
+                            confirmLabel={(user.isActive ?? true) ? 'Deactivate' : 'Activate'}
+                            variant="ghost"
+                            size="sm"
+                            onConfirm={() =>
                               handleToggleActive(user.id, user.isActive ?? true)
                             }
                             disabled={isProcessing}
                             className={cn(
-                              'transition-colors',
+                              'p-0 h-auto',
                               isProcessing && 'opacity-50 cursor-not-allowed'
                             )}
                           >
-                            <StatusBadge isActive={user.isActive ?? true} />
-                          </button>
+                            <StatusBadge
+                              status={(user.isActive ?? true) ? 'active' : 'inactive'}
+                            />
+                          </ConfirmButton>
                         ) : (
-                          <StatusBadge isActive={user.isActive ?? true} />
+                          <StatusBadge
+                            status={(user.isActive ?? true) ? 'active' : 'inactive'}
+                          />
                         )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
                         {formatDate(user.createdAt)}
-                      </td>
-                      <td
-                        className="px-6 py-4 whitespace-nowrap text-right text-sm"
+                      </TableCell>
+                      <TableCell
+                        className="whitespace-nowrap text-right text-sm"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <div className="flex items-center justify-end gap-2">
                           {onUserClick && (
-                            <button
+                            <Button
+                              variant="link"
+                              size="sm"
                               onClick={() => onUserClick(user)}
-                              className="text-blue-600 hover:text-blue-700"
                             >
                               View
-                            </button>
+                            </Button>
                           )}
                           {canDelete && onDelete && !isSelf && (
-                            <button
-                              onClick={() => handleDelete(user.id)}
+                            <ConfirmButton
+                              confirmMode="dialog"
+                              confirmTitle="Delete User"
+                              confirmMessage="Are you sure you want to delete this user?"
+                              variant="ghost"
+                              size="sm"
+                              onConfirm={() => handleDelete(user.id)}
                               disabled={isProcessing}
                               className={cn(
-                                'text-red-600 hover:text-red-700',
+                                'text-destructive hover:text-destructive',
                                 isProcessing && 'opacity-50 cursor-not-allowed'
                               )}
                             >
                               {isProcessing ? 'Deleting...' : 'Delete'}
-                            </button>
+                            </ConfirmButton>
                           )}
                           {isSelf && (
-                            <span className="text-gray-400 text-xs">(You)</span>
+                            <span className="text-muted-foreground text-xs">(You)</span>
                           )}
                         </div>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   );
                 })}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
 
           {/* Pagination */}
           {pagination.totalPages > 1 && (
-            <div className="px-6 py-4 flex items-center justify-between border-t border-gray-200">
-              <p className="text-sm text-gray-500">
-                Showing{' '}
-                <span className="font-medium">
-                  {(pagination.page - 1) * pagination.limit + 1}
-                </span>{' '}
-                to{' '}
-                <span className="font-medium">
-                  {Math.min(pagination.page * pagination.limit, pagination.total)}
-                </span>{' '}
-                of <span className="font-medium">{pagination.total}</span> users
-              </p>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => onPageChange?.(pagination.page - 1)}
-                  disabled={pagination.page === 1 || loading}
-                  className={cn(
-                    'px-4 py-2 text-sm font-medium border border-gray-300 rounded-lg transition-colors',
-                    pagination.page === 1 || loading
-                      ? 'opacity-50 cursor-not-allowed bg-gray-50'
-                      : 'hover:bg-gray-50'
-                  )}
-                >
-                  Previous
-                </button>
-                <button
-                  onClick={() => onPageChange?.(pagination.page + 1)}
-                  disabled={pagination.page >= pagination.totalPages || loading}
-                  className={cn(
-                    'px-4 py-2 text-sm font-medium border border-gray-300 rounded-lg transition-colors',
-                    pagination.page >= pagination.totalPages || loading
-                      ? 'opacity-50 cursor-not-allowed bg-gray-50'
-                      : 'hover:bg-gray-50'
-                  )}
-                >
-                  Next
-                </button>
-              </div>
+            <div className="px-6 py-4 border-t border-border">
+              <Pagination
+                page={pagination.page}
+                totalPages={pagination.totalPages}
+                onPageChange={(page) => onPageChange?.(page)}
+                totalItems={pagination.total}
+                pageSize={pagination.limit}
+                showItemCount
+                disabled={loading}
+              />
             </div>
           )}
         </>

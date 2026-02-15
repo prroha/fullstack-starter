@@ -9,6 +9,7 @@ import { toast } from "@/lib/toast";
 import {
   Form,
   FormFieldInput,
+  FormFieldPassword,
   FormStatusMessage,
   useZodForm,
 } from "@/components/forms";
@@ -106,25 +107,23 @@ export default function RegisterPage() {
             inputProps={{ autoComplete: "email" }}
           />
 
-          <FormFieldInput
+          <FormFieldPassword
             control={form.control}
             name="password"
             label="Password"
             required
-            type="password"
             placeholder="Create a strong password"
             description="Must be at least 8 characters with uppercase, lowercase, and a number."
-            inputProps={{ autoComplete: "new-password" }}
+            autoComplete="new-password"
           />
 
-          <FormFieldInput
+          <FormFieldPassword
             control={form.control}
             name="confirmPassword"
             label="Confirm Password"
             required
-            type="password"
             placeholder="Confirm your password"
-            inputProps={{ autoComplete: "new-password" }}
+            autoComplete="new-password"
           />
 
           <Button

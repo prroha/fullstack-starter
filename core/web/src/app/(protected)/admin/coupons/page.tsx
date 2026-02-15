@@ -16,6 +16,7 @@ import {
   DataTable,
   IconButton,
   Label,
+  ConfirmButton,
 } from "@/components/ui";
 import { Alert } from "@/components/feedback";
 import { FeatureGate } from "@/components";
@@ -207,7 +208,6 @@ export default function AdminCouponsPage() {
   };
 
   const deleteCoupon = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this coupon?")) return;
     try {
       await api.deleteCoupon(id);
       toast.success("Coupon deleted");
@@ -293,13 +293,16 @@ export default function AdminCouponsPage() {
             onClick={() => openModal(coupon)}
             aria-label="Edit coupon"
           />
-          <IconButton
-            icon={<Icon name="Trash2" size="sm" />}
+          <ConfirmButton
             size="sm"
             variant="ghost"
-            onClick={() => deleteCoupon(coupon.id)}
-            aria-label="Delete coupon"
-          />
+            confirmMode="dialog"
+            confirmTitle="Delete Coupon"
+            confirmMessage="Are you sure you want to delete this coupon?"
+            onConfirm={() => deleteCoupon(coupon.id)}
+          >
+            <Icon name="Trash2" size="sm" />
+          </ConfirmButton>
         </div>
       ),
     },

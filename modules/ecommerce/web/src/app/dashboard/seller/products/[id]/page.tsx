@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
+import { ConfirmButton } from '@/components/ui/confirm-button';
 
 export default function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -156,10 +157,6 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
   }
 
   async function handleDelete() {
-    if (!window.confirm('Are you sure you want to delete this product? This action cannot be undone.')) {
-      return;
-    }
-
     clearMessages();
 
     try {
@@ -240,14 +237,17 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
           >
             {product?.status === 'ACTIVE' ? 'Unpublish' : 'Publish'}
           </Button>
-          <Button
+          <ConfirmButton
+            confirmMode="dialog"
+            confirmTitle="Delete Product"
+            confirmMessage="Are you sure you want to delete this product? This action cannot be undone."
             variant="destructive"
             size="sm"
-            onClick={handleDelete}
+            onConfirm={handleDelete}
             isLoading={deleting}
           >
             Delete
-          </Button>
+          </ConfirmButton>
         </div>
       </div>
 

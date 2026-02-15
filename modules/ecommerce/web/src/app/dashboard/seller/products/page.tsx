@@ -10,6 +10,7 @@ import type { BadgeProps } from '@/components/ui/badge';
 import { Pagination } from '@/components/ui/pagination';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
+import { ConfirmButton } from '@/components/ui/confirm-button';
 
 const STATUS_VARIANTS: Record<ProductStatus, BadgeProps['variant']> = {
   DRAFT: 'outline',
@@ -43,11 +44,7 @@ export default function SellerProductsPage() {
     fetchProducts();
   }, [fetchProducts]);
 
-  async function handleDelete(productId: string, productTitle: string) {
-    if (!window.confirm(`Are you sure you want to delete "${productTitle}"? This action cannot be undone.`)) {
-      return;
-    }
-
+  async function handleDelete(productId: string) {
     try {
       setDeleting(productId);
       await productApi.delete(productId);
@@ -209,14 +206,17 @@ export default function SellerProductsPage() {
                     Edit
                   </Link>
                   <span className="mx-2 text-border">|</span>
-                  <Button
+                  <ConfirmButton
+                    confirmMode="dialog"
+                    confirmTitle="Delete Product"
+                    confirmMessage={`Are you sure you want to delete "${product.title}"? This action cannot be undone.`}
                     variant="destructive"
                     size="sm"
-                    onClick={() => handleDelete(product.id, product.title)}
+                    onConfirm={() => handleDelete(product.id)}
                     isLoading={deleting === product.id}
                   >
                     {deleting === product.id ? 'Deleting...' : 'Delete'}
-                  </Button>
+                  </ConfirmButton>
                 </TableCell>
               </TableRow>
             ))}

@@ -1,6 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { Spinner } from '@/components/ui/spinner';
+import { Button } from '@/components/ui/button';
+import { Alert } from '@/components/feedback/alert';
+import { EmptyState } from '@/components/shared/empty-state';
 import { loadStripe } from '@stripe/stripe-js';
 
 // =============================================================================
@@ -117,7 +121,7 @@ export default function PaymentPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
+        <Spinner size="lg" />
       </div>
     );
   }
@@ -125,102 +129,79 @@ export default function PaymentPage() {
   if (error && prices.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-600 mb-4">{error}</p>
-          <button
+        <div className="text-center space-y-4">
+          <Alert variant="destructive">{error}</Alert>
+          <Button
             onClick={() => {
               setError(null);
               setLoading(true);
               fetchPrices();
             }}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             Retry
-          </button>
+          </Button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-background py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-12">
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-3xl font-bold text-foreground">
             Choose Your Plan
           </h1>
-          <p className="mt-4 text-lg text-gray-600">
+          <p className="mt-4 text-lg text-muted-foreground">
             Select a plan that works best for you
           </p>
         </div>
 
         {error && (
-          <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-center">
+          <Alert variant="destructive" className="mb-8 text-center">
             {error}
-          </div>
+          </Alert>
         )}
 
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
           {prices.map((price) => (
             <div
               key={price.id}
-              className="bg-white rounded-xl shadow-lg p-8 flex flex-col"
+              className="bg-card rounded-xl shadow-lg p-8 flex flex-col"
             >
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              <h2 className="text-xl font-semibold text-foreground mb-2">
                 {price.productName || 'Plan'}
               </h2>
               {price.productDescription && (
-                <p className="text-gray-600 mb-4">{price.productDescription}</p>
+                <p className="text-muted-foreground mb-4">{price.productDescription}</p>
               )}
               <div className="mt-auto">
-                <div className="text-4xl font-bold text-gray-900 mb-1">
+                <div className="text-4xl font-bold text-foreground mb-1">
                   {formatPrice(price.unitAmount, price.currency)}
                 </div>
-                <p className="text-gray-500 mb-6">
+                <p className="text-muted-foreground mb-6">
                   {formatInterval(price.interval, price.intervalCount)}
                 </p>
-                <button
+                <Button
                   onClick={() => handleCheckout(price.id)}
+                  isLoading={checkoutLoading && selectedPriceId === price.id}
                   disabled={checkoutLoading && selectedPriceId === price.id}
-                  className="w-full py-3 px-4 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="w-full py-3"
+                  size="lg"
                 >
-                  {checkoutLoading && selectedPriceId === price.id ? (
-                    <span className="flex items-center justify-center">
-                      <svg
-                        className="animate-spin -ml-1 mr-2 h-5 w-5 text-white"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        />
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        />
-                      </svg>
-                      Processing...
-                    </span>
-                  ) : (
-                    'Get Started'
-                  )}
-                </button>
+                  Get Started
+                </Button>
               </div>
             </div>
           ))}
         </div>
 
         {prices.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-gray-500">No pricing plans available</p>
-          </div>
+          <EmptyState
+            variant="noData"
+            title="No pricing plans available"
+            description="There are no pricing plans to display at this time."
+          />
         )}
       </div>
     </div>

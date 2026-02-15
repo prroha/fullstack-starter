@@ -28,8 +28,11 @@ export async function authenticate(
   next: NextFunction
 ): Promise<void> {
   try {
+    // Check cookie first (set by login endpoint), then Authorization header
+    const cookieToken = req.cookies?.auth_token;
     const authHeader = req.headers.authorization;
-    const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+    const headerToken = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+    const token = cookieToken || headerToken;
 
     if (!token) {
       throw ApiError.unauthorized("No token provided");
@@ -99,8 +102,9 @@ export async function optionalAuth(
   res: Response,
   next: NextFunction
 ): Promise<void> {
+  const cookieToken = req.cookies?.auth_token;
   const authHeader = req.headers.authorization;
-  if (!authHeader?.startsWith("Bearer ")) {
+  if (!cookieToken && !authHeader?.startsWith("Bearer ")) {
     return next();
   }
 

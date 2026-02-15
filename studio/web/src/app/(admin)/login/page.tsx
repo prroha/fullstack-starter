@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@core/components/ui/button";
 import { Input } from "@core/components/ui/input";
 import { Label } from "@core/components/ui/label";
+import { PasswordInput } from "@core/components/forms/password-input";
 import { useAuth } from "@/contexts/auth-context";
 import { AlertCircle, Lock, Mail, Loader2 } from "lucide-react";
 
@@ -90,23 +91,18 @@ export default function LoginPage() {
                 Password
                 <span className="sr-only">(required)</span>
               </Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="Enter your password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="pl-9"
-                  required
-                  aria-required="true"
-                  aria-invalid={!!error}
-                  aria-describedby={error ? "login-error" : undefined}
-                  autoComplete="current-password"
-                  disabled={isSubmitting}
-                />
-              </div>
+              <PasswordInput
+                id="password"
+                placeholder="Enter your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                aria-required="true"
+                aria-invalid={!!error}
+                aria-describedby={error ? "login-error" : undefined}
+                autoComplete="current-password"
+                disabled={isSubmitting}
+              />
             </div>
 
             <Button

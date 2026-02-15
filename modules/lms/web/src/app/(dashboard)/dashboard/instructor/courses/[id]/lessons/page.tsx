@@ -6,6 +6,7 @@ import type { Section, Lesson, LessonType } from '@/lib/lms/types';
 import { lessonApi } from '@/lib/lms/api';
 import { ProgressBar } from '@/components/lms/progress-bar';
 import { Button } from '@/components/ui/button';
+import { ConfirmButton } from '@/components/ui/confirm-button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -271,8 +272,6 @@ function SectionCard({
   }
 
   async function handleDeleteSection() {
-    if (!confirm(`Delete section "${section.title}" and all its lessons?`)) return;
-
     try {
       setError(null);
       setDeletingId(section.id);
@@ -342,9 +341,7 @@ function SectionCard({
     }
   }
 
-  async function handleDeleteLesson(lessonId: string, lessonTitle: string) {
-    if (!confirm(`Delete lesson "${lessonTitle}"?`)) return;
-
+  async function handleDeleteLesson(lessonId: string) {
     try {
       setError(null);
       setDeletingId(lessonId);
@@ -394,15 +391,18 @@ function SectionCard({
           >
             Edit
           </Button>
-          <Button
+          <ConfirmButton
+            confirmMode="dialog"
+            confirmTitle="Delete Section"
+            confirmMessage={`Delete section "${section.title}" and all its lessons?`}
             variant="ghost"
             size="sm"
-            onClick={handleDeleteSection}
+            onConfirm={handleDeleteSection}
             disabled={deletingId === section.id}
             className="text-destructive hover:text-destructive"
           >
             Delete
-          </Button>
+          </ConfirmButton>
         </div>
       </div>
 
@@ -479,15 +479,18 @@ function SectionCard({
                       >
                         Edit
                       </Button>
-                      <Button
+                      <ConfirmButton
+                        confirmMode="dialog"
+                        confirmTitle="Delete Lesson"
+                        confirmMessage={`Delete lesson "${lesson.title}"?`}
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleDeleteLesson(lesson.id, lesson.title)}
+                        onConfirm={() => handleDeleteLesson(lesson.id)}
                         disabled={deletingId === lesson.id}
                         className="text-destructive hover:text-destructive"
                       >
                         Delete
-                      </Button>
+                      </ConfirmButton>
                     </div>
                   </div>
                 )}

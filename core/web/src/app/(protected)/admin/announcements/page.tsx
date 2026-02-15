@@ -17,6 +17,7 @@ import {
   DataTable,
   IconButton,
   Label,
+  ConfirmButton,
 } from "@/components/ui";
 import {
   api,
@@ -182,7 +183,6 @@ export default function AdminAnnouncementsPage() {
   };
 
   const deleteAnnouncement = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this announcement?")) return;
     try {
       await api.deleteAnnouncement(id);
       toast.success("Announcement deleted");
@@ -263,13 +263,16 @@ export default function AdminAnnouncementsPage() {
             onClick={() => openModal(item)}
             aria-label="Edit announcement"
           />
-          <IconButton
-            icon={<Icon name="Trash2" size="sm" />}
+          <ConfirmButton
             size="sm"
             variant="ghost"
-            onClick={() => deleteAnnouncement(item.id)}
-            aria-label="Delete announcement"
-          />
+            confirmMode="dialog"
+            confirmTitle="Delete Announcement"
+            confirmMessage="Are you sure you want to delete this announcement?"
+            onConfirm={() => deleteAnnouncement(item.id)}
+          >
+            <Icon name="Trash2" size="sm" />
+          </ConfirmButton>
         </div>
       ),
     },

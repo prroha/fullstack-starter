@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import type { Course, Category, CourseUpdateInput } from '@/lib/lms/types';
 import { courseApi } from '@/lib/lms/api';
 import { Button } from '@/components/ui/button';
+import { ConfirmButton } from '@/components/ui/confirm-button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -162,10 +163,6 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
   }
 
   async function handleDelete() {
-    if (!confirm('Are you sure you want to delete this course? This action cannot be undone.')) {
-      return;
-    }
-
     clearMessages();
 
     try {
@@ -245,14 +242,17 @@ export default function EditCoursePage({ params }: { params: Promise<{ id: strin
           >
             {course?.status === 'PUBLISHED' ? 'Unpublish' : 'Publish'}
           </Button>
-          <Button
+          <ConfirmButton
+            confirmMode="dialog"
+            confirmTitle="Delete Course"
+            confirmMessage="Are you sure you want to delete this course? This action cannot be undone."
             variant="destructive"
             size="sm"
-            onClick={handleDelete}
+            onConfirm={handleDelete}
             isLoading={deleting}
           >
             Delete
-          </Button>
+          </ConfirmButton>
         </div>
       </div>
 

@@ -8,7 +8,7 @@ import { logger } from "@/lib/logger";
 import { toast } from "@/lib/toast";
 import {
   Form,
-  FormFieldInput,
+  FormFieldPassword,
   FormStatusMessage,
   useZodForm,
 } from "@/components/forms";
@@ -225,25 +225,23 @@ function ResetPasswordContent() {
         <Form form={form} onSubmit={onSubmit} className="space-y-4">
           <FormStatusMessage variant="error" message={error} />
 
-          <FormFieldInput
+          <FormFieldPassword
             control={form.control}
             name="password"
             label="New Password"
             required
-            type="password"
             placeholder="Enter your new password"
             description="Must be at least 8 characters with uppercase, lowercase, and a number."
-            inputProps={{ autoComplete: "new-password" }}
+            autoComplete="new-password"
           />
 
-          <FormFieldInput
+          <FormFieldPassword
             control={form.control}
             name="confirmPassword"
             label="Confirm Password"
             required
-            type="password"
             placeholder="Confirm your new password"
-            inputProps={{ autoComplete: "new-password" }}
+            autoComplete="new-password"
           />
 
           <Button

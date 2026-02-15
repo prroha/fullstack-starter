@@ -18,6 +18,7 @@ import {
   IconButton,
   Label,
   ExportCsvButton,
+  ConfirmButton,
 } from "@/components/ui";
 import { api, Setting, CreateSettingData, UpdateSettingData } from "@/lib/api";
 import { downloadFile } from "@/lib/export";
@@ -134,7 +135,6 @@ export default function AdminSettingsPage() {
   };
 
   const deleteSetting = async (key: string) => {
-    if (!confirm(`Are you sure you want to delete the setting "${key}"?`)) return;
     try {
       await api.deleteSetting(key);
       toast.success("Setting deleted");
@@ -225,13 +225,16 @@ export default function AdminSettingsPage() {
             onClick={() => openModal(setting)}
             aria-label="Edit setting"
           />
-          <IconButton
-            icon={<Icon name="Trash2" size="sm" />}
+          <ConfirmButton
             size="sm"
             variant="ghost"
-            onClick={() => deleteSetting(setting.key)}
-            aria-label="Delete setting"
-          />
+            confirmMode="dialog"
+            confirmTitle="Delete Setting"
+            confirmMessage={`Are you sure you want to delete the setting "${setting.key}"?`}
+            onConfirm={() => deleteSetting(setting.key)}
+          >
+            <Icon name="Trash2" size="sm" />
+          </ConfirmButton>
         </div>
       ),
     },

@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@core/components/ui/button";
 import { DeviceFrame } from "./device-frame";
 import { FeatureFlagProvider, useFeatureFlags } from "@/lib/preview";
 import { cn } from "@/lib/utils";
@@ -60,9 +61,9 @@ function PreviewContent({ theme }: { theme: ThemeMode }) {
           <div className="font-semibold">Your App</div>
           <div className="flex items-center gap-2">
             {hasFeature("auth.basic") && (
-              <button className="px-3 py-1.5 rounded-md text-sm bg-secondary text-secondary-foreground hover:bg-secondary/80">
+              <Button variant="secondary" size="sm">
                 Sign In
-              </button>
+              </Button>
             )}
           </div>
         </header>
@@ -96,9 +97,9 @@ function PreviewContent({ theme }: { theme: ThemeMode }) {
                   <p className="text-sm text-muted-foreground mb-3">
                     Stripe integration enabled
                   </p>
-                  <button className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm">
+                  <Button className="w-full" size="sm">
                     Make Payment
-                  </button>
+                  </Button>
                 </PreviewCard>
               )}
 

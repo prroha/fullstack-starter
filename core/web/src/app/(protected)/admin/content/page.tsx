@@ -17,6 +17,7 @@ import {
   DataTable,
   IconButton,
   Label,
+  ConfirmButton,
 } from "@/components/ui";
 import { AdminPageHeader } from "@/components/admin";
 import {
@@ -148,7 +149,6 @@ export default function AdminContentPage() {
   };
 
   const deletePage = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this page?")) return;
     try {
       await api.deleteContentPage(id);
       loadData(pagination?.page || 1);
@@ -229,13 +229,16 @@ export default function AdminContentPage() {
             onClick={() => openModal(page)}
             aria-label="Edit"
           />
-          <IconButton
-            icon={<Icon name="Trash2" size="sm" />}
+          <ConfirmButton
             size="sm"
             variant="ghost"
-            onClick={() => deletePage(page.id)}
-            aria-label="Delete"
-          />
+            confirmMode="dialog"
+            confirmTitle="Delete Page"
+            confirmMessage="Are you sure you want to delete this page?"
+            onConfirm={() => deletePage(page.id)}
+          >
+            <Icon name="Trash2" size="sm" />
+          </ConfirmButton>
         </div>
       ),
     },
