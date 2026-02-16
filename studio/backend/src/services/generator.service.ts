@@ -137,6 +137,19 @@ export class ProjectGenerator {
   }
 
   /**
+   * Validate that a resolved path stays within the allowed root directory.
+   * Prevents path traversal attacks via ../
+   */
+  private validatePath(filePath: string, allowedRoot: string, label: string): string {
+    const resolved = path.resolve(allowedRoot, filePath);
+    const normalizedRoot = path.resolve(allowedRoot);
+    if (resolved !== normalizedRoot && !resolved.startsWith(normalizedRoot + path.sep)) {
+      throw new Error(`Path traversal detected in ${label}: ${filePath}`);
+    }
+    return resolved;
+  }
+
+  /**
    * Main entry point - generate a complete project as a ZIP archive
    */
   async generate(order: OrderDetails, outputStream: Writable): Promise<void> {
@@ -413,6 +426,12 @@ export class ProjectGenerator {
       if (!feature.fileMappings) continue;
 
       for (const mapping of feature.fileMappings) {
+        // Validate source path stays within project root (prevents path traversal)
+        this.validatePath(mapping.source, this.projectRootPath, 'fileMappings.source');
+
+        // Validate destination path stays within project output directory (prevents zip-slip)
+        this.validatePath(mapping.destination, projectName, 'fileMappings.destination');
+
         // Resolve source path - use projectRootPath for modules, coreBasePath for core
         let srcPath: string;
         if (mapping.source.startsWith("modules/")) {

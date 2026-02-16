@@ -5,6 +5,7 @@
  * Uses ProjectGenerator for actual code generation.
  */
 
+import crypto from "crypto";
 import { Writable } from "stream";
 import { prisma } from "../config/db.js";
 import { ApiError } from "../utils/errors.js";
@@ -92,8 +93,9 @@ function generateLicenseKey(): string {
 
   for (let i = 0; i < segments; i++) {
     let segment = "";
+    const bytes = crypto.randomBytes(segmentLength);
     for (let j = 0; j < segmentLength; j++) {
-      segment += chars.charAt(Math.floor(Math.random() * chars.length));
+      segment += chars.charAt(bytes[j] % chars.length);
     }
     parts.push(segment);
   }
@@ -229,6 +231,7 @@ export async function getOrderDetails(orderId: string) {
         select: {
           id: true,
           licenseKey: true,
+          downloadToken: true,
           downloadCount: true,
           maxDownloads: true,
           status: true,

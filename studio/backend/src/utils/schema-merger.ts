@@ -96,10 +96,17 @@ function resolveSchemaPath(
   coreBasePath: string,
   relativePath: string
 ): string {
+  let resolved: string;
   if (relativePath.startsWith("modules/") || relativePath.startsWith("core/")) {
-    return path.join(projectRootPath, relativePath);
+    resolved = path.resolve(projectRootPath, relativePath);
+  } else {
+    resolved = path.resolve(coreBasePath, relativePath);
   }
-  return path.join(coreBasePath, relativePath);
+  // Prevent path traversal
+  if (!resolved.startsWith(projectRootPath)) {
+    throw new Error(`Schema path "${relativePath}" resolves outside project root`);
+  }
+  return resolved;
 }
 
 /**

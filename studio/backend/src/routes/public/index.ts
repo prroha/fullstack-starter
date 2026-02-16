@@ -11,10 +11,12 @@ const router = Router();
 
 // API info endpoint
 router.get("/", (_req, res) => {
-  res.json({
+  const info: Record<string, unknown> = {
     name: "Xitolaunch API",
     version: "1.0.0",
-    endpoints: {
+  };
+  if (process.env.NODE_ENV !== "production") {
+    info.endpoints = {
       features: "/api/features",
       templates: "/api/templates",
       pricing: "/api/pricing",
@@ -22,8 +24,9 @@ router.get("/", (_req, res) => {
       checkout: "/api/checkout",
       orders: "/api/orders",
       auth: "/api/auth",
-    },
-  });
+    };
+  }
+  res.json(info);
 });
 
 // Mount public routes (no authentication required)

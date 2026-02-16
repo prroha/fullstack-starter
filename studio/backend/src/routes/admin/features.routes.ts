@@ -15,10 +15,10 @@ const featureSchema = z.object({
   tier: z.string().nullable().optional(),
   requires: z.array(z.string()).default([]),
   conflicts: z.array(z.string()).default([]),
-  fileMappings: z.any().optional(),
-  schemaMappings: z.any().optional(),
-  envVars: z.any().optional(),
-  npmPackages: z.any().optional(),
+  fileMappings: z.array(z.object({ source: z.string().max(500), destination: z.string().max(500), transform: z.string().max(100).optional() })).optional(),
+  schemaMappings: z.array(z.object({ model: z.string().max(100), source: z.string().max(500) })).optional(),
+  envVars: z.array(z.object({ key: z.string().max(100), description: z.string().max(500), required: z.boolean().optional(), default: z.string().max(500).optional() })).optional(),
+  npmPackages: z.array(z.object({ name: z.string().max(200), version: z.string().max(50), dev: z.boolean().optional() })).optional(),
   iconName: z.string().optional(),
   displayOrder: z.number().int().optional(),
   isActive: z.boolean().optional(),
@@ -298,7 +298,7 @@ router.post("/bulk-update-price", async (req, res, next) => {
       updates: z.array(z.object({
         id: z.string(),
         price: z.number().int().min(0),
-      })),
+      })).max(100),
     });
     const { updates } = schema.parse(req.body);
 
@@ -331,7 +331,7 @@ router.post("/bulk-update-price", async (req, res, next) => {
 router.post("/bulk-price-update", async (req, res, next) => {
   try {
     const schema = z.object({
-      featureIds: z.array(z.string()),
+      featureIds: z.array(z.string()).max(100),
       adjustmentType: z.enum(["percentage", "fixed"]),
       value: z.number(),
     });

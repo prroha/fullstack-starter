@@ -133,7 +133,7 @@ router.get("/stats", async (_req, res, next) => {
  */
 router.get("/revenue-chart", async (req, res, next) => {
   try {
-    const days = parseInt(req.query.days as string) || 30;
+    const days = Math.min(365, Math.max(1, parseInt(req.query.days as string) || 30));
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
     startDate.setHours(0, 0, 0, 0);

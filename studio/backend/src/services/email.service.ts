@@ -12,6 +12,16 @@
 import { Resend } from "resend";
 import { env } from "../config/env.js";
 
+// HTML escape helper to prevent HTML injection in email templates
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 // =====================================================
 // Types
 // =====================================================
@@ -194,10 +204,11 @@ function getBaseStyles(): string {
 }
 
 function orderConfirmationTemplate(data: OrderEmailData): { html: string; text: string } {
-  const name = data.customerName || "there";
+  const rawName = data.customerName || "there";
+  const name = escapeHtml(rawName);
   const featuresHtml = data.selectedFeatures
     .slice(0, 10)
-    .map((f) => `<li>${f}</li>`)
+    .map((f) => `<li>${escapeHtml(f)}</li>`)
     .join("");
   const moreFeatures = data.selectedFeatures.length > 10
     ? `<li>...and ${data.selectedFeatures.length - 10} more</li>`
@@ -216,15 +227,15 @@ function orderConfirmationTemplate(data: OrderEmailData): { html: string; text: 
     <div class="header">
       <div class="logo">⚡ Xitolaunch</div>
       <h1>Thank You for Your Purchase!</h1>
-      <p style="color: #6b7280;">Order #${data.orderNumber}</p>
+      <p style="color: #6b7280;">Order #${escapeHtml(data.orderNumber)}</p>
     </div>
 
     <p>Hi ${name},</p>
-    <p>Your order has been confirmed! You now have access to the Fullstack Starter Kit with the <strong>${data.tierName}</strong> tier.</p>
+    <p>Your order has been confirmed! You now have access to the Fullstack Starter Kit with the <strong>${escapeHtml(data.tierName)}</strong> tier.</p>
 
     <div class="highlight-box">
       <h2>Your License Key</h2>
-      <div class="value">${data.licenseKey}</div>
+      <div class="value">${escapeHtml(data.licenseKey)}</div>
     </div>
 
     <div style="text-align: center;">
@@ -234,7 +245,7 @@ function orderConfirmationTemplate(data: OrderEmailData): { html: string; text: 
     <div class="order-details">
       <h3 style="margin: 0 0 16px 0;">Order Summary</h3>
       <div class="order-row">
-        <span>${data.tierName} Tier</span>
+        <span>${escapeHtml(data.tierName)} Tier</span>
         <span>$${(data.subtotal / 100).toFixed(2)}</span>
       </div>
       ${data.discount > 0 ? `
@@ -279,7 +290,7 @@ function orderConfirmationTemplate(data: OrderEmailData): { html: string; text: 
 Thank You for Your Purchase!
 Order #${data.orderNumber}
 
-Hi ${name},
+Hi ${rawName},
 
 Your order has been confirmed! You now have access to the Fullstack Starter Kit with the ${data.tierName} tier.
 
@@ -311,7 +322,8 @@ Questions? Reply to this email.
 }
 
 function downloadLinkTemplate(data: DownloadLinkEmailData): { html: string; text: string } {
-  const name = data.customerName || "there";
+  const rawName = data.customerName || "there";
+  const name = escapeHtml(rawName);
   const expiresText = data.expiresAt
     ? `This link expires on ${data.expiresAt.toLocaleDateString()}.`
     : "";
@@ -329,7 +341,7 @@ function downloadLinkTemplate(data: DownloadLinkEmailData): { html: string; text
     <div class="header">
       <div class="logo">⚡ Xitolaunch</div>
       <h1>Your Download Link</h1>
-      <p style="color: #6b7280;">Order #${data.orderNumber}</p>
+      <p style="color: #6b7280;">Order #${escapeHtml(data.orderNumber)}</p>
     </div>
 
     <p>Hi ${name},</p>
@@ -337,7 +349,7 @@ function downloadLinkTemplate(data: DownloadLinkEmailData): { html: string; text
 
     <div class="highlight-box">
       <h2>Your License Key</h2>
-      <div class="value">${data.licenseKey}</div>
+      <div class="value">${escapeHtml(data.licenseKey)}</div>
     </div>
 
     <div style="text-align: center;">
@@ -361,7 +373,7 @@ function downloadLinkTemplate(data: DownloadLinkEmailData): { html: string; text
 Your Download Link
 Order #${data.orderNumber}
 
-Hi ${name},
+Hi ${rawName},
 
 Here's your download link for the Fullstack Starter Kit.
 
@@ -378,7 +390,8 @@ Questions? Reply to this email.
 }
 
 function refundConfirmationTemplate(data: RefundEmailData): { html: string; text: string } {
-  const name = data.customerName || "there";
+  const rawName = data.customerName || "there";
+  const name = escapeHtml(rawName);
 
   const html = `
 <!DOCTYPE html>
@@ -393,7 +406,7 @@ function refundConfirmationTemplate(data: RefundEmailData): { html: string; text
     <div class="header">
       <div class="logo">⚡ Xitolaunch</div>
       <h1>Refund Processed</h1>
-      <p style="color: #6b7280;">Order #${data.orderNumber}</p>
+      <p style="color: #6b7280;">Order #${escapeHtml(data.orderNumber)}</p>
     </div>
 
     <p>Hi ${name},</p>
@@ -402,7 +415,7 @@ function refundConfirmationTemplate(data: RefundEmailData): { html: string; text
     <div class="order-details">
       <div class="order-row">
         <span>Order Number</span>
-        <span>${data.orderNumber}</span>
+        <span>${escapeHtml(data.orderNumber)}</span>
       </div>
       <div class="order-row">
         <span>Refund Amount</span>
@@ -411,7 +424,7 @@ function refundConfirmationTemplate(data: RefundEmailData): { html: string; text
       ${data.reason ? `
       <div class="order-row">
         <span>Reason</span>
-        <span>${data.reason}</span>
+        <span>${escapeHtml(data.reason || "")}</span>
       </div>` : ""}
     </div>
 
@@ -432,7 +445,7 @@ function refundConfirmationTemplate(data: RefundEmailData): { html: string; text
 Refund Processed
 Order #${data.orderNumber}
 
-Hi ${name},
+Hi ${rawName},
 
 We've processed your refund request. Here are the details:
 
@@ -452,7 +465,8 @@ Questions? Reply to this email.
 }
 
 function welcomeTemplate(data: WelcomeEmailData): { html: string; text: string } {
-  const name = data.name || "there";
+  const rawName = data.name || "there";
+  const name = escapeHtml(rawName);
   const loginUrl = data.loginUrl || "#";
 
   const html = `
@@ -497,7 +511,7 @@ function welcomeTemplate(data: WelcomeEmailData): { html: string; text: string }
   const text = `
 Welcome to Xitolaunch!
 
-Hi ${name},
+Hi ${rawName},
 
 Thanks for creating an account! You now have access to manage your purchases, download updates, and access exclusive content.
 

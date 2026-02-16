@@ -87,8 +87,9 @@ router.get("/export/json", async (_req, res, next) => {
     });
 
     const exportData = settings.reduce((acc, s) => {
+      const isSensitive = !s.isPublic || s.key.toLowerCase().includes('key') || s.key.toLowerCase().includes('secret');
       acc[s.key] = {
-        value: s.value,
+        value: isSensitive ? '[REDACTED]' : s.value,
         type: s.type,
         description: s.description,
         isPublic: s.isPublic,

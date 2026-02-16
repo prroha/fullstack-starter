@@ -32,7 +32,10 @@ const bundleSchema = z.object({
   isActive: z.boolean().default(true),
   startsAt: z.string().datetime().nullable().optional(),
   expiresAt: z.string().datetime().nullable().optional(),
-});
+}).refine(
+  (data) => data.type !== "PERCENTAGE" || (data.value >= 0 && data.value <= 100),
+  { message: "Percentage discount value must be between 0 and 100", path: ["value"] }
+);
 
 // =====================================================
 // Pricing Tier Routes
@@ -301,11 +304,6 @@ router.post("/bundles", async (req, res, next) => {
   try {
     const data = bundleSchema.parse(req.body);
 
-    // Validate percentage
-    if (data.type === "PERCENTAGE" && data.value > 100) {
-      throw ApiError.badRequest("Percentage discount cannot exceed 100");
-    }
-
     const bundle = await prisma.bundleDiscount.create({
       data: {
         ...data,
@@ -347,9 +345,11 @@ router.put("/bundles/:id", async (req, res, next) => {
       throw ApiError.notFound("Bundle discount");
     }
 
-    // Validate percentage
-    if (data.type === "PERCENTAGE" && data.value && data.value > 100) {
-      throw ApiError.badRequest("Percentage discount cannot exceed 100");
+    // Validate percentage: check effective type and value after merge with existing
+    const effectiveType = data.type ?? existing.type;
+    const effectiveValue = data.value ?? existing.value;
+    if (effectiveType === "PERCENTAGE" && effectiveValue > 100) {
+      throw ApiError.badRequest("Percentage discount value must be between 0 and 100");
     }
 
     const bundle = await prisma.bundleDiscount.update({

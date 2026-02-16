@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import Stripe from "stripe";
 import { env } from "../config/env.js";
 import { prisma } from "../config/db.js";
@@ -24,8 +25,6 @@ export interface CreateCheckoutSessionParams {
   email: string;
   couponCode?: string;
   customerName?: string;
-  successUrl?: string;
-  cancelUrl?: string;
 }
 
 export interface CheckoutSessionResult {
@@ -145,7 +144,7 @@ class StripeService {
     }
 
     // Prepare session metadata
-    const orderNumber = `FS-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+    const orderNumber = `FS-${Date.now()}-${crypto.randomBytes(4).toString("hex").toUpperCase()}`;
     const metadata: Record<string, string> = {
       orderNumber,
       tier: params.tier,
@@ -192,14 +191,16 @@ class StripeService {
     }
 
     // Create Stripe Checkout Session
-    const successUrl = params.successUrl ||
-      env.STRIPE_SUCCESS_URL ||
+    const successUrl = env.STRIPE_SUCCESS_URL ||
       `${env.CORS_ORIGIN}/checkout/success?session_id={CHECKOUT_SESSION_ID}`;
 
-    const cancelUrl = params.cancelUrl ||
-      env.STRIPE_CANCEL_URL ||
+    const cancelUrl = env.STRIPE_CANCEL_URL ||
       `${env.CORS_ORIGIN}/checkout?cancelled=true`;
 
+
+    const idempotencyKey = crypto.createHash('sha256')
+      .update(`${params.email}-${params.tier}-${orderNumber}`)
+      .digest('hex');
     const session = await stripeClient.checkout.sessions.create({
       mode: "payment",
       payment_method_types: ["card"],
@@ -211,7 +212,7 @@ class StripeService {
       cancel_url: cancelUrl,
       billing_address_collection: "required",
       expires_at: Math.floor(Date.now() / 1000) + 30 * 60, // 30 minutes
-    });
+    }, { idempotencyKey });
 
     if (!session.url) {
       throw ApiError.internal("Failed to create checkout session URL");
@@ -376,19 +377,23 @@ class StripeService {
       selectedFeatures = [];
     }
 
-    // Get coupon if applied
+    // Get coupon if applied — atomic check-and-increment to prevent race conditions
     let couponId: string | null = null;
     if (metadata.couponCode) {
-      const coupon = await prisma.studioCoupon.findUnique({
-        where: { code: metadata.couponCode },
-      });
-      if (coupon) {
-        couponId = coupon.id;
-        // Increment usage count
-        await prisma.studioCoupon.update({
-          where: { id: coupon.id },
-          data: { usedCount: { increment: 1 } },
+      // Atomic increment: only succeeds if usage limit not yet reached
+      const updated = await prisma.$executeRaw`
+        UPDATE "studio_coupons"
+        SET "usedCount" = "usedCount" + 1
+        WHERE "code" = ${metadata.couponCode}
+        AND ("maxUses" IS NULL OR "usedCount" < "maxUses")
+      `;
+      if (updated > 0) {
+        const coupon = await prisma.studioCoupon.findUnique({
+          where: { code: metadata.couponCode },
         });
+        if (coupon) {
+          couponId = coupon.id;
+        }
       }
     }
 
@@ -420,7 +425,7 @@ class StripeService {
     });
 
     // Generate license
-    const licenseKey = `FS-${uuidv4().split("-").slice(0, 3).join("-").toUpperCase()}`;
+    const licenseKey = `FS-${crypto.randomBytes(4).toString("hex").toUpperCase()}-${crypto.randomBytes(4).toString("hex").toUpperCase()}-${crypto.randomBytes(4).toString("hex").toUpperCase()}`;
     const downloadToken = uuidv4();
 
     await prisma.license.create({
@@ -430,6 +435,7 @@ class StripeService {
         downloadToken,
         maxDownloads: 5,
         status: "ACTIVE",
+        expiresAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
       },
     });
 
@@ -501,7 +507,6 @@ class StripeService {
   async getSessionStatus(sessionId: string): Promise<{
     status: "pending" | "complete" | "expired";
     orderNumber?: string;
-    customerEmail?: string;
   }> {
     const stripeClient = this.getStripe();
 
@@ -512,7 +517,6 @@ class StripeService {
         return {
           status: "complete",
           orderNumber: session.metadata?.orderNumber,
-          customerEmail: session.customer_email || undefined,
         };
       } else if (session.status === "expired") {
         return { status: "expired" };

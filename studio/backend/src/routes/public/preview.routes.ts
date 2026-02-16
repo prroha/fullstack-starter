@@ -3,6 +3,7 @@
  * Manages preview sessions for the configurator
  */
 
+import crypto from "crypto";
 import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import rateLimit from "express-rate-limit";
@@ -44,9 +45,9 @@ const validateTokenFormat = (req: Request<{ token: string }>, res: Response, nex
 // Schema for creating a preview session
 const createPreviewSessionSchema = z.object({
   body: z.object({
-    selectedFeatures: z.array(z.string()),
-    tier: z.string(),
-    templateSlug: z.string().optional(),
+    selectedFeatures: z.array(z.string().max(100)).max(200),
+    tier: z.string().max(50),
+    templateSlug: z.string().max(100).optional(),
   }),
 });
 
@@ -64,6 +65,7 @@ router.post(
 
       const session = await prisma.previewSession.create({
         data: {
+          sessionToken: crypto.randomBytes(24).toString('base64url'),
           selectedFeatures,
           tier,
           templateSlug,
@@ -71,10 +73,9 @@ router.post(
         },
       });
 
-      // Generate preview URL using the frontend origin from request headers,
-      // falling back to CORS_ORIGIN env var or the studio web app default
+      // Generate preview URL using the server-configured frontend origin,
+      // falling back to the studio web app default
       const frontendOrigin =
-        req.headers.origin ||
         process.env.CORS_ORIGIN ||
         "http://localhost:3002";
       const previewUrl = `${frontendOrigin}/preview?preview=${session.sessionToken}`;

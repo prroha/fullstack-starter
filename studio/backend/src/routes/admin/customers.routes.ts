@@ -29,6 +29,7 @@ function sanitizeCsvCell(value: string): string {
 router.get("/export/csv", async (_req, res, next) => {
   try {
     const customers = await prisma.studioUser.findMany({
+      take: 50000,
       orderBy: { createdAt: "desc" },
       include: {
         _count: { select: { orders: true } },

@@ -73,7 +73,21 @@ router.get("/", async (req, res, next) => {
         skip,
         take: limit,
         orderBy: [{ module: { displayOrder: "asc" } }, { displayOrder: "asc" }],
-        include: {
+        select: {
+          id: true,
+          slug: true,
+          name: true,
+          description: true,
+          price: true,
+          tier: true,
+          requires: true,
+          conflicts: true,
+          iconName: true,
+          displayOrder: true,
+          isActive: true,
+          isNew: true,
+          isPopular: true,
+          moduleId: true,
           module: {
             select: {
               id: true,
@@ -134,18 +148,32 @@ router.get("/:slug", async (req, res, next) => {
         slug: paramResult.data.slug,
         isActive: true,
       },
-      include: {
-        module: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            category: true,
-            description: true,
-            iconName: true,
+      select: {
+          id: true,
+          slug: true,
+          name: true,
+          description: true,
+          price: true,
+          tier: true,
+          requires: true,
+          conflicts: true,
+          iconName: true,
+          displayOrder: true,
+          isActive: true,
+          isNew: true,
+          isPopular: true,
+          moduleId: true,
+          module: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              category: true,
+              description: true,
+              iconName: true,
+            },
           },
         },
-      },
     });
 
     if (!feature) {
@@ -184,7 +212,21 @@ router.get("/category/:category", async (req, res, next) => {
         skip,
         take: limit,
         orderBy: [{ module: { displayOrder: "asc" } }, { displayOrder: "asc" }],
-        include: {
+        select: {
+          id: true,
+          slug: true,
+          name: true,
+          description: true,
+          price: true,
+          tier: true,
+          requires: true,
+          conflicts: true,
+          iconName: true,
+          displayOrder: true,
+          isActive: true,
+          isNew: true,
+          isPopular: true,
+          moduleId: true,
           module: {
             select: {
               id: true,

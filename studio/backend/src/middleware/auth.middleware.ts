@@ -38,7 +38,7 @@ export async function authenticate(
       throw ApiError.unauthorized("No token provided");
     }
 
-    const payload = jwt.verify(token, env.JWT_SECRET) as {
+    const payload = jwt.verify(token, env.JWT_SECRET, { algorithms: ['HS256'] }) as {
       userId: string;
       role?: string;
     };

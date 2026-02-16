@@ -36,12 +36,15 @@ router.get("/", async (req, res, next) => {
       ];
     }
 
+
+    const allowedSortColumns = ['createdAt', 'orderNumber', 'total', 'status', 'tier', 'customerEmail'];
+    const safeSortBy = allowedSortColumns.includes(sortBy as string) ? (sortBy as string) : 'createdAt';
     const [orders, total] = await Promise.all([
       prisma.order.findMany({
         where,
         skip,
         take: limit,
-        orderBy: { [sortBy as string]: sortOrder },
+        orderBy: { [safeSortBy]: sortOrder },
         include: {
           template: { select: { name: true, slug: true } },
           coupon: { select: { code: true } },
@@ -89,13 +92,16 @@ router.get("/stats", async (_req, res, next) => {
  * Sanitize CSV cell to prevent formula injection
  */
 function sanitizeCsvCell(value: string): string {
-  if (/^[=+\-@\t\r]/.test(value)) {
-    return `'${value}`;
+  // Prefix sanitization: prevent formula injection
+  let sanitized = value;
+  if (/^[=+\-@\t\r]/.test(sanitized)) {
+    sanitized = `'${sanitized}`;
   }
-  if (value.includes(",") || value.includes("\n") || value.includes('"')) {
-    return `"${value.replace(/"/g, '""')}"`;
+  // Always quote-wrap values that contain special characters
+  if (sanitized.includes(",") || sanitized.includes("\n") || sanitized.includes('"') || sanitized.includes("'")) {
+    sanitized = `"${sanitized.replace(/"/g, '""')}"`;
   }
-  return value;
+  return sanitized;
 }
 
 /**
@@ -119,6 +125,7 @@ router.get("/export/csv", async (req, res, next) => {
 
     const orders = await prisma.order.findMany({
       where,
+      take: 50000,
       orderBy: { createdAt: "desc" },
       include: {
         template: { select: { name: true } },

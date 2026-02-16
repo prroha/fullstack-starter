@@ -1,10 +1,27 @@
 import { Router, raw } from "express";
 import { z } from "zod";
+import rateLimit from "express-rate-limit";
 import { stripeService } from "../../services/stripe.service.js";
 import { sendSuccess } from "../../utils/response.js";
 import { ApiError } from "../../utils/errors.js";
 
 const router = Router();
+
+const checkoutLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 20, // 20 per hour per IP
+  message: { success: false, error: { message: "Too many checkout attempts, please try again later", code: "RATE_LIMITED" } },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const couponLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 10, // 10 per minute per IP
+  message: { success: false, error: { message: "Too many coupon validation attempts, please try again later", code: "RATE_LIMITED" } },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 // =====================================================
 // Validation Schemas
@@ -17,8 +34,6 @@ const createSessionSchema = z.object({
   email: z.string().email(),
   couponCode: z.string().max(50).optional(),
   customerName: z.string().max(200).optional(),
-  successUrl: z.string().url().optional(),
-  cancelUrl: z.string().url().optional(),
 });
 
 const validateCouponSchema = z.object({
@@ -38,7 +53,7 @@ const sessionIdParamSchema = z.object({
  * POST /api/checkout/create-session
  * Create a Stripe Checkout Session
  */
-router.post("/create-session", async (req, res, next) => {
+router.post("/create-session", checkoutLimiter, async (req, res, next) => {
   try {
     // Check if Stripe is configured
     if (!stripeService.isConfigured()) {
@@ -63,7 +78,7 @@ router.post("/create-session", async (req, res, next) => {
  * POST /api/checkout/validate-coupon
  * Validate a coupon code
  */
-router.post("/validate-coupon", async (req, res, next) => {
+router.post("/validate-coupon", couponLimiter, async (req, res, next) => {
   try {
     // Validate request body
     const parseResult = validateCouponSchema.safeParse(req.body);
@@ -110,9 +125,9 @@ router.post(
         // Signature verification failed - this is a real error
         next(error);
       } else {
-        // Log the error but acknowledge receipt
+        // Return 500 for processing errors so Stripe retries
         console.error("Webhook processing error:", error);
-        res.status(200).json({ received: true, error: "Processing error logged" });
+        res.status(500).json({ received: false, error: "Processing error - will retry" });
       }
     }
   }

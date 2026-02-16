@@ -33,7 +33,21 @@ export function loadConfig(): StoredConfig | null {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (!stored) return null;
-    return JSON.parse(stored) as StoredConfig;
+    const parsed = JSON.parse(stored);
+    // Validate structure before trusting parsed data
+    if (
+      typeof parsed !== 'object' || parsed === null ||
+      typeof parsed.tier !== 'string' ||
+      !Array.isArray(parsed.features) ||
+      !parsed.features.every((f: unknown) => typeof f === 'string') ||
+      (parsed.template !== null && typeof parsed.template !== 'string') ||
+      typeof parsed.updatedAt !== 'string'
+    ) {
+      console.warn('Invalid stored config, clearing');
+      localStorage.removeItem(STORAGE_KEY);
+      return null;
+    }
+    return parsed as StoredConfig;
   } catch (err) {
     console.error("Failed to load config:", err);
     return null;

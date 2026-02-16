@@ -26,8 +26,10 @@ export function errorHandler(
   if (err.name === "PrismaClientKnownRequestError") {
     const prismaError = err as { code?: string; meta?: { target?: string[] } };
     if (prismaError.code === "P2002") {
-      const target = prismaError.meta?.target?.join(", ") || "field";
-      return sendError(res, `A record with this ${target} already exists`, 409, "CONFLICT");
+      const targets = prismaError.meta?.target || [];
+      const fieldMap: Record<string, string> = { email: "email", slug: "slug", code: "code", orderNumber: "order number" };
+      const friendlyFields = (targets as string[]).map(t => fieldMap[t] || "value").join(", ");
+      return sendError(res, `A record with this ${friendlyFields} already exists`, 409, "CONFLICT");
     }
     if (prismaError.code === "P2025") {
       return sendError(res, "Record not found", 404, "NOT_FOUND");
@@ -36,7 +38,8 @@ export function errorHandler(
 
   // Handle Zod validation errors
   if (err.name === "ZodError") {
-    return sendError(res, "Validation failed", 400, "VALIDATION_ERROR", err);
+    const zodErr = err as { flatten: () => unknown };
+    return sendError(res, "Validation failed", 400, "VALIDATION_ERROR", zodErr.flatten());
   }
 
   // Generic error

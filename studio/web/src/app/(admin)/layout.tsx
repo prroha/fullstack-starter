@@ -60,6 +60,11 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
         router.replace("/login");
       }
       // If authenticated and on login page, redirect to admin
+      // If authenticated but not admin, redirect to home
+      if (isAuthenticated && !isLoginPage && user?.role !== 'admin') {
+        router.replace("/");
+      }
+
       if (isAuthenticated && isLoginPage) {
         router.replace("/admin");
       }

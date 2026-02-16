@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { Router } from "express";
 import { z } from "zod";
 import {
@@ -16,9 +17,35 @@ const orderIdParamSchema = z.object({
 });
 
 /**
+ * Validate the download token query parameter against the order's license.
+ * Uses timing-safe comparison to prevent timing attacks.
+ */
+function validateDownloadToken(
+  token: unknown,
+  license: { downloadToken: string } | null
+): void {
+  if (!token || typeof token !== "string") {
+    throw ApiError.forbidden("Invalid or missing download token");
+  }
+
+  if (!license || !license.downloadToken) {
+    throw ApiError.forbidden("Invalid or missing download token");
+  }
+
+  const providedBuffer = Buffer.from(token);
+  const actualBuffer = Buffer.from(license.downloadToken);
+  if (
+    providedBuffer.length !== actualBuffer.length ||
+    !crypto.timingSafeEqual(providedBuffer, actualBuffer)
+  ) {
+    throw ApiError.forbidden("Invalid or missing download token");
+  }
+}
+
+/**
  * GET /api/orders/:id
  * Get order details for success page
- * No authentication required - uses order ID as access control
+ * Requires valid download token as query parameter
  */
 router.get("/:id", async (req, res, next) => {
   try {
@@ -29,6 +56,9 @@ router.get("/:id", async (req, res, next) => {
     }
 
     const order = await getOrderDetails(paramResult.data.id);
+
+    // Validate download token
+    validateDownloadToken(req.query.token, order.license);
 
     // For security, don't expose the full license key to the public endpoint
     const safeOrder = {
@@ -54,7 +84,7 @@ router.get("/:id", async (req, res, next) => {
 /**
  * GET /api/orders/:id/download
  * Generate and return ZIP file for download
- * No authentication required - order ID serves as access control
+ * Requires valid download token as query parameter
  */
 router.get("/:id/download", async (req, res, next) => {
   try {
@@ -69,8 +99,11 @@ router.get("/:id/download", async (req, res, next) => {
     // Ensure license exists before download
     await ensureLicenseExists(orderId);
 
-    // Get order details for filename
+    // Get order details for filename and token validation
     const order = await getOrderDetails(orderId);
+
+    // Validate download token
+    validateDownloadToken(req.query.token, order.license);
 
     // Check if order is completed
     if (order.status !== "COMPLETED") {
@@ -96,6 +129,7 @@ router.get("/:id/download", async (req, res, next) => {
  * POST /api/orders/:id/generate-license
  * Generate license key if not already generated
  * Called when order is completed
+ * Requires valid download token as query parameter
  */
 router.post("/:id/generate-license", async (req, res, next) => {
   try {
@@ -106,6 +140,12 @@ router.post("/:id/generate-license", async (req, res, next) => {
     }
 
     const licenseKey = await ensureLicenseExists(paramResult.data.id);
+
+    // Get order to validate token
+    const order = await getOrderDetails(paramResult.data.id);
+
+    // Validate download token
+    validateDownloadToken(req.query.token, order.license);
 
     sendSuccess(res, {
       licenseKey: maskLicenseKey(licenseKey),

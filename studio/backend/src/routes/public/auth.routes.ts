@@ -1,11 +1,21 @@
 import { Router, Request, Response, NextFunction } from "express";
 import jwt, { SignOptions } from "jsonwebtoken";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
+import rateLimit from "express-rate-limit";
 import { prisma } from "../../config/db.js";
 import { env } from "../../config/env.js";
 import { ApiError } from "../../utils/errors.js";
 
 const router = Router();
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // 5 attempts per window
+  message: { success: false, error: { message: "Too many login attempts, please try again later", code: "RATE_LIMITED" } },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 // =====================================================
 // Admin Login
@@ -19,6 +29,7 @@ interface LoginRequest {
 
 router.post(
   "/admin/login",
+  loginLimiter,
   async (req: Request<object, object, LoginRequest>, res: Response, next: NextFunction) => {
     try {
       const { email, password } = req.body;
@@ -26,27 +37,44 @@ router.post(
       if (!email || !password) {
         throw ApiError.badRequest("Email and password are required");
       }
-
-      // Check if admin credentials are configured
-      const adminEmail = env.ADMIN_EMAIL;
-      const adminPassword = env.ADMIN_PASSWORD;
-
-      if (!adminEmail || !adminPassword) {
-        throw ApiError.internal("Admin credentials not configured");
+      if (typeof email !== 'string' || email.length > 255) {
+        throw ApiError.badRequest("Invalid email format");
+      }
+      if (typeof password !== 'string' || password.length > 200) {
+        throw ApiError.badRequest("Invalid password format");
       }
 
       // Validate admin credentials
+      const adminEmail = env.ADMIN_EMAIL;
+      const adminPassword = env.ADMIN_PASSWORD;
+
       if (email !== adminEmail) {
         throw ApiError.unauthorized("Invalid credentials");
       }
 
-      // For simple setup, compare plain password (in production, use hashed)
-      // If password starts with $2, it's a bcrypt hash
+      // Password comparison: require bcrypt hash in production
       let isValidPassword = false;
       if (adminPassword.startsWith("$2")) {
         isValidPassword = await bcrypt.compare(password, adminPassword);
+      } else if (env.NODE_ENV === "production") {
+        throw ApiError.internal(
+          "ADMIN_PASSWORD must be a bcrypt hash in production. " +
+            'Generate one with: node -e "require(\'bcryptjs\').hash(\'yourpassword\', 10).then(console.log)"'
+        );
       } else {
-        isValidPassword = password === adminPassword;
+        // Development only: plaintext comparison with timing-safe check
+        console.warn(
+          "⚠️  WARNING: ADMIN_PASSWORD is stored in plaintext. " +
+            "This is only allowed in development. " +
+            'Use a bcrypt hash: node -e "require(\'bcryptjs\').hash(\'yourpassword\', 10).then(console.log)"'
+        );
+        const passwordBuffer = Buffer.from(password);
+        const adminPasswordBuffer = Buffer.from(adminPassword);
+        if (passwordBuffer.length === adminPasswordBuffer.length) {
+          isValidPassword = crypto.timingSafeEqual(passwordBuffer, adminPasswordBuffer);
+        } else {
+          isValidPassword = false;
+        }
       }
 
       if (!isValidPassword) {
@@ -71,6 +99,7 @@ router.post(
 
       // Generate JWT token
       const signOptions: SignOptions = {
+        algorithm: 'HS256',
         expiresIn: "24h",
       };
       const token = jwt.sign(
@@ -83,10 +112,13 @@ router.post(
       );
 
       // Set HTTP-only cookie
+      // In production with cross-origin (frontend != backend domain),
+      // sameSite must be "none" (requires secure: true) for cookies to be sent
+      const isSecure = env.NODE_ENV !== "development";
       res.cookie("auth_token", token, {
         httpOnly: true,
-        secure: env.NODE_ENV === "production",
-        sameSite: env.NODE_ENV === "production" ? "strict" : "lax",
+        secure: isSecure,
+        sameSite: isSecure ? "none" : "lax",
         path: "/",
         maxAge: 24 * 60 * 60 * 1000, // 24 hours
       });
@@ -128,7 +160,7 @@ async function authenticateFromCookie(
       throw ApiError.unauthorized("Not authenticated");
     }
 
-    const payload = jwt.verify(token, env.JWT_SECRET) as {
+    const payload = jwt.verify(token, env.JWT_SECRET, { algorithms: ['HS256'] }) as {
       userId: string;
       role?: string;
     };
@@ -182,10 +214,11 @@ router.get(
 // =====================================================
 
 router.post("/logout", (_req: Request, res: Response) => {
+  const isSecure = env.NODE_ENV !== "development";
   res.clearCookie("auth_token", {
     httpOnly: true,
-    secure: env.NODE_ENV === "production",
-    sameSite: env.NODE_ENV === "production" ? "strict" : "lax",
+    secure: isSecure,
+    sameSite: isSecure ? "none" : "lax",
     path: "/",
   });
 

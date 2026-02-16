@@ -12,7 +12,10 @@ const envSchema = z.object({
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
 
   // JWT
-  JWT_SECRET: z.string().min(32),
+  JWT_SECRET: z.string().min(32).refine(
+    (val) => !['your-secret-key-min-32-chars', 'change-me-to-a-random-string-at-least-32-chars'].includes(val),
+    { message: 'JWT_SECRET must be changed from default value' }
+  ),
   JWT_ACCESS_EXPIRES_IN: z.string().default("15m"),
   JWT_REFRESH_EXPIRES_IN: z.string().default("7d"),
 
@@ -38,8 +41,8 @@ const envSchema = z.object({
   S3_REGION: z.string().default("auto"),
 
   // Admin
-  ADMIN_EMAIL: z.string().email().optional(),
-  ADMIN_PASSWORD: z.string().optional(),
+  ADMIN_EMAIL: z.string().email(),
+  ADMIN_PASSWORD: z.string().min(8),
 });
 
 const parsed = envSchema.safeParse(process.env);
