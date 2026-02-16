@@ -11,7 +11,10 @@
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "types:generate": "openapi-typescript ../openapi.json -o src/types/api-generated.ts",
-    "types:sync": "cd ../backend && npm run openapi:export && cd ../web && npm run types:generate"
+    "types:sync": "cd ../backend && npm run openapi:export && cd ../web && npm run types:generate",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
@@ -44,14 +47,17 @@
     "@types/react-dom": "^19",
     "@typescript-eslint/eslint-plugin": "^8.54.0",
     "@typescript-eslint/parser": "^8.54.0",
+    "@vitest/coverage-v8": "^4.0.18",
     "eslint": "^9.39.2",
     "eslint-config-next": "^15.0.0",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^5.2.0",
     "globals": "^15.15.0",
+    "jsdom": "^28.1.0",
     "openapi-typescript": "^7.10.1",
     "storybook": "^8.5.0",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.0.18"
   }
 }

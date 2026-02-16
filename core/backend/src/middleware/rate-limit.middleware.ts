@@ -844,7 +844,7 @@ export const generalRateLimiter: RateLimitRequestHandler = rateLimit({
  */
 export const authRateLimiter: RateLimitRequestHandler = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // 10 requests per window
+  max: config.isTest() ? 10000 : 10, // 10 requests per window (relaxed in test)
   message: createRateLimitResponse(15 * 60 * 1000),
   standardHeaders: true,
   legacyHeaders: false,
