@@ -85,8 +85,8 @@ const variantConfigs: Record<
   },
   offline: {
     icon: WifiOff,
-    iconClassName: "text-warning dark:text-yellow-400",
-    containerClassName: "bg-warning/5 dark:bg-yellow-400/5 border-warning/20 dark:border-yellow-400/20",
+    iconClassName: "text-warning",
+    containerClassName: "bg-warning/5 border-warning/20",
   },
 };
 
@@ -110,7 +110,7 @@ function EmptyState({
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center p-8 rounded-lg border border-border",
+        "flex flex-col items-center justify-center p-6 rounded-lg border border-border",
         "min-h-[200px] text-center",
         config?.containerClassName,
         className

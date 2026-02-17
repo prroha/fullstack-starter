@@ -1,10 +1,8 @@
-import { Router } from "express";
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from "fastify";
 import { z } from "zod";
 import { prisma } from "../../config/db.js";
 import { sendSuccess, sendPaginated, parsePaginationParams, createPaginationInfo } from "../../utils/response.js";
 import { ApiError } from "../../utils/errors.js";
-
-const router = Router();
 
 const moduleSchema = z.object({
   slug: z.string().min(2).max(50).regex(/^[a-z0-9-]+$/),
@@ -16,22 +14,23 @@ const moduleSchema = z.object({
   isActive: z.boolean().optional(),
 });
 
-/**
- * GET /api/admin/modules
- * List all modules with their features
- */
-router.get("/", async (req, res, next) => {
-  try {
-    const { page, limit, skip } = parsePaginationParams(req.query as { page?: string; limit?: string });
-    const { search, category, isActive } = req.query;
+const routePlugin: FastifyPluginAsync = async (fastify) => {
+  /**
+   * GET /api/admin/modules
+   * List all modules with their features
+   */
+  fastify.get("/", async (req: FastifyRequest, reply: FastifyReply) => {
+    const query = req.query as Record<string, string>;
+    const { page, limit, skip } = parsePaginationParams(query as { page?: string; limit?: string });
+    const { search, category, isActive } = query;
 
     const where: Record<string, unknown> = {};
     if (category) where.category = category;
     if (isActive !== undefined) where.isActive = isActive === "true";
     if (search) {
       where.OR = [
-        { name: { contains: search as string, mode: "insensitive" } },
-        { slug: { contains: search as string, mode: "insensitive" } },
+        { name: { contains: search, mode: "insensitive" } },
+        { slug: { contains: search, mode: "insensitive" } },
       ];
     }
 
@@ -51,38 +50,31 @@ router.get("/", async (req, res, next) => {
       prisma.module.count({ where }),
     ]);
 
-    sendPaginated(res, modules, createPaginationInfo(page, limit, total));
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendPaginated(reply, modules, createPaginationInfo(page, limit, total));
+  });
 
-/**
- * GET /api/admin/modules/categories
- * Get unique module categories
- */
-router.get("/categories", async (_req, res, next) => {
-  try {
+  /**
+   * GET /api/admin/modules/categories
+   * Get unique module categories
+   */
+  fastify.get("/categories", async (_req: FastifyRequest, reply: FastifyReply) => {
     const categories = await prisma.module.findMany({
       select: { category: true },
       distinct: ["category"],
       orderBy: { category: "asc" },
     });
 
-    sendSuccess(res, categories.map(c => c.category));
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendSuccess(reply, categories.map(c => c.category));
+  });
 
-/**
- * GET /api/admin/modules/:id
- * Get single module with features
- */
-router.get("/:id", async (req, res, next) => {
-  try {
+  /**
+   * GET /api/admin/modules/:id
+   * Get single module with features
+   */
+  fastify.get("/:id", async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as Record<string, string>;
     const module = await prisma.module.findUnique({
-      where: { id: req.params.id },
+      where: { id },
       include: {
         features: { orderBy: { displayOrder: "asc" } },
       },
@@ -92,18 +84,14 @@ router.get("/:id", async (req, res, next) => {
       throw ApiError.notFound("Module");
     }
 
-    sendSuccess(res, module);
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendSuccess(reply, module);
+  });
 
-/**
- * POST /api/admin/modules
- * Create new module
- */
-router.post("/", async (req, res, next) => {
-  try {
+  /**
+   * POST /api/admin/modules
+   * Create new module
+   */
+  fastify.post("/", async (req: FastifyRequest, reply: FastifyReply) => {
     const data = moduleSchema.parse(req.body);
 
     const existing = await prisma.module.findUnique({ where: { slug: data.slug } });
@@ -124,21 +112,18 @@ router.post("/", async (req, res, next) => {
       },
     });
 
-    sendSuccess(res, module, "Module created", 201);
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendSuccess(reply, module, "Module created", 201);
+  });
 
-/**
- * PUT /api/admin/modules/:id
- * Update module
- */
-router.put("/:id", async (req, res, next) => {
-  try {
+  /**
+   * PUT /api/admin/modules/:id
+   * Update module
+   */
+  fastify.put("/:id", async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as Record<string, string>;
     const data = moduleSchema.partial().parse(req.body);
 
-    const existing = await prisma.module.findUnique({ where: { id: req.params.id } });
+    const existing = await prisma.module.findUnique({ where: { id } });
     if (!existing) {
       throw ApiError.notFound("Module");
     }
@@ -151,7 +136,7 @@ router.put("/:id", async (req, res, next) => {
     }
 
     const module = await prisma.module.update({
-      where: { id: req.params.id },
+      where: { id },
       data,
     });
 
@@ -167,20 +152,17 @@ router.put("/:id", async (req, res, next) => {
       },
     });
 
-    sendSuccess(res, module, "Module updated");
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendSuccess(reply, module, "Module updated");
+  });
 
-/**
- * DELETE /api/admin/modules/:id
- * Delete module (only if no features)
- */
-router.delete("/:id", async (req, res, next) => {
-  try {
+  /**
+   * DELETE /api/admin/modules/:id
+   * Delete module (only if no features)
+   */
+  fastify.delete("/:id", async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as Record<string, string>;
     const module = await prisma.module.findUnique({
-      where: { id: req.params.id },
+      where: { id },
       include: { _count: { select: { features: true } } },
     });
 
@@ -192,7 +174,7 @@ router.delete("/:id", async (req, res, next) => {
       throw ApiError.badRequest("Cannot delete module with features. Delete features first.");
     }
 
-    await prisma.module.delete({ where: { id: req.params.id } });
+    await prisma.module.delete({ where: { id } });
 
     await prisma.studioAuditLog.create({
       data: {
@@ -205,10 +187,8 @@ router.delete("/:id", async (req, res, next) => {
       },
     });
 
-    sendSuccess(res, null, "Module deleted");
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendSuccess(reply, null, "Module deleted");
+  });
+};
 
-export { router as modulesRoutes };
+export { routePlugin as modulesRoutes };

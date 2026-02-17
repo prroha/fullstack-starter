@@ -1,6 +1,5 @@
-import { Response, NextFunction } from "express";
+import { FastifyRequest, FastifyReply } from "fastify";
 import crypto from "crypto";
-import { AppRequest } from "../types/index.js";
 import { logger } from "../lib/logger.js";
 import { config } from "../config/index.js";
 
@@ -26,7 +25,6 @@ const PROTECTED_METHODS = ["POST", "PUT", "PATCH", "DELETE"];
 
 /**
  * Paths that are exempt from CSRF validation
- * (e.g., public auth endpoints, webhooks)
  */
 const CSRF_EXEMPT_PATHS = [
   "/api/v1/auth/login",
@@ -34,7 +32,7 @@ const CSRF_EXEMPT_PATHS = [
   "/api/v1/auth/refresh",
   "/api/v1/auth/logout",
   "/health",
-  "/api/v1/webhooks", // Common webhook path
+  "/api/v1/webhooks",
 ];
 
 /**
@@ -42,17 +40,14 @@ const CSRF_EXEMPT_PATHS = [
  */
 function isExemptPath(path: string): boolean {
   return CSRF_EXEMPT_PATHS.some((exemptPath) => {
-    // Exact match or starts with (for webhook paths)
     return path === exemptPath || path.startsWith(`${exemptPath}/`);
   });
 }
 
 /**
  * Extract CSRF token from request
- * Checks header first (x-csrf-token or x-xsrf-token), then body
  */
-function extractCsrfToken(req: AppRequest): string | undefined {
-  // Check headers first (preferred method)
+function extractCsrfToken(req: FastifyRequest): string | undefined {
   const headerToken =
     req.headers["x-csrf-token"] ||
     req.headers["x-xsrf-token"] ||
@@ -62,9 +57,9 @@ function extractCsrfToken(req: AppRequest): string | undefined {
     return headerToken;
   }
 
-  // Check body as fallback
-  if (req.body && typeof req.body._csrf === "string") {
-    return req.body._csrf;
+  const body = req.body as Record<string, unknown> | undefined;
+  if (body && typeof body._csrf === "string") {
+    return body._csrf;
   }
 
   return undefined;
@@ -73,40 +68,31 @@ function extractCsrfToken(req: AppRequest): string | undefined {
 /**
  * Get CSRF token from cookie
  */
-function getCsrfTokenFromCookie(req: AppRequest): string | undefined {
+function getCsrfTokenFromCookie(req: FastifyRequest): string | undefined {
   return req.cookies?.csrfToken;
 }
 
 /**
- * CSRF Protection Middleware
- *
- * Validates CSRF tokens on state-changing requests (POST, PUT, PATCH, DELETE).
- * The token must match the one stored in the user's session cookie.
- *
- * Token flow:
- * 1. Server generates CSRF token on login and sets it as a non-httpOnly cookie
- * 2. Client reads the cookie and includes the token in the x-csrf-token header
- * 3. Server validates that the header token matches the cookie token
+ * CSRF Protection Hook (Fastify onRequest)
  */
-export function csrfProtection(
-  req: AppRequest,
-  res: Response,
-  next: NextFunction
-): void {
+export async function csrfProtection(
+  req: FastifyRequest,
+  reply: FastifyReply
+): Promise<void> {
   // Skip CSRF check for safe methods (GET, HEAD, OPTIONS)
   if (!PROTECTED_METHODS.includes(req.method)) {
-    return next();
+    return;
   }
 
   // Skip CSRF check for exempt paths
-  if (isExemptPath(req.path)) {
-    return next();
+  if (isExemptPath(req.url)) {
+    return;
   }
 
   // Skip CSRF check in development if configured
   if (config.isDevelopment() && process.env.SKIP_CSRF === "true") {
     logger.warn("CSRF protection skipped in development mode");
-    return next();
+    return;
   }
 
   // Get the token from the cookie (set during login)
@@ -118,75 +104,62 @@ export function csrfProtection(
   // Validate tokens exist
   if (!cookieToken || !requestToken) {
     logger.warn("CSRF token missing", {
-      path: req.path,
+      path: req.url,
       method: req.method,
       hasCookieToken: !!cookieToken,
       hasRequestToken: !!requestToken,
     });
 
-    res.status(403).json({
+    return reply.code(403).send({
       success: false,
       error: {
         code: CsrfErrorCodes.CSRF_TOKEN_MISSING,
         message: "CSRF token is required",
       },
     });
-    return;
   }
 
   // Use timing-safe comparison to prevent timing attacks
   const cookieTokenBuffer = Buffer.from(cookieToken);
   const requestTokenBuffer = Buffer.from(requestToken);
 
-  // Validate tokens match (timing-safe comparison)
   if (
     cookieTokenBuffer.length !== requestTokenBuffer.length ||
     !crypto.timingSafeEqual(cookieTokenBuffer, requestTokenBuffer)
   ) {
     logger.warn("CSRF token mismatch", {
-      path: req.path,
+      path: req.url,
       method: req.method,
     });
 
-    res.status(403).json({
+    return reply.code(403).send({
       success: false,
       error: {
         code: CsrfErrorCodes.CSRF_TOKEN_INVALID,
         message: "Invalid CSRF token",
       },
     });
-    return;
   }
 
   // Store token on request for potential use
   req.csrfToken = cookieToken;
-
-  next();
 }
 
 /**
- * Middleware to attach CSRF token to response locals
- * Useful for server-rendered pages
+ * Middleware to attach CSRF token to response
  */
-export function attachCsrfToken(
-  req: AppRequest,
-  res: Response,
-  next: NextFunction
-): void {
+export async function attachCsrfToken(
+  req: FastifyRequest,
+  reply: FastifyReply
+): Promise<void> {
   const token = getCsrfTokenFromCookie(req) || generateCsrfToken();
 
-  // Set the token in cookie if not present
   if (!req.cookies?.csrfToken) {
-    res.cookie("csrfToken", token, {
+    reply.setCookie("csrfToken", token, {
       httpOnly: false,
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      maxAge: 7 * 24 * 60 * 60,
     });
   }
-
-  // Make available in response locals for templates
-  res.locals.csrfToken = token;
-
-  next();
 }

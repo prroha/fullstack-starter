@@ -94,7 +94,7 @@ export default function VariantSelector({
                       className={`text-xs ${
                         option.priceDelta > 0
                           ? 'opacity-70'
-                          : 'text-green-600'
+                          : 'text-success'
                       }`}
                     >
                       {option.priceDelta > 0 ? '+' : ''}

@@ -243,9 +243,9 @@ interface FormStatusMessageProps extends React.HTMLAttributes<HTMLDivElement> {
 
 const statusVariants: Record<FormStatusVariant, string> = {
   error: "bg-destructive/10 border-destructive/50 text-destructive",
-  success: "bg-green-500/10 border-green-500/50 text-green-600 dark:text-green-400",
-  info: "bg-blue-500/10 border-blue-500/50 text-blue-600 dark:text-blue-400",
-  warning: "bg-yellow-500/10 border-yellow-500/50 text-yellow-600 dark:text-yellow-400",
+  success: "bg-success/10 border-success/50 text-success",
+  info: "bg-primary/10 border-primary/50 text-primary",
+  warning: "bg-warning/10 border-warning/50 text-warning",
 };
 
 function FormStatusMessage({

@@ -1,4 +1,4 @@
-import { Response, NextFunction } from "express";
+import { FastifyRequest, FastifyReply } from "fastify";
 import { AuditAction, UserRole } from "@prisma/client";
 import { adminService } from "../services/admin.service.js";
 import { exportService } from "../services/export.service.js";
@@ -45,16 +45,11 @@ class AdminController {
    * GET /api/v1/admin/stats
    */
   async getStats(
-    _req: AuthenticatedRequest,
-    res: Response,
-    next: NextFunction
+    _req: FastifyRequest,
+    reply: FastifyReply
   ): Promise<void> {
-    try {
-      const stats = await adminService.getDashboardStats();
-      res.json(successResponse(stats));
-    } catch (error) {
-      next(error);
-    }
+    const stats = await adminService.getDashboardStats();
+    return reply.send(successResponse(stats));
   }
 
   /**
@@ -62,28 +57,23 @@ class AdminController {
    * GET /api/v1/admin/users
    */
   async getUsers(
-    req: AuthenticatedRequest,
-    res: Response,
-    next: NextFunction
+    req: FastifyRequest,
+    reply: FastifyReply
   ): Promise<void> {
-    try {
-      const query = getUsersQuerySchema.parse(req.query);
-      const result = await adminService.getUsers({
-        page: query.page,
-        limit: query.limit,
-        search: query.search,
-        role: query.role as UserRole | undefined,
-        isActive: query.isActive,
-        sortBy: query.sortBy,
-        sortOrder: query.sortOrder,
-      });
+    const query = getUsersQuerySchema.parse(req.query);
+    const result = await adminService.getUsers({
+      page: query.page,
+      limit: query.limit,
+      search: query.search,
+      role: query.role as UserRole | undefined,
+      isActive: query.isActive,
+      sortBy: query.sortBy,
+      sortOrder: query.sortOrder,
+    });
 
-      res.json(
-        paginatedResponse(result.users, result.page, result.limit, result.total)
-      );
-    } catch (error) {
-      next(error);
-    }
+    return reply.send(
+      paginatedResponse(result.users, result.page, result.limit, result.total)
+    );
   }
 
   /**
@@ -91,22 +81,17 @@ class AdminController {
    * GET /api/v1/admin/users/:id
    */
   async getUser(
-    req: AuthenticatedRequest,
-    res: Response,
-    next: NextFunction
+    req: FastifyRequest,
+    reply: FastifyReply
   ): Promise<void> {
-    try {
-      const id = req.params.id as string;
+    const id = (req.params as Record<string, string>).id;
 
-      if (!ensureParam(id, res, "User ID")) {
-        return;
-      }
-
-      const user = await adminService.getUserById(id);
-      res.json(successResponse({ user }));
-    } catch (error) {
-      next(error);
+    if (!ensureParam(id, reply, "User ID")) {
+      return;
     }
+
+    const user = await adminService.getUserById(id);
+    return reply.send(successResponse({ user }));
   }
 
   /**
@@ -114,35 +99,31 @@ class AdminController {
    * PATCH /api/v1/admin/users/:id
    */
   async updateUser(
-    req: AuthenticatedRequest,
-    res: Response,
-    next: NextFunction
+    req: FastifyRequest,
+    reply: FastifyReply
   ): Promise<void> {
-    try {
-      const id = req.params.id as string;
+    const authReq = req as AuthenticatedRequest;
+    const id = (req.params as Record<string, string>).id;
 
-      if (!ensureParam(id, res, "User ID")) {
-        return;
-      }
-
-      const data = updateUserSchema.parse(req.body);
-      const user = await adminService.updateUser(id, data);
-
-      // Audit log: admin user update
-      await auditService.log({
-        action: AuditAction.ADMIN_ACTION,
-        entity: "User",
-        entityId: id,
-        userId: req.user?.userId,
-        req,
-        changes: data,
-        metadata: { adminAction: "updateUser" },
-      });
-
-      res.json(successResponse({ user }, "User updated successfully"));
-    } catch (error) {
-      next(error);
+    if (!ensureParam(id, reply, "User ID")) {
+      return;
     }
+
+    const data = updateUserSchema.parse(req.body);
+    const user = await adminService.updateUser(id, data);
+
+    // Audit log: admin user update
+    await auditService.log({
+      action: AuditAction.ADMIN_ACTION,
+      entity: "User",
+      entityId: id,
+      userId: authReq.user?.userId,
+      req,
+      changes: data,
+      metadata: { adminAction: "updateUser" },
+    });
+
+    return reply.send(successResponse({ user }, "User updated successfully"));
   }
 
   /**
@@ -150,41 +131,35 @@ class AdminController {
    * DELETE /api/v1/admin/users/:id
    */
   async deleteUser(
-    req: AuthenticatedRequest,
-    res: Response,
-    next: NextFunction
+    req: FastifyRequest,
+    reply: FastifyReply
   ): Promise<void> {
-    try {
-      const id = req.params.id as string;
-      const currentUserId = getUserIdFromToken(req);
+    const id = (req.params as Record<string, string>).id;
+    const currentUserId = getUserIdFromToken(req);
 
-      if (!ensureParam(id, res, "User ID")) {
-        return;
-      }
-
-      if (!currentUserId) {
-        res.status(401).json(
-          errorResponse(ErrorCodes.AUTH_REQUIRED, "Not authenticated")
-        );
-        return;
-      }
-
-      await adminService.deleteUser(id, currentUserId);
-
-      // Audit log: admin user deletion (soft delete)
-      await auditService.log({
-        action: AuditAction.DELETE,
-        entity: "User",
-        entityId: id,
-        userId: currentUserId,
-        req,
-        metadata: { adminAction: "deleteUser", softDelete: true },
-      });
-
-      res.status(204).send();
-    } catch (error) {
-      next(error);
+    if (!ensureParam(id, reply, "User ID")) {
+      return;
     }
+
+    if (!currentUserId) {
+      return reply.code(401).send(
+        errorResponse(ErrorCodes.AUTH_REQUIRED, "Not authenticated")
+      );
+    }
+
+    await adminService.deleteUser(id, currentUserId);
+
+    // Audit log: admin user deletion (soft delete)
+    await auditService.log({
+      action: AuditAction.DELETE,
+      entity: "User",
+      entityId: id,
+      userId: currentUserId,
+      req,
+      metadata: { adminAction: "deleteUser", softDelete: true },
+    });
+
+    return reply.code(204).send();
   }
 
   /**
@@ -194,35 +169,30 @@ class AdminController {
    *   - stream: "true" for streaming large datasets (optional)
    */
   async exportUsers(
-    req: AuthenticatedRequest,
-    res: Response,
-    next: NextFunction
+    req: FastifyRequest,
+    reply: FastifyReply
   ): Promise<void> {
-    try {
-      const useStream = req.query.stream === "true";
-      const timestamp = new Date().toISOString().split("T")[0];
+    const useStream = (req.query as Record<string, string>).stream === "true";
+    const timestamp = new Date().toISOString().split("T")[0];
 
-      res.setHeader("Content-Type", "text/csv; charset=utf-8");
-      res.setHeader(
-        "Content-Disposition",
-        `attachment; filename="users-export-${timestamp}.csv"`
+    reply.header("Content-Type", "text/csv; charset=utf-8");
+    reply.header(
+      "Content-Disposition",
+      `attachment; filename="users-export-${timestamp}.csv"`
+    );
+
+    if (useStream) {
+      // Use streaming for large datasets
+      const columns = exportService.getUserExportColumns();
+      const stream = exportService.exportToCsvStream(
+        exportService.streamAllUsers(),
+        columns
       );
-
-      if (useStream) {
-        // Use streaming for large datasets
-        const columns = exportService.getUserExportColumns();
-        const stream = exportService.exportToCsvStream(
-          exportService.streamAllUsers(),
-          columns
-        );
-        stream.pipe(res);
-      } else {
-        // Standard export for smaller datasets
-        const csv = await exportService.exportAllUsers();
-        res.send(csv);
-      }
-    } catch (error) {
-      next(error);
+      return reply.send(stream);
+    } else {
+      // Standard export for smaller datasets
+      const csv = await exportService.exportAllUsers();
+      return reply.send(csv);
     }
   }
 
@@ -236,45 +206,40 @@ class AdminController {
    *   - userId: Filter by user ID (optional)
    */
   async exportAuditLogs(
-    req: AuthenticatedRequest,
-    res: Response,
-    next: NextFunction
+    req: FastifyRequest,
+    reply: FastifyReply
   ): Promise<void> {
-    try {
-      const { startDate, endDate, action, userId } = req.query;
-      const timestamp = new Date().toISOString().split("T")[0];
+    const { startDate, endDate, action, userId } = req.query as Record<string, string>;
+    const timestamp = new Date().toISOString().split("T")[0];
 
-      const options: {
-        startDate?: Date;
-        endDate?: Date;
-        action?: string;
-        userId?: string;
-      } = {};
+    const options: {
+      startDate?: Date;
+      endDate?: Date;
+      action?: string;
+      userId?: string;
+    } = {};
 
-      if (startDate && typeof startDate === "string") {
-        options.startDate = new Date(startDate);
-      }
-      if (endDate && typeof endDate === "string") {
-        options.endDate = new Date(endDate);
-      }
-      if (action && typeof action === "string") {
-        options.action = action;
-      }
-      if (userId && typeof userId === "string") {
-        options.userId = userId;
-      }
-
-      const csv = await exportService.exportAuditLogs(options);
-
-      res.setHeader("Content-Type", "text/csv; charset=utf-8");
-      res.setHeader(
-        "Content-Disposition",
-        `attachment; filename="audit-logs-export-${timestamp}.csv"`
-      );
-      res.send(csv);
-    } catch (error) {
-      next(error);
+    if (startDate && typeof startDate === "string") {
+      options.startDate = new Date(startDate);
     }
+    if (endDate && typeof endDate === "string") {
+      options.endDate = new Date(endDate);
+    }
+    if (action && typeof action === "string") {
+      options.action = action;
+    }
+    if (userId && typeof userId === "string") {
+      options.userId = userId;
+    }
+
+    const csv = await exportService.exportAuditLogs(options);
+
+    reply.header("Content-Type", "text/csv; charset=utf-8");
+    reply.header(
+      "Content-Disposition",
+      `attachment; filename="audit-logs-export-${timestamp}.csv"`
+    );
+    return reply.send(csv);
   }
 }
 

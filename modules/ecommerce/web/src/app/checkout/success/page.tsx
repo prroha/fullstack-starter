@@ -60,7 +60,7 @@ export default function OrderSuccessPage({
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
-        <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8">
           <div className="space-y-6 text-center">
             <div className="mx-auto h-16 w-16 animate-pulse rounded-full bg-muted" />
             <div className="mx-auto h-8 w-64 animate-pulse rounded bg-muted" />
@@ -107,12 +107,12 @@ export default function OrderSuccessPage({
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8">
         {/* Success Icon */}
         <div className="text-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-success/10">
             <svg
-              className="h-8 w-8 text-green-600"
+              className="h-8 w-8 text-success"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"

@@ -217,7 +217,7 @@ export default function TaskDetailPage({
         )}
 
         {/* Two-column layout */}
-        <div className="grid gap-8 lg:grid-cols-3">
+        <div className="grid gap-6 lg:grid-cols-3">
           {/* Main content (left) */}
           <div className="lg:col-span-2 space-y-6">
             {/* Description */}

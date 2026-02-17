@@ -57,7 +57,7 @@ export default async function TemplatesPage() {
   // Empty state
   if (templates.length === 0) {
     return (
-      <Container className="py-20">
+      <Container className="py-12">
         <div className="flex flex-col items-center justify-center text-center max-w-md mx-auto">
           <div className="w-16 h-16 mb-6 rounded-full bg-muted flex items-center justify-center">
             <Package className="w-8 h-8 text-muted-foreground" />

@@ -92,16 +92,7 @@ export function getRegistrationStatusBadge(status: RegistrationStatus): StatusTy
   return registrationStatusBadgeMap[status] ?? 'pending';
 }
 
-/**
- * Format a date string to a locale display string.
- */
-export function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
-}
+export { formatDate } from '@/lib/utils';
 
 /**
  * Format a date range for display.
@@ -131,16 +122,7 @@ export function formatDateRange(startDate: string, endDate: string): string {
   return `${startStr} - ${endStr}`;
 }
 
-/**
- * Format a price in cents to a display string.
- */
-export function formatPrice(amount: number, currency: string = 'USD'): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency,
-    minimumFractionDigits: amount % 100 === 0 ? 0 : 2,
-  }).format(amount / 100);
-}
+export { formatPrice } from '@/lib/utils';
 
 /**
  * Format capacity for display.

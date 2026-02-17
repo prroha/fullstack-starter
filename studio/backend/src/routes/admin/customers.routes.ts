@@ -1,10 +1,8 @@
-import { Router } from "express";
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from "fastify";
 import { z } from "zod";
 import { prisma } from "../../config/db.js";
 import { sendSuccess, sendPaginated, parsePaginationParams, createPaginationInfo } from "../../utils/response.js";
 import { ApiError } from "../../utils/errors.js";
-
-const router = Router();
 
 /**
  * Sanitize CSV cell to prevent formula injection
@@ -21,13 +19,13 @@ function sanitizeCsvCell(value: string): string {
   return value;
 }
 
-/**
- * GET /api/admin/customers/export/csv
- * Export customers to CSV
- * NOTE: Must be defined BEFORE /:id route to avoid being matched as an id
- */
-router.get("/export/csv", async (_req, res, next) => {
-  try {
+const routePlugin: FastifyPluginAsync = async (fastify) => {
+  /**
+   * GET /api/admin/customers/export/csv
+   * Export customers to CSV
+   * NOTE: Must be defined BEFORE /:id route to avoid being matched as an id
+   */
+  fastify.get("/export/csv", async (_req: FastifyRequest, reply: FastifyReply) => {
     const customers = await prisma.studioUser.findMany({
       take: 50000,
       orderBy: { createdAt: "desc" },
@@ -48,29 +46,27 @@ router.get("/export/csv", async (_req, res, next) => {
 
     const csv = [headers, ...rows].map(row => row.join(",")).join("\n");
 
-    res.setHeader("Content-Type", "text/csv");
-    res.setHeader("Content-Disposition", `attachment; filename=customers-${new Date().toISOString().split("T")[0]}.csv`);
-    res.send(csv);
-  } catch (error) {
-    next(error);
-  }
-});
+    return reply
+      .header("Content-Type", "text/csv")
+      .header("Content-Disposition", `attachment; filename=customers-${new Date().toISOString().split("T")[0]}.csv`)
+      .send(csv);
+  });
 
-/**
- * GET /api/admin/customers
- * List all customers
- */
-router.get("/", async (req, res, next) => {
-  try {
-    const { page, limit, skip } = parsePaginationParams(req.query as { page?: string; limit?: string });
-    const { search, isBlocked } = req.query;
+  /**
+   * GET /api/admin/customers
+   * List all customers
+   */
+  fastify.get("/", async (req: FastifyRequest, reply: FastifyReply) => {
+    const query = req.query as Record<string, string>;
+    const { page, limit, skip } = parsePaginationParams(query as { page?: string; limit?: string });
+    const { search, isBlocked } = query;
 
     const where: Record<string, unknown> = {};
     if (isBlocked !== undefined) where.isBlocked = isBlocked === "true";
     if (search) {
       where.OR = [
-        { email: { contains: search as string, mode: "insensitive" } },
-        { name: { contains: search as string, mode: "insensitive" } },
+        { email: { contains: search, mode: "insensitive" } },
+        { name: { contains: search, mode: "insensitive" } },
       ];
     }
 
@@ -109,20 +105,17 @@ router.get("/", async (req, res, next) => {
       totalSpent: spentByCustomer.find(s => s.userId === c.id)?._sum.total || 0,
     }));
 
-    sendPaginated(res, customersWithStats, createPaginationInfo(page, limit, total));
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendPaginated(reply, customersWithStats, createPaginationInfo(page, limit, total));
+  });
 
-/**
- * GET /api/admin/customers/:id
- * Get single customer with orders
- */
-router.get("/:id", async (req, res, next) => {
-  try {
+  /**
+   * GET /api/admin/customers/:id
+   * Get single customer with orders
+   */
+  fastify.get("/:id", async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as Record<string, string>;
     const customer = await prisma.studioUser.findUnique({
-      where: { id: req.params.id },
+      where: { id },
       include: {
         orders: {
           orderBy: { createdAt: "desc" },
@@ -143,35 +136,32 @@ router.get("/:id", async (req, res, next) => {
       .filter(o => o.status === "COMPLETED")
       .reduce((sum, o) => sum + o.total, 0);
 
-    sendSuccess(res, {
+    return sendSuccess(reply, {
       ...customer,
       totalSpent,
       orderCount: customer.orders.length,
     });
-  } catch (error) {
-    next(error);
-  }
-});
+  });
 
-/**
- * PATCH /api/admin/customers/:id/block
- * Block/unblock customer
- */
-router.patch("/:id/block", async (req, res, next) => {
-  try {
+  /**
+   * PATCH /api/admin/customers/:id/block
+   * Block/unblock customer
+   */
+  fastify.patch("/:id/block", async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as Record<string, string>;
     const schema = z.object({
       isBlocked: z.boolean(),
       reason: z.string().optional(),
     });
     const { isBlocked, reason } = schema.parse(req.body);
 
-    const customer = await prisma.studioUser.findUnique({ where: { id: req.params.id } });
+    const customer = await prisma.studioUser.findUnique({ where: { id } });
     if (!customer) {
       throw ApiError.notFound("Customer");
     }
 
     const updated = await prisma.studioUser.update({
-      where: { id: req.params.id },
+      where: { id },
       data: { isBlocked },
     });
 
@@ -186,23 +176,21 @@ router.patch("/:id/block", async (req, res, next) => {
       },
     });
 
-    sendSuccess(res, updated, `Customer ${isBlocked ? "blocked" : "unblocked"}`);
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendSuccess(reply, updated, `Customer ${isBlocked ? "blocked" : "unblocked"}`);
+  });
 
-/**
- * GET /api/admin/customers/:id/orders
- * Get customer orders
- */
-router.get("/:id/orders", async (req, res, next) => {
-  try {
-    const { page, limit, skip } = parsePaginationParams(req.query as { page?: string; limit?: string });
+  /**
+   * GET /api/admin/customers/:id/orders
+   * Get customer orders
+   */
+  fastify.get("/:id/orders", async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as Record<string, string>;
+    const query = req.query as Record<string, string>;
+    const { page, limit, skip } = parsePaginationParams(query as { page?: string; limit?: string });
 
     const [orders, total] = await Promise.all([
       prisma.order.findMany({
-        where: { userId: req.params.id },
+        where: { userId: id },
         skip,
         take: limit,
         orderBy: { createdAt: "desc" },
@@ -211,13 +199,11 @@ router.get("/:id/orders", async (req, res, next) => {
           license: { select: { status: true, downloadCount: true } },
         },
       }),
-      prisma.order.count({ where: { userId: req.params.id } }),
+      prisma.order.count({ where: { userId: id } }),
     ]);
 
-    sendPaginated(res, orders, createPaginationInfo(page, limit, total));
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendPaginated(reply, orders, createPaginationInfo(page, limit, total));
+  });
+};
 
-export { router as customersRoutes };
+export { routePlugin as customersRoutes };

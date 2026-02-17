@@ -30,20 +30,20 @@ interface InlineFeedbackProps {
 
 const variantStyles: Record<FeedbackVariant, { container: string; icon: string }> = {
   success: {
-    container: "text-green-700 dark:text-green-400",
-    icon: "text-green-600 dark:text-green-400",
+    container: "text-success",
+    icon: "text-success",
   },
   error: {
     container: "text-destructive",
     icon: "text-destructive",
   },
   warning: {
-    container: "text-yellow-700 dark:text-yellow-400",
-    icon: "text-yellow-600 dark:text-yellow-400",
+    container: "text-warning",
+    icon: "text-warning",
   },
   info: {
-    container: "text-blue-700 dark:text-blue-400",
-    icon: "text-blue-600 dark:text-blue-400",
+    container: "text-primary",
+    icon: "text-primary",
   },
 };
 

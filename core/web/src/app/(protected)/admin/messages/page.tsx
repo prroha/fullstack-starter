@@ -6,6 +6,7 @@ import { Button, Input, Badge, Text, Select, Modal } from "@/components/ui";
 import { Alert } from "@/components/feedback";
 import { Icon } from "@/components/ui/icon";
 import { AdminPageHeader, AdminTableContainer } from "@/components/admin";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { useAdminList } from "@/lib/hooks";
 import { downloadFile } from "@/lib/export";
 import { toast } from "sonner";
@@ -54,23 +55,23 @@ function MessageRow({
   isUpdating: boolean;
 }) {
   return (
-    <tr className="border-b hover:bg-muted/50">
-      <td className="px-4 py-3">
+    <TableRow className="border-b hover:bg-muted/50">
+      <TableCell className="px-4 py-3">
         <div>
           <Text as="p" className="font-medium">{message.name}</Text>
           <Text variant="caption" color="muted">{message.email}</Text>
         </div>
-      </td>
-      <td className="px-4 py-3">
+      </TableCell>
+      <TableCell className="px-4 py-3">
         <Text as="p" className="font-medium line-clamp-1">{message.subject}</Text>
         <Text variant="caption" color="muted" className="line-clamp-1">
           {message.message}
         </Text>
-      </td>
-      <td className="px-4 py-3">
+      </TableCell>
+      <TableCell className="px-4 py-3">
         <StatusBadge status={message.status} />
-      </td>
-      <td className="px-4 py-3">
+      </TableCell>
+      <TableCell className="px-4 py-3">
         <Text variant="caption" color="muted">
           {message.createdAt ? (
             <>
@@ -84,8 +85,8 @@ function MessageRow({
             "-"
           )}
         </Text>
-      </td>
-      <td className="px-4 py-3">
+      </TableCell>
+      <TableCell className="px-4 py-3">
         <div className="flex items-center gap-2">
           <Button
             variant="ghost"
@@ -125,8 +126,8 @@ function MessageRow({
             Delete
           </Button>
         </div>
-      </td>
-    </tr>
+      </TableCell>
+    </TableRow>
   );
 }
 
@@ -458,17 +459,17 @@ export default function AdminMessagesPage() {
               <EmptyMessages />
             </div>
           ) : (
-            <table className="w-full">
-              <thead>
-                <tr className="border-b bg-muted/50">
-                  <th className="px-4 py-3 text-left text-sm font-medium">From</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">Subject / Message</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">Status</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">Received</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
+            <Table className="w-full">
+              <TableHeader>
+                <TableRow className="border-b bg-muted/50">
+                  <TableHead className="px-4 py-3 text-left text-sm font-medium">From</TableHead>
+                  <TableHead className="px-4 py-3 text-left text-sm font-medium">Subject / Message</TableHead>
+                  <TableHead className="px-4 py-3 text-left text-sm font-medium">Status</TableHead>
+                  <TableHead className="px-4 py-3 text-left text-sm font-medium">Received</TableHead>
+                  <TableHead className="px-4 py-3 text-left text-sm font-medium">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {messages.map((message) => (
                   <MessageRow
                     key={message.id}
@@ -479,8 +480,8 @@ export default function AdminMessagesPage() {
                     isUpdating={isUpdating}
                   />
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           )
         )}
       </AdminTableContainer>

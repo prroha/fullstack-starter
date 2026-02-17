@@ -412,7 +412,7 @@ export function SkeletonFormEnhanced({
   );
 
   return (
-    <div className={cn("space-y-8", className)} {...props}>
+    <div className={cn("space-y-6", className)} {...props}>
       {Array.from({ length: fieldGroups }).map((_, i) => renderFieldGroup(i))}
 
       {/* Textarea Field */}

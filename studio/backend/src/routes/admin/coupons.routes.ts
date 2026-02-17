@@ -1,10 +1,8 @@
-import { Router } from "express";
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from "fastify";
 import { z } from "zod";
 import { prisma } from "../../config/db.js";
 import { sendSuccess, sendPaginated, parsePaginationParams, createPaginationInfo } from "../../utils/response.js";
 import { ApiError } from "../../utils/errors.js";
-
-const router = Router();
 
 const couponSchema = z.object({
   code: z.string().min(3).max(20).transform(s => s.toUpperCase()),
@@ -19,20 +17,21 @@ const couponSchema = z.object({
   isActive: z.boolean().default(true),
 });
 
-/**
- * GET /api/admin/coupons
- * List all coupons
- */
-router.get("/", async (req, res, next) => {
-  try {
-    const { page, limit, skip } = parsePaginationParams(req.query as { page?: string; limit?: string });
-    const { search, type, isActive } = req.query;
+const routePlugin: FastifyPluginAsync = async (fastify) => {
+  /**
+   * GET /api/admin/coupons
+   * List all coupons
+   */
+  fastify.get("/", async (req: FastifyRequest, reply: FastifyReply) => {
+    const query = req.query as Record<string, string>;
+    const { page, limit, skip } = parsePaginationParams(query as { page?: string; limit?: string });
+    const { search, type, isActive } = query;
 
     const where: Record<string, unknown> = {};
     if (type) where.type = type;
     if (isActive !== undefined) where.isActive = isActive === "true";
     if (search) {
-      where.code = { contains: search as string, mode: "insensitive" };
+      where.code = { contains: search, mode: "insensitive" };
     }
 
     const [coupons, total] = await Promise.all([
@@ -45,20 +44,17 @@ router.get("/", async (req, res, next) => {
       prisma.studioCoupon.count({ where }),
     ]);
 
-    sendPaginated(res, coupons, createPaginationInfo(page, limit, total));
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendPaginated(reply, coupons, createPaginationInfo(page, limit, total));
+  });
 
-/**
- * GET /api/admin/coupons/:id
- * Get single coupon with usage stats
- */
-router.get("/:id", async (req, res, next) => {
-  try {
+  /**
+   * GET /api/admin/coupons/:id
+   * Get single coupon with usage stats
+   */
+  fastify.get("/:id", async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as Record<string, string>;
     const coupon = await prisma.studioCoupon.findUnique({
-      where: { id: req.params.id },
+      where: { id },
       include: {
         orders: {
           select: {
@@ -85,21 +81,17 @@ router.get("/:id", async (req, res, next) => {
       where: { couponId: coupon.id },
     });
 
-    sendSuccess(res, {
+    return sendSuccess(reply, {
       ...coupon,
       totalDiscountGiven: totalDiscount._sum.discount || 0,
     });
-  } catch (error) {
-    next(error);
-  }
-});
+  });
 
-/**
- * POST /api/admin/coupons
- * Create new coupon
- */
-router.post("/", async (req, res, next) => {
-  try {
+  /**
+   * POST /api/admin/coupons
+   * Create new coupon
+   */
+  fastify.post("/", async (req: FastifyRequest, reply: FastifyReply) => {
     const data = couponSchema.parse(req.body);
 
     // Validate percentage
@@ -132,21 +124,18 @@ router.post("/", async (req, res, next) => {
       },
     });
 
-    sendSuccess(res, coupon, "Coupon created", 201);
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendSuccess(reply, coupon, "Coupon created", 201);
+  });
 
-/**
- * PUT /api/admin/coupons/:id
- * Update coupon
- */
-router.put("/:id", async (req, res, next) => {
-  try {
+  /**
+   * PUT /api/admin/coupons/:id
+   * Update coupon
+   */
+  fastify.put("/:id", async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as Record<string, string>;
     const data = couponSchema.partial().parse(req.body);
 
-    const existing = await prisma.studioCoupon.findUnique({ where: { id: req.params.id } });
+    const existing = await prisma.studioCoupon.findUnique({ where: { id } });
     if (!existing) {
       throw ApiError.notFound("Coupon");
     }
@@ -163,7 +152,7 @@ router.put("/:id", async (req, res, next) => {
     }
 
     const coupon = await prisma.studioCoupon.update({
-      where: { id: req.params.id },
+      where: { id },
       data: {
         ...data,
         startsAt: data.startsAt ? new Date(data.startsAt) : undefined,
@@ -183,41 +172,35 @@ router.put("/:id", async (req, res, next) => {
       },
     });
 
-    sendSuccess(res, coupon, "Coupon updated");
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendSuccess(reply, coupon, "Coupon updated");
+  });
 
-/**
- * PATCH /api/admin/coupons/:id/toggle
- * Toggle coupon active status
- */
-router.patch("/:id/toggle", async (req, res, next) => {
-  try {
-    const coupon = await prisma.studioCoupon.findUnique({ where: { id: req.params.id } });
+  /**
+   * PATCH /api/admin/coupons/:id/toggle
+   * Toggle coupon active status
+   */
+  fastify.patch("/:id/toggle", async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as Record<string, string>;
+    const coupon = await prisma.studioCoupon.findUnique({ where: { id } });
     if (!coupon) {
       throw ApiError.notFound("Coupon");
     }
 
     const updated = await prisma.studioCoupon.update({
-      where: { id: req.params.id },
+      where: { id },
       data: { isActive: !coupon.isActive },
     });
 
-    sendSuccess(res, updated, `Coupon ${updated.isActive ? "activated" : "deactivated"}`);
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendSuccess(reply, updated, `Coupon ${updated.isActive ? "activated" : "deactivated"}`);
+  });
 
-/**
- * DELETE /api/admin/coupons/:id
- * Delete coupon
- */
-router.delete("/:id", async (req, res, next) => {
-  try {
-    const coupon = await prisma.studioCoupon.findUnique({ where: { id: req.params.id } });
+  /**
+   * DELETE /api/admin/coupons/:id
+   * Delete coupon
+   */
+  fastify.delete("/:id", async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as Record<string, string>;
+    const coupon = await prisma.studioCoupon.findUnique({ where: { id } });
     if (!coupon) {
       throw ApiError.notFound("Coupon");
     }
@@ -226,7 +209,7 @@ router.delete("/:id", async (req, res, next) => {
       throw ApiError.badRequest("Cannot delete coupon that has been used. Deactivate it instead.");
     }
 
-    await prisma.studioCoupon.delete({ where: { id: req.params.id } });
+    await prisma.studioCoupon.delete({ where: { id } });
 
     await prisma.studioAuditLog.create({
       data: {
@@ -239,10 +222,8 @@ router.delete("/:id", async (req, res, next) => {
       },
     });
 
-    sendSuccess(res, null, "Coupon deleted");
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendSuccess(reply, null, "Coupon deleted");
+  });
+};
 
-export { router as couponsRoutes };
+export { routePlugin as couponsRoutes };

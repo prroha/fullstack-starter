@@ -52,7 +52,7 @@ function ErrorLogo() {
 function SuccessLogo() {
   return (
     <div className="flex items-center justify-center">
-      <div className="h-12 w-12 rounded-xl bg-green-500/10 flex items-center justify-center">
+      <div className="h-12 w-12 rounded-xl bg-success/10 flex items-center justify-center">
         <Icon name="Check" size="lg" color="success" />
       </div>
     </div>

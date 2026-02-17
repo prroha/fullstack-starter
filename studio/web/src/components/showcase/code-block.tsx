@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { Check, Copy, AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 interface CodeBlockProps {
@@ -39,7 +40,7 @@ export function CodeBlock({
   const getCopyIcon = () => {
     switch (copyState) {
       case "copied":
-        return <Check className="h-4 w-4 text-green-500" aria-hidden="true" />;
+        return <Check className="h-4 w-4 text-success" aria-hidden="true" />;
       case "error":
         return <AlertCircle className="h-4 w-4 text-destructive" aria-hidden="true" />;
       default:
@@ -59,20 +60,18 @@ export function CodeBlock({
   };
 
   const CopyButton = ({ className: buttonClassName }: { className?: string }) => (
-    <button
+    <Button
       type="button"
+      variant="ghost"
+      size="icon"
       onClick={handleCopy}
-      className={cn(
-        "p-1.5 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-        "hover:bg-accent",
-        buttonClassName
-      )}
+      className={cn("h-auto w-auto p-1.5", buttonClassName)}
       aria-label={getCopyLabel()}
       aria-live="polite"
     >
       {getCopyIcon()}
       <span className="sr-only">{getCopyLabel()}</span>
-    </button>
+    </Button>
   );
 
   return (

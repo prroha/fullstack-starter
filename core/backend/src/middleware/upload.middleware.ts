@@ -1,8 +1,7 @@
-import multer, { FileFilterCallback } from "multer";
 import path from "path";
 import fs from "fs";
 import crypto from "crypto";
-import { Request } from "express";
+import { FastifyRequest } from "fastify";
 import { ApiError } from "./error.middleware.js";
 import { ErrorCodes } from "../utils/response.js";
 
@@ -37,67 +36,76 @@ function ensureUploadDirs(): void {
 
 ensureUploadDirs();
 
-// Configure storage
-const avatarStorage = multer.diskStorage({
-  destination: (_req, _file, cb) => {
-    cb(null, AVATAR_DIR);
-  },
-  filename: (_req, file, cb) => {
-    // Generate unique filename with original extension
-    const ext = path.extname(file.originalname).toLowerCase();
-    const uniqueSuffix = `${Date.now()}-${crypto.randomBytes(8).toString("hex")}`;
-    cb(null, `avatar-${uniqueSuffix}${ext}`);
-  },
-});
+/**
+ * Process avatar upload from Fastify multipart
+ * Returns the saved file info or throws ApiError
+ */
+export async function processAvatarUpload(req: FastifyRequest): Promise<{
+  filename: string;
+  filepath: string;
+  mimetype: string;
+  size: number;
+}> {
+  const data = await (req as FastifyRequest & { file: () => Promise<{
+    filename: string;
+    mimetype: string;
+    file: NodeJS.ReadableStream;
+    toBuffer: () => Promise<Buffer>;
+  } | undefined> }).file();
 
-// File filter for images
-const imageFileFilter = (
-  _req: Request,
-  file: Express.Multer.File,
-  cb: FileFilterCallback
-): void => {
+  if (!data) {
+    throw ApiError.badRequest("No file uploaded", ErrorCodes.INVALID_INPUT);
+  }
+
   // Check MIME type
-  if (!ALLOWED_MIME_TYPES.includes(file.mimetype as AllowedMimeType)) {
-    cb(
-      ApiError.badRequest(
-        `Invalid file type. Allowed types: ${ALLOWED_MIME_TYPES.join(", ")}`,
-        ErrorCodes.INVALID_INPUT
-      )
+  if (!ALLOWED_MIME_TYPES.includes(data.mimetype as AllowedMimeType)) {
+    throw ApiError.badRequest(
+      `Invalid file type. Allowed types: ${ALLOWED_MIME_TYPES.join(", ")}`,
+      ErrorCodes.INVALID_INPUT
     );
-    return;
   }
 
   // Check extension
-  const ext = path.extname(file.originalname).toLowerCase();
+  const ext = path.extname(data.filename).toLowerCase();
   if (!ALLOWED_EXTENSIONS.includes(ext)) {
-    cb(
-      ApiError.badRequest(
-        `Invalid file extension. Allowed extensions: ${ALLOWED_EXTENSIONS.join(", ")}`,
-        ErrorCodes.INVALID_INPUT
-      )
+    throw ApiError.badRequest(
+      `Invalid file extension. Allowed extensions: ${ALLOWED_EXTENSIONS.join(", ")}`,
+      ErrorCodes.INVALID_INPUT
     );
-    return;
   }
 
-  cb(null, true);
-};
+  // Read file buffer
+  const buffer = await data.toBuffer();
 
-// Avatar upload middleware
-export const avatarUpload = multer({
-  storage: avatarStorage,
-  limits: {
-    fileSize: MAX_FILE_SIZE,
-    files: 1,
-  },
-  fileFilter: imageFileFilter,
-});
+  // Check file size
+  if (buffer.length > MAX_FILE_SIZE) {
+    throw ApiError.badRequest(
+      `File too large. Maximum size: ${MAX_FILE_SIZE / (1024 * 1024)}MB`,
+      ErrorCodes.INVALID_INPUT
+    );
+  }
+
+  // Generate unique filename
+  const uniqueSuffix = `${Date.now()}-${crypto.randomBytes(8).toString("hex")}`;
+  const filename = `avatar-${uniqueSuffix}${ext}`;
+  const filepath = path.join(AVATAR_DIR, filename);
+
+  // Write file
+  await fs.promises.writeFile(filepath, buffer);
+
+  return {
+    filename,
+    filepath,
+    mimetype: data.mimetype,
+    size: buffer.length,
+  };
+}
 
 /**
  * Delete a file from the uploads directory
  */
 export function deleteUploadedFile(filePath: string): Promise<void> {
   return new Promise((resolve, reject) => {
-    // Ensure the file is within the uploads directory (security)
     const normalizedPath = path.normalize(filePath);
     if (!normalizedPath.startsWith(UPLOAD_DIR)) {
       reject(new Error("Invalid file path"));
@@ -106,7 +114,6 @@ export function deleteUploadedFile(filePath: string): Promise<void> {
 
     fs.unlink(normalizedPath, (err) => {
       if (err) {
-        // Ignore if file doesn't exist
         if (err.code === "ENOENT") {
           resolve();
           return;

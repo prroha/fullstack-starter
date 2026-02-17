@@ -61,7 +61,7 @@ export default function HomePage() {
       <section className="relative overflow-hidden border-b">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5" />
         <Container>
-          <div className="py-20 md:py-32 max-w-4xl mx-auto text-center relative">
+          <div className="py-12 md:py-20 max-w-4xl mx-auto text-center relative">
             <Badge variant="secondary" className="mb-6">
               Now with Flutter mobile support
             </Badge>
@@ -91,7 +91,7 @@ export default function HomePage() {
       {/* Stats */}
       <section className="border-b">
         <Container>
-          <div className="py-12 grid grid-cols-2 md:grid-cols-4 gap-8">
+          <div className="py-12 grid grid-cols-2 md:grid-cols-4 gap-6">
             {stats.map((stat) => (
               <div key={stat.label} className="text-center">
                 <div className="text-3xl md:text-4xl font-bold text-primary mb-1">
@@ -105,7 +105,7 @@ export default function HomePage() {
       </section>
 
       {/* Features Grid */}
-      <section className="py-20">
+      <section className="py-12">
         <Container>
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold mb-4">Everything You Need</h2>
@@ -135,7 +135,7 @@ export default function HomePage() {
       {/* CTA Section */}
       <section className="border-t bg-muted/30">
         <Container>
-          <div className="py-20 text-center">
+          <div className="py-12 text-center">
             <h2 className="text-3xl font-bold mb-4">Ready to Get Started?</h2>
             <p className="text-lg text-muted-foreground mb-8 max-w-xl mx-auto">
               Browse our component showcase, configure your app, and download production-ready code.

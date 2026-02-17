@@ -8,12 +8,12 @@ import Link from 'next/link';
 
 export default function PaymentCancelPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8 text-center">
+    <div className="min-h-screen flex items-center justify-center bg-background px-4">
+      <div className="max-w-md w-full bg-card rounded-xl shadow-lg p-8 text-center">
         {/* Cancel Icon */}
-        <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-amber-100 mb-6">
+        <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-warning/10 mb-6">
           <svg
-            className="h-8 w-8 text-amber-600"
+            className="h-8 w-8 text-warning"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -27,11 +27,11 @@ export default function PaymentCancelPage() {
           </svg>
         </div>
 
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">
+        <h1 className="text-2xl font-bold text-foreground mb-2">
           Payment Canceled
         </h1>
 
-        <p className="text-gray-600 mb-8">
+        <p className="text-muted-foreground mb-8">
           Your payment was not completed. No charges have been made to your
           account.
         </p>
@@ -39,25 +39,25 @@ export default function PaymentCancelPage() {
         <div className="space-y-3">
           <Link
             href="/payment"
-            className="block w-full py-3 px-4 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+            className="block w-full py-3 px-4 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors"
           >
             Try Again
           </Link>
           <Link
             href="/"
-            className="block w-full py-3 px-4 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+            className="block w-full py-3 px-4 bg-muted text-foreground rounded-lg font-medium hover:bg-muted/80 transition-colors"
           >
             Back to Home
           </Link>
         </div>
 
-        <div className="mt-8 pt-6 border-t border-gray-200">
-          <p className="text-gray-500 text-sm mb-4">
+        <div className="mt-8 pt-6 border-t border-border">
+          <p className="text-muted-foreground text-sm mb-4">
             Need help? Contact our support team
           </p>
           <a
             href="mailto:support@example.com"
-            className="text-blue-600 hover:text-blue-700 font-medium"
+            className="text-primary hover:text-primary/80 font-medium"
           >
             support@example.com
           </a>

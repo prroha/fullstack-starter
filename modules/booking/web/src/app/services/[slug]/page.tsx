@@ -283,7 +283,7 @@ export default function ServiceDetailPage({
 
       {/* Content Section */}
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-        <div className="grid gap-8 lg:grid-cols-3">
+        <div className="grid gap-6 lg:grid-cols-3">
           {/* Main Content (2/3) */}
           <div className="lg:col-span-2">
             {/* Full Description */}

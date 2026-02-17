@@ -1,30 +1,28 @@
-import { Router, Request, Response } from 'express';
-import { getOrderService } from '../services/order.service';
-import { authMiddleware, AuthenticatedRequest } from '../middleware/auth';
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
+import { getOrderService } from '../services/order.service.js';
+import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
 
 // =============================================================================
-// Router
+// Routes
 // =============================================================================
 
-const router = Router();
 const orderService = getOrderService();
 
 // =============================================================================
 // Order Endpoints (All Authenticated)
 // =============================================================================
 
-/**
- * POST /orders
- * Create an order from the current cart
- */
-router.post('/', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+const routes: FastifyPluginAsync = async (fastify) => {
+  /**
+   * POST /orders
+   * Create an order from the current cart
+   */
+  fastify.post('/', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { shippingAddress, billingAddress, notes } = req.body;
+    const { shippingAddress, billingAddress, notes } = req.body as Record<string, unknown>;
 
     if (!shippingAddress) {
-      res.status(400).json({ error: 'Shipping address is required' });
-      return;
+      return reply.code(400).send({ error: 'Shipping address is required' });
     }
 
     const order = await orderService.createOrder({
@@ -34,23 +32,16 @@ router.post('/', authMiddleware, async (req: Request, res: Response): Promise<vo
       notes,
     });
 
-    res.status(201).json({ success: true, data: order });
-  } catch (error) {
-    console.error('[OrderRoutes] Create error:', error instanceof Error ? error.message : error);
-    res.status(500).json({
-      error: error instanceof Error ? error.message : 'Failed to create order',
-    });
-  }
-});
+    return reply.code(201).send({ success: true, data: order });
+  });
 
-/**
- * GET /orders
- * List current user's orders with pagination
- */
-router.get('/', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * GET /orders
+   * List current user's orders with pagination
+   */
+  fastify.get('/', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { page, limit } = req.query;
+    const { page, limit } = req.query as Record<string, string>;
 
     const result = await orderService.listOrders(
       authReq.user.userId,
@@ -58,51 +49,36 @@ router.get('/', authMiddleware, async (req: Request, res: Response): Promise<voi
       limit ? Number(limit) : 20,
     );
 
-    res.json({ success: true, data: result });
-  } catch (error) {
-    console.error('[OrderRoutes] List error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to list orders' });
-  }
-});
+    return reply.send({ success: true, data: result });
+  });
 
-/**
- * GET /orders/:id
- * Get order details by id
- */
-router.get('/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const order = await orderService.getOrderById(req.params.id);
+  /**
+   * GET /orders/:id
+   * Get order details by id
+   */
+  fastify.get('/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as { id: string };
+    const order = await orderService.getOrderById(id);
     if (!order) {
-      res.status(404).json({ error: 'Order not found' });
-      return;
+      return reply.code(404).send({ error: 'Order not found' });
     }
 
-    res.json({ success: true, data: order });
-  } catch (error) {
-    console.error('[OrderRoutes] Get by id error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to get order' });
-  }
-});
+    return reply.send({ success: true, data: order });
+  });
 
-/**
- * POST /orders/:id/cancel
- * Cancel an order
- */
-router.post('/:id/cancel', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const order = await orderService.cancelOrder(req.params.id);
+  /**
+   * POST /orders/:id/cancel
+   * Cancel an order
+   */
+  fastify.post('/:id/cancel', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as { id: string };
+    const order = await orderService.cancelOrder(id);
     if (!order) {
-      res.status(404).json({ error: 'Order not found' });
-      return;
+      return reply.code(404).send({ error: 'Order not found' });
     }
 
-    res.json({ success: true, data: order });
-  } catch (error) {
-    console.error('[OrderRoutes] Cancel error:', error instanceof Error ? error.message : error);
-    res.status(500).json({
-      error: error instanceof Error ? error.message : 'Failed to cancel order',
-    });
-  }
-});
+    return reply.send({ success: true, data: order });
+  });
+};
 
-export default router;
+export default routes;

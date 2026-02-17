@@ -1,53 +1,45 @@
-import { Router, Request, Response } from 'express';
-import { getSpeakerService } from '../services/speaker.service';
-import { authMiddleware, AuthenticatedRequest } from '../middleware/auth';
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
+import { getSpeakerService } from '../services/speaker.service.js';
+import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
 
 // =============================================================================
-// Router
+// Routes
 // =============================================================================
 
-const router = Router();
 const speakerService = getSpeakerService();
 
 // =============================================================================
 // Speaker Endpoints (All Authenticated)
 // =============================================================================
 
-/**
- * POST /speakers/reorder
- * Reorder speakers
- * MUST be before /:id route
- */
-router.post('/reorder', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+const routes: FastifyPluginAsync = async (fastify) => {
+  /**
+   * POST /speakers/reorder
+   * Reorder speakers
+   * MUST be before /:id route
+   */
+  fastify.post('/reorder', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { ids } = req.body;
+    const { ids } = req.body as { ids: unknown };
 
     if (!Array.isArray(ids)) {
-      res.status(400).json({ error: 'ids array is required' });
-      return;
+      return reply.code(400).send({ error: 'ids array is required' });
     }
 
     await speakerService.reorder(authReq.user.userId, ids);
-    res.json({ success: true, message: 'Speakers reordered' });
-  } catch (error) {
-    console.error('[SpeakerRoutes] Reorder error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to reorder speakers',
-    });
-  }
-});
+    return reply.send({ success: true, message: 'Speakers reordered' });
+  });
 
-/**
- * PATCH /speakers/:id
- * Update a speaker
- */
-router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * PATCH /speakers/:id
+   * Update a speaker
+   */
+  fastify.patch('/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { name, email, bio, avatarUrl, title, company } = req.body;
+    const { id } = req.params as { id: string };
+    const { name, email, bio, avatarUrl, title, company } = req.body as Record<string, unknown>;
 
-    const speaker = await speakerService.update(req.params.id, authReq.user.userId, {
+    const speaker = await speakerService.update(id, authReq.user.userId, {
       name,
       email,
       bio,
@@ -57,35 +49,23 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promis
     });
 
     if (!speaker) {
-      res.status(404).json({ error: 'Speaker not found' });
-      return;
+      return reply.code(404).send({ error: 'Speaker not found' });
     }
 
-    res.json({ success: true, data: speaker });
-  } catch (error) {
-    console.error('[SpeakerRoutes] Update error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to update speaker',
-    });
-  }
-});
+    return reply.send({ success: true, data: speaker });
+  });
 
-/**
- * DELETE /speakers/:id
- * Delete a speaker
- */
-router.delete('/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * DELETE /speakers/:id
+   * Delete a speaker
+   */
+  fastify.delete('/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
+    const { id } = req.params as { id: string };
 
-    await speakerService.delete(req.params.id, authReq.user.userId);
-    res.json({ success: true, message: 'Speaker deleted' });
-  } catch (error) {
-    console.error('[SpeakerRoutes] Delete error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to delete speaker',
-    });
-  }
-});
+    await speakerService.delete(id, authReq.user.userId);
+    return reply.send({ success: true, message: 'Speaker deleted' });
+  });
+};
 
-export default router;
+export default routes;

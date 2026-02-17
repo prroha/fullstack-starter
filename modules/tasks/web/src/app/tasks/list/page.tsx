@@ -121,7 +121,7 @@ export default function TaskListPage() {
 
         {/* Loading */}
         {loading && (
-          <div className="flex items-center justify-center py-20">
+          <div className="flex items-center justify-center py-12">
             <Spinner size="lg" />
           </div>
         )}

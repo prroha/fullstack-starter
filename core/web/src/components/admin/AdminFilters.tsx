@@ -1,7 +1,9 @@
 "use client";
 
+import { ReactNode } from "react";
 import { Input, Select, Button, Label } from "@/components/ui";
 import type { SelectOption } from "@/components/ui";
+import { cn } from "@/lib/utils";
 
 export interface FilterField {
   type: "search" | "select" | "date" | "datetime-local";
@@ -38,11 +40,15 @@ export interface AdminFiltersProps {
   hasActiveFilters?: boolean;
   /** Clear filters callback */
   onClearFilters?: () => void;
+  /** Additional filter components rendered inline */
+  children?: ReactNode;
+  /** Optional className for the container */
+  className?: string;
 }
 
 /**
  * Shared filter bar component for admin pages.
- * Supports search input, select dropdowns, and date range filters.
+ * Supports search input, select dropdowns, date range filters, and custom children.
  */
 export function AdminFilters({
   search,
@@ -52,9 +58,11 @@ export function AdminFilters({
   dateRange,
   hasActiveFilters,
   onClearFilters,
+  children,
+  className,
 }: AdminFiltersProps) {
   return (
-    <div className="space-y-4">
+    <div className={cn("space-y-4", className)}>
       <div className="flex flex-wrap gap-4">
         {onSearchChange && (
           <div className="flex-1 min-w-[200px]">
@@ -75,6 +83,7 @@ export function AdminFilters({
             className={filter.className || "w-40"}
           />
         ))}
+        {children}
       </div>
 
       {dateRange && (

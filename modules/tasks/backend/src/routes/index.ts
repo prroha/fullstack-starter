@@ -1,16 +1,16 @@
-import { Router } from 'express';
-import projectRoutes from './project.routes';
-import taskRoutes from './task.routes';
-import commentRoutes from './comment.routes';
-import labelRoutes from './label.routes';
-import settingsRoutes from './settings.routes';
+import { FastifyPluginAsync } from 'fastify';
+import projectRoutes from './project.routes.js';
+import taskRoutes from './task.routes.js';
+import commentRoutes from './comment.routes.js';
+import labelRoutes from './label.routes.js';
+import settingsRoutes from './settings.routes.js';
 
-const router = Router();
+const routes: FastifyPluginAsync = async (fastify) => {
+  await fastify.register(projectRoutes, { prefix: '/projects' });
+  await fastify.register(taskRoutes, { prefix: '/tasks' });
+  await fastify.register(commentRoutes, { prefix: '/comments' });
+  await fastify.register(labelRoutes, { prefix: '/labels' });
+  await fastify.register(settingsRoutes, { prefix: '/settings' });
+};
 
-router.use('/projects', projectRoutes);
-router.use('/tasks', taskRoutes);
-router.use('/comments', commentRoutes);
-router.use('/labels', labelRoutes);
-router.use('/settings', settingsRoutes);
-
-export default router;
+export default routes;

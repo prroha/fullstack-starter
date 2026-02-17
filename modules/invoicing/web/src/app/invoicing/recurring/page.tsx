@@ -64,7 +64,7 @@ export default function RecurringListPage() {
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Loading */}
         {loading && (
-          <div className="flex items-center justify-center py-20">
+          <div className="flex items-center justify-center py-12">
             <Spinner size="lg" />
           </div>
         )}

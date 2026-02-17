@@ -88,7 +88,7 @@ export default function EventListPage() {
           </div>
         </div>
 
-        {loading && events.length === 0 && (<div className="flex items-center justify-center py-20"><Spinner size="lg" /></div>)}
+        {loading && events.length === 0 && (<div className="flex items-center justify-center py-12"><Spinner size="lg" /></div>)}
 
         {error && (<div className="text-center"><Alert variant="destructive">{error}</Alert><Button onClick={fetchData} className="mt-4">Try Again</Button></div>)}
 

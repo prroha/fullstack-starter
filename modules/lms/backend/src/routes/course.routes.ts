@@ -1,92 +1,75 @@
-import { Router, Request, Response } from 'express';
-import { getCourseService } from '../services/course.service';
-import { authMiddleware, AuthenticatedRequest } from '../middleware/auth';
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
+import { getCourseService } from '../services/course.service.js';
+import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
 
 // =============================================================================
-// Router
+// Routes
 // =============================================================================
 
-const router = Router();
 const courseService = getCourseService();
 
 // =============================================================================
 // Public Endpoints
 // =============================================================================
 
-/**
- * GET /courses
- * List published courses with filtering and pagination
- */
-router.get('/', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { search, category, level, minPrice, maxPrice, page, limit } = req.query;
+const routes: FastifyPluginAsync = async (fastify) => {
+  /**
+   * GET /courses
+   * List published courses with filtering and pagination
+   */
+  fastify.get('/', async (req: FastifyRequest, reply: FastifyReply) => {
+    const { search, category, level, minPrice, maxPrice, page, limit } = req.query as Record<string, string>;
 
     const result = await courseService.listCourses({
       status: 'PUBLISHED',
-      search: search as string,
-      categorySlug: category as string,
-      level: level as string,
+      search,
+      categorySlug: category,
+      level,
       minPrice: minPrice ? Number(minPrice) : undefined,
       maxPrice: maxPrice ? Number(maxPrice) : undefined,
       page: page ? Number(page) : 1,
       limit: limit ? Number(limit) : 20,
     });
 
-    res.json({ success: true, data: result });
-  } catch (error) {
-    console.error('[CourseRoutes] List error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to list courses' });
-  }
-});
+    return reply.send({ success: true, data: result });
+  });
 
-/**
- * GET /courses/categories
- * List all course categories
- */
-router.get('/categories', async (_req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * GET /courses/categories
+   * List all course categories
+   */
+  fastify.get('/categories', async (_req: FastifyRequest, reply: FastifyReply) => {
     const categories = await courseService.listCategories();
-    res.json({ success: true, data: categories });
-  } catch (error) {
-    console.error('[CourseRoutes] Categories error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to list categories' });
-  }
-});
+    return reply.send({ success: true, data: categories });
+  });
 
-/**
- * GET /courses/:slug
- * Get course details by slug (public)
- */
-router.get('/:slug', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const course = await courseService.getCourseBySlug(req.params.slug);
+  /**
+   * GET /courses/:slug
+   * Get course details by slug (public)
+   */
+  fastify.get('/:slug', async (req: FastifyRequest, reply: FastifyReply) => {
+    const { slug } = req.params as { slug: string };
+    const course = await courseService.getCourseBySlug(slug);
     if (!course) {
-      res.status(404).json({ error: 'Course not found' });
-      return;
+      return reply.code(404).send({ error: 'Course not found' });
     }
-    res.json({ success: true, data: course });
-  } catch (error) {
-    console.error('[CourseRoutes] Get by slug error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to get course' });
-  }
-});
+    return reply.send({ success: true, data: course });
+  });
 
-// =============================================================================
-// Authenticated Endpoints (Instructor)
-// =============================================================================
+  // =============================================================================
+  // Authenticated Endpoints (Instructor)
+  // =============================================================================
 
-/**
- * POST /courses
- * Create a new course (instructor)
- */
-router.post('/', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * POST /courses
+   * Create a new course (instructor)
+   */
+  fastify.post('/', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { title, description, shortDescription, thumbnailUrl, price, compareAtPrice, level, language, maxStudents, categoryIds } = req.body;
+    const { title, description, shortDescription, thumbnailUrl, price, compareAtPrice, level, language, maxStudents, categoryIds } = req.body as Record<string, unknown>;
 
     if (!title || !description) {
-      res.status(400).json({ error: 'Title and description are required' });
-      return;
+      return reply.code(400).send({ error: 'Title and description are required' });
     }
 
     const course = await courseService.createCourse({
@@ -103,24 +86,18 @@ router.post('/', authMiddleware, async (req: Request, res: Response): Promise<vo
       categoryIds,
     });
 
-    res.status(201).json({ success: true, data: course });
-  } catch (error) {
-    console.error('[CourseRoutes] Create error:', error instanceof Error ? error.message : error);
-    res.status(500).json({
-      error: error instanceof Error ? error.message : 'Failed to create course',
-    });
-  }
-});
+    return reply.code(201).send({ success: true, data: course });
+  });
 
-/**
- * PATCH /courses/:id
- * Update a course (instructor)
- */
-router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { title, description, shortDescription, thumbnailUrl, price, compareAtPrice, level, language, maxStudents, categoryIds } = req.body;
+  /**
+   * PATCH /courses/:id
+   * Update a course (instructor)
+   */
+  fastify.patch('/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as { id: string };
+    const { title, description, shortDescription, thumbnailUrl, price, compareAtPrice, level, language, maxStudents, categoryIds } = req.body as Record<string, unknown>;
 
-    const course = await courseService.updateCourse(req.params.id, {
+    const course = await courseService.updateCourse(id, {
       title,
       description,
       shortDescription,
@@ -134,100 +111,74 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promis
     });
 
     if (!course) {
-      res.status(404).json({ error: 'Course not found' });
-      return;
+      return reply.code(404).send({ error: 'Course not found' });
     }
 
-    res.json({ success: true, data: course });
-  } catch (error) {
-    console.error('[CourseRoutes] Update error:', error instanceof Error ? error.message : error);
-    res.status(500).json({
-      error: error instanceof Error ? error.message : 'Failed to update course',
-    });
-  }
-});
+    return reply.send({ success: true, data: course });
+  });
 
-/**
- * DELETE /courses/:id
- * Delete a course (instructor)
- */
-router.delete('/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
-    await courseService.deleteCourse(req.params.id);
-    res.json({ success: true, message: 'Course deleted' });
-  } catch (error) {
-    console.error('[CourseRoutes] Delete error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to delete course' });
-  }
-});
+  /**
+   * DELETE /courses/:id
+   * Delete a course (instructor)
+   */
+  fastify.delete('/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as { id: string };
+    await courseService.deleteCourse(id);
+    return reply.send({ success: true, message: 'Course deleted' });
+  });
 
-/**
- * POST /courses/:id/publish
- * Publish a course
- */
-router.post('/:id/publish', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const course = await courseService.publishCourse(req.params.id);
+  /**
+   * POST /courses/:id/publish
+   * Publish a course
+   */
+  fastify.post('/:id/publish', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as { id: string };
+    const course = await courseService.publishCourse(id);
     if (!course) {
-      res.status(404).json({ error: 'Course not found' });
-      return;
+      return reply.code(404).send({ error: 'Course not found' });
     }
-    res.json({ success: true, data: course });
-  } catch (error) {
-    console.error('[CourseRoutes] Publish error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to publish course' });
-  }
-});
+    return reply.send({ success: true, data: course });
+  });
 
-/**
- * POST /courses/:id/unpublish
- * Unpublish a course
- */
-router.post('/:id/unpublish', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const course = await courseService.unpublishCourse(req.params.id);
+  /**
+   * POST /courses/:id/unpublish
+   * Unpublish a course
+   */
+  fastify.post('/:id/unpublish', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as { id: string };
+    const course = await courseService.unpublishCourse(id);
     if (!course) {
-      res.status(404).json({ error: 'Course not found' });
-      return;
+      return reply.code(404).send({ error: 'Course not found' });
     }
-    res.json({ success: true, data: course });
-  } catch (error) {
-    console.error('[CourseRoutes] Unpublish error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to unpublish course' });
-  }
-});
+    return reply.send({ success: true, data: course });
+  });
 
-// =============================================================================
-// Categories (Admin)
-// =============================================================================
+  // =============================================================================
+  // Categories (Admin)
+  // =============================================================================
 
-/**
- * POST /courses/categories
- * Create a new category
- */
-router.post('/categories', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { name, description, iconName } = req.body;
+  /**
+   * POST /courses/categories
+   * Create a new category
+   */
+  fastify.post('/categories', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const { name, description, iconName } = req.body as { name: string; description?: string; iconName?: string };
 
     if (!name) {
-      res.status(400).json({ error: 'Category name is required' });
-      return;
+      return reply.code(400).send({ error: 'Category name is required' });
     }
 
     const category = await courseService.createCategory({ name, description, iconName });
-    res.status(201).json({ success: true, data: category });
-  } catch (error) {
-    console.error('[CourseRoutes] Create category error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to create category' });
-  }
-});
+    return reply.code(201).send({ success: true, data: category });
+  });
 
-// =============================================================================
-// Reviews
-// =============================================================================
+  // =============================================================================
+  // Reviews
+  // =============================================================================
 
-// Review endpoints would go here - listing reviews for a course,
-// creating a review (authenticated), etc.
-// For brevity, these can be added as needed.
+  // Review endpoints would go here - listing reviews for a course,
+  // creating a review (authenticated), etc.
+  // For brevity, these can be added as needed.
+};
 
-export default router;
+export default routes;

@@ -302,7 +302,7 @@ export default function AdminLayout({
       showMobileMenu={showMobileMenu}
       onMobileMenuToggle={() => setShowMobileMenu(!showMobileMenu)}
     >
-      <div className="p-4 md:p-6 lg:p-8">{children}</div>
+      <div className="p-3 md:p-4 lg:p-6">{children}</div>
     </DashboardLayout>
   );
 }

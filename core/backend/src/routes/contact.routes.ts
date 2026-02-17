@@ -1,8 +1,6 @@
-import { Router } from "express";
+import { FastifyPluginAsync } from "fastify";
 import { contactController } from "../controllers/contact.controller.js";
 import { createRateLimiter } from "../middleware/rate-limit.middleware.js";
-
-const router = Router();
 
 // Rate limiter for contact form submissions (5 submissions per 15 minutes per IP)
 const contactFormRateLimiter = createRateLimiter({
@@ -13,14 +11,16 @@ const contactFormRateLimiter = createRateLimiter({
   errorMessage: "Too many contact form submissions. Please try again later.",
 });
 
-/**
- * POST /api/v1/contact
- * Submit a contact form message (public, rate limited)
- */
-router.post(
-  "/",
-  contactFormRateLimiter,
-  (req, res, next) => contactController.submit(req, res, next)
-);
+const routePlugin: FastifyPluginAsync = async (fastify) => {
+  /**
+   * POST /api/v1/contact
+   * Submit a contact form message (public, rate limited)
+   */
+  fastify.post(
+    "/",
+    { preHandler: [contactFormRateLimiter] },
+    (req, reply) => contactController.submit(req, reply)
+  );
+};
 
-export default router;
+export default routePlugin;

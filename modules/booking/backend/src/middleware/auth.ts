@@ -1,10 +1,10 @@
-import { Request, Response, NextFunction } from 'express';
+import { FastifyRequest, FastifyReply } from 'fastify';
 
 // =============================================================================
 // Types
 // =============================================================================
 
-export interface AuthenticatedRequest extends Request {
+export interface AuthenticatedRequest extends FastifyRequest {
   user: {
     userId: string;
     email: string;
@@ -18,14 +18,11 @@ export interface AuthenticatedRequest extends Request {
 // Replace with: import { authMiddleware } from '../../../../core/backend/src/middleware/auth.middleware';
 
 export const authMiddleware = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
+  req: FastifyRequest,
+  _reply: FastifyReply
 ): Promise<void> => {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {
-    res.status(401).json({ error: 'Authentication required' });
-    return;
+    throw { statusCode: 401, message: 'Authentication required' };
   }
-  next();
 };

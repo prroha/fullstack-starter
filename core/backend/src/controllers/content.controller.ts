@@ -5,7 +5,7 @@
  * Delegates business logic to contentService.
  */
 
-import { Request, Response, NextFunction } from "express";
+import { FastifyRequest, FastifyReply } from "fastify";
 import { AuthenticatedRequest } from "../types/index.js";
 import { contentService } from "../services/content.service.js";
 import { auditService } from "../services/audit.service.js";
@@ -40,135 +40,110 @@ export const contentController = {
   // Admin endpoints
   // ==========================================================================
 
-  async getAll(req: AuthenticatedRequest, res: Response, next: NextFunction) {
-    try {
-      const query = getContentPagesQuerySchema.parse(req.query);
-      const result = await contentService.getAll({
-        isPublished: query.isPublished,
-        page: query.page,
-        limit: query.limit,
-      });
+  async getAll(req: FastifyRequest, reply: FastifyReply) {
+    const query = getContentPagesQuerySchema.parse(req.query);
+    const result = await contentService.getAll({
+      isPublished: query.isPublished,
+      page: query.page,
+      limit: query.limit,
+    });
 
-      res.json(paginatedResponse(result.pages, result.page, result.limit, result.total));
-    } catch (error) {
-      next(error);
-    }
+    return reply.send(paginatedResponse(result.pages, result.page, result.limit, result.total));
   },
 
-  async getById(req: AuthenticatedRequest, res: Response, next: NextFunction) {
-    try {
-      const id = req.params.id as string;
-      const page = await contentService.getById(id);
-      res.json(successResponse({ page }));
-    } catch (error) {
-      next(error);
-    }
+  async getById(req: FastifyRequest, reply: FastifyReply) {
+    const id = (req.params as Record<string, string>).id;
+    const page = await contentService.getById(id);
+    return reply.send(successResponse({ page }));
   },
 
-  async create(req: AuthenticatedRequest, res: Response, next: NextFunction) {
-    try {
-      const validated = validateOrRespond(contentPageSchema, req.body, res);
-      if (!validated) return;
+  async create(req: FastifyRequest, reply: FastifyReply) {
+    const authReq = req as AuthenticatedRequest;
+    const validated = validateOrRespond(contentPageSchema, req.body, reply);
+    if (!validated) return;
 
-      const page = await contentService.create(validated);
+    const page = await contentService.create(validated);
 
-      await auditService.log({
-        userId: req.user.userId,
-        action: "CREATE",
-        entity: "ContentPage",
-        entityId: page.id,
-        changes: { new: { slug: validated.slug, title: validated.title } },
-        req,
-      });
+    await auditService.log({
+      userId: authReq.user.userId,
+      action: "CREATE",
+      entity: "ContentPage",
+      entityId: page.id,
+      changes: { new: { slug: validated.slug, title: validated.title } },
+      req,
+    });
 
-      res.status(201).json(successResponse({ page }));
-    } catch (error) {
-      next(error);
-    }
+    return reply.code(201).send(successResponse({ page }));
   },
 
-  async update(req: AuthenticatedRequest, res: Response, next: NextFunction) {
-    try {
-      const id = req.params.id as string;
-      const validated = validateOrRespond(contentPageSchema.partial(), req.body, res);
-      if (!validated) return;
+  async update(req: FastifyRequest, reply: FastifyReply) {
+    const authReq = req as AuthenticatedRequest;
+    const id = (req.params as Record<string, string>).id;
+    const validated = validateOrRespond(contentPageSchema.partial(), req.body, reply);
+    if (!validated) return;
 
-      const existing = await contentService.getById(id);
-      const page = await contentService.update(id, validated);
+    const existing = await contentService.getById(id);
+    const page = await contentService.update(id, validated);
 
-      await auditService.log({
-        userId: req.user.userId,
-        action: "UPDATE",
-        entity: "ContentPage",
-        entityId: id,
-        changes: {
-          old: { slug: existing.slug, title: existing.title },
-          new: { slug: page.slug, title: page.title },
-        },
-        req,
-      });
+    await auditService.log({
+      userId: authReq.user.userId,
+      action: "UPDATE",
+      entity: "ContentPage",
+      entityId: id,
+      changes: {
+        old: { slug: existing.slug, title: existing.title },
+        new: { slug: page.slug, title: page.title },
+      },
+      req,
+    });
 
-      res.json(successResponse({ page }));
-    } catch (error) {
-      next(error);
-    }
+    return reply.send(successResponse({ page }));
   },
 
-  async delete(req: AuthenticatedRequest, res: Response, next: NextFunction) {
-    try {
-      const id = req.params.id as string;
-      const existing = await contentService.delete(id);
+  async delete(req: FastifyRequest, reply: FastifyReply) {
+    const authReq = req as AuthenticatedRequest;
+    const id = (req.params as Record<string, string>).id;
+    const existing = await contentService.delete(id);
 
-      await auditService.log({
-        userId: req.user.userId,
-        action: "DELETE",
-        entity: "ContentPage",
-        entityId: id,
-        changes: { old: { slug: existing.slug, title: existing.title } },
-        req,
-      });
+    await auditService.log({
+      userId: authReq.user.userId,
+      action: "DELETE",
+      entity: "ContentPage",
+      entityId: id,
+      changes: { old: { slug: existing.slug, title: existing.title } },
+      req,
+    });
 
-      res.json(successResponse({ message: "Page deleted" }));
-    } catch (error) {
-      next(error);
-    }
+    return reply.send(successResponse({ message: "Page deleted" }));
   },
 
   // ==========================================================================
   // Public endpoints
   // ==========================================================================
 
-  async getBySlug(req: Request, res: Response, next: NextFunction) {
-    try {
-      const slug = req.params.slug as string;
-      const page = await contentService.getBySlug(slug);
-      res.json(successResponse({ page }));
-    } catch (error) {
-      next(error);
-    }
+  async getBySlug(req: FastifyRequest, reply: FastifyReply) {
+    const slug = (req.params as Record<string, string>).slug;
+    const page = await contentService.getBySlug(slug);
+    return reply.send(successResponse({ page }));
   },
 
   /**
    * Export all content pages as CSV (admin only)
    * GET /api/v1/admin/content/export
    */
-  async exportContentPages(req: AuthenticatedRequest, res: Response, next: NextFunction) {
-    try {
-      const pages = await contentService.getAllForExport();
+  async exportContentPages(req: FastifyRequest, reply: FastifyReply) {
+    const pages = await contentService.getAllForExport();
 
-      sendCsvExport(res, pages, [
-        { header: "ID", accessor: "id" },
-        { header: "Slug", accessor: "slug" },
-        { header: "Title", accessor: "title" },
-        { header: "Content", accessor: "content" },
-        { header: "Meta Title", accessor: (item) => item.metaTitle || "" },
-        { header: "Meta Description", accessor: (item) => item.metaDesc || "" },
-        { header: "Published", accessor: "isPublished" },
-        { header: "Created At", accessor: (item) => item.createdAt.toISOString() },
-        { header: "Updated At", accessor: (item) => item.updatedAt.toISOString() },
-      ], { filenamePrefix: "content-pages-export" });
-    } catch (error) {
-      next(error);
-    }
+    sendCsvExport(reply, pages, [
+      { header: "ID", accessor: "id" },
+      { header: "Slug", accessor: "slug" },
+      { header: "Title", accessor: "title" },
+      { header: "Content", accessor: "content" },
+      { header: "Meta Title", accessor: (item) => item.metaTitle || "" },
+      { header: "Meta Description", accessor: (item) => item.metaDesc || "" },
+      { header: "Published", accessor: "isPublished" },
+      { header: "Created At", accessor: (item) => item.createdAt.toISOString() },
+      { header: "Updated At", accessor: (item) => item.updatedAt.toISOString() },
+    ], { filenamePrefix: "content-pages-export" });
   },
 };

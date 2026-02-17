@@ -54,9 +54,9 @@ export default function SellerOrdersPage() {
   if (error && orders.length === 0) {
     return (
       <div className="max-w-4xl mx-auto p-6">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <h2 className="text-red-800 font-semibold text-lg">Error</h2>
-          <p className="text-red-600 mt-1">{error}</p>
+        <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
+          <h2 className="text-destructive font-semibold text-lg">Error</h2>
+          <p className="text-destructive mt-1">{error}</p>
           <Button
             variant="destructive"
             onClick={() => window.location.reload()}
@@ -81,14 +81,14 @@ export default function SellerOrdersPage() {
 
       {/* Error banner */}
       {error && (
-        <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-red-600">{error}</p>
+        <div className="mb-6 bg-destructive/10 border border-destructive/20 rounded-lg p-4">
+          <p className="text-destructive">{error}</p>
         </div>
       )}
 
       {/* Orders table */}
       {orders.length === 0 ? (
-        <div className="text-center py-16 bg-card rounded-lg border border-border">
+        <div className="text-center py-10 bg-card rounded-lg border border-border">
           <p className="text-muted-foreground text-lg">No orders yet.</p>
           <p className="text-muted-foreground text-sm mt-2">
             Orders will appear here once customers purchase your products.

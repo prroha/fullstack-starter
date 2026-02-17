@@ -1,10 +1,8 @@
-import { Router } from "express";
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from "fastify";
 import { z } from "zod";
 import { prisma } from "../../config/db.js";
 import { sendSuccess, sendPaginated, parsePaginationParams, createPaginationInfo } from "../../utils/response.js";
 import { ApiError } from "../../utils/errors.js";
-
-const router = Router();
 
 const templateSchema = z.object({
   slug: z.string().min(2).max(50).regex(/^[a-z0-9-]+$/),
@@ -24,22 +22,23 @@ const templateSchema = z.object({
   isFeatured: z.boolean().optional(),
 });
 
-/**
- * GET /api/admin/templates
- * List all templates
- */
-router.get("/", async (req, res, next) => {
-  try {
-    const { page, limit, skip } = parsePaginationParams(req.query as { page?: string; limit?: string });
-    const { search, isActive, isFeatured } = req.query;
+const routePlugin: FastifyPluginAsync = async (fastify) => {
+  /**
+   * GET /api/admin/templates
+   * List all templates
+   */
+  fastify.get("/", async (req: FastifyRequest, reply: FastifyReply) => {
+    const query = req.query as Record<string, string>;
+    const { page, limit, skip } = parsePaginationParams(query as { page?: string; limit?: string });
+    const { search, isActive, isFeatured } = query;
 
     const where: Record<string, unknown> = {};
     if (isActive !== undefined) where.isActive = isActive === "true";
     if (isFeatured !== undefined) where.isFeatured = isFeatured === "true";
     if (search) {
       where.OR = [
-        { name: { contains: search as string, mode: "insensitive" } },
-        { slug: { contains: search as string, mode: "insensitive" } },
+        { name: { contains: search, mode: "insensitive" } },
+        { slug: { contains: search, mode: "insensitive" } },
       ];
     }
 
@@ -65,19 +64,15 @@ router.get("/", async (req, res, next) => {
       orderCount: orderCounts.find(o => o.templateId === t.id)?._count.id || 0,
     }));
 
-    sendPaginated(res, templatesWithStats, createPaginationInfo(page, limit, total));
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendPaginated(reply, templatesWithStats, createPaginationInfo(page, limit, total));
+  });
 
-/**
- * PUT /api/admin/templates/reorder
- * Reorder templates
- * NOTE: Must be defined BEFORE /:id routes to avoid "reorder" being matched as an id
- */
-router.put("/reorder", async (req, res, next) => {
-  try {
+  /**
+   * PUT /api/admin/templates/reorder
+   * Reorder templates
+   * NOTE: Must be defined BEFORE /:id routes to avoid "reorder" being matched as an id
+   */
+  fastify.put("/reorder", async (req: FastifyRequest, reply: FastifyReply) => {
     const schema = z.object({
       orders: z.array(z.object({
         id: z.string(),
@@ -92,20 +87,17 @@ router.put("/reorder", async (req, res, next) => {
       )
     );
 
-    sendSuccess(res, null, "Templates reordered");
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendSuccess(reply, null, "Templates reordered");
+  });
 
-/**
- * GET /api/admin/templates/:id
- * Get single template
- */
-router.get("/:id", async (req, res, next) => {
-  try {
+  /**
+   * GET /api/admin/templates/:id
+   * Get single template
+   */
+  fastify.get("/:id", async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as Record<string, string>;
     const template = await prisma.template.findUnique({
-      where: { id: req.params.id },
+      where: { id },
     });
 
     if (!template) {
@@ -119,24 +111,20 @@ router.get("/:id", async (req, res, next) => {
       _sum: { total: true },
     });
 
-    sendSuccess(res, {
+    return sendSuccess(reply, {
       ...template,
       stats: {
         totalOrders: stats._count.id,
         totalRevenue: stats._sum.total || 0,
       },
     });
-  } catch (error) {
-    next(error);
-  }
-});
+  });
 
-/**
- * POST /api/admin/templates
- * Create new template
- */
-router.post("/", async (req, res, next) => {
-  try {
+  /**
+   * POST /api/admin/templates
+   * Create new template
+   */
+  fastify.post("/", async (req: FastifyRequest, reply: FastifyReply) => {
     const data = templateSchema.parse(req.body);
 
     // Check slug uniqueness
@@ -158,21 +146,18 @@ router.post("/", async (req, res, next) => {
       },
     });
 
-    sendSuccess(res, template, "Template created", 201);
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendSuccess(reply, template, "Template created", 201);
+  });
 
-/**
- * PUT /api/admin/templates/:id
- * Update template
- */
-router.put("/:id", async (req, res, next) => {
-  try {
+  /**
+   * PUT /api/admin/templates/:id
+   * Update template
+   */
+  fastify.put("/:id", async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as Record<string, string>;
     const data = templateSchema.partial().parse(req.body);
 
-    const existing = await prisma.template.findUnique({ where: { id: req.params.id } });
+    const existing = await prisma.template.findUnique({ where: { id } });
     if (!existing) {
       throw ApiError.notFound("Template");
     }
@@ -186,7 +171,7 @@ router.put("/:id", async (req, res, next) => {
     }
 
     const template = await prisma.template.update({
-      where: { id: req.params.id },
+      where: { id },
       data,
     });
 
@@ -202,52 +187,46 @@ router.put("/:id", async (req, res, next) => {
       },
     });
 
-    sendSuccess(res, template, "Template updated");
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendSuccess(reply, template, "Template updated");
+  });
 
-/**
- * PATCH /api/admin/templates/:id/toggle
- * Toggle template active status
- */
-router.patch("/:id/toggle", async (req, res, next) => {
-  try {
-    const template = await prisma.template.findUnique({ where: { id: req.params.id } });
+  /**
+   * PATCH /api/admin/templates/:id/toggle
+   * Toggle template active status
+   */
+  fastify.patch("/:id/toggle", async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as Record<string, string>;
+    const template = await prisma.template.findUnique({ where: { id } });
     if (!template) {
       throw ApiError.notFound("Template");
     }
 
     const updated = await prisma.template.update({
-      where: { id: req.params.id },
+      where: { id },
       data: { isActive: !template.isActive },
     });
 
-    sendSuccess(res, updated, `Template ${updated.isActive ? "activated" : "deactivated"}`);
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendSuccess(reply, updated, `Template ${updated.isActive ? "activated" : "deactivated"}`);
+  });
 
-/**
- * DELETE /api/admin/templates/:id
- * Delete template
- */
-router.delete("/:id", async (req, res, next) => {
-  try {
-    const template = await prisma.template.findUnique({ where: { id: req.params.id } });
+  /**
+   * DELETE /api/admin/templates/:id
+   * Delete template
+   */
+  fastify.delete("/:id", async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as Record<string, string>;
+    const template = await prisma.template.findUnique({ where: { id } });
     if (!template) {
       throw ApiError.notFound("Template");
     }
 
     // Check if template has orders
-    const orderCount = await prisma.order.count({ where: { templateId: req.params.id } });
+    const orderCount = await prisma.order.count({ where: { templateId: id } });
     if (orderCount > 0) {
       throw ApiError.badRequest("Cannot delete template with existing orders. Deactivate it instead.");
     }
 
-    await prisma.template.delete({ where: { id: req.params.id } });
+    await prisma.template.delete({ where: { id } });
 
     await prisma.studioAuditLog.create({
       data: {
@@ -260,10 +239,8 @@ router.delete("/:id", async (req, res, next) => {
       },
     });
 
-    sendSuccess(res, null, "Template deleted");
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendSuccess(reply, null, "Template deleted");
+  });
+};
 
-export { router as templatesRoutes };
+export { routePlugin as templatesRoutes };

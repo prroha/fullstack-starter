@@ -1,29 +1,28 @@
-import { Router, Request, Response } from 'express';
-import { getServiceService } from '../services/service.service';
-import { authMiddleware, AuthenticatedRequest } from '../middleware/auth';
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
+import { getServiceService } from '../services/service.service.js';
+import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
 
 // =============================================================================
-// Router
+// Routes
 // =============================================================================
 
-const router = Router();
 const serviceService = getServiceService();
 
 // =============================================================================
 // Public Endpoints
 // =============================================================================
 
-/**
- * GET /services
- * List services with filtering and pagination
- */
-router.get('/', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { search, category, minPrice, maxPrice, minDuration, maxDuration, page, limit } = req.query;
+const routes: FastifyPluginAsync = async (fastify) => {
+  /**
+   * GET /services
+   * List services with filtering and pagination
+   */
+  fastify.get('/', async (req: FastifyRequest, reply: FastifyReply) => {
+    const { search, category, minPrice, maxPrice, minDuration, maxDuration, page, limit } = req.query as Record<string, string>;
 
     const result = await serviceService.listServices({
-      search: search as string,
-      categorySlug: category as string,
+      search,
+      categorySlug: category,
       minPrice: minPrice ? Number(minPrice) : undefined,
       maxPrice: maxPrice ? Number(maxPrice) : undefined,
       minDuration: minDuration ? Number(minDuration) : undefined,
@@ -32,61 +31,45 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
       limit: limit ? Number(limit) : 20,
     });
 
-    res.json({ success: true, data: result });
-  } catch (error) {
-    console.error('[ServiceRoutes] List error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to list services' });
-  }
-});
+    return reply.send({ success: true, data: result });
+  });
 
-/**
- * GET /services/categories
- * List all service categories
- */
-router.get('/categories', async (_req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * GET /services/categories
+   * List all service categories
+   */
+  fastify.get('/categories', async (_req: FastifyRequest, reply: FastifyReply) => {
     const categories = await serviceService.listCategories();
-    res.json({ success: true, data: categories });
-  } catch (error) {
-    console.error('[ServiceRoutes] Categories error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to list categories' });
-  }
-});
+    return reply.send({ success: true, data: categories });
+  });
 
-/**
- * GET /services/:slug
- * Get service details by slug (public) with providers and avgRating
- */
-router.get('/:slug', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const service = await serviceService.getServiceBySlug(req.params.slug);
+  /**
+   * GET /services/:slug
+   * Get service details by slug (public) with providers and avgRating
+   */
+  fastify.get('/:slug', async (req: FastifyRequest, reply: FastifyReply) => {
+    const { slug } = req.params as { slug: string };
+    const service = await serviceService.getServiceBySlug(slug);
     if (!service) {
-      res.status(404).json({ error: 'Service not found' });
-      return;
+      return reply.code(404).send({ error: 'Service not found' });
     }
-    res.json({ success: true, data: service });
-  } catch (error) {
-    console.error('[ServiceRoutes] Get by slug error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to get service' });
-  }
-});
+    return reply.send({ success: true, data: service });
+  });
 
-// =============================================================================
-// Authenticated Endpoints (Admin)
-// =============================================================================
+  // =============================================================================
+  // Authenticated Endpoints (Admin)
+  // =============================================================================
 
-/**
- * POST /services
- * Create a new service (admin)
- */
-router.post('/', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * POST /services
+   * Create a new service (admin)
+   */
+  fastify.post('/', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { name, description, shortDescription, thumbnailUrl, price, duration, categoryIds } = req.body;
+    const { name, description, shortDescription, thumbnailUrl, price, duration, categoryIds } = req.body as Record<string, unknown>;
 
     if (!name || !description || !duration) {
-      res.status(400).json({ error: 'Name, description, and duration are required' });
-      return;
+      return reply.code(400).send({ error: 'Name, description, and duration are required' });
     }
 
     const service = await serviceService.createService({
@@ -100,24 +83,18 @@ router.post('/', authMiddleware, async (req: Request, res: Response): Promise<vo
       createdById: authReq.user.userId,
     });
 
-    res.status(201).json({ success: true, data: service });
-  } catch (error) {
-    console.error('[ServiceRoutes] Create error:', error instanceof Error ? error.message : error);
-    res.status(500).json({
-      error: error instanceof Error ? error.message : 'Failed to create service',
-    });
-  }
-});
+    return reply.code(201).send({ success: true, data: service });
+  });
 
-/**
- * PATCH /services/:id
- * Update a service
- */
-router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { name, description, shortDescription, thumbnailUrl, price, duration, categoryIds } = req.body;
+  /**
+   * PATCH /services/:id
+   * Update a service
+   */
+  fastify.patch('/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as { id: string };
+    const { name, description, shortDescription, thumbnailUrl, price, duration, categoryIds } = req.body as Record<string, unknown>;
 
-    const service = await serviceService.updateService(req.params.id, {
+    const service = await serviceService.updateService(id, {
       name,
       description,
       shortDescription,
@@ -128,92 +105,66 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promis
     });
 
     if (!service) {
-      res.status(404).json({ error: 'Service not found' });
-      return;
+      return reply.code(404).send({ error: 'Service not found' });
     }
 
-    res.json({ success: true, data: service });
-  } catch (error) {
-    console.error('[ServiceRoutes] Update error:', error instanceof Error ? error.message : error);
-    res.status(500).json({
-      error: error instanceof Error ? error.message : 'Failed to update service',
-    });
-  }
-});
+    return reply.send({ success: true, data: service });
+  });
 
-/**
- * DELETE /services/:id
- * Delete a service
- */
-router.delete('/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
-    await serviceService.deleteService(req.params.id);
-    res.json({ success: true, message: 'Service deleted' });
-  } catch (error) {
-    console.error('[ServiceRoutes] Delete error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to delete service' });
-  }
-});
+  /**
+   * DELETE /services/:id
+   * Delete a service
+   */
+  fastify.delete('/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as { id: string };
+    await serviceService.deleteService(id);
+    return reply.send({ success: true, message: 'Service deleted' });
+  });
 
-/**
- * POST /services/:id/publish
- * Publish a service
- */
-router.post('/:id/publish', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const service = await serviceService.publishService(req.params.id);
+  /**
+   * POST /services/:id/publish
+   * Publish a service
+   */
+  fastify.post('/:id/publish', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as { id: string };
+    const service = await serviceService.publishService(id);
     if (!service) {
-      res.status(404).json({ error: 'Service not found' });
-      return;
+      return reply.code(404).send({ error: 'Service not found' });
     }
-    res.json({ success: true, data: service });
-  } catch (error) {
-    console.error('[ServiceRoutes] Publish error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to publish service' });
-  }
-});
+    return reply.send({ success: true, data: service });
+  });
 
-/**
- * POST /services/:id/unpublish
- * Unpublish a service
- */
-router.post('/:id/unpublish', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const service = await serviceService.unpublishService(req.params.id);
+  /**
+   * POST /services/:id/unpublish
+   * Unpublish a service
+   */
+  fastify.post('/:id/unpublish', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as { id: string };
+    const service = await serviceService.unpublishService(id);
     if (!service) {
-      res.status(404).json({ error: 'Service not found' });
-      return;
+      return reply.code(404).send({ error: 'Service not found' });
     }
-    res.json({ success: true, data: service });
-  } catch (error) {
-    console.error('[ServiceRoutes] Unpublish error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to unpublish service' });
-  }
-});
+    return reply.send({ success: true, data: service });
+  });
 
-// =============================================================================
-// Categories (Admin)
-// =============================================================================
+  // =============================================================================
+  // Categories (Admin)
+  // =============================================================================
 
-/**
- * POST /services/categories
- * Create a new service category
- */
-router.post('/categories', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { name, description, iconName } = req.body;
+  /**
+   * POST /services/categories
+   * Create a new service category
+   */
+  fastify.post('/categories', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const { name, description, iconName } = req.body as { name: string; description?: string; iconName?: string };
 
     if (!name) {
-      res.status(400).json({ error: 'Category name is required' });
-      return;
+      return reply.code(400).send({ error: 'Category name is required' });
     }
 
     const category = await serviceService.createCategory({ name, description, iconName });
-    res.status(201).json({ success: true, data: category });
-  } catch (error) {
-    console.error('[ServiceRoutes] Create category error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to create category' });
-  }
-});
+    return reply.code(201).send({ success: true, data: category });
+  });
+};
 
-export default router;
+export default routes;

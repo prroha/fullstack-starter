@@ -1,11 +1,9 @@
-import { Router } from "express";
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from "fastify";
 import { z } from "zod";
 import { prisma } from "../../config/db.js";
 import { sendSuccess, sendPaginated, parsePaginationParams, createPaginationInfo } from "../../utils/response.js";
 import { ApiError } from "../../utils/errors.js";
 import { emailService } from "../../services/email.service.js";
-
-const router = Router();
 
 const settingSchema = z.object({
   key: z.string().min(1).max(100),
@@ -15,27 +13,23 @@ const settingSchema = z.object({
   isPublic: z.boolean().default(false),
 });
 
-/**
- * GET /api/admin/settings/email/status
- * Check email service configuration status
- */
-router.get("/email/status", async (_req, res, next) => {
-  try {
-    sendSuccess(res, {
+const routePlugin: FastifyPluginAsync = async (fastify) => {
+  /**
+   * GET /api/admin/settings/email/status
+   * Check email service configuration status
+   */
+  fastify.get("/email/status", async (_req: FastifyRequest, reply: FastifyReply) => {
+    return sendSuccess(reply, {
       configured: emailService.isConfigured(),
       provider: "resend",
     });
-  } catch (error) {
-    next(error);
-  }
-});
+  });
 
-/**
- * POST /api/admin/settings/email/test
- * Send a test email to verify configuration
- */
-router.post("/email/test", async (req, res, next) => {
-  try {
+  /**
+   * POST /api/admin/settings/email/test
+   * Send a test email to verify configuration
+   */
+  fastify.post("/email/test", async (req: FastifyRequest, reply: FastifyReply) => {
     const schema = z.object({
       email: z.string().email(),
     });
@@ -66,22 +60,18 @@ router.post("/email/test", async (req, res, next) => {
       },
     });
 
-    sendSuccess(res, {
+    return sendSuccess(reply, {
       sent: true,
       messageId: result.messageId,
     }, "Test email sent successfully");
-  } catch (error) {
-    next(error);
-  }
-});
+  });
 
-/**
- * GET /api/admin/settings/export/json
- * Export all settings as JSON
- * NOTE: Must be defined BEFORE /:key route to avoid being matched as a key
- */
-router.get("/export/json", async (_req, res, next) => {
-  try {
+  /**
+   * GET /api/admin/settings/export/json
+   * Export all settings as JSON
+   * NOTE: Must be defined BEFORE /:key route to avoid being matched as a key
+   */
+  fastify.get("/export/json", async (_req: FastifyRequest, reply: FastifyReply) => {
     const settings = await prisma.studioSetting.findMany({
       orderBy: { key: "asc" },
     });
@@ -97,27 +87,25 @@ router.get("/export/json", async (_req, res, next) => {
       return acc;
     }, {} as Record<string, unknown>);
 
-    res.setHeader("Content-Type", "application/json");
-    res.setHeader("Content-Disposition", `attachment; filename=settings-${new Date().toISOString().split("T")[0]}.json`);
-    res.send(JSON.stringify(exportData, null, 2));
-  } catch (error) {
-    next(error);
-  }
-});
+    return reply
+      .header("Content-Type", "application/json")
+      .header("Content-Disposition", `attachment; filename=settings-${new Date().toISOString().split("T")[0]}.json`)
+      .send(JSON.stringify(exportData, null, 2));
+  });
 
-/**
- * GET /api/admin/settings
- * List all settings
- */
-router.get("/", async (req, res, next) => {
-  try {
-    const { page, limit, skip } = parsePaginationParams(req.query as { page?: string; limit?: string });
-    const { search, isPublic } = req.query;
+  /**
+   * GET /api/admin/settings
+   * List all settings
+   */
+  fastify.get("/", async (req: FastifyRequest, reply: FastifyReply) => {
+    const query = req.query as Record<string, string>;
+    const { page, limit, skip } = parsePaginationParams(query as { page?: string; limit?: string });
+    const { search, isPublic } = query;
 
     const where: Record<string, unknown> = {};
     if (isPublic !== undefined) where.isPublic = isPublic === "true";
     if (search) {
-      where.key = { contains: search as string, mode: "insensitive" };
+      where.key = { contains: search, mode: "insensitive" };
     }
 
     const [settings, total] = await Promise.all([
@@ -130,38 +118,31 @@ router.get("/", async (req, res, next) => {
       prisma.studioSetting.count({ where }),
     ]);
 
-    sendPaginated(res, settings, createPaginationInfo(page, limit, total));
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendPaginated(reply, settings, createPaginationInfo(page, limit, total));
+  });
 
-/**
- * GET /api/admin/settings/:key
- * Get single setting by key
- */
-router.get("/:key", async (req, res, next) => {
-  try {
+  /**
+   * GET /api/admin/settings/:key
+   * Get single setting by key
+   */
+  fastify.get("/:key", async (req: FastifyRequest, reply: FastifyReply) => {
+    const { key } = req.params as Record<string, string>;
     const setting = await prisma.studioSetting.findUnique({
-      where: { key: req.params.key },
+      where: { key },
     });
 
     if (!setting) {
       throw ApiError.notFound("Setting");
     }
 
-    sendSuccess(res, setting);
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendSuccess(reply, setting);
+  });
 
-/**
- * POST /api/admin/settings
- * Create new setting
- */
-router.post("/", async (req, res, next) => {
-  try {
+  /**
+   * POST /api/admin/settings
+   * Create new setting
+   */
+  fastify.post("/", async (req: FastifyRequest, reply: FastifyReply) => {
     const data = settingSchema.parse(req.body);
 
     // Validate JSON if type is json
@@ -201,21 +182,18 @@ router.post("/", async (req, res, next) => {
       },
     });
 
-    sendSuccess(res, setting, "Setting created", 201);
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendSuccess(reply, setting, "Setting created", 201);
+  });
 
-/**
- * PUT /api/admin/settings/:key
- * Update setting
- */
-router.put("/:key", async (req, res, next) => {
-  try {
+  /**
+   * PUT /api/admin/settings/:key
+   * Update setting
+   */
+  fastify.put("/:key", async (req: FastifyRequest, reply: FastifyReply) => {
+    const { key } = req.params as Record<string, string>;
     const data = settingSchema.partial().parse(req.body);
 
-    const existing = await prisma.studioSetting.findUnique({ where: { key: req.params.key } });
+    const existing = await prisma.studioSetting.findUnique({ where: { key } });
     if (!existing) {
       throw ApiError.notFound("Setting");
     }
@@ -240,7 +218,7 @@ router.put("/:key", async (req, res, next) => {
     }
 
     const setting = await prisma.studioSetting.update({
-      where: { key: req.params.key },
+      where: { key },
       data,
     });
 
@@ -256,24 +234,21 @@ router.put("/:key", async (req, res, next) => {
       },
     });
 
-    sendSuccess(res, setting, "Setting updated");
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendSuccess(reply, setting, "Setting updated");
+  });
 
-/**
- * DELETE /api/admin/settings/:key
- * Delete setting
- */
-router.delete("/:key", async (req, res, next) => {
-  try {
-    const setting = await prisma.studioSetting.findUnique({ where: { key: req.params.key } });
+  /**
+   * DELETE /api/admin/settings/:key
+   * Delete setting
+   */
+  fastify.delete("/:key", async (req: FastifyRequest, reply: FastifyReply) => {
+    const { key } = req.params as Record<string, string>;
+    const setting = await prisma.studioSetting.findUnique({ where: { key } });
     if (!setting) {
       throw ApiError.notFound("Setting");
     }
 
-    await prisma.studioSetting.delete({ where: { key: req.params.key } });
+    await prisma.studioSetting.delete({ where: { key } });
 
     await prisma.studioAuditLog.create({
       data: {
@@ -286,10 +261,8 @@ router.delete("/:key", async (req, res, next) => {
       },
     });
 
-    sendSuccess(res, null, "Setting deleted");
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendSuccess(reply, null, "Setting deleted");
+  });
+};
 
-export { router as settingsRoutes };
+export { routePlugin as settingsRoutes };

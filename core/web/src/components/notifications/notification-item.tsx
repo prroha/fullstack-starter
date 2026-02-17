@@ -28,19 +28,19 @@ interface NotificationItemProps {
 }
 
 const typeIcons: Record<NotificationType, React.ReactNode> = {
-  INFO: <Info className="h-5 w-5 text-blue-500" />,
-  SUCCESS: <CheckCircle className="h-5 w-5 text-green-500" />,
-  WARNING: <AlertTriangle className="h-5 w-5 text-yellow-500" />,
-  ERROR: <XCircle className="h-5 w-5 text-red-500" />,
-  SYSTEM: <Settings className="h-5 w-5 text-gray-500" />,
+  INFO: <Info className="h-5 w-5 text-primary" />,
+  SUCCESS: <CheckCircle className="h-5 w-5 text-success" />,
+  WARNING: <AlertTriangle className="h-5 w-5 text-warning" />,
+  ERROR: <XCircle className="h-5 w-5 text-destructive" />,
+  SYSTEM: <Settings className="h-5 w-5 text-muted-foreground" />,
 };
 
 const typeColors: Record<NotificationType, string> = {
-  INFO: "border-l-blue-500",
-  SUCCESS: "border-l-green-500",
-  WARNING: "border-l-yellow-500",
-  ERROR: "border-l-red-500",
-  SYSTEM: "border-l-gray-500",
+  INFO: "border-l-primary",
+  SUCCESS: "border-l-success",
+  WARNING: "border-l-warning",
+  ERROR: "border-l-destructive",
+  SYSTEM: "border-l-muted-foreground",
 };
 
 function formatTimeAgo(dateString: string): string {

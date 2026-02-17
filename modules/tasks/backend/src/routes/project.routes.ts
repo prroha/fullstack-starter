@@ -1,108 +1,84 @@
-import { Router, Request, Response } from 'express';
-import { getProjectService } from '../services/project.service';
-import { authMiddleware, AuthenticatedRequest } from '../middleware/auth';
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
+import { getProjectService } from '../services/project.service.js';
+import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
 
 // =============================================================================
-// Router
+// Routes
 // =============================================================================
 
-const router = Router();
 const projectService = getProjectService();
 
 // =============================================================================
 // Project Endpoints (All Authenticated)
 // =============================================================================
 
-/**
- * GET /projects
- * List all projects for the authenticated user
- */
-router.get('/', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+const routes: FastifyPluginAsync = async (fastify) => {
+  /**
+   * GET /projects
+   * List all projects for the authenticated user
+   */
+  fastify.get('/', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const includeArchived = req.query.includeArchived === 'true';
+    const { includeArchived } = req.query as Record<string, string>;
 
-    const projects = await projectService.list(authReq.user.userId, includeArchived);
-    res.json({ success: true, data: projects });
-  } catch (error) {
-    console.error('[ProjectRoutes] List error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to list projects' });
-  }
-});
+    const projects = await projectService.list(authReq.user.userId, includeArchived === 'true');
+    return reply.send({ success: true, data: projects });
+  });
 
-/**
- * POST /projects/reorder
- * Reorder projects
- * MUST be before /:id routes to avoid matching "reorder" as an ID
- */
-router.post('/reorder', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * POST /projects/reorder
+   * Reorder projects
+   * MUST be before /:id routes to avoid matching "reorder" as an ID
+   */
+  fastify.post('/reorder', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { ids } = req.body;
+    const { ids } = req.body as { ids: unknown };
 
     if (!Array.isArray(ids)) {
-      res.status(400).json({ error: 'ids array is required' });
-      return;
+      return reply.code(400).send({ error: 'ids array is required' });
     }
 
     await projectService.reorder(authReq.user.userId, ids);
-    res.json({ success: true, message: 'Projects reordered' });
-  } catch (error) {
-    console.error('[ProjectRoutes] Reorder error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to reorder projects',
-    });
-  }
-});
+    return reply.send({ success: true, message: 'Projects reordered' });
+  });
 
-/**
- * GET /projects/:id
- * Get project by ID
- */
-router.get('/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * GET /projects/:id
+   * Get project by ID
+   */
+  fastify.get('/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
+    const { id } = req.params as { id: string };
 
-    const project = await projectService.getById(req.params.id, authReq.user.userId);
+    const project = await projectService.getById(id, authReq.user.userId);
     if (!project) {
-      res.status(404).json({ error: 'Project not found' });
-      return;
+      return reply.code(404).send({ error: 'Project not found' });
     }
-    res.json({ success: true, data: project });
-  } catch (error) {
-    console.error('[ProjectRoutes] Get error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to get project' });
-  }
-});
+    return reply.send({ success: true, data: project });
+  });
 
-/**
- * GET /projects/:id/stats
- * Get stats for a specific project
- */
-router.get('/:id/stats', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * GET /projects/:id/stats
+   * Get stats for a specific project
+   */
+  fastify.get('/:id/stats', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
+    const { id } = req.params as { id: string };
 
-    const stats = await projectService.getStats(req.params.id, authReq.user.userId);
-    res.json({ success: true, data: stats });
-  } catch (error) {
-    console.error('[ProjectRoutes] Stats error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to get project stats' });
-  }
-});
+    const stats = await projectService.getStats(id, authReq.user.userId);
+    return reply.send({ success: true, data: stats });
+  });
 
-/**
- * POST /projects
- * Create a new project
- */
-router.post('/', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * POST /projects
+   * Create a new project
+   */
+  fastify.post('/', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { name, description, color, icon } = req.body;
+    const { name, description, color, icon } = req.body as Record<string, unknown>;
 
     if (!name) {
-      res.status(400).json({ error: 'name is required' });
-      return;
+      return reply.code(400).send({ error: 'name is required' });
     }
 
     const project = await projectService.create({
@@ -113,25 +89,19 @@ router.post('/', authMiddleware, async (req: Request, res: Response): Promise<vo
       icon,
     });
 
-    res.status(201).json({ success: true, data: project });
-  } catch (error) {
-    console.error('[ProjectRoutes] Create error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to create project',
-    });
-  }
-});
+    return reply.code(201).send({ success: true, data: project });
+  });
 
-/**
- * PATCH /projects/:id
- * Update a project
- */
-router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * PATCH /projects/:id
+   * Update a project
+   */
+  fastify.patch('/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { name, description, color, icon } = req.body;
+    const { id } = req.params as { id: string };
+    const { name, description, color, icon } = req.body as Record<string, unknown>;
 
-    const project = await projectService.update(req.params.id, authReq.user.userId, {
+    const project = await projectService.update(id, authReq.user.userId, {
       name,
       description,
       color,
@@ -139,79 +109,53 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promis
     });
 
     if (!project) {
-      res.status(404).json({ error: 'Project not found' });
-      return;
+      return reply.code(404).send({ error: 'Project not found' });
     }
 
-    res.json({ success: true, data: project });
-  } catch (error) {
-    console.error('[ProjectRoutes] Update error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to update project',
-    });
-  }
-});
+    return reply.send({ success: true, data: project });
+  });
 
-/**
- * DELETE /projects/:id
- * Delete a project
- */
-router.delete('/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * DELETE /projects/:id
+   * Delete a project
+   */
+  fastify.delete('/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
+    const { id } = req.params as { id: string };
 
-    await projectService.delete(req.params.id, authReq.user.userId);
-    res.json({ success: true, message: 'Project deleted' });
-  } catch (error) {
-    console.error('[ProjectRoutes] Delete error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to delete project',
-    });
-  }
-});
+    await projectService.delete(id, authReq.user.userId);
+    return reply.send({ success: true, message: 'Project deleted' });
+  });
 
-/**
- * POST /projects/:id/archive
- * Archive a project
- */
-router.post('/:id/archive', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * POST /projects/:id/archive
+   * Archive a project
+   */
+  fastify.post('/:id/archive', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
+    const { id } = req.params as { id: string };
 
-    const project = await projectService.archive(req.params.id, authReq.user.userId);
+    const project = await projectService.archive(id, authReq.user.userId);
     if (!project) {
-      res.status(404).json({ error: 'Project not found' });
-      return;
+      return reply.code(404).send({ error: 'Project not found' });
     }
-    res.json({ success: true, data: project });
-  } catch (error) {
-    console.error('[ProjectRoutes] Archive error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to archive project',
-    });
-  }
-});
+    return reply.send({ success: true, data: project });
+  });
 
-/**
- * POST /projects/:id/unarchive
- * Unarchive a project
- */
-router.post('/:id/unarchive', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * POST /projects/:id/unarchive
+   * Unarchive a project
+   */
+  fastify.post('/:id/unarchive', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
+    const { id } = req.params as { id: string };
 
-    const project = await projectService.unarchive(req.params.id, authReq.user.userId);
+    const project = await projectService.unarchive(id, authReq.user.userId);
     if (!project) {
-      res.status(404).json({ error: 'Project not found' });
-      return;
+      return reply.code(404).send({ error: 'Project not found' });
     }
-    res.json({ success: true, data: project });
-  } catch (error) {
-    console.error('[ProjectRoutes] Unarchive error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to unarchive project',
-    });
-  }
-});
+    return reply.send({ success: true, data: project });
+  });
+};
 
-export default router;
+export default routes;

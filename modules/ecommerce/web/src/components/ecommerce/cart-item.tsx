@@ -36,9 +36,9 @@ export default function CartItem({
             loading="lazy"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-orange-50 to-amber-100">
+          <div className="flex h-full w-full items-center justify-center bg-muted">
             <svg
-              className="h-8 w-8 text-orange-300"
+              className="h-8 w-8 text-muted-foreground"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -134,7 +134,7 @@ export default function CartItem({
         variant="ghost"
         size="icon"
         onClick={() => onRemove(item.id)}
-        className="flex-shrink-0 text-muted-foreground hover:text-red-500"
+        className="flex-shrink-0 text-muted-foreground hover:text-destructive"
         aria-label="Remove item"
       >
         <svg

@@ -265,10 +265,10 @@ function getTierBorderClass(tier: PricingTier): string {
   if (!tier.isPopular) return "border-border";
   const colorMap: Record<string, string> = {
     gray: "border-muted-foreground",
-    blue: "border-blue-500",
-    purple: "border-purple-500",
-    orange: "border-orange-500",
-    red: "border-red-500",
+    blue: "border-primary",
+    purple: "border-accent",
+    orange: "border-warning",
+    red: "border-destructive",
   };
   return colorMap[tier.color || "purple"] || "border-primary";
 }
@@ -282,7 +282,7 @@ export default async function PricingPage() {
       <section className="relative overflow-hidden border-b">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5" />
         <Container>
-          <div className="py-16 md:py-24 max-w-3xl mx-auto text-center relative">
+          <div className="py-10 md:py-16 max-w-3xl mx-auto text-center relative">
             <Badge variant="secondary" className="mb-6">
               One-time purchase, lifetime access
             </Badge>
@@ -298,7 +298,7 @@ export default async function PricingPage() {
       </section>
 
       {/* Pricing Cards */}
-      <section className="py-16 md:py-20">
+      <section className="py-10 md:py-12">
         <Container size="xl">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
             {tiers.map((tier) => (
@@ -309,7 +309,7 @@ export default async function PricingPage() {
       </section>
 
       {/* Feature Comparison Table */}
-      <section className="py-16 md:py-20 border-t bg-muted/30">
+      <section className="py-10 md:py-12 border-t bg-muted/30">
         <Container>
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold mb-4">Compare Plans</h2>
@@ -365,7 +365,7 @@ export default async function PricingPage() {
                         {TIER_ORDER.map((tierSlug) => (
                           <TableCell key={tierSlug} className="text-center">
                             {feature.tiers.includes(tierSlug) ? (
-                              <Check className="h-5 w-5 text-green-500 mx-auto" />
+                              <Check className="h-5 w-5 text-success mx-auto" />
                             ) : (
                               <X className="h-5 w-5 text-muted-foreground/30 mx-auto" />
                             )}
@@ -414,7 +414,7 @@ export default async function PricingPage() {
                               key={feature.name}
                               className="flex items-center gap-2 text-sm"
                             >
-                              <Check className="h-4 w-4 text-green-500 shrink-0" />
+                              <Check className="h-4 w-4 text-success shrink-0" />
                               {feature.name}
                             </li>
                           ))}
@@ -438,7 +438,7 @@ export default async function PricingPage() {
       </section>
 
       {/* FAQ Section */}
-      <section className="py-16 md:py-20 border-t">
+      <section className="py-10 md:py-12 border-t">
         <Container size="md">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold mb-4">Frequently Asked Questions</h2>
@@ -463,7 +463,7 @@ export default async function PricingPage() {
       {/* CTA Section */}
       <section className="border-t bg-muted/30">
         <Container>
-          <div className="py-16 md:py-20 text-center">
+          <div className="py-10 md:py-12 text-center">
             <h2 className="text-3xl font-bold mb-4">Ready to Get Started?</h2>
             <p className="text-lg text-muted-foreground mb-8 max-w-xl mx-auto">
               Configure your perfect stack, preview it live, and download
@@ -612,7 +612,7 @@ function PricingCard({ tier }: { tier: PricingTier }) {
 function FeatureItem({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex items-center gap-2 text-sm">
-      <Check className="h-4 w-4 text-green-500 shrink-0" />
+      <Check className="h-4 w-4 text-success shrink-0" />
       <span>{children}</span>
     </div>
   );

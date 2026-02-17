@@ -1,26 +1,25 @@
-import { Router, Request, Response } from 'express';
-import { getCustomerService } from '../services/customer.service';
-import { authMiddleware, AuthenticatedRequest } from '../middleware/auth';
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
+import { getCustomerService } from '../services/customer.service.js';
+import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
 
 // =============================================================================
-// Router
+// Routes
 // =============================================================================
 
-const router = Router();
 const customerService = getCustomerService();
 
 // =============================================================================
 // Customer Endpoints (All Authenticated)
 // =============================================================================
 
-/**
- * GET /customer/orders
- * Get customer order history with pagination
- */
-router.get('/orders', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+const routes: FastifyPluginAsync = async (fastify) => {
+  /**
+   * GET /customer/orders
+   * Get customer order history with pagination
+   */
+  fastify.get('/orders', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { page, limit } = req.query;
+    const { page, limit } = req.query as Record<string, string>;
 
     const result = await customerService.getOrders(
       authReq.user.userId,
@@ -28,48 +27,35 @@ router.get('/orders', authMiddleware, async (req: Request, res: Response): Promi
       limit ? Number(limit) : 20,
     );
 
-    res.json({ success: true, data: result });
-  } catch (error) {
-    console.error('[CustomerRoutes] Order history error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to get order history' });
-  }
-});
+    return reply.send({ success: true, data: result });
+  });
 
-/**
- * GET /customer/orders/:id
- * Get customer order detail
- */
-router.get('/orders/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * GET /customer/orders/:id
+   * Get customer order detail
+   */
+  fastify.get('/orders/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
+    const { id } = req.params as { id: string };
 
-    const order = await customerService.getOrderById(authReq.user.userId, req.params.id);
+    const order = await customerService.getOrderById(authReq.user.userId, id);
     if (!order) {
-      res.status(404).json({ error: 'Order not found' });
-      return;
+      return reply.code(404).send({ error: 'Order not found' });
     }
 
-    res.json({ success: true, data: order });
-  } catch (error) {
-    console.error('[CustomerRoutes] Order detail error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to get order detail' });
-  }
-});
+    return reply.send({ success: true, data: order });
+  });
 
-/**
- * GET /customer/stats
- * Get customer statistics (totalOrders, totalSpent, avgOrderValue)
- */
-router.get('/stats', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * GET /customer/stats
+   * Get customer statistics (totalOrders, totalSpent, avgOrderValue)
+   */
+  fastify.get('/stats', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
 
     const stats = await customerService.getStats(authReq.user.userId);
-    res.json({ success: true, data: stats });
-  } catch (error) {
-    console.error('[CustomerRoutes] Stats error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to get customer stats' });
-  }
-});
+    return reply.send({ success: true, data: stats });
+  });
+};
 
-export default router;
+export default routes;

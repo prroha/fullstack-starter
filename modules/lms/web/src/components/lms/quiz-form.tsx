@@ -50,7 +50,7 @@ function MultipleChoiceField({ question, selectedValue, onChange, disabled }: Mu
             htmlFor={inputId}
             className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors ${
               isSelected
-                ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500'
+                ? 'border-primary bg-primary/10 ring-1 ring-primary'
                 : 'border-border bg-card hover:border-muted-foreground/30 hover:bg-muted'
             } ${disabled ? 'pointer-events-none opacity-60' : ''}`}
           >
@@ -62,7 +62,7 @@ function MultipleChoiceField({ question, selectedValue, onChange, disabled }: Mu
               checked={isSelected}
               onChange={() => onChange(option.value)}
               disabled={disabled}
-              className="h-4 w-4 border-border text-blue-600 focus:ring-blue-500"
+              className="h-4 w-4 border-border text-primary focus:ring-primary"
             />
             <span className="text-sm text-foreground">{option.label}</span>
           </label>
@@ -98,7 +98,7 @@ function TrueFalseField({ question, selectedValue, onChange, disabled }: TrueFal
             htmlFor={inputId}
             className={`flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border p-3 transition-colors ${
               isSelected
-                ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500'
+                ? 'border-primary bg-primary/10 ring-1 ring-primary'
                 : 'border-border bg-card hover:border-muted-foreground/30 hover:bg-muted'
             } ${disabled ? 'pointer-events-none opacity-60' : ''}`}
           >
@@ -110,7 +110,7 @@ function TrueFalseField({ question, selectedValue, onChange, disabled }: TrueFal
               checked={isSelected}
               onChange={() => onChange(option.value)}
               disabled={disabled}
-              className="h-4 w-4 border-border text-blue-600 focus:ring-blue-500"
+              className="h-4 w-4 border-border text-primary focus:ring-primary"
             />
             <span className="text-sm font-medium text-foreground">{option.label}</span>
           </label>
@@ -165,7 +165,7 @@ function QuestionCard({ question, index, total, answer, onAnswerChange, disabled
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="flex-1">
           <div className="mb-1 flex items-center gap-2">
-            <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold text-blue-700">
+            <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
               {index + 1}
             </span>
             <span className="text-xs text-muted-foreground">
@@ -292,7 +292,7 @@ export default function QuizForm({ quiz, onSubmit, mode = 'one-at-a-time' }: Qui
 
   if (totalQuestions === 0) {
     return (
-      <div className="flex items-center justify-center rounded-lg border border-dashed border-border bg-muted py-16 px-4">
+      <div className="flex items-center justify-center rounded-lg border border-dashed border-border bg-muted py-10 px-4">
         <p className="text-sm text-muted-foreground">This quiz has no questions.</p>
       </div>
     );
@@ -322,7 +322,7 @@ export default function QuizForm({ quiz, onSubmit, mode = 'one-at-a-time' }: Qui
             <div
               className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-mono font-semibold ${
                 isTimerCritical
-                  ? 'bg-red-50 text-red-700 animate-pulse'
+                  ? 'bg-destructive/10 text-destructive animate-pulse'
                   : 'bg-muted text-muted-foreground'
               }`}
               aria-live="polite"
@@ -391,7 +391,7 @@ export default function QuizForm({ quiz, onSubmit, mode = 'one-at-a-time' }: Qui
                     isCurrent
                       ? 'bg-primary text-primary-foreground hover:bg-primary/90'
                       : isAnswered
-                        ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                        ? 'bg-success/10 text-success hover:bg-success/20'
                         : 'bg-muted text-muted-foreground hover:bg-muted/80'
                   } ${submitted ? 'pointer-events-none' : ''}`}
                   aria-label={`Go to question ${idx + 1}${isAnswered ? ' (answered)' : ''}`}
@@ -450,14 +450,14 @@ export default function QuizForm({ quiz, onSubmit, mode = 'one-at-a-time' }: Qui
       {!submitted && (
         <div className="flex flex-col items-center gap-3 rounded-lg border border-border bg-muted p-4">
           {!allAnswered && (
-            <p className="text-sm text-amber-600">
+            <p className="text-sm text-warning">
               You have {totalQuestions - answeredCount} unanswered question{totalQuestions - answeredCount !== 1 ? 's' : ''}.
             </p>
           )}
           <Button
             type="button"
             onClick={handleSubmit}
-            className="bg-green-600 hover:bg-green-700 text-white"
+            className="bg-success hover:bg-success/90 text-success-foreground"
           >
             <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -469,8 +469,8 @@ export default function QuizForm({ quiz, onSubmit, mode = 'one-at-a-time' }: Qui
 
       {/* Submitted state */}
       {submitted && (
-        <div className="flex flex-col items-center gap-2 rounded-lg border border-green-200 bg-green-50 p-6">
-          <svg className="h-10 w-10 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="flex flex-col items-center gap-2 rounded-lg border border-success/20 bg-success/10 p-6">
+          <svg className="h-10 w-10 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -478,8 +478,8 @@ export default function QuizForm({ quiz, onSubmit, mode = 'one-at-a-time' }: Qui
               d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
             />
           </svg>
-          <p className="text-sm font-semibold text-green-800">Quiz Submitted</p>
-          <p className="text-xs text-green-600">
+          <p className="text-sm font-semibold text-success">Quiz Submitted</p>
+          <p className="text-xs text-success">
             Your answers have been recorded. You answered {answeredCount} of {totalQuestions} questions.
           </p>
         </div>

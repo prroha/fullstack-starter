@@ -1,46 +1,39 @@
-import { Router, Request, Response } from 'express';
-import { getLabelService } from '../services/label.service';
-import { authMiddleware, AuthenticatedRequest } from '../middleware/auth';
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
+import { getLabelService } from '../services/label.service.js';
+import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
 
 // =============================================================================
-// Router
+// Routes
 // =============================================================================
 
-const router = Router();
 const labelService = getLabelService();
 
 // =============================================================================
 // Label Endpoints (All Authenticated)
 // =============================================================================
 
-/**
- * GET /labels
- * List all labels for the authenticated user
- */
-router.get('/', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+const routes: FastifyPluginAsync = async (fastify) => {
+  /**
+   * GET /labels
+   * List all labels for the authenticated user
+   */
+  fastify.get('/', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
 
     const labels = await labelService.list(authReq.user.userId);
-    res.json({ success: true, data: labels });
-  } catch (error) {
-    console.error('[LabelRoutes] List error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to list labels' });
-  }
-});
+    return reply.send({ success: true, data: labels });
+  });
 
-/**
- * POST /labels
- * Create a new label
- */
-router.post('/', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * POST /labels
+   * Create a new label
+   */
+  fastify.post('/', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { name, color } = req.body;
+    const { name, color } = req.body as Record<string, unknown>;
 
     if (!name) {
-      res.status(400).json({ error: 'name is required' });
-      return;
+      return reply.code(400).send({ error: 'name is required' });
     }
 
     const label = await labelService.create({
@@ -49,55 +42,37 @@ router.post('/', authMiddleware, async (req: Request, res: Response): Promise<vo
       color,
     });
 
-    res.status(201).json({ success: true, data: label });
-  } catch (error) {
-    console.error('[LabelRoutes] Create error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to create label',
-    });
-  }
-});
+    return reply.code(201).send({ success: true, data: label });
+  });
 
-/**
- * PATCH /labels/:id
- * Update a label
- */
-router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * PATCH /labels/:id
+   * Update a label
+   */
+  fastify.patch('/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { name, color } = req.body;
+    const { id } = req.params as { id: string };
+    const { name, color } = req.body as Record<string, unknown>;
 
-    const label = await labelService.update(req.params.id, authReq.user.userId, { name, color });
+    const label = await labelService.update(id, authReq.user.userId, { name, color });
     if (!label) {
-      res.status(404).json({ error: 'Label not found' });
-      return;
+      return reply.code(404).send({ error: 'Label not found' });
     }
 
-    res.json({ success: true, data: label });
-  } catch (error) {
-    console.error('[LabelRoutes] Update error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to update label',
-    });
-  }
-});
+    return reply.send({ success: true, data: label });
+  });
 
-/**
- * DELETE /labels/:id
- * Delete a label
- */
-router.delete('/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * DELETE /labels/:id
+   * Delete a label
+   */
+  fastify.delete('/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
+    const { id } = req.params as { id: string };
 
-    await labelService.delete(req.params.id, authReq.user.userId);
-    res.json({ success: true, message: 'Label deleted' });
-  } catch (error) {
-    console.error('[LabelRoutes] Delete error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to delete label',
-    });
-  }
-});
+    await labelService.delete(id, authReq.user.userId);
+    return reply.send({ success: true, message: 'Label deleted' });
+  });
+};
 
-export default router;
+export default routes;

@@ -180,10 +180,10 @@ function BarChart({
 
 function ConversionFunnel({ data }: { data: FunnelAnalytics }) {
   const colors = [
-    "bg-blue-500",
-    "bg-indigo-500",
-    "bg-violet-500",
-    "bg-purple-500",
+    "bg-primary",
+    "bg-primary/80",
+    "bg-primary/60",
+    "bg-primary/40",
   ];
 
   return (
@@ -239,13 +239,13 @@ function ConversionFunnel({ data }: { data: FunnelAnalytics }) {
           <p className="text-xs text-muted-foreground">Overall Conversion</p>
         </div>
         <div className="text-center">
-          <p className="text-2xl font-bold text-indigo-600">
+          <p className="text-2xl font-bold text-primary/80">
             {data.previewToCheckout}%
           </p>
           <p className="text-xs text-muted-foreground">Preview to Checkout</p>
         </div>
         <div className="text-center">
-          <p className="text-2xl font-bold text-violet-600">
+          <p className="text-2xl font-bold text-primary/60">
             {data.checkoutToPurchase}%
           </p>
           <p className="text-xs text-muted-foreground">Checkout to Purchase</p>
@@ -262,10 +262,10 @@ function TierDistribution({
 }) {
   const total = data.reduce((s, t) => s + t.revenue, 0);
   const colors = [
-    "bg-purple-500",
-    "bg-blue-500",
-    "bg-green-500",
-    "bg-yellow-500",
+    "bg-primary",
+    "bg-primary/80",
+    "bg-success",
+    "bg-warning",
   ];
 
   return (

@@ -1,16 +1,16 @@
-import { Router } from 'express';
-import eventRoutes from './event.routes';
-import venueRoutes from './venue.routes';
-import registrationRoutes from './registration.routes';
-import speakerRoutes from './speaker.routes';
-import settingsRoutes from './settings.routes';
+import { FastifyPluginAsync } from 'fastify';
+import eventRoutes from './event.routes.js';
+import venueRoutes from './venue.routes.js';
+import registrationRoutes from './registration.routes.js';
+import speakerRoutes from './speaker.routes.js';
+import settingsRoutes from './settings.routes.js';
 
-const router = Router();
+const routes: FastifyPluginAsync = async (fastify) => {
+  await fastify.register(eventRoutes, { prefix: '/events' });
+  await fastify.register(venueRoutes, { prefix: '/venues' });
+  await fastify.register(registrationRoutes, { prefix: '/registrations' });
+  await fastify.register(speakerRoutes, { prefix: '/speakers' });
+  await fastify.register(settingsRoutes, { prefix: '/settings' });
+};
 
-router.use('/events', eventRoutes);
-router.use('/venues', venueRoutes);
-router.use('/registrations', registrationRoutes);
-router.use('/speakers', speakerRoutes);
-router.use('/settings', settingsRoutes);
-
-export default router;
+export default routes;

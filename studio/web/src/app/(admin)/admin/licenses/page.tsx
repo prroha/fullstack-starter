@@ -142,7 +142,7 @@ function ExtendLicenseModal({
 
         <div>
           <label htmlFor="days" className="block text-sm font-medium mb-1">
-            Extend by (days) <span className="text-red-500">*</span>
+            Extend by (days) <span className="text-destructive">*</span>
           </label>
           <Input
             type="number"
@@ -219,12 +219,12 @@ function RevokeLicenseModal({
       }
     >
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="p-3 rounded-md bg-red-500/10 border border-red-500/20">
+        <div className="p-3 rounded-md bg-destructive/10 border border-destructive/20">
           <div className="flex gap-2">
-            <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+            <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-medium text-red-600">Warning</p>
-              <p className="text-sm text-red-600/80">
+              <p className="text-sm font-medium text-destructive">Warning</p>
+              <p className="text-sm text-destructive/80">
                 This action will immediately revoke the license and prevent further downloads.
                 This cannot be undone.
               </p>
@@ -244,7 +244,7 @@ function RevokeLicenseModal({
 
         <div>
           <label htmlFor="revokeReason" className="block text-sm font-medium mb-1">
-            Reason <span className="text-red-500">*</span>
+            Reason <span className="text-destructive">*</span>
           </label>
           <Textarea
             id="revokeReason"
@@ -313,12 +313,12 @@ function RegenerateTokenModal({
       }
     >
       <div className="space-y-4">
-        <div className="p-3 rounded-md bg-amber-500/10 border border-amber-500/20">
+        <div className="p-3 rounded-md bg-warning/10 border border-warning/20">
           <div className="flex gap-2">
-            <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+            <AlertCircle className="h-5 w-5 text-warning flex-shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-medium text-amber-600">Important</p>
-              <p className="text-sm text-amber-600/80">
+              <p className="text-sm font-medium text-warning">Important</p>
+              <p className="text-sm text-warning/80">
                 Regenerating the token will invalidate the current download link.
                 The customer will need to use the new link for future downloads.
               </p>
@@ -443,10 +443,10 @@ function LicenseDetailsModal({
           </div>
 
           {license.revokedAt && (
-            <div className="p-3 rounded-md bg-red-500/10 border border-red-500/20">
-              <p className="text-sm font-medium text-red-600">Revoked on {formatDateTime(license.revokedAt)}</p>
+            <div className="p-3 rounded-md bg-destructive/10 border border-destructive/20">
+              <p className="text-sm font-medium text-destructive">Revoked on {formatDateTime(license.revokedAt)}</p>
               {license.revokedReason && (
-                <p className="text-sm text-red-600/80 mt-1">Reason: {license.revokedReason}</p>
+                <p className="text-sm text-destructive/80 mt-1">Reason: {license.revokedReason}</p>
               )}
             </div>
           )}

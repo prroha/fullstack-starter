@@ -1,74 +1,79 @@
-import { Router, Request, Response } from 'express';
-import { getCategoryService } from '../services/category.service';
-import { authMiddleware, AuthenticatedRequest } from '../middleware/auth';
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
+import { getCategoryService } from '../services/category.service.js';
+import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
 
 // =============================================================================
-// Router
+// Routes
 // =============================================================================
 
-const router = Router();
 const categoryService = getCategoryService();
 
 // =============================================================================
 // Category Endpoints (All Authenticated)
 // =============================================================================
 
-/**
- * GET /categories
- * List all categories
- */
-router.get('/', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+const routes: FastifyPluginAsync = async (fastify) => {
+  /**
+   * POST /categories/reorder
+   * Reorder categories by providing an ordered array of IDs
+   * MUST be before /:id route to avoid matching "reorder" as an ID
+   */
+  fastify.post('/reorder', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
+    const { ids } = req.body as { ids: string[] };
 
-    const { search, isActive, parentId, page, limit } = req.query;
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return reply.code(400).send({ error: 'ids must be a non-empty array' });
+    }
+
+    const updates = ids.map((id: string, index: number) => ({ id, sortOrder: index + 1 }));
+    await categoryService.reorder(authReq.user.userId, updates);
+    return reply.send({ success: true, message: 'Categories reordered' });
+  });
+
+  /**
+   * GET /categories
+   * List all categories
+   */
+  fastify.get('/', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const authReq = req as AuthenticatedRequest;
+    const { search, isActive, parentId, page, limit } = req.query as Record<string, string>;
 
     const categories = await categoryService.list(authReq.user.userId, {
-      search: search as string,
+      search,
       isActive: isActive !== undefined ? isActive === 'true' : undefined,
-      parentId: parentId as string,
+      parentId,
       page: page ? Number(page) : 1,
       limit: limit ? Number(limit) : 50,
     });
-    res.json({ success: true, data: categories });
-  } catch (error) {
-    console.error('[CategoryRoutes] List error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to list categories' });
-  }
-});
+    return reply.send({ success: true, data: categories });
+  });
 
-/**
- * GET /categories/:id
- * Get category by ID
- */
-router.get('/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * GET /categories/:id
+   * Get category by ID
+   */
+  fastify.get('/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
+    const { id } = req.params as { id: string };
 
-    const category = await categoryService.getById(req.params.id, authReq.user.userId);
+    const category = await categoryService.getById(id, authReq.user.userId);
     if (!category) {
-      res.status(404).json({ error: 'Category not found' });
-      return;
+      return reply.code(404).send({ error: 'Category not found' });
     }
-    res.json({ success: true, data: category });
-  } catch (error) {
-    console.error('[CategoryRoutes] Get error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to get category' });
-  }
-});
+    return reply.send({ success: true, data: category });
+  });
 
-/**
- * POST /categories
- * Create a new category
- */
-router.post('/', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * POST /categories
+   * Create a new category
+   */
+  fastify.post('/', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { name, description, color, parentId } = req.body;
+    const { name, description, color, parentId } = req.body as Record<string, unknown>;
 
     if (!name) {
-      res.status(400).json({ error: 'name is required' });
-      return;
+      return reply.code(400).send({ error: 'name is required' });
     }
 
     const category = await categoryService.create({
@@ -79,25 +84,19 @@ router.post('/', authMiddleware, async (req: Request, res: Response): Promise<vo
       parentId,
     });
 
-    res.status(201).json({ success: true, data: category });
-  } catch (error) {
-    console.error('[CategoryRoutes] Create error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to create category',
-    });
-  }
-});
+    return reply.code(201).send({ success: true, data: category });
+  });
 
-/**
- * PATCH /categories/:id
- * Update a category
- */
-router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * PATCH /categories/:id
+   * Update a category
+   */
+  fastify.patch('/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { name, description, color, parentId } = req.body;
+    const { id } = req.params as { id: string };
+    const { name, description, color, parentId } = req.body as Record<string, unknown>;
 
-    const category = await categoryService.update(req.params.id, authReq.user.userId, {
+    const category = await categoryService.update(id, authReq.user.userId, {
       name,
       description,
       color,
@@ -105,82 +104,38 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promis
     });
 
     if (!category) {
-      res.status(404).json({ error: 'Category not found' });
-      return;
+      return reply.code(404).send({ error: 'Category not found' });
     }
 
-    res.json({ success: true, data: category });
-  } catch (error) {
-    console.error('[CategoryRoutes] Update error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to update category',
-    });
-  }
-});
+    return reply.send({ success: true, data: category });
+  });
 
-/**
- * DELETE /categories/:id
- * Delete a category
- */
-router.delete('/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * DELETE /categories/:id
+   * Delete a category
+   */
+  fastify.delete('/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
+    const { id } = req.params as { id: string };
 
-    await categoryService.delete(req.params.id, authReq.user.userId);
-    res.json({ success: true, message: 'Category deleted' });
-  } catch (error) {
-    console.error('[CategoryRoutes] Delete error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to delete category',
-    });
-  }
-});
+    await categoryService.delete(id, authReq.user.userId);
+    return reply.send({ success: true, message: 'Category deleted' });
+  });
 
-/**
- * POST /categories/reorder
- * Reorder categories by providing an ordered array of IDs
- */
-router.post('/reorder', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * POST /categories/:id/toggle-active
+   * Toggle category active status
+   */
+  fastify.post('/:id/toggle-active', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { ids } = req.body;
+    const { id } = req.params as { id: string };
 
-    if (!ids || !Array.isArray(ids) || ids.length === 0) {
-      res.status(400).json({ error: 'ids must be a non-empty array' });
-      return;
-    }
-
-    const updates = ids.map((id: string, index: number) => ({ id, sortOrder: index + 1 }));
-    await categoryService.reorder(authReq.user.userId, updates);
-    res.json({ success: true, message: 'Categories reordered' });
-  } catch (error) {
-    console.error('[CategoryRoutes] Reorder error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to reorder categories',
-    });
-  }
-});
-
-/**
- * POST /categories/:id/toggle-active
- * Toggle category active status
- */
-router.post('/:id/toggle-active', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const authReq = req as AuthenticatedRequest;
-
-    const category = await categoryService.toggleActive(req.params.id, authReq.user.userId);
+    const category = await categoryService.toggleActive(id, authReq.user.userId);
     if (!category) {
-      res.status(404).json({ error: 'Category not found' });
-      return;
+      return reply.code(404).send({ error: 'Category not found' });
     }
-    res.json({ success: true, data: category });
-  } catch (error) {
-    console.error('[CategoryRoutes] Toggle active error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to toggle category status',
-    });
-  }
-});
+    return reply.send({ success: true, data: category });
+  });
+};
 
-export default router;
+export default routes;

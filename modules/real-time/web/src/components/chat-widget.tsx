@@ -128,16 +128,16 @@ function ConnectionStatus({ status, reconnectAttempt }: ConnectionStatusProps) {
   if (status === "connected") return null;
 
   const statusConfig: Record<string, { color: string; text: string }> = {
-    connecting: { color: "bg-yellow-500", text: "Connecting..." },
+    connecting: { color: "bg-warning", text: "Connecting..." },
     disconnected: { color: "bg-destructive", text: "Disconnected" },
-    reconnecting: { color: "bg-yellow-500", text: `Reconnecting (${reconnectAttempt})...` },
+    reconnecting: { color: "bg-warning", text: `Reconnecting (${reconnectAttempt})...` },
     error: { color: "bg-destructive", text: "Connection error" },
   };
 
   const config = statusConfig[status] || { color: "bg-muted-foreground", text: status };
 
   return (
-    <div className={cn(config.color, "text-white text-xs text-center py-1")}>
+    <div className={cn(config.color, "text-primary-foreground text-xs text-center py-1")}>
       {config.text}
     </div>
   );
@@ -265,7 +265,7 @@ export function ChatWidget({
             <span
               className={cn(
                 "w-2 h-2 rounded-full",
-                isConnected ? "bg-green-500" : "bg-destructive"
+                isConnected ? "bg-success" : "bg-destructive"
               )}
             />
           </div>

@@ -1,14 +1,13 @@
-import { Router, Request, Response } from 'express';
-import { getEventService } from '../services/event.service';
-import { getSpeakerService } from '../services/speaker.service';
-import { getRegistrationService } from '../services/registration.service';
-import { authMiddleware, AuthenticatedRequest } from '../middleware/auth';
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
+import { getEventService } from '../services/event.service.js';
+import { getSpeakerService } from '../services/speaker.service.js';
+import { getRegistrationService } from '../services/registration.service.js';
+import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
 
 // =============================================================================
-// Router
+// Routes
 // =============================================================================
 
-const router = Router();
 const eventService = getEventService();
 const speakerService = getSpeakerService();
 const registrationService = getRegistrationService();
@@ -17,86 +16,70 @@ const registrationService = getRegistrationService();
 // Event Endpoints (All Authenticated)
 // =============================================================================
 
-/**
- * GET /events/stats, GET /events/dashboard-stats
- * Get dashboard stats
- * MUST be before /:id route to avoid matching "stats" as an ID
- */
-const handleGetStats = async (req: Request, res: Response): Promise<void> => {
-  try {
+const routes: FastifyPluginAsync = async (fastify) => {
+  /**
+   * GET /events/stats, GET /events/dashboard-stats
+   * Get dashboard stats
+   * MUST be before /:id route to avoid matching "stats" as an ID
+   */
+  const handleGetStats = async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
 
     const stats = await eventService.getDashboardStats(authReq.user.userId);
-    res.json({ success: true, data: stats });
-  } catch (error) {
-    console.error('[EventRoutes] Stats error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to get event stats' });
-  }
-};
+    return reply.send({ success: true, data: stats });
+  };
 
-router.get('/stats', authMiddleware, handleGetStats);
-router.get('/dashboard-stats', authMiddleware, handleGetStats);
+  fastify.get('/stats', { preHandler: [authMiddleware] }, handleGetStats);
+  fastify.get('/dashboard-stats', { preHandler: [authMiddleware] }, handleGetStats);
 
-/**
- * GET /events
- * List events with filtering and pagination
- */
-router.get('/', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * GET /events
+   * List events with filtering and pagination
+   */
+  fastify.get('/', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { search, status, type, categoryId, venueId, startAfter, startBefore, page, limit } = req.query;
+    const { search, status, type, categoryId, venueId, startAfter, startBefore, page, limit } = req.query as Record<string, string>;
 
     const result = await eventService.list(authReq.user.userId, {
-      search: search as string,
-      status: status as string,
-      type: type as string,
-      categoryId: categoryId as string,
-      venueId: venueId as string,
-      startAfter: startAfter as string,
-      startBefore: startBefore as string,
+      search,
+      status,
+      type,
+      categoryId,
+      venueId,
+      startAfter,
+      startBefore,
       page: page ? Number(page) : 1,
       limit: limit ? Number(limit) : 20,
     });
 
-    res.json({ success: true, data: result });
-  } catch (error) {
-    console.error('[EventRoutes] List error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to list events' });
-  }
-});
+    return reply.send({ success: true, data: result });
+  });
 
-/**
- * GET /events/:id
- * Get event by ID (includes category, venue, speakers, registrations)
- */
-router.get('/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * GET /events/:id
+   * Get event by ID (includes category, venue, speakers, registrations)
+   */
+  fastify.get('/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
+    const { id } = req.params as { id: string };
 
-    const event = await eventService.getById(req.params.id, authReq.user.userId);
+    const event = await eventService.getById(id, authReq.user.userId);
     if (!event) {
-      res.status(404).json({ error: 'Event not found' });
-      return;
+      return reply.code(404).send({ error: 'Event not found' });
     }
-    res.json({ success: true, data: event });
-  } catch (error) {
-    console.error('[EventRoutes] Get error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to get event' });
-  }
-});
+    return reply.send({ success: true, data: event });
+  });
 
-/**
- * POST /events
- * Create a new event
- */
-router.post('/', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * POST /events
+   * Create a new event
+   */
+  fastify.post('/', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { title, description, categoryId, venueId, type, status, startDate, endDate, capacity, price, currency, imageUrl, isFeatured } = req.body;
+    const { title, description, categoryId, venueId, type, status, startDate, endDate, capacity, price, currency, imageUrl, isFeatured } = req.body as Record<string, unknown>;
 
     if (!title || !startDate || !endDate) {
-      res.status(400).json({ error: 'title, startDate, and endDate are required' });
-      return;
+      return reply.code(400).send({ error: 'title, startDate, and endDate are required' });
     }
 
     const event = await eventService.create({
@@ -116,25 +99,19 @@ router.post('/', authMiddleware, async (req: Request, res: Response): Promise<vo
       isFeatured,
     });
 
-    res.status(201).json({ success: true, data: event });
-  } catch (error) {
-    console.error('[EventRoutes] Create error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to create event',
-    });
-  }
-});
+    return reply.code(201).send({ success: true, data: event });
+  });
 
-/**
- * PATCH /events/:id
- * Update an event
- */
-router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * PATCH /events/:id
+   * Update an event
+   */
+  fastify.patch('/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { title, description, categoryId, venueId, type, status, startDate, endDate, capacity, price, currency, imageUrl, isFeatured } = req.body;
+    const { id } = req.params as { id: string };
+    const { title, description, categoryId, venueId, type, status, startDate, endDate, capacity, price, currency, imageUrl, isFeatured } = req.body as Record<string, unknown>;
 
-    const event = await eventService.update(req.params.id, authReq.user.userId, {
+    const event = await eventService.update(id, authReq.user.userId, {
       title,
       description,
       categoryId,
@@ -151,137 +128,99 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promis
     });
 
     if (!event) {
-      res.status(404).json({ error: 'Event not found' });
-      return;
+      return reply.code(404).send({ error: 'Event not found' });
     }
 
-    res.json({ success: true, data: event });
-  } catch (error) {
-    console.error('[EventRoutes] Update error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to update event',
-    });
-  }
-});
+    return reply.send({ success: true, data: event });
+  });
 
-/**
- * DELETE /events/:id
- * Delete an event
- */
-router.delete('/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * DELETE /events/:id
+   * Delete an event
+   */
+  fastify.delete('/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
+    const { id } = req.params as { id: string };
 
-    await eventService.delete(req.params.id, authReq.user.userId);
-    res.json({ success: true, message: 'Event deleted' });
-  } catch (error) {
-    console.error('[EventRoutes] Delete error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to delete event',
-    });
-  }
-});
+    await eventService.delete(id, authReq.user.userId);
+    return reply.send({ success: true, message: 'Event deleted' });
+  });
 
-/**
- * POST /events/:id/publish
- * Publish an event
- */
-router.post('/:id/publish', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * POST /events/:id/publish
+   * Publish an event
+   */
+  fastify.post('/:id/publish', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
+    const { id } = req.params as { id: string };
 
-    const event = await eventService.publish(req.params.id, authReq.user.userId);
+    const event = await eventService.publish(id, authReq.user.userId);
     if (!event) {
-      res.status(404).json({ error: 'Event not found' });
-      return;
+      return reply.code(404).send({ error: 'Event not found' });
     }
-    res.json({ success: true, data: event });
-  } catch (error) {
-    console.error('[EventRoutes] Publish error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to publish event',
-    });
-  }
-});
+    return reply.send({ success: true, data: event });
+  });
 
-/**
- * POST /events/:id/cancel
- * Cancel an event
- */
-router.post('/:id/cancel', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * POST /events/:id/cancel
+   * Cancel an event
+   */
+  fastify.post('/:id/cancel', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
+    const { id } = req.params as { id: string };
 
-    const event = await eventService.cancel(req.params.id, authReq.user.userId);
+    const event = await eventService.cancel(id, authReq.user.userId);
     if (!event) {
-      res.status(404).json({ error: 'Event not found' });
-      return;
+      return reply.code(404).send({ error: 'Event not found' });
     }
-    res.json({ success: true, data: event });
-  } catch (error) {
-    console.error('[EventRoutes] Cancel error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to cancel event',
-    });
-  }
-});
+    return reply.send({ success: true, data: event });
+  });
 
-/**
- * POST /events/:id/complete
- * Mark event as completed
- */
-router.post('/:id/complete', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * POST /events/:id/complete
+   * Mark event as completed
+   */
+  fastify.post('/:id/complete', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
+    const { id } = req.params as { id: string };
 
-    const event = await eventService.complete(req.params.id, authReq.user.userId);
+    const event = await eventService.complete(id, authReq.user.userId);
     if (!event) {
-      res.status(404).json({ error: 'Event not found' });
-      return;
+      return reply.code(404).send({ error: 'Event not found' });
     }
-    res.json({ success: true, data: event });
-  } catch (error) {
-    console.error('[EventRoutes] Complete error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to complete event',
-    });
-  }
-});
+    return reply.send({ success: true, data: event });
+  });
 
-// =============================================================================
-// Nested Speaker Endpoints
-// =============================================================================
+  // =============================================================================
+  // Nested Speaker Endpoints
+  // =============================================================================
 
-/**
- * GET /events/:id/speakers
- * Get speakers for an event
- */
-router.get('/:id/speakers', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const speakers = await speakerService.listByEvent(req.params.id);
-    res.json({ success: true, data: speakers });
-  } catch (error) {
-    console.error('[EventRoutes] Get speakers error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to get speakers' });
-  }
-});
+  /**
+   * GET /events/:id/speakers
+   * Get speakers for an event
+   */
+  fastify.get('/:id/speakers', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as { id: string };
 
-/**
- * POST /events/:id/speakers
- * Add a speaker to an event
- */
-router.post('/:id/speakers', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+    const speakers = await speakerService.listByEvent(id);
+    return reply.send({ success: true, data: speakers });
+  });
+
+  /**
+   * POST /events/:id/speakers
+   * Add a speaker to an event
+   */
+  fastify.post('/:id/speakers', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { name, email, bio, avatarUrl, title, company } = req.body;
+    const { id } = req.params as { id: string };
+    const { name, email, bio, avatarUrl, title, company } = req.body as Record<string, unknown>;
 
     if (!name) {
-      res.status(400).json({ error: 'name is required' });
-      return;
+      return reply.code(400).send({ error: 'name is required' });
     }
 
     const speaker = await speakerService.create({
-      eventId: req.params.id,
+      eventId: id,
       userId: authReq.user.userId,
       name,
       email,
@@ -291,62 +230,47 @@ router.post('/:id/speakers', authMiddleware, async (req: Request, res: Response)
       company,
     });
 
-    res.status(201).json({ success: true, data: speaker });
-  } catch (error) {
-    console.error('[EventRoutes] Add speaker error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to add speaker',
-    });
-  }
-});
+    return reply.code(201).send({ success: true, data: speaker });
+  });
 
-// =============================================================================
-// Nested Registration Endpoints
-// =============================================================================
+  // =============================================================================
+  // Nested Registration Endpoints
+  // =============================================================================
 
-/**
- * GET /events/:id/registrations
- * Get registrations for an event
- */
-router.get('/:id/registrations', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const registrations = await registrationService.listByEvent(req.params.id);
-    res.json({ success: true, data: registrations });
-  } catch (error) {
-    console.error('[EventRoutes] Get registrations error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to get registrations' });
-  }
-});
+  /**
+   * GET /events/:id/registrations
+   * Get registrations for an event
+   */
+  fastify.get('/:id/registrations', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as { id: string };
 
-/**
- * POST /events/:id/registrations
- * Register for an event
- */
-router.post('/:id/registrations', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+    const registrations = await registrationService.listByEvent(id);
+    return reply.send({ success: true, data: registrations });
+  });
+
+  /**
+   * POST /events/:id/registrations
+   * Register for an event
+   */
+  fastify.post('/:id/registrations', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { attendeeName, attendeeEmail, notes } = req.body;
+    const { id } = req.params as { id: string };
+    const { attendeeName, attendeeEmail, notes } = req.body as Record<string, unknown>;
 
     if (!attendeeName || !attendeeEmail) {
-      res.status(400).json({ error: 'attendeeName and attendeeEmail are required' });
-      return;
+      return reply.code(400).send({ error: 'attendeeName and attendeeEmail are required' });
     }
 
     const registration = await registrationService.register({
-      eventId: req.params.id,
+      eventId: id,
       userId: authReq.user.userId,
       attendeeName,
       attendeeEmail,
       notes,
     });
 
-    res.status(201).json({ success: true, data: registration });
-  } catch (error) {
-    console.error('[EventRoutes] Register error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to register for event',
-    });
-  }
-});
+    return reply.code(201).send({ success: true, data: registration });
+  });
+};
 
-export default router;
+export default routes;

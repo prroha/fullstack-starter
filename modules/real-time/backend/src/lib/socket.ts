@@ -693,11 +693,11 @@ export function createSocketService(): SocketService {
 }
 
 // =============================================================================
-// Express Integration Helper
+// HTTP Server Integration Helper
 // =============================================================================
 
 /**
- * Initialize socket service with an Express app
+ * Initialize socket service with an HTTP server
  */
 export function initializeSocket(
   httpServer: HttpServer,

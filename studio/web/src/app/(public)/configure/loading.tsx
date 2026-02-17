@@ -65,7 +65,7 @@ export default function ConfigureLoading() {
             </div>
           </div>
 
-          <div className="space-y-8">
+          <div className="space-y-6">
             {/* Module Group */}
             <div>
               <div className="flex items-center gap-2 mb-4">

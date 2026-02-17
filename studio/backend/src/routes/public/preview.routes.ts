@@ -4,42 +4,24 @@
  */
 
 import crypto from "crypto";
-import { Router, Request, Response, NextFunction } from "express";
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from "fastify";
 import { z } from "zod";
-import rateLimit from "express-rate-limit";
 import { prisma } from "../../config/db.js";
 import { validateRequest } from "../../middleware/validate.middleware.js";
-
-const router = Router();
-
-// Rate limiter for session creation: 100 requests per hour per IP
-const createSessionLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 100, // 100 requests per hour per IP
-  message: {
-    success: false,
-    error: "Too many preview sessions created. Please try again later.",
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
 
 // Token format validation middleware
 // Token must be at least 20 characters, alphanumeric with dashes
 const TOKEN_REGEX = /^[a-zA-Z0-9-]{20,}$/;
 
-const validateTokenFormat = (req: Request<{ token: string }>, res: Response, next: NextFunction): void => {
-  const { token } = req.params;
+const validateTokenFormat = async (req: FastifyRequest, reply: FastifyReply): Promise<void> => {
+  const { token } = req.params as Record<string, string>;
 
   if (!token || !TOKEN_REGEX.test(token)) {
-    res.status(400).json({
+    return reply.code(400).send({
       success: false,
       error: "Invalid token format. Token must be at least 20 characters and contain only alphanumeric characters and dashes.",
     });
-    return;
   }
-
-  next();
 };
 
 // Schema for creating a preview session
@@ -51,14 +33,17 @@ const createPreviewSessionSchema = z.object({
   }),
 });
 
-// POST /api/preview/sessions - Create a new preview session
-router.post(
-  "/sessions",
-  createSessionLimiter,
-  validateRequest(createPreviewSessionSchema),
-  async (req, res, next) => {
-    try {
-      const { selectedFeatures, tier, templateSlug } = req.body;
+const routePlugin: FastifyPluginAsync = async (fastify) => {
+  // POST /api/preview/sessions - Create a new preview session
+  fastify.post(
+    "/sessions",
+    { preHandler: [validateRequest(createPreviewSessionSchema)] },
+    async (req: FastifyRequest, reply: FastifyReply) => {
+      const { selectedFeatures, tier, templateSlug } = req.body as {
+        selectedFeatures: string[];
+        tier: string;
+        templateSlug?: string;
+      };
 
       // Session expires in 24 hours
       const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
@@ -80,7 +65,7 @@ router.post(
         "http://localhost:3002";
       const previewUrl = `${frontendOrigin}/preview?preview=${session.sessionToken}`;
 
-      res.status(201).json({
+      return reply.code(201).send({
         success: true,
         data: {
           sessionId: session.id,
@@ -89,81 +74,80 @@ router.post(
           expiresAt: session.expiresAt,
         },
       });
-    } catch (error) {
-      next(error);
     }
-  }
-);
+  );
 
-// GET /api/preview/sessions/:token - Get session configuration
-router.get<{ token: string }>("/sessions/:token", validateTokenFormat, async (req, res, next) => {
-  try {
-    const { token } = req.params;
+  // GET /api/preview/sessions/:token - Get session configuration
+  fastify.get(
+    "/sessions/:token",
+    { preHandler: [validateTokenFormat] },
+    async (req: FastifyRequest, reply: FastifyReply) => {
+      const { token } = req.params as Record<string, string>;
 
-    const session = await prisma.previewSession.findUnique({
-      where: { sessionToken: token },
-    });
-
-    if (!session) {
-      res.status(404).json({
-        success: false,
-        error: "Preview session not found",
+      const session = await prisma.previewSession.findUnique({
+        where: { sessionToken: token },
       });
-      return;
-    }
 
-    // Check if expired
-    if (new Date() > session.expiresAt) {
-      res.status(410).json({
-        success: false,
-        error: "Preview session has expired",
-      });
-      return;
-    }
+      if (!session) {
+        return reply.code(404).send({
+          success: false,
+          error: "Preview session not found",
+        });
+      }
 
-    res.json({
-      success: true,
-      data: {
-        selectedFeatures: session.selectedFeatures,
-        tier: session.tier,
-        templateSlug: session.templateSlug,
-        expiresAt: session.expiresAt,
-      },
-    });
-  } catch (error) {
-    next(error);
-  }
-});
+      // Check if expired
+      if (new Date() > session.expiresAt) {
+        return reply.code(410).send({
+          success: false,
+          error: "Preview session has expired",
+        });
+      }
 
-// DELETE /api/preview/sessions/:token - Delete a session
-router.delete<{ token: string }>("/sessions/:token", validateTokenFormat, async (req, res, next) => {
-  try {
-    const { token } = req.params;
-
-    await prisma.previewSession.delete({
-      where: { sessionToken: token },
-    });
-
-    res.json({
-      success: true,
-      message: "Preview session deleted",
-    });
-  } catch (error: unknown) {
-    // Handle "record not found" gracefully (already deleted or expired)
-    if (
-      error &&
-      typeof error === "object" &&
-      "code" in error &&
-      (error as { code: string }).code === "P2025"
-    ) {
-      res.json({
+      return reply.send({
         success: true,
-        message: "Preview session already deleted",
+        data: {
+          selectedFeatures: session.selectedFeatures,
+          tier: session.tier,
+          templateSlug: session.templateSlug,
+          expiresAt: session.expiresAt,
+        },
       });
-      return;
     }
-    next(error);
-  }
-});
+  );
 
-export default router;
+  // DELETE /api/preview/sessions/:token - Delete a session
+  fastify.delete(
+    "/sessions/:token",
+    { preHandler: [validateTokenFormat] },
+    async (req: FastifyRequest, reply: FastifyReply) => {
+      const { token } = req.params as Record<string, string>;
+
+      try {
+        await prisma.previewSession.delete({
+          where: { sessionToken: token },
+        });
+
+        return reply.send({
+          success: true,
+          message: "Preview session deleted",
+        });
+      } catch (error: unknown) {
+        // Handle "record not found" gracefully (already deleted or expired)
+        if (
+          error &&
+          typeof error === "object" &&
+          "code" in error &&
+          (error as { code: string }).code === "P2025"
+        ) {
+          return reply.send({
+            success: true,
+            message: "Preview session already deleted",
+          });
+        }
+        throw error;
+      }
+    }
+  );
+};
+
+export default routePlugin;

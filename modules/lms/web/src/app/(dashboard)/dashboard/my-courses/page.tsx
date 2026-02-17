@@ -96,7 +96,7 @@ export default function MyCoursesPage() {
     }
 
     return (
-      <div className="py-16 text-center">
+      <div className="py-10 text-center">
         <svg
           className="mx-auto h-16 w-16 text-muted-foreground/30"
           fill="none"
@@ -134,7 +134,7 @@ export default function MyCoursesPage() {
   // ---------------------------------------------------------------------------
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-foreground">
@@ -156,7 +156,7 @@ export default function MyCoursesPage() {
           </div>
           <div className="rounded-lg border border-border bg-card p-5">
             <p className="text-sm text-muted-foreground">Completed</p>
-            <p className="mt-1 text-2xl font-bold text-green-600">
+            <p className="mt-1 text-2xl font-bold text-success">
               {totalCompleted}
             </p>
           </div>
@@ -178,7 +178,7 @@ export default function MyCoursesPage() {
 
       {/* Loading State */}
       {loading && (
-        <div className="flex items-center justify-center py-20">
+        <div className="flex items-center justify-center py-12">
           <Spinner size="lg" />
         </div>
       )}

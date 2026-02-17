@@ -1,4 +1,4 @@
-import { Request } from "express";
+import { FastifyRequest } from "fastify";
 import { AuditAction, Prisma } from "@prisma/client";
 import { db } from "../lib/db.js";
 import { logger } from "../lib/logger.js";
@@ -29,7 +29,7 @@ interface AuditLogInput {
   entityId?: string;
   changes?: Record<string, unknown>;
   userId?: string;
-  req?: Request;
+  req?: FastifyRequest;
   metadata?: Record<string, unknown>;
 }
 
@@ -74,7 +74,7 @@ class AuditService {
    * Extract IP address from request
    * Handles proxied requests (X-Forwarded-For header)
    */
-  private getIpAddress(req?: Request): string | undefined {
+  private getIpAddress(req?: FastifyRequest): string | undefined {
     if (!req) return undefined;
 
     // Check for proxied requests
@@ -100,7 +100,7 @@ class AuditService {
   /**
    * Extract user agent from request
    */
-  private getUserAgent(req?: Request): string | undefined {
+  private getUserAgent(req?: FastifyRequest): string | undefined {
     if (!req) return undefined;
     const userAgent = req.headers["user-agent"];
     // Truncate long user agents

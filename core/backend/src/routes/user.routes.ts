@@ -1,33 +1,28 @@
-import { Router } from "express";
+import { FastifyPluginAsync } from "fastify";
 import { userController } from "../controllers/user.controller.js";
 import { authMiddleware } from "../middleware/auth.middleware.js";
-import { avatarUpload } from "../middleware/upload.middleware.js";
 
-const router = Router();
+const routePlugin: FastifyPluginAsync = async (fastify) => {
+  // All user routes are protected
+  fastify.addHook("preHandler", authMiddleware);
 
-// All user routes are protected
-router.use(authMiddleware);
+  // GET /api/v1/users/me - Get current user profile
+  fastify.get("/me", (req, reply) => userController.getProfile(req, reply));
 
-// GET /api/v1/users/me - Get current user profile
-router.get("/me", (req, res, next) => userController.getProfile(req, res, next));
+  // PATCH /api/v1/users/me - Update current user profile
+  fastify.patch("/me", (req, reply) => userController.updateProfile(req, reply));
 
-// PATCH /api/v1/users/me - Update current user profile
-router.patch("/me", (req, res, next) => userController.updateProfile(req, res, next));
+  // GET /api/v1/users/me/avatar - Get current user avatar
+  fastify.get("/me/avatar", (req, reply) => userController.getAvatar(req, reply));
 
-// GET /api/v1/users/me/avatar - Get current user avatar
-router.get("/me/avatar", (req, res, next) => userController.getAvatar(req, res, next));
+  // POST /api/v1/users/me/avatar - Upload avatar
+  fastify.post("/me/avatar", (req, reply) => userController.uploadAvatar(req, reply));
 
-// POST /api/v1/users/me/avatar - Upload avatar
-router.post(
-  "/me/avatar",
-  avatarUpload.single("avatar"),
-  (req, res, next) => userController.uploadAvatar(req, res, next)
-);
+  // DELETE /api/v1/users/me/avatar - Delete avatar
+  fastify.delete("/me/avatar", (req, reply) => userController.deleteAvatar(req, reply));
 
-// DELETE /api/v1/users/me/avatar - Delete avatar
-router.delete("/me/avatar", (req, res, next) => userController.deleteAvatar(req, res, next));
+  // GET /api/v1/users/me/export - Export current user's data (GDPR)
+  fastify.get("/me/export", (req, reply) => userController.exportMyData(req, reply));
+};
 
-// GET /api/v1/users/me/export - Export current user's data (GDPR)
-router.get("/me/export", (req, res, next) => userController.exportMyData(req, res, next));
-
-export default router;
+export default routePlugin;

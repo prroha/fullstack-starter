@@ -1,26 +1,20 @@
 /**
- * Sentry Middleware for Express
+ * Sentry Middleware for Fastify
  *
  * Premium tier feature providing:
- * - Request handler (adds request context to Sentry events)
+ * - Request hook (adds request context to Sentry events)
  * - Error handler (captures unhandled errors)
- * - Tracing middleware (performance monitoring)
+ * - Tracing hook (performance monitoring)
  *
  * Usage:
- *   import { sentryRequestHandler, sentryErrorHandler, sentryTracingMiddleware } from './middleware/sentry.middleware';
+ *   import { registerSentryHooks } from './middleware/sentry.middleware.js';
  *
- *   // Add at the very beginning of your middleware stack
- *   app.use(sentryRequestHandler);
- *   app.use(sentryTracingMiddleware);
- *
- *   // Your routes here...
- *
- *   // Add at the very end, before your error handler
- *   app.use(sentryErrorHandler);
+ *   // Register on your Fastify instance
+ *   registerSentryHooks(fastify);
  */
 
-import type { Request, Response, NextFunction, ErrorRequestHandler, RequestHandler } from 'express';
-import { errorTracking, getRequestContext } from '../services/error-tracking.service';
+import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import { errorTracking, getRequestContext } from '../services/error-tracking.service.js';
 
 // =============================================================================
 // Types
@@ -36,7 +30,7 @@ export interface SentryMiddlewareOptions {
   /** Include query params in error context */
   includeQuery?: boolean;
   /** Custom user extractor from request */
-  extractUser?: (req: Request) => { id?: string; email?: string; username?: string } | null;
+  extractUser?: (req: FastifyRequest) => { id?: string; email?: string; username?: string } | null;
   /** Custom function to determine if an error should be captured */
   shouldCaptureError?: (error: Error) => boolean;
 }
@@ -50,28 +44,33 @@ const defaultOptions: SentryMiddlewareOptions = {
   ignoreErrorPaths: [],
   includeBody: false,
   includeQuery: true,
-  extractUser: (req: Request) => {
-    const user = (req as Request & { user?: { id?: string; email?: string } }).user;
+  extractUser: (req: FastifyRequest) => {
+    const user = (req as FastifyRequest & { user?: { id?: string; email?: string } }).user;
     return user ? { id: user.id, email: user.email } : null;
   },
   shouldCaptureError: () => true,
 };
 
 // =============================================================================
-// Request Handler Middleware
+// Register Sentry Hooks
 // =============================================================================
 
 /**
- * Request handler middleware that adds request context to Sentry events.
- * Should be added at the very beginning of your middleware stack.
+ * Register all Sentry hooks on a Fastify instance.
+ * Replaces the Express request handler, error handler, and tracing middleware.
  */
-export function createSentryRequestHandler(options: SentryMiddlewareOptions = {}): RequestHandler {
+export function registerSentryHooks(
+  fastify: FastifyInstance,
+  options: SentryMiddlewareOptions = {}
+): void {
   const opts = { ...defaultOptions, ...options };
 
-  return (req: Request, res: Response, next: NextFunction): void => {
+  // ---------------------------------------------------------------------------
+  // onRequest hook — replaces sentryRequestHandler
+  // ---------------------------------------------------------------------------
+  fastify.addHook('onRequest', async (req: FastifyRequest, _reply: FastifyReply) => {
     // Skip ignored paths
-    if (opts.ignorePaths?.some((path) => req.path.startsWith(path))) {
-      next();
+    if (opts.ignorePaths?.some((path) => req.url.startsWith(path))) {
       return;
     }
 
@@ -84,12 +83,12 @@ export function createSentryRequestHandler(options: SentryMiddlewareOptions = {}
     // Add request breadcrumb
     errorTracking.addBreadcrumb({
       category: 'http',
-      message: `${req.method} ${req.path}`,
+      message: `${req.method} ${req.url}`,
       level: 'info',
       type: 'http',
       data: {
         method: req.method,
-        url: req.originalUrl || req.url,
+        url: req.url,
         ...(opts.includeQuery && { query: req.query }),
         headers: {
           'user-agent': req.headers['user-agent'],
@@ -101,8 +100,7 @@ export function createSentryRequestHandler(options: SentryMiddlewareOptions = {}
     // Set request context
     errorTracking.setContext('request', {
       method: req.method,
-      url: req.originalUrl || req.url,
-      path: req.path,
+      url: req.url,
       query: opts.includeQuery ? req.query : undefined,
       body: opts.includeBody ? req.body : undefined,
       headers: {
@@ -113,64 +111,46 @@ export function createSentryRequestHandler(options: SentryMiddlewareOptions = {}
       },
       ip: req.ip,
     });
+  });
 
-    // Track response for breadcrumb
-    const originalEnd = res.end.bind(res);
-    res.end = function (chunk?: unknown, encoding?: BufferEncoding | (() => void), callback?: () => void) {
-      errorTracking.addBreadcrumb({
-        category: 'http',
-        message: `Response: ${res.statusCode}`,
-        level: res.statusCode >= 400 ? 'warning' : 'info',
-        type: 'http',
-        data: {
-          statusCode: res.statusCode,
-          url: req.originalUrl || req.url,
-        },
-      });
+  // ---------------------------------------------------------------------------
+  // onResponse hook — adds response breadcrumb
+  // ---------------------------------------------------------------------------
+  fastify.addHook('onResponse', async (req: FastifyRequest, reply: FastifyReply) => {
+    if (opts.ignorePaths?.some((path) => req.url.startsWith(path))) {
+      return;
+    }
 
-      if (typeof encoding === 'function') {
-        return originalEnd(chunk, encoding);
-      }
-      return originalEnd(chunk, encoding, callback);
-    };
+    errorTracking.addBreadcrumb({
+      category: 'http',
+      message: `Response: ${reply.statusCode}`,
+      level: reply.statusCode >= 400 ? 'warning' : 'info',
+      type: 'http',
+      data: {
+        statusCode: reply.statusCode,
+        url: req.url,
+      },
+    });
+  });
 
-    next();
-  };
-}
-
-/**
- * Default request handler with default options
- */
-export const sentryRequestHandler: RequestHandler = createSentryRequestHandler();
-
-// =============================================================================
-// Error Handler Middleware
-// =============================================================================
-
-/**
- * Error handler middleware that captures unhandled errors to Sentry.
- * Should be added at the very end of your middleware stack, before your error handler.
- */
-export function createSentryErrorHandler(options: SentryMiddlewareOptions = {}): ErrorRequestHandler {
-  const opts = { ...defaultOptions, ...options };
-
-  return (err: Error, req: Request, res: Response, next: NextFunction): void => {
+  // ---------------------------------------------------------------------------
+  // onError hook — replaces sentryErrorHandler
+  // ---------------------------------------------------------------------------
+  fastify.addHook('onError', async (req: FastifyRequest, reply: FastifyReply, error: Error) => {
     // Skip ignored paths
-    if (opts.ignoreErrorPaths?.some((path) => req.path.startsWith(path))) {
-      next(err);
+    if (opts.ignoreErrorPaths?.some((path) => req.url.startsWith(path))) {
       return;
     }
 
     // Check if error should be captured
-    if (opts.shouldCaptureError && !opts.shouldCaptureError(err)) {
-      next(err);
+    if (opts.shouldCaptureError && !opts.shouldCaptureError(error)) {
       return;
     }
 
     // Get request context
     const context = getRequestContext({
       method: req.method,
-      url: req.originalUrl || req.url,
+      url: req.url,
       headers: req.headers as Record<string, string>,
       ip: req.ip,
       user: opts.extractUser?.(req) || undefined,
@@ -181,105 +161,51 @@ export function createSentryErrorHandler(options: SentryMiddlewareOptions = {}):
       ...context.extra,
       ...(opts.includeQuery && { query: req.query }),
       ...(opts.includeBody && { body: req.body }),
-      params: req.params,
+      params: (req as FastifyRequest & { params?: unknown }).params,
     };
 
     // Capture the exception
-    const eventId = errorTracking.captureException(err, context);
+    const eventId = errorTracking.captureException(error, context);
 
     // Add event ID to response headers for debugging
     if (eventId) {
-      res.setHeader('X-Sentry-Event-Id', eventId);
+      reply.header('X-Sentry-Event-Id', eventId);
     }
+  });
 
-    // Pass error to next handler
-    next(err);
-  };
-}
-
-/**
- * Default error handler with default options
- */
-export const sentryErrorHandler: ErrorRequestHandler = createSentryErrorHandler();
-
-// =============================================================================
-// Tracing Middleware
-// =============================================================================
-
-/**
- * Tracing middleware for performance monitoring.
- * Should be added early in your middleware stack, after the request handler.
- */
-export function createSentryTracingMiddleware(options: SentryMiddlewareOptions = {}): RequestHandler {
-  const opts = { ...defaultOptions, ...options };
-
-  return (req: Request, res: Response, next: NextFunction): void => {
-    // Skip ignored paths
-    if (opts.ignorePaths?.some((path) => req.path.startsWith(path))) {
-      next();
+  // ---------------------------------------------------------------------------
+  // Tracing hooks — replaces sentryTracingMiddleware
+  // ---------------------------------------------------------------------------
+  fastify.addHook('onRequest', async (req: FastifyRequest, _reply: FastifyReply) => {
+    if (opts.ignorePaths?.some((path) => req.url.startsWith(path))) {
       return;
     }
 
     // Start transaction
     const transaction = errorTracking.startTransaction({
-      name: `${req.method} ${req.route?.path || req.path}`,
+      name: `${req.method} ${req.url}`,
       op: 'http.server',
-      description: `${req.method} ${req.originalUrl || req.url}`,
+      description: `${req.method} ${req.url}`,
       tags: {
         'http.method': req.method,
-        'http.url': req.originalUrl || req.url,
+        'http.url': req.url,
       },
     });
 
-    if (!transaction) {
-      next();
-      return;
+    if (transaction) {
+      // Store transaction on request for access in route handlers
+      (req as FastifyRequest & { transaction?: typeof transaction }).transaction = transaction;
     }
+  });
 
-    // Store transaction on request for access in route handlers
-    (req as Request & { transaction?: typeof transaction }).transaction = transaction;
-
-    // Track response
-    const originalEnd = res.end.bind(res);
-    res.end = function (chunk?: unknown, encoding?: BufferEncoding | (() => void), callback?: () => void) {
-      // Set final transaction data
-      transaction.setTag('http.status_code', String(res.statusCode));
-      transaction.setData('http.response_content_length', res.get('Content-Length') || '0');
-
-      // Finish transaction
+  fastify.addHook('onResponse', async (req: FastifyRequest, reply: FastifyReply) => {
+    const transaction = (req as FastifyRequest & { transaction?: { finish: () => void; setTag: (k: string, v: string) => void; setData: (k: string, v: string) => void } }).transaction;
+    if (transaction) {
+      transaction.setTag('http.status_code', String(reply.statusCode));
+      transaction.setData('http.response_content_length', reply.getHeader('Content-Length')?.toString() || '0');
       transaction.finish();
-
-      if (typeof encoding === 'function') {
-        return originalEnd(chunk, encoding);
-      }
-      return originalEnd(chunk, encoding, callback);
-    };
-
-    next();
-  };
-}
-
-/**
- * Default tracing middleware with default options
- */
-export const sentryTracingMiddleware: RequestHandler = createSentryTracingMiddleware();
-
-// =============================================================================
-// Helper: Wrap Async Route Handlers
-// =============================================================================
-
-/**
- * Wrap an async route handler to automatically capture errors
- */
-export function wrapAsync(
-  fn: (req: Request, res: Response, next: NextFunction) => Promise<void>
-): RequestHandler {
-  return (req: Request, res: Response, next: NextFunction): void => {
-    Promise.resolve(fn(req, res, next)).catch((error) => {
-      errorTracking.captureException(error, getRequestContext(req));
-      next(error);
-    });
-  };
+    }
+  });
 }
 
 // =============================================================================
@@ -290,10 +216,10 @@ export function wrapAsync(
  * Create a child span for the current transaction
  */
 export function createSpan(
-  req: Request,
+  req: FastifyRequest,
   context: { op: string; description?: string }
 ): { finish: () => void; setTag: (key: string, value: string) => void } | null {
-  const transaction = (req as Request & { transaction?: { startChild: (ctx: { op: string; description?: string }) => unknown } }).transaction;
+  const transaction = (req as FastifyRequest & { transaction?: { startChild: (ctx: { op: string; description?: string }) => unknown } }).transaction;
   if (!transaction) {
     return null;
   }
@@ -307,12 +233,6 @@ export function createSpan(
 // =============================================================================
 
 export default {
-  createSentryRequestHandler,
-  createSentryErrorHandler,
-  createSentryTracingMiddleware,
-  sentryRequestHandler,
-  sentryErrorHandler,
-  sentryTracingMiddleware,
-  wrapAsync,
+  registerSentryHooks,
   createSpan,
 };

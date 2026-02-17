@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { FastifyRequest, FastifyReply } from 'fastify';
 import { PrismaClient, Prisma, UserRole } from '@prisma/client';
 
 // =============================================================================
@@ -183,133 +183,123 @@ export class AdminController {
    * GET /admin/stats
    * Get dashboard statistics
    */
-  async getStats(_req: Request, res: Response): Promise<void> {
-    try {
-      const now = new Date();
-      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const startOfWeek = new Date(startOfDay);
-      startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  async getStats(_req: FastifyRequest, reply: FastifyReply) {
+    const now = new Date();
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfWeek = new Date(startOfDay);
+    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-      const [totalUsers, activeUsers, newToday, newThisWeek, newThisMonth, usersByRole] =
-        await Promise.all([
-          this.prisma.user.count(),
-          this.prisma.user.count({
-            where: {
-              updatedAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
-            },
-          }),
-          this.prisma.user.count({
-            where: { createdAt: { gte: startOfDay } },
-          }),
-          this.prisma.user.count({
-            where: { createdAt: { gte: startOfWeek } },
-          }),
-          this.prisma.user.count({
-            where: { createdAt: { gte: startOfMonth } },
-          }),
-          this.prisma.user.groupBy({
-            by: ['role'],
-            _count: { id: true },
-          }),
-        ]);
+    const [totalUsers, activeUsers, newToday, newThisWeek, newThisMonth, usersByRole] =
+      await Promise.all([
+        this.prisma.user.count(),
+        this.prisma.user.count({
+          where: {
+            updatedAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
+          },
+        }),
+        this.prisma.user.count({
+          where: { createdAt: { gte: startOfDay } },
+        }),
+        this.prisma.user.count({
+          where: { createdAt: { gte: startOfWeek } },
+        }),
+        this.prisma.user.count({
+          where: { createdAt: { gte: startOfMonth } },
+        }),
+        this.prisma.user.groupBy({
+          by: ['role'],
+          _count: { id: true },
+        }),
+      ]);
 
-      const roleStats: Record<string, number> = {};
-      for (const entry of usersByRole) {
-        roleStats[entry.role] = entry._count.id;
-      }
-
-      const stats: DashboardStats = {
-        totalUsers,
-        activeUsers,
-        newUsersToday: newToday,
-        newUsersThisWeek: newThisWeek,
-        newUsersThisMonth: newThisMonth,
-        usersByRole: roleStats,
-      };
-
-      res.json({ success: true, stats });
-    } catch (error) {
-      console.error('[AdminController] Get stats error:', error);
-      res.status(500).json({ error: 'Failed to get statistics' });
+    const roleStats: Record<string, number> = {};
+    for (const entry of usersByRole) {
+      roleStats[entry.role] = entry._count.id;
     }
+
+    const stats: DashboardStats = {
+      totalUsers,
+      activeUsers,
+      newUsersToday: newToday,
+      newUsersThisWeek: newThisWeek,
+      newUsersThisMonth: newThisMonth,
+      usersByRole: roleStats,
+    };
+
+    return reply.send({ success: true, stats });
   }
 
   /**
    * GET /admin/activity
    * Get recent activity/audit log
    */
-  async getRecentActivity(req: Request, res: Response): Promise<void> {
-    try {
-      const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 20));
-      const offset = Math.max(0, parseInt(req.query.offset as string) || 0);
-      const type = req.query.type as ActivityType | undefined;
+  async getRecentActivity(req: FastifyRequest, reply: FastifyReply) {
+    const query = req.query as { limit?: string; offset?: string; type?: ActivityType };
+    const limit = Math.min(100, Math.max(1, parseInt(query.limit as string) || 20));
+    const offset = Math.max(0, parseInt(query.offset as string) || 0);
+    const type = query.type as ActivityType | undefined;
 
-      let filteredActivity = activityLog;
+    let filteredActivity = activityLog;
 
-      if (type) {
-        filteredActivity = activityLog.filter((a) => a.type === type);
-      }
+    if (type) {
+      filteredActivity = activityLog.filter((a) => a.type === type);
+    }
 
-      const paginatedActivity = filteredActivity.slice(offset, offset + limit);
+    const paginatedActivity = filteredActivity.slice(offset, offset + limit);
 
-      // If activity log is empty, fall back to user-based activity
-      if (activityLog.length === 0) {
-        const recentUsers = await this.prisma.user.findMany({
-          take: limit,
-          orderBy: { updatedAt: 'desc' },
-          select: {
-            id: true,
-            email: true,
-            name: true,
-            createdAt: true,
-            updatedAt: true,
-          },
-        });
-
-        const fallbackActivity = recentUsers.map((user) => ({
-          id: user.id,
-          type: (user.createdAt.getTime() === user.updatedAt.getTime()
-            ? 'user_created'
-            : 'user_updated') as ActivityType,
-          action:
-            user.createdAt.getTime() === user.updatedAt.getTime()
-              ? 'User registered'
-              : 'User profile updated',
-          entityType: 'user',
-          entityId: user.id,
-          userId: user.id,
-          userEmail: user.email,
-          userName: user.name,
-          metadata: {},
-          timestamp: user.updatedAt,
-        }));
-
-        res.json({
-          success: true,
-          activity: fallbackActivity,
-          pagination: {
-            total: recentUsers.length,
-            limit,
-            offset: 0,
-          },
-        });
-        return;
-      }
-
-      res.json({
-        success: true,
-        activity: paginatedActivity,
-        pagination: {
-          total: filteredActivity.length,
-          limit,
-          offset,
+    // If activity log is empty, fall back to user-based activity
+    if (activityLog.length === 0) {
+      const recentUsers = await this.prisma.user.findMany({
+        take: limit,
+        orderBy: { updatedAt: 'desc' },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          createdAt: true,
+          updatedAt: true,
         },
       });
-    } catch (error) {
-      console.error('[AdminController] Get activity error:', error);
-      res.status(500).json({ error: 'Failed to get activity' });
+
+      const fallbackActivity = recentUsers.map((user) => ({
+        id: user.id,
+        type: (user.createdAt.getTime() === user.updatedAt.getTime()
+          ? 'user_created'
+          : 'user_updated') as ActivityType,
+        action:
+          user.createdAt.getTime() === user.updatedAt.getTime()
+            ? 'User registered'
+            : 'User profile updated',
+        entityType: 'user',
+        entityId: user.id,
+        userId: user.id,
+        userEmail: user.email,
+        userName: user.name,
+        metadata: {},
+        timestamp: user.updatedAt,
+      }));
+
+      return reply.send({
+        success: true,
+        activity: fallbackActivity,
+        pagination: {
+          total: recentUsers.length,
+          limit,
+          offset: 0,
+        },
+      });
     }
+
+    return reply.send({
+      success: true,
+      activity: paginatedActivity,
+      pagination: {
+        total: filteredActivity.length,
+        limit,
+        offset,
+      },
+    });
   }
 
   // ===========================================================================
@@ -320,84 +310,41 @@ export class AdminController {
    * GET /admin/users
    * List users with pagination and filtering
    */
-  async listUsers(req: Request, res: Response): Promise<void> {
-    try {
-      const {
-        page = '1',
-        limit = '20',
-        search,
-        sortBy = 'createdAt',
-        sortOrder = 'desc',
-        role,
-      } = req.query as UserListQuery;
+  async listUsers(req: FastifyRequest, reply: FastifyReply) {
+    const {
+      page = '1',
+      limit = '20',
+      search,
+      sortBy = 'createdAt',
+      sortOrder = 'desc',
+      role,
+    } = req.query as UserListQuery;
 
-      const pageNum = Math.max(1, parseInt(page));
-      const limitNum = Math.min(100, Math.max(1, parseInt(limit)));
-      const skip = (pageNum - 1) * limitNum;
+    const pageNum = Math.max(1, parseInt(page));
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit)));
+    const skip = (pageNum - 1) * limitNum;
 
-      // Build where clause
-      const where: Prisma.UserWhereInput = {};
+    // Build where clause
+    const where: Prisma.UserWhereInput = {};
 
-      if (search) {
-        where.OR = [
-          { email: { contains: search, mode: 'insensitive' } },
-          { name: { contains: search, mode: 'insensitive' } },
-        ];
-      }
-
-      if (role) {
-        where.role = role as UserRole;
-      }
-
-      // Get users and total count
-      const [users, total] = await Promise.all([
-        this.prisma.user.findMany({
-          where,
-          skip,
-          take: limitNum,
-          orderBy: { [sortBy]: sortOrder },
-          select: {
-            id: true,
-            email: true,
-            name: true,
-            role: true,
-            isActive: true,
-            emailVerified: true,
-            createdAt: true,
-            updatedAt: true,
-          },
-        }),
-        this.prisma.user.count({ where }),
-      ]);
-
-      res.json({
-        success: true,
-        users,
-        pagination: {
-          page: pageNum,
-          limit: limitNum,
-          total,
-          totalPages: Math.ceil(total / limitNum),
-          hasNext: pageNum < Math.ceil(total / limitNum),
-          hasPrev: pageNum > 1,
-        },
-      });
-    } catch (error) {
-      console.error('[AdminController] List users error:', error);
-      res.status(500).json({ error: 'Failed to list users' });
+    if (search) {
+      where.OR = [
+        { email: { contains: search, mode: 'insensitive' } },
+        { name: { contains: search, mode: 'insensitive' } },
+      ];
     }
-  }
 
-  /**
-   * GET /admin/users/:id
-   * Get single user details
-   */
-  async getUser(req: Request, res: Response): Promise<void> {
-    try {
-      const { id } = req.params;
+    if (role) {
+      where.role = role as UserRole;
+    }
 
-      const user = await this.prisma.user.findUnique({
-        where: { id },
+    // Get users and total count
+    const [users, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        skip,
+        take: limitNum,
+        orderBy: { [sortBy]: sortOrder },
         select: {
           id: true,
           email: true,
@@ -405,177 +352,196 @@ export class AdminController {
           role: true,
           isActive: true,
           emailVerified: true,
-          authProvider: true,
           createdAt: true,
           updatedAt: true,
         },
-      });
+      }),
+      this.prisma.user.count({ where }),
+    ]);
 
-      if (!user) {
-        res.status(404).json({ error: 'User not found' });
-        return;
-      }
+    return reply.send({
+      success: true,
+      users,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        totalPages: Math.ceil(total / limitNum),
+        hasNext: pageNum < Math.ceil(total / limitNum),
+        hasPrev: pageNum > 1,
+      },
+    });
+  }
 
-      res.json({ success: true, user });
-    } catch (error) {
-      console.error('[AdminController] Get user error:', error);
-      res.status(500).json({ error: 'Failed to get user' });
+  /**
+   * GET /admin/users/:id
+   * Get single user details
+   */
+  async getUser(req: FastifyRequest, reply: FastifyReply) {
+    const { id } = req.params as { id: string };
+
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        isActive: true,
+        emailVerified: true,
+        authProvider: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    if (!user) {
+      return reply.code(404).send({ error: 'User not found' });
     }
+
+    return reply.send({ success: true, user });
   }
 
   /**
    * PATCH /admin/users/:id
    * Update user
    */
-  async updateUser(req: Request, res: Response): Promise<void> {
-    try {
-      const { id } = req.params;
-      const { name, role, isActive } = req.body;
-      const currentUser = (req as Request & { user?: { userId: string; email: string } }).user;
+  async updateUser(req: FastifyRequest, reply: FastifyReply) {
+    const { id } = req.params as { id: string };
+    const { name, role, isActive } = req.body as { name?: string; role?: string; isActive?: boolean };
+    const currentUser = (req as FastifyRequest & { user?: { userId: string; email: string } }).user;
 
-      // Check if user exists
-      const existingUser = await this.prisma.user.findUnique({
-        where: { id },
-      });
+    // Check if user exists
+    const existingUser = await this.prisma.user.findUnique({
+      where: { id },
+    });
 
-      if (!existingUser) {
-        res.status(404).json({ error: 'User not found' });
-        return;
-      }
-
-      // Build update data
-      const updateData: Prisma.UserUpdateInput = {};
-      const changes: string[] = [];
-
-      if (name !== undefined && name !== existingUser.name) {
-        updateData.name = name;
-        changes.push(`name changed from "${existingUser.name}" to "${name}"`);
-      }
-
-      if (role !== undefined && role !== existingUser.role) {
-        updateData.role = role as UserRole;
-        changes.push(`role changed from "${existingUser.role}" to "${role}"`);
-      }
-
-      if (isActive !== undefined && isActive !== existingUser.isActive) {
-        updateData.isActive = isActive;
-        changes.push(isActive ? 'account reactivated' : 'account deactivated');
-      }
-
-      const user = await this.prisma.user.update({
-        where: { id },
-        data: updateData,
-        select: {
-          id: true,
-          email: true,
-          name: true,
-          role: true,
-          isActive: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      });
-
-      // Log activity
-      if (changes.length > 0) {
-        const activityType: ActivityType =
-          role !== undefined && role !== existingUser.role
-            ? 'user_role_changed'
-            : isActive === false
-              ? 'user_deactivated'
-              : isActive === true && !existingUser.isActive
-                ? 'user_reactivated'
-                : 'user_updated';
-
-        logActivity({
-          type: activityType,
-          action: `User ${existingUser.email} updated: ${changes.join(', ')}`,
-          entityType: 'user',
-          entityId: id,
-          userId: currentUser?.userId || 'system',
-          userEmail: currentUser?.email || 'system',
-          userName: null,
-          metadata: {
-            targetUserId: id,
-            targetUserEmail: existingUser.email,
-            changes,
-            oldValues: {
-              name: existingUser.name,
-              role: existingUser.role,
-              isActive: existingUser.isActive,
-            },
-            newValues: {
-              name: name ?? existingUser.name,
-              role: role ?? existingUser.role,
-              isActive: isActive ?? existingUser.isActive,
-            },
-          },
-          ipAddress: req.ip,
-          userAgent: req.get('user-agent'),
-        });
-      }
-
-      res.json({ success: true, user });
-    } catch (error) {
-      console.error('[AdminController] Update user error:', error);
-      res.status(500).json({ error: 'Failed to update user' });
+    if (!existingUser) {
+      return reply.code(404).send({ error: 'User not found' });
     }
-  }
 
-  /**
-   * DELETE /admin/users/:id
-   * Delete user
-   */
-  async deleteUser(req: Request, res: Response): Promise<void> {
-    try {
-      const { id } = req.params;
-      const currentUser = (req as Request & { user?: { userId: string; email: string } }).user;
+    // Build update data
+    const updateData: Prisma.UserUpdateInput = {};
+    const changes: string[] = [];
 
-      // Prevent self-deletion
-      const currentUserId = currentUser?.userId;
-      if (id === currentUserId) {
-        res.status(400).json({ error: 'Cannot delete your own account' });
-        return;
-      }
+    if (name !== undefined && name !== existingUser.name) {
+      updateData.name = name;
+      changes.push(`name changed from "${existingUser.name}" to "${name}"`);
+    }
 
-      // Check if user exists
-      const user = await this.prisma.user.findUnique({
-        where: { id },
-      });
+    if (role !== undefined && role !== existingUser.role) {
+      updateData.role = role as UserRole;
+      changes.push(`role changed from "${existingUser.role}" to "${role}"`);
+    }
 
-      if (!user) {
-        res.status(404).json({ error: 'User not found' });
-        return;
-      }
+    if (isActive !== undefined && isActive !== existingUser.isActive) {
+      updateData.isActive = isActive;
+      changes.push(isActive ? 'account reactivated' : 'account deactivated');
+    }
 
-      await this.prisma.user.delete({ where: { id } });
+    const user = await this.prisma.user.update({
+      where: { id },
+      data: updateData,
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
 
-      // Log activity
+    // Log activity
+    if (changes.length > 0) {
+      const activityType: ActivityType =
+        role !== undefined && role !== existingUser.role
+          ? 'user_role_changed'
+          : isActive === false
+            ? 'user_deactivated'
+            : isActive === true && !existingUser.isActive
+              ? 'user_reactivated'
+              : 'user_updated';
+
       logActivity({
-        type: 'user_deleted',
-        action: `User ${user.email} deleted`,
+        type: activityType,
+        action: `User ${existingUser.email} updated: ${changes.join(', ')}`,
         entityType: 'user',
         entityId: id,
         userId: currentUser?.userId || 'system',
         userEmail: currentUser?.email || 'system',
         userName: null,
         metadata: {
-          deletedUser: {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            role: user.role,
+          targetUserId: id,
+          targetUserEmail: existingUser.email,
+          changes,
+          oldValues: {
+            name: existingUser.name,
+            role: existingUser.role,
+            isActive: existingUser.isActive,
+          },
+          newValues: {
+            name: name ?? existingUser.name,
+            role: role ?? existingUser.role,
+            isActive: isActive ?? existingUser.isActive,
           },
         },
         ipAddress: req.ip,
-        userAgent: req.get('user-agent'),
+        userAgent: req.headers['user-agent'],
       });
-
-      res.json({ success: true, message: 'User deleted' });
-    } catch (error) {
-      console.error('[AdminController] Delete user error:', error);
-      res.status(500).json({ error: 'Failed to delete user' });
     }
+
+    return reply.send({ success: true, user });
+  }
+
+  /**
+   * DELETE /admin/users/:id
+   * Delete user
+   */
+  async deleteUser(req: FastifyRequest, reply: FastifyReply) {
+    const { id } = req.params as { id: string };
+    const currentUser = (req as FastifyRequest & { user?: { userId: string; email: string } }).user;
+
+    // Prevent self-deletion
+    const currentUserId = currentUser?.userId;
+    if (id === currentUserId) {
+      return reply.code(400).send({ error: 'Cannot delete your own account' });
+    }
+
+    // Check if user exists
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+    });
+
+    if (!user) {
+      return reply.code(404).send({ error: 'User not found' });
+    }
+
+    await this.prisma.user.delete({ where: { id } });
+
+    // Log activity
+    logActivity({
+      type: 'user_deleted',
+      action: `User ${user.email} deleted`,
+      entityType: 'user',
+      entityId: id,
+      userId: currentUser?.userId || 'system',
+      userEmail: currentUser?.email || 'system',
+      userName: null,
+      metadata: {
+        deletedUser: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+        },
+      },
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+    });
+
+    return reply.send({ success: true, message: 'User deleted' });
   }
 
   // ===========================================================================
@@ -586,213 +552,184 @@ export class AdminController {
    * GET /admin/settings
    * Get system settings
    */
-  async getSettings(_req: Request, res: Response): Promise<void> {
-    try {
-      // Merge environment variables with stored settings
-      const settings: SystemSettings = {
-        ...DEFAULT_SETTINGS,
-        ...settingsStore,
-        // Environment overrides (read-only)
-        appName: process.env.APP_NAME || settingsStore.appName,
-        supportEmail: process.env.SUPPORT_EMAIL || settingsStore.supportEmail,
-      };
+  async getSettings(_req: FastifyRequest, reply: FastifyReply) {
+    // Merge environment variables with stored settings
+    const settings: SystemSettings = {
+      ...DEFAULT_SETTINGS,
+      ...settingsStore,
+      // Environment overrides (read-only)
+      appName: process.env.APP_NAME || settingsStore.appName,
+      supportEmail: process.env.SUPPORT_EMAIL || settingsStore.supportEmail,
+    };
 
-      res.json({ success: true, settings });
-    } catch (error) {
-      console.error('[AdminController] Get settings error:', error);
-      res.status(500).json({ error: 'Failed to get settings' });
-    }
+    return reply.send({ success: true, settings });
   }
 
   /**
    * PUT /admin/settings
    * Update system settings
    */
-  async updateSettings(req: Request, res: Response): Promise<void> {
-    try {
-      const { settings: newSettings } = req.body;
-      const currentUser = (req as Request & { user?: { userId: string; email: string } }).user;
+  async updateSettings(req: FastifyRequest, reply: FastifyReply) {
+    const { settings: newSettings } = req.body as { settings: Record<string, unknown> };
+    const currentUser = (req as FastifyRequest & { user?: { userId: string; email: string } }).user;
 
-      if (!newSettings || typeof newSettings !== 'object') {
-        res.status(400).json({ error: 'Invalid settings data' });
-        return;
-      }
-
-      // Track changes
-      const changes: Array<{ key: string; oldValue: unknown; newValue: unknown }> = [];
-
-      // Validate and update settings
-      const allowedKeys: Array<keyof SystemSettings> = [
-        'appName',
-        'supportEmail',
-        'maintenanceMode',
-        'allowRegistration',
-        'requireEmailVerification',
-        'maxLoginAttempts',
-        'sessionTimeout',
-      ];
-
-      for (const key of allowedKeys) {
-        if (newSettings[key] !== undefined && newSettings[key] !== settingsStore[key]) {
-          changes.push({
-            key,
-            oldValue: settingsStore[key],
-            newValue: newSettings[key],
-          });
-          settingsStore[key] = newSettings[key];
-        }
-      }
-
-      // Log activity
-      if (changes.length > 0) {
-        logActivity({
-          type: 'settings_updated',
-          action: `System settings updated: ${changes.map((c) => c.key).join(', ')}`,
-          entityType: 'settings',
-          entityId: 'system',
-          userId: currentUser?.userId || 'system',
-          userEmail: currentUser?.email || 'system',
-          userName: null,
-          metadata: { changes },
-          ipAddress: req.ip,
-          userAgent: req.get('user-agent'),
-        });
-      }
-
-      res.json({
-        success: true,
-        message: 'Settings updated',
-        settings: settingsStore,
-        changesApplied: changes.length,
-      });
-    } catch (error) {
-      console.error('[AdminController] Update settings error:', error);
-      res.status(500).json({ error: 'Failed to update settings' });
+    if (!newSettings || typeof newSettings !== 'object') {
+      return reply.code(400).send({ error: 'Invalid settings data' });
     }
+
+    // Track changes
+    const changes: Array<{ key: string; oldValue: unknown; newValue: unknown }> = [];
+
+    // Validate and update settings
+    const allowedKeys: Array<keyof SystemSettings> = [
+      'appName',
+      'supportEmail',
+      'maintenanceMode',
+      'allowRegistration',
+      'requireEmailVerification',
+      'maxLoginAttempts',
+      'sessionTimeout',
+    ];
+
+    for (const key of allowedKeys) {
+      if (newSettings[key] !== undefined && newSettings[key] !== settingsStore[key]) {
+        changes.push({
+          key,
+          oldValue: settingsStore[key],
+          newValue: newSettings[key],
+        });
+        settingsStore[key] = newSettings[key] as string | boolean | number;
+      }
+    }
+
+    // Log activity
+    if (changes.length > 0) {
+      logActivity({
+        type: 'settings_updated',
+        action: `System settings updated: ${changes.map((c) => c.key).join(', ')}`,
+        entityType: 'settings',
+        entityId: 'system',
+        userId: currentUser?.userId || 'system',
+        userEmail: currentUser?.email || 'system',
+        userName: null,
+        metadata: { changes },
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+      });
+    }
+
+    return reply.send({
+      success: true,
+      message: 'Settings updated',
+      settings: settingsStore,
+      changesApplied: changes.length,
+    });
   }
 
   /**
    * GET /admin/settings/:key
    * Get a specific setting
    */
-  async getSetting(req: Request, res: Response): Promise<void> {
-    try {
-      const { key } = req.params;
+  async getSetting(req: FastifyRequest, reply: FastifyReply) {
+    const { key } = req.params as { key: string };
 
-      if (!(key in settingsStore)) {
-        res.status(404).json({ error: 'Setting not found' });
-        return;
-      }
-
-      res.json({
-        success: true,
-        key,
-        value: settingsStore[key as keyof SystemSettings],
-      });
-    } catch (error) {
-      console.error('[AdminController] Get setting error:', error);
-      res.status(500).json({ error: 'Failed to get setting' });
+    if (!(key in settingsStore)) {
+      return reply.code(404).send({ error: 'Setting not found' });
     }
+
+    return reply.send({
+      success: true,
+      key,
+      value: settingsStore[key as keyof SystemSettings],
+    });
   }
 
   /**
    * PUT /admin/settings/:key
    * Update a specific setting
    */
-  async updateSetting(req: Request, res: Response): Promise<void> {
-    try {
-      const { key } = req.params;
-      const { value } = req.body;
-      const currentUser = (req as Request & { user?: { userId: string; email: string } }).user;
+  async updateSetting(req: FastifyRequest, reply: FastifyReply) {
+    const { key } = req.params as { key: string };
+    const { value } = req.body as { value: unknown };
+    const currentUser = (req as FastifyRequest & { user?: { userId: string; email: string } }).user;
 
-      const allowedKeys: Array<keyof SystemSettings> = [
-        'appName',
-        'supportEmail',
-        'maintenanceMode',
-        'allowRegistration',
-        'requireEmailVerification',
-        'maxLoginAttempts',
-        'sessionTimeout',
-      ];
+    const allowedKeys: Array<keyof SystemSettings> = [
+      'appName',
+      'supportEmail',
+      'maintenanceMode',
+      'allowRegistration',
+      'requireEmailVerification',
+      'maxLoginAttempts',
+      'sessionTimeout',
+    ];
 
-      if (!allowedKeys.includes(key as keyof SystemSettings)) {
-        res.status(400).json({ error: 'Invalid setting key' });
-        return;
-      }
-
-      const oldValue = settingsStore[key as keyof SystemSettings];
-      settingsStore[key as keyof SystemSettings] = value;
-
-      // Log activity
-      logActivity({
-        type: 'settings_updated',
-        action: `Setting "${key}" updated`,
-        entityType: 'settings',
-        entityId: key,
-        userId: currentUser?.userId || 'system',
-        userEmail: currentUser?.email || 'system',
-        userName: null,
-        metadata: { key, oldValue, newValue: value },
-        ipAddress: req.ip,
-        userAgent: req.get('user-agent'),
-      });
-
-      res.json({
-        success: true,
-        key,
-        value: settingsStore[key as keyof SystemSettings],
-      });
-    } catch (error) {
-      console.error('[AdminController] Update setting error:', error);
-      res.status(500).json({ error: 'Failed to update setting' });
+    if (!allowedKeys.includes(key as keyof SystemSettings)) {
+      return reply.code(400).send({ error: 'Invalid setting key' });
     }
+
+    const oldValue = settingsStore[key as keyof SystemSettings];
+    settingsStore[key as keyof SystemSettings] = value as string | boolean | number;
+
+    // Log activity
+    logActivity({
+      type: 'settings_updated',
+      action: `Setting "${key}" updated`,
+      entityType: 'settings',
+      entityId: key,
+      userId: currentUser?.userId || 'system',
+      userEmail: currentUser?.email || 'system',
+      userName: null,
+      metadata: { key, oldValue, newValue: value },
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+    });
+
+    return reply.send({
+      success: true,
+      key,
+      value: settingsStore[key as keyof SystemSettings],
+    });
   }
 
   /**
    * DELETE /admin/settings/:key
    * Reset a setting to default
    */
-  async resetSetting(req: Request, res: Response): Promise<void> {
-    try {
-      const { key } = req.params;
-      const currentUser = (req as Request & { user?: { userId: string; email: string } }).user;
+  async resetSetting(req: FastifyRequest, reply: FastifyReply) {
+    const { key } = req.params as { key: string };
+    const currentUser = (req as FastifyRequest & { user?: { userId: string; email: string } }).user;
 
-      if (!(key in DEFAULT_SETTINGS)) {
-        res.status(404).json({ error: 'Setting not found' });
-        return;
-      }
-
-      const oldValue = settingsStore[key as keyof SystemSettings];
-      settingsStore[key as keyof SystemSettings] = DEFAULT_SETTINGS[key as keyof SystemSettings];
-
-      // Log activity
-      logActivity({
-        type: 'settings_updated',
-        action: `Setting "${key}" reset to default`,
-        entityType: 'settings',
-        entityId: key,
-        userId: currentUser?.userId || 'system',
-        userEmail: currentUser?.email || 'system',
-        userName: null,
-        metadata: {
-          key,
-          oldValue,
-          newValue: DEFAULT_SETTINGS[key as keyof SystemSettings],
-        },
-        ipAddress: req.ip,
-        userAgent: req.get('user-agent'),
-      });
-
-      res.json({
-        success: true,
-        key,
-        value: settingsStore[key as keyof SystemSettings],
-        message: 'Setting reset to default',
-      });
-    } catch (error) {
-      console.error('[AdminController] Reset setting error:', error);
-      res.status(500).json({ error: 'Failed to reset setting' });
+    if (!(key in DEFAULT_SETTINGS)) {
+      return reply.code(404).send({ error: 'Setting not found' });
     }
+
+    const oldValue = settingsStore[key as keyof SystemSettings];
+    settingsStore[key as keyof SystemSettings] = DEFAULT_SETTINGS[key as keyof SystemSettings];
+
+    // Log activity
+    logActivity({
+      type: 'settings_updated',
+      action: `Setting "${key}" reset to default`,
+      entityType: 'settings',
+      entityId: key,
+      userId: currentUser?.userId || 'system',
+      userEmail: currentUser?.email || 'system',
+      userName: null,
+      metadata: {
+        key,
+        oldValue,
+        newValue: DEFAULT_SETTINGS[key as keyof SystemSettings],
+      },
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+    });
+
+    return reply.send({
+      success: true,
+      key,
+      value: settingsStore[key as keyof SystemSettings],
+      message: 'Setting reset to default',
+    });
   }
 
   // ===========================================================================

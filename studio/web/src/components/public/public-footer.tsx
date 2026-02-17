@@ -17,7 +17,7 @@ export function PublicFooter() {
   return (
     <footer className="border-t bg-muted/30" role="contentinfo">
       <Container>
-        <div className="py-12 grid gap-8 md:grid-cols-2">
+        <div className="py-12 grid gap-6 md:grid-cols-2">
           {/* Brand */}
           <div>
             <Link href="/" className="flex items-center gap-2 mb-4">

@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 
 // =============================================================================
 // Types
@@ -214,7 +215,7 @@ function NavItemComponent({
     return (
       <div
         className={cn(
-          'flex items-center gap-3 px-3 py-2 rounded-lg text-gray-400 cursor-not-allowed',
+          'flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground cursor-not-allowed',
           collapsed && 'justify-center'
         )}
         title={collapsed ? item.label : undefined}
@@ -231,8 +232,8 @@ function NavItemComponent({
       className={cn(
         'flex items-center gap-3 px-3 py-2 rounded-lg transition-colors',
         isActive
-          ? 'bg-blue-50 text-blue-700 font-medium'
-          : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900',
+          ? 'bg-primary/10 text-primary font-medium'
+          : 'text-muted-foreground hover:bg-muted hover:text-foreground',
         collapsed && 'justify-center'
       )}
       title={collapsed ? item.label : undefined}
@@ -242,7 +243,7 @@ function NavItemComponent({
         <>
           <span className="text-sm flex-1">{item.label}</span>
           {item.badge !== undefined && (
-            <span className="px-2 py-0.5 text-xs font-medium bg-gray-200 text-gray-600 rounded-full">
+            <span className="px-2 py-0.5 text-xs font-medium bg-muted text-muted-foreground rounded-full">
               {item.badge}
             </span>
           )}
@@ -279,7 +280,7 @@ export function AdminSidebar({
   return (
     <aside
       className={cn(
-        'flex flex-col bg-white border-r border-gray-200 transition-all duration-300',
+        'flex flex-col bg-card border-r border-border transition-all duration-300',
         collapsed ? 'w-16' : 'w-64',
         className
       )}
@@ -287,19 +288,19 @@ export function AdminSidebar({
       {/* Header */}
       <div
         className={cn(
-          'flex items-center h-16 px-4 border-b border-gray-200',
+          'flex items-center h-16 px-4 border-b border-border',
           collapsed ? 'justify-center' : 'gap-3'
         )}
       >
         {logo || (
-          <div className="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center">
-            <span className="text-white font-bold text-sm">
+          <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
+            <span className="text-primary-foreground font-bold text-sm">
               {appName[0].toUpperCase()}
             </span>
           </div>
         )}
         {!collapsed && (
-          <span className="font-semibold text-gray-900">{appName}</span>
+          <span className="font-semibold text-foreground">{appName}</span>
         )}
       </div>
 
@@ -312,7 +313,7 @@ export function AdminSidebar({
           return (
             <div key={groupIndex}>
               {group.title && !collapsed && (
-                <h3 className="px-3 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                <h3 className="px-3 mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   {group.title}
                 </h3>
               )}
@@ -339,20 +340,21 @@ export function AdminSidebar({
 
       {/* Footer */}
       {(footer || onCollapseToggle) && (
-        <div className="border-t border-gray-200 p-4">
+        <div className="border-t border-border p-4">
           {footer}
           {onCollapseToggle && (
-            <button
+            <Button
+              variant="ghost"
               onClick={onCollapseToggle}
               className={cn(
-                'flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors',
+                'flex items-center gap-2 w-full px-3 py-2 text-sm text-muted-foreground hover:text-foreground h-auto',
                 collapsed && 'justify-center'
               )}
               title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             >
               {collapsed ? Icons.ChevronRight : Icons.ChevronLeft}
               {!collapsed && <span>Collapse</span>}
-            </button>
+            </Button>
           )}
         </div>
       )}

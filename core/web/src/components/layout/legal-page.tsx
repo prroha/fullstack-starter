@@ -59,8 +59,8 @@ function LegalPage({
       </header>
 
       {/* Content */}
-      <div className="container mx-auto px-4 py-8 md:py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 lg:gap-12">
+      <div className="container mx-auto px-4 py-6 md:py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-8">
           {/* Table of Contents - Sidebar */}
           {tableOfContents && tableOfContents.length > 0 && (
             <aside className="lg:col-span-1">
@@ -103,7 +103,7 @@ function LegalPage({
 
             {/* Contact Section */}
             {contactEmail && (
-              <div className="mt-12 pt-8 border-t border-border">
+              <div className="mt-8 pt-6 border-t border-border">
                 <h2 className="text-lg font-semibold text-foreground mb-2">
                   Questions?
                 </h2>
@@ -262,9 +262,9 @@ function LegalHighlight({
   ...props
 }: LegalHighlightProps) {
   const styles = {
-    info: "border-blue-500/50 bg-blue-500/10 text-blue-700 dark:text-blue-300",
-    warning: "border-yellow-500/50 bg-yellow-500/10 text-yellow-700 dark:text-yellow-300",
-    important: "border-red-500/50 bg-red-500/10 text-red-700 dark:text-red-300",
+    info: "border-primary/50 bg-primary/10 text-primary",
+    warning: "border-warning/50 bg-warning/10 text-warning",
+    important: "border-destructive/50 bg-destructive/10 text-destructive",
   };
 
   return (

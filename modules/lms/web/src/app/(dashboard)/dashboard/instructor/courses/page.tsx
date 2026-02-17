@@ -126,7 +126,7 @@ export default function InstructorCoursesPage() {
 
       {/* Course List */}
       {filteredCourses.length === 0 ? (
-        <div className="text-center py-16 bg-card rounded-lg border border-border">
+        <div className="text-center py-10 bg-card rounded-lg border border-border">
           <p className="text-muted-foreground text-lg">
             {courses.length === 0
               ? 'You have not created any courses yet.'

@@ -82,9 +82,9 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
   if (error && !order) {
     return (
       <div className="max-w-4xl mx-auto p-6">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <h2 className="text-red-800 font-semibold text-lg">Error</h2>
-          <p className="text-red-600 mt-1">{error}</p>
+        <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
+          <h2 className="text-destructive font-semibold text-lg">Error</h2>
+          <p className="text-destructive mt-1">{error}</p>
           <Button asChild variant="secondary" size="sm" className="mt-3">
             <Link href="/dashboard/orders">Back to Orders</Link>
           </Button>
@@ -148,8 +148,8 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
 
       {/* Error message */}
       {error && (
-        <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-red-600">{error}</p>
+        <div className="mb-6 bg-destructive/10 border border-destructive/20 rounded-lg p-4">
+          <p className="text-destructive">{error}</p>
         </div>
       )}
 
@@ -172,12 +172,12 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                     <div
                       className={`relative z-10 flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center border-2 ${
                         isCompleted
-                          ? 'bg-green-500 border-green-500'
+                          ? 'bg-success border-success'
                           : 'bg-card border-border'
                       }`}
                     >
                       {isCompleted ? (
-                        <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                        <svg className="w-4 h-4 text-success-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                         </svg>
                       ) : (
@@ -190,7 +190,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                       <p
                         className={`text-sm font-medium ${
                           isCurrent
-                            ? 'text-green-700'
+                            ? 'text-success'
                             : isCompleted
                             ? 'text-foreground'
                             : 'text-muted-foreground'
@@ -199,7 +199,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                         {formatOrderStatus(step)}
                       </p>
                       {isCurrent && (
-                        <p className="text-xs text-green-600 mt-0.5">Current status</p>
+                        <p className="text-xs text-success mt-0.5">Current status</p>
                       )}
                     </div>
                   </div>
@@ -212,8 +212,8 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
 
       {/* Cancelled / Refunded notice */}
       {(isCancelled || isRefunded) && (
-        <div className={`rounded-lg p-4 mb-8 ${isCancelled ? 'bg-muted border border-border' : 'bg-red-50 border border-red-200'}`}>
-          <p className={`font-medium ${isCancelled ? 'text-foreground' : 'text-red-700'}`}>
+        <div className={`rounded-lg p-4 mb-8 ${isCancelled ? 'bg-muted border border-border' : 'bg-destructive/10 border border-destructive/20'}`}>
+          <p className={`font-medium ${isCancelled ? 'text-foreground' : 'text-destructive'}`}>
             This order has been {isCancelled ? 'cancelled' : 'refunded'}.
           </p>
         </div>
@@ -241,7 +241,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                   <TableCell>
                     <Link
                       href={`/shop/${item.productSlug}`}
-                      className="text-sm font-medium text-blue-600 hover:text-blue-800"
+                      className="text-sm font-medium text-primary hover:text-primary/80"
                     >
                       {item.productTitle}
                     </Link>

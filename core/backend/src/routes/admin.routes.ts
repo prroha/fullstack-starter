@@ -1,95 +1,76 @@
-import { Router, Request, Response, NextFunction } from "express";
+import { FastifyPluginAsync } from "fastify";
 import { adminController } from "../controllers/admin.controller.js";
 import { contactController } from "../controllers/contact.controller.js";
 import { auditController } from "../controllers/audit.controller.js";
 import { authMiddleware, adminMiddleware } from "../middleware/auth.middleware.js";
 import { requireFeature } from "../middleware/preview.middleware.js";
-import { AuthenticatedRequest } from "../types/index.js";
 
-type AuthHandler = (req: AuthenticatedRequest, res: Response, next: NextFunction) => void | Promise<void>;
+const routePlugin: FastifyPluginAsync = async (fastify) => {
+  // All admin routes require authentication and admin role
+  fastify.addHook("preHandler", authMiddleware);
+  fastify.addHook("preHandler", adminMiddleware);
 
-function authRoute(handler: AuthHandler) {
-  return (req: Request, res: Response, next: NextFunction) => handler(req as AuthenticatedRequest, res, next);
-}
+  // Dashboard stats
+  fastify.get("/stats", (req, reply) => adminController.getStats(req, reply));
 
-const router = Router();
+  // User management
+  fastify.get("/users", (req, reply) => adminController.getUsers(req, reply));
 
-// All admin routes require authentication and admin role
-router.use(authMiddleware);
-router.use(adminMiddleware);
+  // Export users to CSV (must be before /users/:id to avoid matching "export" as id)
+  fastify.get("/users/export", (req, reply) => adminController.exportUsers(req, reply));
 
-// Dashboard stats
-router.get("/stats", authRoute((req, res, next) =>
-  adminController.getStats(req, res, next)
-));
+  fastify.get("/users/:id", (req, reply) => adminController.getUser(req, reply));
 
-// User management
-router.get("/users", authRoute((req, res, next) =>
-  adminController.getUsers(req, res, next)
-));
+  fastify.patch("/users/:id", (req, reply) => adminController.updateUser(req, reply));
 
-// Export users to CSV (must be before /users/:id to avoid matching "export" as id)
-router.get("/users/export", authRoute((req, res, next) =>
-  adminController.exportUsers(req, res, next)
-));
+  fastify.delete("/users/:id", (req, reply) => adminController.deleteUser(req, reply));
 
-router.get("/users/:id", authRoute((req, res, next) =>
-  adminController.getUser(req, res, next)
-));
+  // Audit logs management
+  fastify.get("/audit-logs/entity-types", { preHandler: [requireFeature("security.audit")] }, (req, reply) =>
+    auditController.getEntityTypes(req, reply)
+  );
 
-router.patch("/users/:id", authRoute((req, res, next) =>
-  adminController.updateUser(req, res, next)
-));
+  fastify.get("/audit-logs/action-types", { preHandler: [requireFeature("security.audit")] }, (req, reply) =>
+    auditController.getActionTypes(req, reply)
+  );
 
-router.delete("/users/:id", authRoute((req, res, next) =>
-  adminController.deleteUser(req, res, next)
-));
+  fastify.get("/audit-logs/export", { preHandler: [requireFeature("security.audit")] }, (req, reply) =>
+    adminController.exportAuditLogs(req, reply)
+  );
 
-// Audit logs management
-router.get("/audit-logs/entity-types", requireFeature("security.audit"), authRoute((req, res, next) =>
-  auditController.getEntityTypes(req, res, next)
-));
+  fastify.get("/audit-logs/:id", { preHandler: [requireFeature("security.audit")] }, (req, reply) =>
+    auditController.getLogById(req, reply)
+  );
 
-router.get("/audit-logs/action-types", requireFeature("security.audit"), authRoute((req, res, next) =>
-  auditController.getActionTypes(req, res, next)
-));
+  fastify.get("/audit-logs", { preHandler: [requireFeature("security.audit")] }, (req, reply) =>
+    auditController.getLogs(req, reply)
+  );
 
-router.get("/audit-logs/export", requireFeature("security.audit"), authRoute((req, res, next) =>
-  adminController.exportAuditLogs(req, res, next)
-));
+  // Contact messages management
+  fastify.get("/contact-messages/unread-count", (req, reply) =>
+    contactController.getUnreadCount(req, reply)
+  );
 
-router.get("/audit-logs/:id", requireFeature("security.audit"), authRoute((req, res, next) =>
-  auditController.getLogById(req, res, next)
-));
+  // Export contact messages (must be before /:id to avoid matching "export" as id)
+  fastify.get("/contact-messages/export", (req, reply) =>
+    contactController.exportMessages(req, reply)
+  );
 
-router.get("/audit-logs", requireFeature("security.audit"), authRoute((req, res, next) =>
-  auditController.getLogs(req, res, next)
-));
+  fastify.get("/contact-messages", (req, reply) =>
+    contactController.getAll(req, reply)
+  );
 
-// Contact messages management
-router.get("/contact-messages/unread-count", (req, res, next) =>
-  contactController.getUnreadCount(req, res, next)
-);
+  fastify.get("/contact-messages/:id", (req, reply) =>
+    contactController.getById(req, reply)
+  );
 
-// Export contact messages (must be before /:id to avoid matching "export" as id)
-router.get("/contact-messages/export", (req, res, next) =>
-  contactController.exportMessages(req, res, next)
-);
+  fastify.patch("/contact-messages/:id", (req, reply) =>
+    contactController.update(req, reply)
+  );
 
-router.get("/contact-messages", (req, res, next) =>
-  contactController.getAll(req, res, next)
-);
+  fastify.delete("/contact-messages/:id", (req, reply) =>
+    contactController.delete(req, reply)
+  );
+};
 
-router.get("/contact-messages/:id", (req, res, next) =>
-  contactController.getById(req, res, next)
-);
-
-router.patch("/contact-messages/:id", (req, res, next) =>
-  contactController.update(req, res, next)
-);
-
-router.delete("/contact-messages/:id", (req, res, next) =>
-  contactController.delete(req, res, next)
-);
-
-export default router;
+export default routePlugin;

@@ -51,8 +51,8 @@ const Icon = React.forwardRef<SVGSVGElement, IconProps>(
       muted: "text-muted-foreground",
       primary: "text-primary",
       destructive: "text-destructive",
-      success: "text-green-500 dark:text-green-400",
-      warning: "text-yellow-500 dark:text-yellow-400",
+      success: "text-success",
+      warning: "text-warning",
     };
 
     return (

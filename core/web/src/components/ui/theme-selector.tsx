@@ -2,8 +2,8 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { useTheme } from "@/lib/theme-context";
-import { getAppTheme, type AppThemeType } from "@/lib/themes";
+import { useTheme } from "../../lib/theme-context";
+import { getAppTheme, type AppThemeType } from "../../lib/themes";
 
 // =====================================================
 // Theme Selector Types

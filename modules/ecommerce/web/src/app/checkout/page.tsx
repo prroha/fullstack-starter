@@ -148,7 +148,7 @@ export default function CheckoutPage() {
       <div className="min-h-screen bg-background">
         <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
           <div className="h-8 w-40 animate-pulse rounded bg-muted" />
-          <div className="mt-8 grid gap-8 lg:grid-cols-12">
+          <div className="mt-8 grid gap-6 lg:grid-cols-12">
             <div className="lg:col-span-8 space-y-4">
               {[1, 2, 3, 4, 5, 6].map((i) => (
                 <div
@@ -317,7 +317,7 @@ export default function CheckoutPage() {
 
         {/* Empty Cart */}
         {items.length === 0 && !error && (
-          <div className="py-20 text-center">
+          <div className="py-12 text-center">
             <p className="text-lg font-medium text-foreground">
               Your cart is empty
             </p>
@@ -329,9 +329,9 @@ export default function CheckoutPage() {
 
         {/* Checkout Form */}
         {items.length > 0 && (
-          <form onSubmit={handleSubmit} className="mt-8 grid gap-8 lg:grid-cols-12">
+          <form onSubmit={handleSubmit} className="mt-8 grid gap-6 lg:grid-cols-12">
             {/* Left Column: Forms */}
-            <div className="lg:col-span-8 space-y-8">
+            <div className="lg:col-span-8 space-y-6">
               {/* Shipping Address */}
               <div className="rounded-lg border border-border bg-card p-6">
                 <h2 className="mb-4 text-lg font-semibold text-foreground">

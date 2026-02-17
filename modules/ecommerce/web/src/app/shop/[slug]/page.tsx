@@ -111,7 +111,7 @@ export default function ProductDetailPage({
       <div className="min-h-screen bg-background">
         <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
           {/* Skeleton */}
-          <div className="grid gap-8 lg:grid-cols-12">
+          <div className="grid gap-6 lg:grid-cols-12">
             <div className="lg:col-span-7">
               <div className="aspect-square animate-pulse rounded-lg bg-muted" />
             </div>
@@ -187,7 +187,7 @@ export default function ProductDetailPage({
         </nav>
 
         {/* Two-column layout */}
-        <div className="grid gap-8 lg:grid-cols-12">
+        <div className="grid gap-6 lg:grid-cols-12">
           {/* Left: Images */}
           <div className="lg:col-span-7">
             <ProductImages images={images} productTitle={product.title} />
@@ -246,8 +246,8 @@ export default function ProductDetailPage({
             <div className="flex items-center gap-2">
               {effectiveStock > 0 ? (
                 <>
-                  <span className="inline-block h-2 w-2 rounded-full bg-green-500" />
-                  <span className="text-sm text-green-700">
+                  <span className="inline-block h-2 w-2 rounded-full bg-success" />
+                  <span className="text-sm text-success">
                     {effectiveStock <= product.lowStockThreshold
                       ? `Only ${effectiveStock} left in stock`
                       : "In Stock"}
@@ -255,8 +255,8 @@ export default function ProductDetailPage({
                 </>
               ) : (
                 <>
-                  <span className="inline-block h-2 w-2 rounded-full bg-red-500" />
-                  <span className="text-sm text-red-700">Out of Stock</span>
+                  <span className="inline-block h-2 w-2 rounded-full bg-destructive" />
+                  <span className="text-sm text-destructive">Out of Stock</span>
                 </>
               )}
             </div>

@@ -1,21 +1,10 @@
-import { Router, Request, Response, NextFunction } from "express";
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from "fastify";
 import jwt, { SignOptions } from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
-import rateLimit from "express-rate-limit";
 import { prisma } from "../../config/db.js";
 import { env } from "../../config/env.js";
 import { ApiError } from "../../utils/errors.js";
-
-const router = Router();
-
-const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // 5 attempts per window
-  message: { success: false, error: { message: "Too many login attempts, please try again later", code: "RATE_LIMITED" } },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
 
 // =====================================================
 // Admin Login
@@ -27,12 +16,61 @@ interface LoginRequest {
   password: string;
 }
 
-router.post(
-  "/admin/login",
-  loginLimiter,
-  async (req: Request<object, object, LoginRequest>, res: Response, next: NextFunction) => {
-    try {
-      const { email, password } = req.body;
+// Custom middleware to extract token from cookie or header
+async function authenticateFromCookie(
+  req: FastifyRequest,
+  _reply: FastifyReply
+): Promise<void> {
+  // Try to get token from cookie first, then header
+  const cookieToken = (req.cookies as Record<string, string | undefined>)?.auth_token;
+  const authHeader = req.headers.authorization;
+  const headerToken = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+  const token = cookieToken || headerToken;
+
+  if (!token) {
+    throw ApiError.unauthorized("Not authenticated");
+  }
+
+  try {
+    const payload = jwt.verify(token, env.JWT_SECRET, { algorithms: ['HS256'] }) as {
+      userId: string;
+      role?: string;
+    };
+
+    const user = await prisma.studioUser.findUnique({
+      where: { id: payload.userId },
+      select: { id: true, email: true, name: true, isBlocked: true },
+    });
+
+    if (!user) {
+      throw ApiError.unauthorized("User not found");
+    }
+
+    if (user.isBlocked) {
+      throw ApiError.forbidden("Account is blocked");
+    }
+
+    req.user = {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: (payload.role as "user" | "admin") || "user",
+    };
+  } catch (error) {
+    if (error instanceof jwt.JsonWebTokenError) {
+      throw ApiError.unauthorized("Invalid token");
+    } else if (error instanceof jwt.TokenExpiredError) {
+      throw ApiError.unauthorized("Token expired");
+    }
+    throw error;
+  }
+}
+
+const routePlugin: FastifyPluginAsync = async (fastify) => {
+  fastify.post(
+    "/admin/login",
+    async (req: FastifyRequest, reply: FastifyReply) => {
+      const { email, password } = req.body as LoginRequest;
 
       if (!email || !password) {
         throw ApiError.badRequest("Email and password are required");
@@ -115,7 +153,7 @@ router.post(
       // In production with cross-origin (frontend != backend domain),
       // sameSite must be "none" (requires secure: true) for cookies to be sent
       const isSecure = env.NODE_ENV !== "development";
-      res.cookie("auth_token", token, {
+      reply.setCookie("auth_token", token, {
         httpOnly: true,
         secure: isSecure,
         sameSite: isSecure ? "none" : "lax",
@@ -123,7 +161,7 @@ router.post(
         maxAge: 24 * 60 * 60 * 1000, // 24 hours
       });
 
-      res.json({
+      return reply.send({
         success: true,
         user: {
           id: user.id,
@@ -132,100 +170,44 @@ router.post(
           role: "admin",
         },
       });
-    } catch (error) {
-      next(error);
     }
-  }
-);
+  );
 
-// =====================================================
-// Get Current User
-// GET /auth/me
-// =====================================================
+  // =====================================================
+  // Get Current User
+  // GET /auth/me
+  // =====================================================
 
-// Custom middleware to extract token from cookie or header
-async function authenticateFromCookie(
-  req: Request,
-  _res: Response,
-  next: NextFunction
-): Promise<void> {
-  try {
-    // Try to get token from cookie first, then header
-    const cookieToken = req.cookies?.auth_token;
-    const authHeader = req.headers.authorization;
-    const headerToken = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
-    const token = cookieToken || headerToken;
-
-    if (!token) {
-      throw ApiError.unauthorized("Not authenticated");
+  fastify.get(
+    "/me",
+    { preHandler: [authenticateFromCookie] },
+    async (req: FastifyRequest, reply: FastifyReply) => {
+      return reply.send({
+        success: true,
+        user: req.user,
+      });
     }
+  );
 
-    const payload = jwt.verify(token, env.JWT_SECRET, { algorithms: ['HS256'] }) as {
-      userId: string;
-      role?: string;
-    };
+  // =====================================================
+  // Logout
+  // POST /auth/logout
+  // =====================================================
 
-    const user = await prisma.studioUser.findUnique({
-      where: { id: payload.userId },
-      select: { id: true, email: true, name: true, isBlocked: true },
+  fastify.post("/logout", async (_req: FastifyRequest, reply: FastifyReply) => {
+    const isSecure = env.NODE_ENV !== "development";
+    reply.clearCookie("auth_token", {
+      httpOnly: true,
+      secure: isSecure,
+      sameSite: isSecure ? "none" : "lax",
+      path: "/",
     });
 
-    if (!user) {
-      throw ApiError.unauthorized("User not found");
-    }
-
-    if (user.isBlocked) {
-      throw ApiError.forbidden("Account is blocked");
-    }
-
-    req.user = {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: (payload.role as "user" | "admin") || "user",
-    };
-
-    next();
-  } catch (error) {
-    if (error instanceof jwt.JsonWebTokenError) {
-      next(ApiError.unauthorized("Invalid token"));
-    } else if (error instanceof jwt.TokenExpiredError) {
-      next(ApiError.unauthorized("Token expired"));
-    } else {
-      next(error);
-    }
-  }
-}
-
-router.get(
-  "/me",
-  authenticateFromCookie,
-  async (req: Request, res: Response) => {
-    res.json({
+    return reply.send({
       success: true,
-      user: req.user,
+      message: "Logged out successfully",
     });
-  }
-);
-
-// =====================================================
-// Logout
-// POST /auth/logout
-// =====================================================
-
-router.post("/logout", (_req: Request, res: Response) => {
-  const isSecure = env.NODE_ENV !== "development";
-  res.clearCookie("auth_token", {
-    httpOnly: true,
-    secure: isSecure,
-    sameSite: isSecure ? "none" : "lax",
-    path: "/",
   });
+};
 
-  res.json({
-    success: true,
-    message: "Logged out successfully",
-  });
-});
-
-export { router as authRoutes };
+export { routePlugin as authRoutes };

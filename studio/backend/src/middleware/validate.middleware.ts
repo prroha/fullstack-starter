@@ -3,7 +3,7 @@
  * Uses Zod schemas to validate request body, query, and params
  */
 
-import { Request, Response, NextFunction } from "express";
+import { FastifyRequest, FastifyReply } from "fastify";
 import { AnyZodObject, ZodError } from "zod";
 import { ApiError } from "../utils/errors.js";
 
@@ -12,14 +12,13 @@ import { ApiError } from "../utils/errors.js";
  * @param schema - Zod schema with optional body, query, and params properties
  */
 export function validateRequest<T extends AnyZodObject>(schema: T) {
-  return async (req: Request, _res: Response, next: NextFunction) => {
+  return async (req: FastifyRequest, _reply: FastifyReply) => {
     try {
       await schema.parseAsync({
         body: req.body,
         query: req.query,
         params: req.params,
       });
-      next();
     } catch (error) {
       if (error instanceof ZodError) {
         const formattedErrors = error.errors.map((err) => ({
@@ -28,7 +27,7 @@ export function validateRequest<T extends AnyZodObject>(schema: T) {
         }));
         throw ApiError.validation(formattedErrors);
       }
-      next(error);
+      throw error;
     }
   };
 }

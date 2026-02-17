@@ -1,4 +1,4 @@
-import { Response, NextFunction } from "express";
+import { FastifyRequest, FastifyReply } from "fastify";
 import { verifyToken, JwtPayload } from "../utils/jwt.js";
 import { db } from "../lib/db.js";
 import { UserRole } from "@prisma/client";
@@ -31,7 +31,7 @@ interface AuthErrorResponse {
 }
 
 function sendAuthError(
-  res: Response,
+  reply: FastifyReply,
   status: number,
   message: string,
   code: keyof typeof AuthErrorCodes
@@ -43,7 +43,7 @@ function sendAuthError(
       message,
     },
   };
-  res.status(status).json(response);
+  reply.code(status).send(response);
 }
 
 /**
@@ -64,7 +64,7 @@ function extractBearerToken(authHeader: string | undefined): string | null {
 /**
  * Extract access token from request (cookie or header)
  */
-function extractAccessToken(req: AppRequest): string | null {
+function extractAccessToken(req: FastifyRequest): string | null {
   // First, try httpOnly cookie
   const cookieToken = req.cookies?.accessToken;
   if (cookieToken) return cookieToken;
@@ -77,15 +77,14 @@ function extractAccessToken(req: AppRequest): string | null {
  * Authentication middleware - requires valid JWT token
  */
 export async function authMiddleware(
-  req: AppRequest,
-  res: Response,
-  next: NextFunction
+  req: FastifyRequest,
+  reply: FastifyReply
 ): Promise<void> {
   try {
     const token = extractAccessToken(req);
 
     if (!token || token.trim() === "") {
-      sendAuthError(res, 401, "Authentication required", "AUTH_REQUIRED");
+      sendAuthError(reply, 401, "Authentication required", "AUTH_REQUIRED");
       return;
     }
 
@@ -96,25 +95,36 @@ export async function authMiddleware(
       const message = error instanceof Error ? error.message : "Invalid token";
 
       if (message.includes("expired")) {
-        sendAuthError(res, 401, "Token expired", "TOKEN_EXPIRED");
+        sendAuthError(reply, 401, "Token expired", "TOKEN_EXPIRED");
       } else {
-        sendAuthError(res, 401, "Invalid token", "INVALID_TOKEN");
+        sendAuthError(reply, 401, "Invalid token", "INVALID_TOKEN");
       }
       return;
     }
 
     const user = await db.user.findUnique({
       where: { id: payload.userId },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        isActive: true,
+        emailVerified: true,
+        avatarUrl: true,
+        createdAt: true,
+        updatedAt: true,
+      },
     });
 
     if (!user) {
-      sendAuthError(res, 401, "User not found", "USER_NOT_FOUND");
+      sendAuthError(reply, 401, "User not found", "USER_NOT_FOUND");
       return;
     }
 
     if (!user.isActive) {
       sendAuthError(
-        res,
+        reply,
         403,
         "Your account has been deactivated. Please contact support.",
         "USER_DEACTIVATED"
@@ -123,15 +133,13 @@ export async function authMiddleware(
     }
 
     // Attach user info to request
-    (req as AuthenticatedRequest).user = payload;
-    (req as AuthenticatedRequest).dbUser = user;
-
-    next();
+    req.user = payload;
+    req.dbUser = user;
   } catch (error) {
     logger.error("Auth middleware error", {
       error: error instanceof Error ? error.message : "Unknown error",
     });
-    sendAuthError(res, 401, "Authentication failed", "INVALID_TOKEN");
+    sendAuthError(reply, 401, "Authentication failed", "INVALID_TOKEN");
   }
 }
 
@@ -140,24 +148,19 @@ export async function authMiddleware(
  * Must be used AFTER authMiddleware
  */
 export async function adminMiddleware(
-  req: AppRequest,
-  res: Response,
-  next: NextFunction
+  req: FastifyRequest,
+  reply: FastifyReply
 ): Promise<void> {
-  const authReq = req as AuthenticatedRequest;
-
-  if (!authReq.user || !authReq.dbUser) {
-    sendAuthError(res, 401, "Authentication required", "AUTH_REQUIRED");
+  if (!req.user || !req.dbUser) {
+    sendAuthError(reply, 401, "Authentication required", "AUTH_REQUIRED");
     return;
   }
 
-  const role = authReq.dbUser.role;
+  const role = req.dbUser.role;
   if (role !== UserRole.ADMIN && role !== UserRole.SUPER_ADMIN) {
-    sendAuthError(res, 403, "Admin access required", "ADMIN_REQUIRED");
+    sendAuthError(reply, 403, "Admin access required", "ADMIN_REQUIRED");
     return;
   }
-
-  next();
 }
 
 /**
@@ -165,23 +168,18 @@ export async function adminMiddleware(
  * Must be used AFTER authMiddleware
  */
 export async function superAdminMiddleware(
-  req: AppRequest,
-  res: Response,
-  next: NextFunction
+  req: FastifyRequest,
+  reply: FastifyReply
 ): Promise<void> {
-  const authReq = req as AuthenticatedRequest;
-
-  if (!authReq.user || !authReq.dbUser) {
-    sendAuthError(res, 401, "Authentication required", "AUTH_REQUIRED");
+  if (!req.user || !req.dbUser) {
+    sendAuthError(reply, 401, "Authentication required", "AUTH_REQUIRED");
     return;
   }
 
-  if (authReq.dbUser.role !== UserRole.SUPER_ADMIN) {
-    sendAuthError(res, 403, "Super admin access required", "ADMIN_REQUIRED");
+  if (req.dbUser.role !== UserRole.SUPER_ADMIN) {
+    sendAuthError(reply, 403, "Super admin access required", "ADMIN_REQUIRED");
     return;
   }
-
-  next();
 }
 
 /**
@@ -189,15 +187,12 @@ export async function superAdminMiddleware(
  * Attempts to authenticate but doesn't fail if no token
  */
 export async function optionalAuthMiddleware(
-  req: AppRequest,
-  _res: Response,
-  next: NextFunction
+  req: FastifyRequest
 ): Promise<void> {
   try {
     const token = extractAccessToken(req);
 
     if (!token) {
-      next();
       return;
     }
 
@@ -205,28 +200,34 @@ export async function optionalAuthMiddleware(
     try {
       payload = verifyToken(token);
     } catch {
-      next();
       return;
     }
 
     const user = await db.user.findUnique({
       where: { id: payload.userId },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        isActive: true,
+        emailVerified: true,
+        avatarUrl: true,
+        createdAt: true,
+        updatedAt: true,
+      },
     });
 
     if (!user) {
-      next();
       return;
     }
 
-    (req as AuthenticatedRequest).user = payload;
-    (req as AuthenticatedRequest).dbUser = user;
-
-    next();
+    req.user = payload;
+    req.dbUser = user;
   } catch (error) {
     logger.warn("Optional auth middleware error", {
       error: error instanceof Error ? error.message : "Unknown error",
     });
-    next();
   }
 }
 

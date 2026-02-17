@@ -1,7 +1,7 @@
 # CLAUDE.md - Fullstack Starter Backend
 
-> **Last Updated**: 2026-02-09
-> **Codebase Version**: 1.1.0
+> **Last Updated**: 2026-02-17
+> **Codebase Version**: 1.4.0
 > **Maintainer**: AI-assisted documentation (auto-update on changes)
 
 AI-optimized documentation for quick codebase navigation and understanding.
@@ -28,6 +28,7 @@ Use these to quickly find what you need:
 
 | Date       | Change                                                                                                       | Files                                                                                                |
 | ---------- | ------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
+| 2026-02-17 | Full Express.js → Fastify 5.x migration: entry point, middleware, controllers, routes, tests                 | All files in `src/`                                                                                  |
 | 2026-02-09 | Documentation updates                                                                                        | `CLAUDE.md`                                                                                          |
 | 2026-02-08 | Admin platform expansion: FAQs, Announcements, Settings, Content, Coupons, Orders, Notifications, Audit logs | `routes/*.routes.ts`, `controllers/*.controller.ts`, `services/*.service.ts`, `prisma/schema.prisma` |
 | 2026-02-06 | Initial documentation                                                                                        | CLAUDE.md                                                                                            |
@@ -39,19 +40,19 @@ Use these to quickly find what you need:
 ### Tech Stack
 
 - **Runtime**: Node.js 20+
-- **Framework**: Express.js 4.x
+- **Framework**: Fastify 5.x
 - **Language**: TypeScript 5.x
 - **Database**: PostgreSQL with Prisma ORM
 - **Authentication**: JWT (httpOnly cookies + Authorization header)
 - **Validation**: Zod
-- **Security**: Helmet, CORS, Rate Limiting
+- **Security**: @fastify/helmet, @fastify/cors, @fastify/rate-limit
 
 ### Design Patterns
 
 - **Singleton Services**: Services exported as singleton instances
 - **Controller-Service-Route**: Separation of concerns
-- **Middleware Chain**: Express middleware for auth, rate limiting, validation
-- **Error Handling**: Custom `ApiError` class with global error middleware
+- **Hook Chain**: Fastify hooks (onRequest, preHandler) for auth, rate limiting, validation
+- **Error Handling**: Custom `ApiError` class with Fastify `setErrorHandler()`
 
 ### Folder Structure
 
@@ -60,12 +61,12 @@ src/
 ├── config/               # Configuration (index.ts)
 ├── controllers/          # Route handlers
 ├── lib/                  # Core utilities (db, logger)
-├── middleware/           # Express middleware
+├── middleware/           # Fastify hooks & middleware
 ├── routes/               # Route definitions
 ├── services/             # Business logic
 ├── types/                # TypeScript type definitions
 ├── utils/                # Helper utilities
-└── app.ts                # Express app entry point
+└── app.ts                # Fastify app entry point
 ```
 
 ---
@@ -74,9 +75,9 @@ src/
 
 ### Entry Points
 
-| File         | Purpose                                           |
-| ------------ | ------------------------------------------------- |
-| `src/app.ts` | Express app setup, middleware chain, server start |
+| File         | Purpose                                       |
+| ------------ | --------------------------------------------- |
+| `src/app.ts` | Fastify app setup, plugin chain, server start |
 
 ### Configuration
 
@@ -151,10 +152,15 @@ src/
 
 ```typescript
 // src/routes/index.ts
-const v1Router = Router();
-v1Router.use("/auth", authRoutes);
-// Add more routes here
-router.use("/v1", v1Router);
+const routes: FastifyPluginAsync = async (fastify) => {
+  await fastify.register(
+    async (v1) => {
+      await v1.register(authRoutes, { prefix: "/auth" });
+      // Add more routes here
+    },
+    { prefix: "/v1" },
+  );
+};
 ```
 
 ### Authentication Flow
@@ -309,16 +315,16 @@ import {
   successResponse,
   errorResponse,
   paginatedResponse,
-} from "../utils/response";
+} from "../utils/response.js";
 
 // Success
-res.json(successResponse({ user }, "User created"));
+return reply.send(successResponse({ user }, "User created"));
 
 // Error
-res.status(400).json(errorResponse("VALIDATION_ERROR", "Invalid input"));
+return reply.code(400).send(errorResponse("VALIDATION_ERROR", "Invalid input"));
 
 // Paginated
-res.json(paginatedResponse(items, page, limit, total));
+return reply.send(paginatedResponse(items, page, limit, total));
 ```
 
 ### Authentication Helpers
@@ -384,33 +390,33 @@ if (isAuthenticated(req)) {
 1. **Create/update route file** (`src/routes/example.routes.ts`):
 
 ```typescript
-import { Router } from "express";
-import { exampleController } from "../controllers/example.controller";
-import { authMiddleware } from "../middleware/auth.middleware";
+import { FastifyPluginAsync } from "fastify";
+import { exampleController } from "../controllers/example.controller.js";
+import { authMiddleware } from "../middleware/auth.middleware.js";
 
-const router = Router();
+const routePlugin: FastifyPluginAsync = async (fastify) => {
+  fastify.get("/", (req, reply) => exampleController.list(req, reply));
+  fastify.post("/", { preHandler: [authMiddleware] }, (req, reply) =>
+    exampleController.create(req, reply),
+  );
+};
 
-router.get("/", (req, res, next) => exampleController.list(req, res, next));
-router.post("/", authMiddleware, (req, res, next) =>
-  exampleController.create(req, res, next),
-);
-
-export default router;
+export default routePlugin;
 ```
 
 2. **Register route** in `src/routes/index.ts`:
 
 ```typescript
-import exampleRoutes from "./example.routes";
-v1Router.use("/examples", exampleRoutes);
+import exampleRoutes from "./example.routes.js";
+await v1.register(exampleRoutes, { prefix: "/examples" });
 ```
 
 3. **Create controller** (`src/controllers/example.controller.ts`):
 
 ```typescript
-import { Request, Response, NextFunction } from "express";
-import { exampleService } from "../services/example.service";
-import { successResponse } from "../utils/response";
+import { FastifyRequest, FastifyReply } from "fastify";
+import { exampleService } from "../services/example.service.js";
+import { successResponse } from "../utils/response.js";
 import { z } from "zod";
 
 const createSchema = z.object({
@@ -418,23 +424,15 @@ const createSchema = z.object({
 });
 
 class ExampleController {
-  async list(req: Request, res: Response, next: NextFunction) {
-    try {
-      const result = await exampleService.getAll();
-      res.json(successResponse({ items: result }));
-    } catch (error) {
-      next(error);
-    }
+  async list(req: FastifyRequest, reply: FastifyReply) {
+    const result = await exampleService.getAll();
+    return reply.send(successResponse({ items: result }));
   }
 
-  async create(req: Request, res: Response, next: NextFunction) {
-    try {
-      const validated = createSchema.parse(req.body);
-      const result = await exampleService.create(validated);
-      res.status(201).json(successResponse({ item: result }));
-    } catch (error) {
-      next(error);
-    }
+  async create(req: FastifyRequest, reply: FastifyReply) {
+    const validated = createSchema.parse(req.body);
+    const result = await exampleService.create(validated);
+    return reply.code(201).send(successResponse({ item: result }));
   }
 }
 
@@ -558,16 +556,16 @@ import {
   successResponse,
   errorResponse,
   paginatedResponse,
-} from "../utils/response";
+} from "../utils/response.js";
 
 // Success with data
-res.json(successResponse({ user }, "User created"));
+return reply.send(successResponse({ user }, "User created"));
 
 // Error response
-res.status(400).json(errorResponse("VALIDATION_ERROR", "Invalid input"));
+return reply.code(400).send(errorResponse("VALIDATION_ERROR", "Invalid input"));
 
 // Paginated list
-res.json(paginatedResponse(items, page, limit, total));
+return reply.send(paginatedResponse(items, page, limit, total));
 ```
 
 ### Error Handling

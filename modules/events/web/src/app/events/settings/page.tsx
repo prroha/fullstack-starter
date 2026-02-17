@@ -79,7 +79,7 @@ export default function EventSettingsPage() {
         <h1 className="mt-6 text-2xl font-bold text-foreground">Event Settings</h1>
         <p className="mt-1 text-muted-foreground">Configure your event management preferences</p>
 
-        <div className="mt-8 space-y-8">
+        <div className="mt-8 space-y-6">
           {error && (<Alert variant="destructive" onDismiss={() => setError(null)}>{error}</Alert>)}
           {success && (<Alert variant="success" onDismiss={() => setSuccess(null)}>{success}</Alert>)}
 

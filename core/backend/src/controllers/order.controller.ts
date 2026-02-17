@@ -1,4 +1,4 @@
-import { Response, NextFunction } from "express";
+import { FastifyRequest, FastifyReply } from "fastify";
 import { AuditAction, OrderStatus, PaymentMethod } from "@prisma/client";
 import { orderService } from "../services/order.service.js";
 import { auditService } from "../services/audit.service.js";
@@ -45,30 +45,25 @@ class OrderController {
    * GET /api/v1/admin/orders
    */
   async getAll(
-    req: AuthenticatedRequest,
-    res: Response,
-    next: NextFunction
+    req: FastifyRequest,
+    reply: FastifyReply
   ): Promise<void> {
-    try {
-      const query = getOrdersQuerySchema.parse(req.query);
-      const result = await orderService.getAll({
-        page: query.page,
-        limit: query.limit,
-        status: query.status as OrderStatus | undefined,
-        paymentMethod: query.paymentMethod as PaymentMethod | undefined,
-        startDate: query.startDate,
-        endDate: query.endDate,
-        search: query.search,
-        sortBy: query.sortBy,
-        sortOrder: query.sortOrder,
-      });
+    const query = getOrdersQuerySchema.parse(req.query);
+    const result = await orderService.getAll({
+      page: query.page,
+      limit: query.limit,
+      status: query.status as OrderStatus | undefined,
+      paymentMethod: query.paymentMethod as PaymentMethod | undefined,
+      startDate: query.startDate,
+      endDate: query.endDate,
+      search: query.search,
+      sortBy: query.sortBy,
+      sortOrder: query.sortOrder,
+    });
 
-      res.json(
-        paginatedResponse(result.orders, result.page, result.limit, result.total)
-      );
-    } catch (error) {
-      next(error);
-    }
+    return reply.send(
+      paginatedResponse(result.orders, result.page, result.limit, result.total)
+    );
   }
 
   /**
@@ -76,22 +71,17 @@ class OrderController {
    * GET /api/v1/admin/orders/:id
    */
   async getById(
-    req: AuthenticatedRequest,
-    res: Response,
-    next: NextFunction
+    req: FastifyRequest,
+    reply: FastifyReply
   ): Promise<void> {
-    try {
-      const id = req.params.id as string;
+    const id = (req.params as Record<string, string>).id;
 
-      if (!ensureParam(id, res, "Order ID")) {
-        return;
-      }
-
-      const order = await orderService.getById(id);
-      res.json(successResponse({ order }));
-    } catch (error) {
-      next(error);
+    if (!ensureParam(id, reply, "Order ID")) {
+      return;
     }
+
+    const order = await orderService.getById(id);
+    return reply.send(successResponse({ order }));
   }
 
   /**
@@ -99,16 +89,11 @@ class OrderController {
    * GET /api/v1/admin/orders/stats
    */
   async getStats(
-    _req: AuthenticatedRequest,
-    res: Response,
-    next: NextFunction
+    _req: FastifyRequest,
+    reply: FastifyReply
   ): Promise<void> {
-    try {
-      const stats = await orderService.getStats();
-      res.json(successResponse(stats));
-    } catch (error) {
-      next(error);
-    }
+    const stats = await orderService.getStats();
+    return reply.send(successResponse(stats));
   }
 
   /**
@@ -116,39 +101,35 @@ class OrderController {
    * PATCH /api/v1/admin/orders/:id/status
    */
   async updateStatus(
-    req: AuthenticatedRequest,
-    res: Response,
-    next: NextFunction
+    req: FastifyRequest,
+    reply: FastifyReply
   ): Promise<void> {
-    try {
-      const id = req.params.id as string;
+    const authReq = req as AuthenticatedRequest;
+    const id = (req.params as Record<string, string>).id;
 
-      if (!ensureParam(id, res, "Order ID")) {
-        return;
-      }
-
-      const data = updateStatusSchema.parse(req.body);
-      const previousOrder = await orderService.getById(id);
-      const order = await orderService.updateStatus(id, data.status as OrderStatus);
-
-      // Audit log: order status update
-      await auditService.log({
-        action: AuditAction.UPDATE,
-        entity: "Order",
-        entityId: id,
-        userId: req.user?.userId,
-        req,
-        changes: {
-          previousStatus: previousOrder.status,
-          newStatus: data.status,
-        },
-        metadata: { adminAction: "updateOrderStatus" },
-      });
-
-      res.json(successResponse({ order }, "Order status updated successfully"));
-    } catch (error) {
-      next(error);
+    if (!ensureParam(id, reply, "Order ID")) {
+      return;
     }
+
+    const data = updateStatusSchema.parse(req.body);
+    const previousOrder = await orderService.getById(id);
+    const order = await orderService.updateStatus(id, data.status as OrderStatus);
+
+    // Audit log: order status update
+    await auditService.log({
+      action: AuditAction.UPDATE,
+      entity: "Order",
+      entityId: id,
+      userId: authReq.user?.userId,
+      req,
+      changes: {
+        previousStatus: previousOrder.status,
+        newStatus: data.status,
+      },
+      metadata: { adminAction: "updateOrderStatus" },
+    });
+
+    return reply.send(successResponse({ order }, "Order status updated successfully"));
   }
 
   /**
@@ -156,29 +137,23 @@ class OrderController {
    * GET /api/v1/orders
    */
   async getUserOrders(
-    req: AuthenticatedRequest,
-    res: Response,
-    next: NextFunction
+    req: FastifyRequest,
+    reply: FastifyReply
   ): Promise<void> {
-    try {
-      const userId = getUserIdFromToken(req);
+    const userId = getUserIdFromToken(req);
 
-      if (!userId) {
-        res.status(401).json(
-          errorResponse(ErrorCodes.AUTH_REQUIRED, "Not authenticated")
-        );
-        return;
-      }
-
-      const query = getUserOrdersQuerySchema.parse(req.query);
-      const result = await orderService.getUserOrders(userId, query.page, query.limit);
-
-      res.json(
-        paginatedResponse(result.orders, result.page, result.limit, result.total)
+    if (!userId) {
+      return reply.code(401).send(
+        errorResponse(ErrorCodes.AUTH_REQUIRED, "Not authenticated")
       );
-    } catch (error) {
-      next(error);
     }
+
+    const query = getUserOrdersQuerySchema.parse(req.query);
+    const result = await orderService.getUserOrders(userId, query.page, query.limit);
+
+    return reply.send(
+      paginatedResponse(result.orders, result.page, result.limit, result.total)
+    );
   }
 
   /**
@@ -186,30 +161,24 @@ class OrderController {
    * GET /api/v1/orders/:id
    */
   async getUserOrderById(
-    req: AuthenticatedRequest,
-    res: Response,
-    next: NextFunction
+    req: FastifyRequest,
+    reply: FastifyReply
   ): Promise<void> {
-    try {
-      const userId = getUserIdFromToken(req);
-      const orderId = req.params.id as string;
+    const userId = getUserIdFromToken(req);
+    const orderId = (req.params as Record<string, string>).id;
 
-      if (!userId) {
-        res.status(401).json(
-          errorResponse(ErrorCodes.AUTH_REQUIRED, "Not authenticated")
-        );
-        return;
-      }
-
-      if (!ensureParam(orderId, res, "Order ID")) {
-        return;
-      }
-
-      const order = await orderService.getUserOrderById(userId, orderId);
-      res.json(successResponse({ order }));
-    } catch (error) {
-      next(error);
+    if (!userId) {
+      return reply.code(401).send(
+        errorResponse(ErrorCodes.AUTH_REQUIRED, "Not authenticated")
+      );
     }
+
+    if (!ensureParam(orderId, reply, "Order ID")) {
+      return;
+    }
+
+    const order = await orderService.getUserOrderById(userId, orderId);
+    return reply.send(successResponse({ order }));
   }
 
   /**
@@ -217,32 +186,27 @@ class OrderController {
    * GET /api/v1/admin/orders/export
    */
   async exportOrders(
-    req: AuthenticatedRequest,
-    res: Response,
-    next: NextFunction
+    req: FastifyRequest,
+    reply: FastifyReply
   ): Promise<void> {
-    try {
-      const orders = await orderService.getAllForExport();
+    const orders = await orderService.getAllForExport();
 
-      sendCsvExport(res, orders, [
-        { header: "ID", accessor: "id" },
-        { header: "User ID", accessor: (item) => item.userId || "" },
-        { header: "User Name", accessor: (item) => item.user?.name || "" },
-        { header: "Email", accessor: "email" },
-        { header: "Status", accessor: "status" },
-        { header: "Payment Method", accessor: "paymentMethod" },
-        { header: "Payment ID", accessor: (item) => item.paymentId || "" },
-        { header: "Subtotal", accessor: "subtotal" },
-        { header: "Discount", accessor: "discount" },
-        { header: "Total", accessor: "total" },
-        { header: "Coupon Code", accessor: (item) => item.couponCode || "" },
-        { header: "Items", accessor: (item) => JSON.stringify(item.items) },
-        { header: "Created At", accessor: (item) => item.createdAt.toISOString() },
-        { header: "Updated At", accessor: (item) => item.updatedAt.toISOString() },
-      ], { filenamePrefix: "orders-export" });
-    } catch (error) {
-      next(error);
-    }
+    sendCsvExport(reply, orders, [
+      { header: "ID", accessor: "id" },
+      { header: "User ID", accessor: (item) => item.userId || "" },
+      { header: "User Name", accessor: (item) => item.user?.name || "" },
+      { header: "Email", accessor: "email" },
+      { header: "Status", accessor: "status" },
+      { header: "Payment Method", accessor: "paymentMethod" },
+      { header: "Payment ID", accessor: (item) => item.paymentId || "" },
+      { header: "Subtotal", accessor: "subtotal" },
+      { header: "Discount", accessor: "discount" },
+      { header: "Total", accessor: "total" },
+      { header: "Coupon Code", accessor: (item) => item.couponCode || "" },
+      { header: "Items", accessor: (item) => JSON.stringify(item.items) },
+      { header: "Created At", accessor: (item) => item.createdAt.toISOString() },
+      { header: "Updated At", accessor: (item) => item.updatedAt.toISOString() },
+    ], { filenamePrefix: "orders-export" });
   }
 }
 

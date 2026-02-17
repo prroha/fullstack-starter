@@ -99,7 +99,7 @@ function PdfViewer({ url, title }: { url: string; title: string }) {
 
   if (loadError) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-lg border border-border bg-muted py-16 px-4">
+      <div className="flex flex-col items-center justify-center rounded-lg border border-border bg-muted py-10 px-4">
         <svg
           className="mb-4 h-12 w-12 text-muted-foreground"
           fill="none"
@@ -160,7 +160,7 @@ export default function LessonPlayer({ lesson, onComplete }: LessonPlayerProps) 
       case 'VIDEO': {
         if (!lesson.contentUrl) {
           return (
-            <div className="flex items-center justify-center rounded-lg border border-dashed border-border bg-muted py-20">
+            <div className="flex items-center justify-center rounded-lg border border-dashed border-border bg-muted py-12">
               <p className="text-sm text-muted-foreground">No video URL provided for this lesson.</p>
             </div>
           );
@@ -172,7 +172,7 @@ export default function LessonPlayer({ lesson, onComplete }: LessonPlayerProps) 
         const content = lesson.contentText ?? '';
         if (!content) {
           return (
-            <div className="flex items-center justify-center rounded-lg border border-dashed border-border bg-muted py-20">
+            <div className="flex items-center justify-center rounded-lg border border-dashed border-border bg-muted py-12">
               <p className="text-sm text-muted-foreground">No content available for this lesson.</p>
             </div>
           );
@@ -183,7 +183,7 @@ export default function LessonPlayer({ lesson, onComplete }: LessonPlayerProps) 
       case 'PDF': {
         if (!lesson.contentUrl) {
           return (
-            <div className="flex items-center justify-center rounded-lg border border-dashed border-border bg-muted py-20">
+            <div className="flex items-center justify-center rounded-lg border border-dashed border-border bg-muted py-12">
               <p className="text-sm text-muted-foreground">No PDF URL provided for this lesson.</p>
             </div>
           );
@@ -193,7 +193,7 @@ export default function LessonPlayer({ lesson, onComplete }: LessonPlayerProps) 
 
       case 'QUIZ': {
         return (
-          <div className="flex items-center justify-center rounded-lg border border-dashed border-border bg-muted py-20">
+          <div className="flex items-center justify-center rounded-lg border border-dashed border-border bg-muted py-12">
             <p className="text-sm text-muted-foreground">
               This lesson contains a quiz. Please use the quiz component to take it.
             </p>
@@ -203,7 +203,7 @@ export default function LessonPlayer({ lesson, onComplete }: LessonPlayerProps) 
 
       default: {
         return (
-          <div className="flex items-center justify-center rounded-lg border border-dashed border-border bg-muted py-20">
+          <div className="flex items-center justify-center rounded-lg border border-dashed border-border bg-muted py-12">
             <p className="text-sm text-muted-foreground">Unsupported lesson type.</p>
           </div>
         );
@@ -233,7 +233,7 @@ export default function LessonPlayer({ lesson, onComplete }: LessonPlayerProps) 
               </span>
             )}
             {lesson.isFree && (
-              <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+              <span className="rounded-full bg-success/10 px-2 py-0.5 text-xs font-medium text-success">
                 Free Preview
               </span>
             )}
@@ -251,7 +251,7 @@ export default function LessonPlayer({ lesson, onComplete }: LessonPlayerProps) 
             onClick={handleMarkComplete}
             disabled={completed}
             variant={completed ? 'secondary' : 'default'}
-            className={completed ? 'gap-2 bg-green-100 text-green-700 hover:bg-green-100' : 'gap-2'}
+            className={completed ? 'gap-2 bg-success/10 text-success hover:bg-success/10' : 'gap-2'}
           >
             {completed ? (
               <>

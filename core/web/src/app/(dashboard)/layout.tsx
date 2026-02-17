@@ -234,7 +234,7 @@ export default function UserDashboardLayout({
       </aside>
 
       {/* Main Content */}
-      <main className="container px-4 sm:px-6 lg:px-8 py-6">
+      <main className="container px-4 sm:px-6 lg:px-8 py-4">
         {children}
       </main>
 

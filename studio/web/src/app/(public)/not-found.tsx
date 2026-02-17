@@ -4,7 +4,7 @@ import { Button, Container } from "@/components/ui";
 
 export default function PublicNotFound() {
   return (
-    <Container className="py-20">
+    <Container className="py-12">
       <div className="flex flex-col items-center justify-center text-center max-w-md mx-auto">
         {/* 404 Icon */}
         <div className="w-20 h-20 mb-6 rounded-full bg-muted flex items-center justify-center">

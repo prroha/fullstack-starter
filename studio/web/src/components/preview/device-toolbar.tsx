@@ -45,18 +45,20 @@ export function DeviceToolbar({
 
             return (
               <Tooltip key={option.value} content={option.label}>
-                <button
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={() => onDeviceChange(option.value)}
                   className={cn(
-                    "min-h-[40px] min-w-[40px] flex items-center justify-center rounded-md transition-colors",
+                    "min-h-[40px] min-w-[40px]",
                     isActive
                       ? "bg-background shadow-sm"
-                      : "hover:bg-accent text-muted-foreground"
+                      : "text-muted-foreground"
                   )}
                   aria-label={option.label}
                 >
                   <Icon className="h-4 w-4" />
-                </button>
+                </Button>
               </Tooltip>
             );
           })}
@@ -73,18 +75,20 @@ export function DeviceToolbar({
 
             return (
               <Tooltip key={option.value} content={option.label}>
-                <button
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={() => onThemeChange(option.value)}
                   className={cn(
-                    "min-h-[40px] min-w-[40px] flex items-center justify-center rounded-md transition-colors",
+                    "min-h-[40px] min-w-[40px]",
                     isActive
                       ? "bg-background shadow-sm"
-                      : "hover:bg-accent text-muted-foreground"
+                      : "text-muted-foreground"
                   )}
                   aria-label={option.label}
                 >
                   <Icon className="h-4 w-4" />
-                </button>
+                </Button>
               </Tooltip>
             );
           })}

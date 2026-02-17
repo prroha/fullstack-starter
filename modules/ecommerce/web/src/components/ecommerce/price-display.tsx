@@ -48,10 +48,10 @@ export default function PriceDisplay({
           >
             {formatPrice(compareAtPrice!, currency)}
           </span>
-          <span className="bg-red-100 text-red-700 text-xs font-medium rounded px-1.5 py-0.5">
+          <span className="bg-destructive/10 text-destructive text-xs font-medium rounded px-1.5 py-0.5">
             Sale
           </span>
-          <span className="text-xs text-red-600 font-medium">
+          <span className="text-xs text-destructive font-medium">
             {discountPercent}% off
           </span>
         </>

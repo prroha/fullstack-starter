@@ -1,8 +1,8 @@
-import { Response, NextFunction } from "express";
+import { FastifyRequest, FastifyReply } from "fastify";
 import { searchService, SearchType } from "../services/search.service.js";
 import { successResponse } from "../utils/response.js";
 import { z } from "zod";
-import { AppRequest, AuthenticatedRequest } from "../types/index.js";
+import { AuthenticatedRequest } from "../types/index.js";
 import { UserRole } from "@prisma/client";
 
 // Validation schema for search query params
@@ -24,31 +24,27 @@ class SearchController {
    * Global search across multiple entities
    * GET /api/v1/search?q=query&type=all|users
    */
-  async search(req: AppRequest, res: Response, next: NextFunction) {
-    try {
-      const authReq = req as AuthenticatedRequest;
+  async search(req: FastifyRequest, reply: FastifyReply) {
+    const authReq = req as AuthenticatedRequest;
 
-      // Validate query params
-      const validated = searchQuerySchema.parse({
-        q: req.query.q,
-        type: req.query.type,
-        limit: req.query.limit,
-      });
+    // Validate query params
+    const validated = searchQuerySchema.parse({
+      q: (req.query as Record<string, string>).q,
+      type: (req.query as Record<string, string>).type,
+      limit: (req.query as Record<string, string>).limit,
+    });
 
-      const isAdmin = authReq.dbUser.role === UserRole.ADMIN || authReq.dbUser.role === UserRole.SUPER_ADMIN;
+    const isAdmin = authReq.dbUser.role === UserRole.ADMIN || authReq.dbUser.role === UserRole.SUPER_ADMIN;
 
-      const results = await searchService.search({
-        query: validated.q,
-        types: validated.type as SearchType,
-        userId: authReq.dbUser.id,
-        isAdmin,
-        limit: validated.limit,
-      });
+    const results = await searchService.search({
+      query: validated.q,
+      types: validated.type as SearchType,
+      userId: authReq.dbUser.id,
+      isAdmin,
+      limit: validated.limit,
+    });
 
-      res.json(successResponse({ results }));
-    } catch (error) {
-      next(error);
-    }
+    return reply.send(successResponse({ results }));
   }
 }
 

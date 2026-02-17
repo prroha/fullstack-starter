@@ -7,7 +7,7 @@ export default function PublicLoading() {
       <section className="relative overflow-hidden border-b">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5" />
         <Container>
-          <div className="py-20 md:py-32 max-w-4xl mx-auto text-center relative">
+          <div className="py-12 md:py-20 max-w-4xl mx-auto text-center relative">
             {/* Badge */}
             <div className="flex justify-center mb-6">
               <Skeleton className="h-6 w-48 rounded-full" />
@@ -32,7 +32,7 @@ export default function PublicLoading() {
       {/* Stats Skeleton */}
       <section className="border-b">
         <Container>
-          <div className="py-12 grid grid-cols-2 md:grid-cols-4 gap-8">
+          <div className="py-12 grid grid-cols-2 md:grid-cols-4 gap-6">
             {Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="text-center">
                 <Skeleton className="h-10 w-16 mx-auto mb-2" />
@@ -44,7 +44,7 @@ export default function PublicLoading() {
       </section>
 
       {/* Features Grid Skeleton */}
-      <section className="py-20">
+      <section className="py-12">
         <Container>
           <div className="text-center mb-12">
             <Skeleton className="h-8 w-64 mx-auto mb-4" />
@@ -61,7 +61,7 @@ export default function PublicLoading() {
       {/* CTA Section Skeleton */}
       <section className="border-t bg-muted/30">
         <Container>
-          <div className="py-20 text-center">
+          <div className="py-12 text-center">
             <Skeleton className="h-8 w-64 mx-auto mb-4" />
             <Skeleton className="h-5 w-80 max-w-full mx-auto mb-8" />
             <div className="flex flex-col sm:flex-row gap-4 justify-center">

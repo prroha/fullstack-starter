@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback, ChangeEvent, DragEvent } from "react";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 interface ImageUploadProps {
@@ -232,17 +233,15 @@ export function ImageUpload({
 
       {/* Remove button */}
       {displayUrl && onRemove && !isUploading && (
-        <button
+        <Button
           type="button"
+          variant="destructive"
+          size="sm"
           onClick={handleRemove}
           disabled={disabled}
-          className={cn(
-            "text-sm text-destructive hover:text-destructive/80 transition-colors",
-            "disabled:opacity-50 disabled:cursor-not-allowed"
-          )}
         >
           Remove image
-        </button>
+        </Button>
       )}
 
       {/* Error message */}

@@ -5,7 +5,7 @@
  * Delegates business logic to announcementService.
  */
 
-import { Request, Response, NextFunction } from "express";
+import { FastifyRequest, FastifyReply } from "fastify";
 import { AuthenticatedRequest } from "../types/index.js";
 import { announcementService } from "../services/announcement.service.js";
 import { auditService } from "../services/audit.service.js";
@@ -65,142 +65,117 @@ export const announcementController = {
   // Admin endpoints
   // ==========================================================================
 
-  async getAll(req: AuthenticatedRequest, res: Response, next: NextFunction) {
-    try {
-      const query = getAnnouncementsQuerySchema.parse(req.query);
-      const result = await announcementService.getAll({
-        type: query.type,
-        isActive: query.isActive,
-        page: query.page,
-        limit: query.limit,
-      });
+  async getAll(req: FastifyRequest, reply: FastifyReply) {
+    const query = getAnnouncementsQuerySchema.parse(req.query);
+    const result = await announcementService.getAll({
+      type: query.type,
+      isActive: query.isActive,
+      page: query.page,
+      limit: query.limit,
+    });
 
-      res.json(paginatedResponse(result.announcements, result.page, result.limit, result.total));
-    } catch (error) {
-      next(error);
-    }
+    return reply.send(paginatedResponse(result.announcements, result.page, result.limit, result.total));
   },
 
-  async getById(req: AuthenticatedRequest, res: Response, next: NextFunction) {
-    try {
-      const id = req.params.id as string;
-      const announcement = await announcementService.getById(id);
-      res.json(successResponse({ announcement }));
-    } catch (error) {
-      next(error);
-    }
+  async getById(req: FastifyRequest, reply: FastifyReply) {
+    const id = (req.params as Record<string, string>).id;
+    const announcement = await announcementService.getById(id);
+    return reply.send(successResponse({ announcement }));
   },
 
-  async create(req: AuthenticatedRequest, res: Response, next: NextFunction) {
-    try {
-      const validated = validateOrRespond(announcementSchema, req.body, res);
-      if (!validated) return;
+  async create(req: FastifyRequest, reply: FastifyReply) {
+    const authReq = req as AuthenticatedRequest;
+    const validated = validateOrRespond(announcementSchema, req.body, reply);
+    if (!validated) return;
 
-      const { startDate, endDate, ...rest } = validated;
-      const announcement = await announcementService.create({
-        ...rest,
-        ...parseDateFields({ startDate, endDate }),
-      });
+    const { startDate, endDate, ...rest } = validated;
+    const announcement = await announcementService.create({
+      ...rest,
+      ...parseDateFields({ startDate, endDate }),
+    });
 
-      await auditService.log({
-        userId: req.user.userId,
-        action: "CREATE",
-        entity: "Announcement",
-        entityId: announcement.id,
-        changes: { new: validated },
-        req,
-      });
+    await auditService.log({
+      userId: authReq.user.userId,
+      action: "CREATE",
+      entity: "Announcement",
+      entityId: announcement.id,
+      changes: { new: validated },
+      req,
+    });
 
-      res.status(201).json(successResponse({ announcement }));
-    } catch (error) {
-      next(error);
-    }
+    return reply.code(201).send(successResponse({ announcement }));
   },
 
-  async update(req: AuthenticatedRequest, res: Response, next: NextFunction) {
-    try {
-      const id = req.params.id as string;
-      const validated = validateOrRespond(announcementSchema.partial(), req.body, res);
-      if (!validated) return;
+  async update(req: FastifyRequest, reply: FastifyReply) {
+    const authReq = req as AuthenticatedRequest;
+    const id = (req.params as Record<string, string>).id;
+    const validated = validateOrRespond(announcementSchema.partial(), req.body, reply);
+    if (!validated) return;
 
-      const existing = await announcementService.getById(id);
+    const existing = await announcementService.getById(id);
 
-      const { startDate, endDate, ...rest } = validated;
-      const announcement = await announcementService.update(id, {
-        ...rest,
-        ...parseDateFields({ startDate, endDate }),
-      });
+    const { startDate, endDate, ...rest } = validated;
+    const announcement = await announcementService.update(id, {
+      ...rest,
+      ...parseDateFields({ startDate, endDate }),
+    });
 
-      await auditService.log({
-        userId: req.user.userId,
-        action: "UPDATE",
-        entity: "Announcement",
-        entityId: id,
-        changes: { old: existing, new: announcement },
-        req,
-      });
+    await auditService.log({
+      userId: authReq.user.userId,
+      action: "UPDATE",
+      entity: "Announcement",
+      entityId: id,
+      changes: { old: existing, new: announcement },
+      req,
+    });
 
-      res.json(successResponse({ announcement }));
-    } catch (error) {
-      next(error);
-    }
+    return reply.send(successResponse({ announcement }));
   },
 
-  async delete(req: AuthenticatedRequest, res: Response, next: NextFunction) {
-    try {
-      const id = req.params.id as string;
-      const existing = await announcementService.delete(id);
+  async delete(req: FastifyRequest, reply: FastifyReply) {
+    const authReq = req as AuthenticatedRequest;
+    const id = (req.params as Record<string, string>).id;
+    const existing = await announcementService.delete(id);
 
-      await auditService.log({
-        userId: req.user.userId,
-        action: "DELETE",
-        entity: "Announcement",
-        entityId: id,
-        changes: { old: existing },
-        req,
-      });
+    await auditService.log({
+      userId: authReq.user.userId,
+      action: "DELETE",
+      entity: "Announcement",
+      entityId: id,
+      changes: { old: existing },
+      req,
+    });
 
-      res.json(successResponse({ message: "Announcement deleted" }));
-    } catch (error) {
-      next(error);
-    }
+    return reply.send(successResponse({ message: "Announcement deleted" }));
   },
 
   // ==========================================================================
   // Public endpoints
   // ==========================================================================
 
-  async getActive(req: Request, res: Response, next: NextFunction) {
-    try {
-      const announcements = await announcementService.getActive();
-      res.json(successResponse({ announcements }));
-    } catch (error) {
-      next(error);
-    }
+  async getActive(req: FastifyRequest, reply: FastifyReply) {
+    const announcements = await announcementService.getActive();
+    return reply.send(successResponse({ announcements }));
   },
 
   /**
    * Export all announcements as CSV (admin only)
    * GET /api/v1/admin/announcements/export
    */
-  async exportAnnouncements(req: AuthenticatedRequest, res: Response, next: NextFunction) {
-    try {
-      const announcements = await announcementService.getAllForExport();
+  async exportAnnouncements(req: FastifyRequest, reply: FastifyReply) {
+    const announcements = await announcementService.getAllForExport();
 
-      sendCsvExport(res, announcements, [
-        { header: "ID", accessor: "id" },
-        { header: "Title", accessor: "title" },
-        { header: "Content", accessor: "content" },
-        { header: "Type", accessor: "type" },
-        { header: "Start Date", accessor: (item) => item.startDate?.toISOString() || "" },
-        { header: "End Date", accessor: (item) => item.endDate?.toISOString() || "" },
-        { header: "Active", accessor: "isActive" },
-        { header: "Pinned", accessor: "isPinned" },
-        { header: "Created At", accessor: (item) => item.createdAt.toISOString() },
-        { header: "Updated At", accessor: (item) => item.updatedAt.toISOString() },
-      ], { filenamePrefix: "announcements-export" });
-    } catch (error) {
-      next(error);
-    }
+    sendCsvExport(reply, announcements, [
+      { header: "ID", accessor: "id" },
+      { header: "Title", accessor: "title" },
+      { header: "Content", accessor: "content" },
+      { header: "Type", accessor: "type" },
+      { header: "Start Date", accessor: (item) => item.startDate?.toISOString() || "" },
+      { header: "End Date", accessor: (item) => item.endDate?.toISOString() || "" },
+      { header: "Active", accessor: "isActive" },
+      { header: "Pinned", accessor: "isPinned" },
+      { header: "Created At", accessor: (item) => item.createdAt.toISOString() },
+      { header: "Updated At", accessor: (item) => item.updatedAt.toISOString() },
+    ], { filenamePrefix: "announcements-export" });
   },
 };

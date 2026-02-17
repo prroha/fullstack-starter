@@ -48,7 +48,7 @@ export default function CourseCard({ course, onClick }: CourseCardProps) {
         ) : (
           <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
             <svg
-              className="h-12 w-12 text-blue-300"
+              className="h-12 w-12 text-muted-foreground"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -65,14 +65,14 @@ export default function CourseCard({ course, onClick }: CourseCardProps) {
 
         {/* Free badge */}
         {course.price === 0 && (
-          <span className="absolute top-2 left-2 rounded bg-green-600 px-2 py-0.5 text-xs font-semibold text-white">
+          <span className="absolute top-2 left-2 rounded bg-success px-2 py-0.5 text-xs font-semibold text-success-foreground">
             Free
           </span>
         )}
 
         {/* Featured badge */}
         {course.isFeatured && (
-          <span className="absolute top-2 right-2 rounded bg-amber-500 px-2 py-0.5 text-xs font-semibold text-white">
+          <span className="absolute top-2 right-2 rounded bg-warning px-2 py-0.5 text-xs font-semibold text-warning-foreground">
             Featured
           </span>
         )}
@@ -112,7 +112,7 @@ export default function CourseCard({ course, onClick }: CourseCardProps) {
         </div>
 
         {/* Title */}
-        <h3 className="mb-1 line-clamp-2 text-sm font-semibold text-foreground group-hover:text-blue-600">
+        <h3 className="mb-1 line-clamp-2 text-sm font-semibold text-foreground group-hover:text-primary">
           {course.title}
         </h3>
 

@@ -229,7 +229,7 @@ export default function FAQPage() {
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
       <section className="border-b border-border">
-        <div className="container mx-auto px-4 py-16 md:py-24 text-center">
+        <div className="container mx-auto px-4 py-10 md:py-12 text-center">
           <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-6">
             Frequently Asked Questions
           </h1>
@@ -293,9 +293,9 @@ export default function FAQPage() {
       </section>
 
       {/* FAQ Content */}
-      <section className="py-12 md:py-16">
+      <section className="py-8 md:py-12">
         <div className="container mx-auto px-4">
-          <div className="max-w-3xl mx-auto space-y-12">
+          <div className="max-w-3xl mx-auto space-y-6">
             {filteredData.length === 0 ? (
               <div className="text-center py-12">
                 <Icon
@@ -342,7 +342,7 @@ export default function FAQPage() {
       </section>
 
       {/* Contact CTA */}
-      <section className="py-12 md:py-16 bg-muted/30 border-t border-border">
+      <section className="py-8 md:py-12 bg-muted/30 border-t border-border">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-2xl font-bold text-foreground mb-4">
             Still have questions?

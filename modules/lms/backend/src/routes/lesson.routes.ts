@@ -1,142 +1,111 @@
-import { Router, Request, Response } from 'express';
-import { getLessonService } from '../services/lesson.service';
-import { authMiddleware, AuthenticatedRequest } from '../middleware/auth';
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
+import { getLessonService } from '../services/lesson.service.js';
+import { authMiddleware } from '../middleware/auth.js';
 
 // =============================================================================
-// Router
+// Routes
 // =============================================================================
 
-const router = Router();
 const lessonService = getLessonService();
 
 // =============================================================================
 // Section Endpoints
 // =============================================================================
 
-/**
- * GET /lessons/sections/:courseId
- * List all sections for a course (with lessons)
- */
-router.get('/sections/:courseId', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const sections = await lessonService.listSections(req.params.courseId);
-    res.json({ success: true, data: sections });
-  } catch (error) {
-    console.error('[LessonRoutes] List sections error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to list sections' });
-  }
-});
+const routes: FastifyPluginAsync = async (fastify) => {
+  /**
+   * GET /lessons/sections/:courseId
+   * List all sections for a course (with lessons)
+   */
+  fastify.get('/sections/:courseId', async (req: FastifyRequest, reply: FastifyReply) => {
+    const { courseId } = req.params as { courseId: string };
+    const sections = await lessonService.listSections(courseId);
+    return reply.send({ success: true, data: sections });
+  });
 
-/**
- * POST /lessons/sections
- * Create a new section
- */
-router.post('/sections', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { courseId, title, description } = req.body;
+  /**
+   * POST /lessons/sections
+   * Create a new section
+   */
+  fastify.post('/sections', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const { courseId, title, description } = req.body as { courseId: string; title: string; description?: string };
 
     if (!courseId || !title) {
-      res.status(400).json({ error: 'courseId and title are required' });
-      return;
+      return reply.code(400).send({ error: 'courseId and title are required' });
     }
 
     const section = await lessonService.createSection({ courseId, title, description });
-    res.status(201).json({ success: true, data: section });
-  } catch (error) {
-    console.error('[LessonRoutes] Create section error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to create section' });
-  }
-});
+    return reply.code(201).send({ success: true, data: section });
+  });
 
-/**
- * PATCH /lessons/sections/:id
- * Update a section
- */
-router.patch('/sections/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { title, description } = req.body;
-    const section = await lessonService.updateSection(req.params.id, { title, description });
+  /**
+   * PATCH /lessons/sections/:id
+   * Update a section
+   */
+  fastify.patch('/sections/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as { id: string };
+    const { title, description } = req.body as { title?: string; description?: string };
+    const section = await lessonService.updateSection(id, { title, description });
 
     if (!section) {
-      res.status(404).json({ error: 'Section not found' });
-      return;
+      return reply.code(404).send({ error: 'Section not found' });
     }
 
-    res.json({ success: true, data: section });
-  } catch (error) {
-    console.error('[LessonRoutes] Update section error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to update section' });
-  }
-});
+    return reply.send({ success: true, data: section });
+  });
 
-/**
- * DELETE /lessons/sections/:id
- * Delete a section and its lessons
- */
-router.delete('/sections/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
-    await lessonService.deleteSection(req.params.id);
-    res.json({ success: true, message: 'Section deleted' });
-  } catch (error) {
-    console.error('[LessonRoutes] Delete section error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to delete section' });
-  }
-});
+  /**
+   * DELETE /lessons/sections/:id
+   * Delete a section and its lessons
+   */
+  fastify.delete('/sections/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as { id: string };
+    await lessonService.deleteSection(id);
+    return reply.send({ success: true, message: 'Section deleted' });
+  });
 
-/**
- * PUT /lessons/sections/:courseId/reorder
- * Reorder sections within a course
- */
-router.put('/sections/:courseId/reorder', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { orderedIds } = req.body;
+  /**
+   * PUT /lessons/sections/:courseId/reorder
+   * Reorder sections within a course
+   */
+  fastify.put('/sections/:courseId/reorder', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const { courseId } = req.params as { courseId: string };
+    const { orderedIds } = req.body as { orderedIds: string[] };
 
     if (!Array.isArray(orderedIds)) {
-      res.status(400).json({ error: 'orderedIds array is required' });
-      return;
+      return reply.code(400).send({ error: 'orderedIds array is required' });
     }
 
-    await lessonService.reorderSections(req.params.courseId, orderedIds);
-    res.json({ success: true, message: 'Sections reordered' });
-  } catch (error) {
-    console.error('[LessonRoutes] Reorder sections error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to reorder sections' });
-  }
-});
+    await lessonService.reorderSections(courseId, orderedIds);
+    return reply.send({ success: true, message: 'Sections reordered' });
+  });
 
-// =============================================================================
-// Lesson Endpoints
-// =============================================================================
+  // =============================================================================
+  // Lesson Endpoints
+  // =============================================================================
 
-/**
- * GET /lessons/:id
- * Get a single lesson
- */
-router.get('/:id', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const lesson = await lessonService.getLesson(req.params.id);
+  /**
+   * GET /lessons/:id
+   * Get a single lesson
+   */
+  fastify.get('/:id', async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as { id: string };
+    const lesson = await lessonService.getLesson(id);
     if (!lesson) {
-      res.status(404).json({ error: 'Lesson not found' });
-      return;
+      return reply.code(404).send({ error: 'Lesson not found' });
     }
-    res.json({ success: true, data: lesson });
-  } catch (error) {
-    console.error('[LessonRoutes] Get lesson error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to get lesson' });
-  }
-});
+    return reply.send({ success: true, data: lesson });
+  });
 
-/**
- * POST /lessons
- * Create a new lesson within a section
- */
-router.post('/', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { sectionId, title, description, type, contentUrl, contentText, duration, isFree } = req.body;
+  /**
+   * POST /lessons
+   * Create a new lesson within a section
+   */
+  fastify.post('/', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const { sectionId, title, description, type, contentUrl, contentText, duration, isFree } = req.body as Record<string, unknown>;
 
     if (!sectionId || !title) {
-      res.status(400).json({ error: 'sectionId and title are required' });
-      return;
+      return reply.code(400).send({ error: 'sectionId and title are required' });
     }
 
     const lesson = await lessonService.createLesson({
@@ -150,22 +119,18 @@ router.post('/', authMiddleware, async (req: Request, res: Response): Promise<vo
       isFree,
     });
 
-    res.status(201).json({ success: true, data: lesson });
-  } catch (error) {
-    console.error('[LessonRoutes] Create lesson error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to create lesson' });
-  }
-});
+    return reply.code(201).send({ success: true, data: lesson });
+  });
 
-/**
- * PATCH /lessons/:id
- * Update a lesson
- */
-router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { title, description, type, contentUrl, contentText, duration, isFree } = req.body;
+  /**
+   * PATCH /lessons/:id
+   * Update a lesson
+   */
+  fastify.patch('/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as { id: string };
+    const { title, description, type, contentUrl, contentText, duration, isFree } = req.body as Record<string, unknown>;
 
-    const lesson = await lessonService.updateLesson(req.params.id, {
+    const lesson = await lessonService.updateLesson(id, {
       title,
       description,
       type,
@@ -176,50 +141,37 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promis
     });
 
     if (!lesson) {
-      res.status(404).json({ error: 'Lesson not found' });
-      return;
+      return reply.code(404).send({ error: 'Lesson not found' });
     }
 
-    res.json({ success: true, data: lesson });
-  } catch (error) {
-    console.error('[LessonRoutes] Update lesson error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to update lesson' });
-  }
-});
+    return reply.send({ success: true, data: lesson });
+  });
 
-/**
- * DELETE /lessons/:id
- * Delete a lesson
- */
-router.delete('/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
-    await lessonService.deleteLesson(req.params.id);
-    res.json({ success: true, message: 'Lesson deleted' });
-  } catch (error) {
-    console.error('[LessonRoutes] Delete lesson error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to delete lesson' });
-  }
-});
+  /**
+   * DELETE /lessons/:id
+   * Delete a lesson
+   */
+  fastify.delete('/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as { id: string };
+    await lessonService.deleteLesson(id);
+    return reply.send({ success: true, message: 'Lesson deleted' });
+  });
 
-/**
- * PUT /lessons/reorder/:sectionId
- * Reorder lessons within a section
- */
-router.put('/reorder/:sectionId', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { orderedIds } = req.body;
+  /**
+   * PUT /lessons/reorder/:sectionId
+   * Reorder lessons within a section
+   */
+  fastify.put('/reorder/:sectionId', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const { sectionId } = req.params as { sectionId: string };
+    const { orderedIds } = req.body as { orderedIds: string[] };
 
     if (!Array.isArray(orderedIds)) {
-      res.status(400).json({ error: 'orderedIds array is required' });
-      return;
+      return reply.code(400).send({ error: 'orderedIds array is required' });
     }
 
-    await lessonService.reorderLessons(req.params.sectionId, orderedIds);
-    res.json({ success: true, message: 'Lessons reordered' });
-  } catch (error) {
-    console.error('[LessonRoutes] Reorder lessons error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to reorder lessons' });
-  }
-});
+    await lessonService.reorderLessons(sectionId, orderedIds);
+    return reply.send({ success: true, message: 'Lessons reordered' });
+  });
+};
 
-export default router;
+export default routes;

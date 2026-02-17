@@ -1,10 +1,11 @@
-import { Response, NextFunction } from "express";
+import { FastifyRequest, FastifyReply } from "fastify";
 import { userService } from "../services/user.service.js";
 import { exportService } from "../services/export.service.js";
 import { successResponse, errorResponse, ErrorCodes } from "../utils/response.js";
 import { z } from "zod";
-import { AppRequest, AuthenticatedRequest } from "../types/index.js";
+import { AuthenticatedRequest } from "../types/index.js";
 import { strictNameSchema, emailSchema } from "../utils/validation-schemas.js";
+import { processAvatarUpload } from "../middleware/upload.middleware.js";
 
 // ============================================================================
 // Validation Schemas
@@ -25,91 +26,65 @@ class UserController {
    * Get current user profile
    * GET /api/v1/users/me
    */
-  async getProfile(req: AppRequest, res: Response, next: NextFunction) {
-    try {
-      const authReq = req as AuthenticatedRequest;
-      const profile = await userService.getProfile(authReq.dbUser.id);
+  async getProfile(req: FastifyRequest, reply: FastifyReply) {
+    const authReq = req as AuthenticatedRequest;
+    const profile = await userService.getProfile(authReq.dbUser.id);
 
-      res.json(successResponse({ profile }));
-    } catch (error) {
-      next(error);
-    }
+    return reply.send(successResponse({ profile }));
   }
 
   /**
    * Update current user profile
    * PATCH /api/v1/users/me
    */
-  async updateProfile(req: AppRequest, res: Response, next: NextFunction) {
-    try {
-      const authReq = req as AuthenticatedRequest;
-      const validated = updateProfileSchema.parse(req.body);
+  async updateProfile(req: FastifyRequest, reply: FastifyReply) {
+    const authReq = req as AuthenticatedRequest;
+    const validated = updateProfileSchema.parse(req.body);
 
-      const profile = await userService.updateProfile(authReq.dbUser.id, validated);
+    const profile = await userService.updateProfile(authReq.dbUser.id, validated);
 
-      res.json(successResponse(
-        { profile },
-        "Profile updated successfully"
-      ));
-    } catch (error) {
-      next(error);
-    }
+    return reply.send(successResponse(
+      { profile },
+      "Profile updated successfully"
+    ));
   }
 
   /**
    * Get current user avatar
    * GET /api/v1/users/me/avatar
    */
-  async getAvatar(req: AppRequest, res: Response, next: NextFunction) {
-    try {
-      const authReq = req as AuthenticatedRequest;
-      const avatar = await userService.getAvatar(authReq.dbUser.id);
+  async getAvatar(req: FastifyRequest, reply: FastifyReply) {
+    const authReq = req as AuthenticatedRequest;
+    const avatar = await userService.getAvatar(authReq.dbUser.id);
 
-      res.json(successResponse({ avatar }));
-    } catch (error) {
-      next(error);
-    }
+    return reply.send(successResponse({ avatar }));
   }
 
   /**
    * Upload current user avatar
    * POST /api/v1/users/me/avatar
    */
-  async uploadAvatar(req: AppRequest, res: Response, next: NextFunction) {
-    try {
-      const authReq = req as AuthenticatedRequest;
+  async uploadAvatar(req: FastifyRequest, reply: FastifyReply) {
+    const authReq = req as AuthenticatedRequest;
 
-      if (!req.file) {
-        res.status(400).json(
-          errorResponse(ErrorCodes.INVALID_INPUT, "No file uploaded")
-        );
-        return;
-      }
+    const file = await processAvatarUpload(req);
+    const result = await userService.uploadAvatar(authReq.dbUser.id, file);
 
-      const result = await userService.uploadAvatar(authReq.dbUser.id, req.file);
-
-      res.json(successResponse(
-        { avatar: { url: result.url } },
-        "Avatar uploaded successfully"
-      ));
-    } catch (error) {
-      next(error);
-    }
+    return reply.send(successResponse(
+      { avatar: { url: result.url } },
+      "Avatar uploaded successfully"
+    ));
   }
 
   /**
    * Delete current user avatar
    * DELETE /api/v1/users/me/avatar
    */
-  async deleteAvatar(req: AppRequest, res: Response, next: NextFunction) {
-    try {
-      const authReq = req as AuthenticatedRequest;
-      await userService.deleteAvatar(authReq.dbUser.id);
+  async deleteAvatar(req: FastifyRequest, reply: FastifyReply) {
+    const authReq = req as AuthenticatedRequest;
+    await userService.deleteAvatar(authReq.dbUser.id);
 
-      res.json(successResponse(null, "Avatar deleted successfully"));
-    } catch (error) {
-      next(error);
-    }
+    return reply.send(successResponse(null, "Avatar deleted successfully"));
   }
 
   /**
@@ -118,41 +93,36 @@ class UserController {
    * Query params:
    *   - format: "json" | "csv" (default: "json")
    */
-  async exportMyData(req: AppRequest, res: Response, next: NextFunction) {
-    try {
-      const authReq = req as AuthenticatedRequest;
+  async exportMyData(req: FastifyRequest, reply: FastifyReply) {
+    const authReq = req as AuthenticatedRequest;
 
-      // Validate format using schema
-      const formatResult = exportFormatSchema.safeParse(req.query.format);
-      if (!formatResult.success) {
-        res.status(400).json(
-          errorResponse(ErrorCodes.VALIDATION_ERROR, "Invalid format. Use 'json' or 'csv'")
-        );
-        return;
-      }
-      const format = formatResult.data;
+    // Validate format using schema
+    const formatResult = exportFormatSchema.safeParse((req.query as Record<string, string>).format);
+    if (!formatResult.success) {
+      return reply.code(400).send(
+        errorResponse(ErrorCodes.VALIDATION_ERROR, "Invalid format. Use 'json' or 'csv'")
+      );
+    }
+    const format = formatResult.data;
 
-      const data = await exportService.exportUserData(authReq.dbUser.id, format);
+    const data = await exportService.exportUserData(authReq.dbUser.id, format);
 
-      if (format === "csv") {
-        const timestamp = new Date().toISOString().split("T")[0];
-        res.setHeader("Content-Type", "text/csv; charset=utf-8");
-        res.setHeader(
-          "Content-Disposition",
-          `attachment; filename="my-data-${timestamp}.csv"`
-        );
-        res.send(data);
-      } else {
-        const timestamp = new Date().toISOString().split("T")[0];
-        res.setHeader("Content-Type", "application/json; charset=utf-8");
-        res.setHeader(
-          "Content-Disposition",
-          `attachment; filename="my-data-${timestamp}.json"`
-        );
-        res.send(data);
-      }
-    } catch (error) {
-      next(error);
+    if (format === "csv") {
+      const timestamp = new Date().toISOString().split("T")[0];
+      reply.header("Content-Type", "text/csv; charset=utf-8");
+      reply.header(
+        "Content-Disposition",
+        `attachment; filename="my-data-${timestamp}.csv"`
+      );
+      return reply.send(data);
+    } else {
+      const timestamp = new Date().toISOString().split("T")[0];
+      reply.header("Content-Type", "application/json; charset=utf-8");
+      reply.header(
+        "Content-Disposition",
+        `attachment; filename="my-data-${timestamp}.json"`
+      );
+      return reply.send(data);
     }
   }
 }

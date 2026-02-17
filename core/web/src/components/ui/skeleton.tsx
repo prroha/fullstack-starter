@@ -408,7 +408,7 @@ export function SkeletonList({
 
 export function SkeletonPage({ className, ...props }: SkeletonProps) {
   return (
-    <div className={cn("min-h-screen p-8 space-y-8", className)} {...props}>
+    <div className={cn("min-h-screen p-6 space-y-6", className)} {...props}>
       {/* Header */}
       <div className="space-y-4">
         <Skeleton className="h-10 w-64" />
@@ -495,7 +495,7 @@ export function SkeletonForm({ className, ...props }: SkeletonProps) {
 
 export function SkeletonProfile({ className, ...props }: SkeletonProps) {
   return (
-    <div className={cn("space-y-8", className)} {...props}>
+    <div className={cn("space-y-6", className)} {...props}>
       {/* Header */}
       <div className="flex items-center gap-6">
         <SkeletonCircle size="xl" className="h-24 w-24" />
@@ -543,7 +543,7 @@ export function SkeletonAuth({ className, ...props }: SkeletonProps) {
       )}
       {...props}
     >
-      <div className="w-full max-w-md space-y-4 p-8 rounded-xl border bg-background">
+      <div className="w-full max-w-md space-y-4 p-6 rounded-xl border bg-background">
         <div className="text-center space-y-2">
           <Skeleton className="h-8 w-32 mx-auto" />
           <Skeleton className="h-4 w-48 mx-auto" />

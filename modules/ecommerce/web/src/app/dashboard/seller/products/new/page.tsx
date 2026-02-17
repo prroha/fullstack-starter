@@ -108,8 +108,8 @@ export default function CreateProductPage() {
 
       {/* Error */}
       {error && (
-        <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-red-600">{error}</p>
+        <div className="mb-6 bg-destructive/10 border border-destructive/20 rounded-lg p-4">
+          <p className="text-destructive">{error}</p>
         </div>
       )}
 
@@ -249,7 +249,7 @@ export default function CreateProductPage() {
                   key={category.id}
                   className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${
                     selectedCategoryIds.includes(category.id)
-                      ? 'bg-blue-50 border-blue-300'
+                      ? 'bg-primary/10 border-primary/30'
                       : 'bg-card border-border hover:bg-muted'
                   }`}
                 >
@@ -257,7 +257,7 @@ export default function CreateProductPage() {
                     type="checkbox"
                     checked={selectedCategoryIds.includes(category.id)}
                     onChange={() => handleCategoryToggle(category.id)}
-                    className="rounded border-border text-blue-600 focus:ring-blue-500"
+                    className="rounded border-border text-primary focus:ring-primary"
                   />
                   <span className="text-sm text-foreground">{category.name}</span>
                 </label>

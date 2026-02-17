@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { api, ApiError, AdminUser } from "@/lib/api";
 import { Button, Input, Badge, Text, Select, Modal } from "@/components/ui";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Alert } from "@/components/feedback";
 import { EmptyUsers } from "@/components/shared";
 import { AdminPageHeader, AdminTableContainer } from "@/components/admin";
@@ -39,8 +40,8 @@ function UserRow({
   isUpdating: boolean;
 }) {
   return (
-    <tr className="border-b hover:bg-muted/50">
-      <td className="px-4 py-3">
+    <TableRow className="border-b hover:bg-muted/50">
+      <TableCell className="px-4 py-3">
         <div className="flex items-center gap-3">
           <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium text-sm">
             {user.name?.charAt(0).toUpperCase() || user.email.charAt(0).toUpperCase()}
@@ -50,8 +51,8 @@ function UserRow({
             <Text variant="caption" color="muted">{user.email}</Text>
           </div>
         </div>
-      </td>
-      <td className="px-4 py-3">
+      </TableCell>
+      <TableCell className="px-4 py-3">
         <Badge
           variant={
             user.role === "SUPER_ADMIN"
@@ -63,18 +64,18 @@ function UserRow({
         >
           {user.role === "SUPER_ADMIN" ? "Super Admin" : user.role}
         </Badge>
-      </td>
-      <td className="px-4 py-3">
+      </TableCell>
+      <TableCell className="px-4 py-3">
         <Badge variant={user.isActive ? "default" : "destructive"}>
           {user.isActive ? "Active" : "Inactive"}
         </Badge>
-      </td>
-      <td className="px-4 py-3">
+      </TableCell>
+      <TableCell className="px-4 py-3">
         <Text variant="caption" color="muted">
           {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "-"}
         </Text>
-      </td>
-      <td className="px-4 py-3">
+      </TableCell>
+      <TableCell className="px-4 py-3">
         <div className="flex items-center gap-2">
           <Button
             variant="ghost"
@@ -92,14 +93,14 @@ function UserRow({
             className={cn(
               user.isActive
                 ? "text-destructive hover:text-destructive"
-                : "text-green-600 hover:text-green-700"
+                : "text-success hover:text-success"
             )}
           >
             {user.isActive ? "Deactivate" : "Activate"}
           </Button>
         </div>
-      </td>
-    </tr>
+      </TableCell>
+    </TableRow>
   );
 }
 
@@ -348,17 +349,17 @@ export default function AdminUsersPage() {
                 <EmptyUsers />
               </div>
             ) : (
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b bg-muted/50">
-                    <th className="px-4 py-3 text-left text-sm font-medium">User</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium">Role</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium">Status</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium">Joined</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <Table className="w-full">
+                <TableHeader>
+                  <TableRow className="border-b bg-muted/50">
+                    <TableHead className="px-4 py-3 text-left text-sm font-medium">User</TableHead>
+                    <TableHead className="px-4 py-3 text-left text-sm font-medium">Role</TableHead>
+                    <TableHead className="px-4 py-3 text-left text-sm font-medium">Status</TableHead>
+                    <TableHead className="px-4 py-3 text-left text-sm font-medium">Joined</TableHead>
+                    <TableHead className="px-4 py-3 text-left text-sm font-medium">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {users.map((user) => (
                     <UserRow
                       key={user.id}
@@ -368,8 +369,8 @@ export default function AdminUsersPage() {
                       isUpdating={isUpdating}
                     />
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             )}
           </>
         )}

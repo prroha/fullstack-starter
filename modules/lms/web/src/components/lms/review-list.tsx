@@ -20,7 +20,7 @@ function RatingBar({ star, count, total }: { star: number; count: number; total:
     <div className="flex items-center gap-2 text-sm">
       <span className="w-3 text-muted-foreground text-right">{star}</span>
       <svg
-        className="w-3.5 h-3.5 text-amber-400 flex-shrink-0"
+        className="w-3.5 h-3.5 text-warning flex-shrink-0"
         viewBox="0 0 24 24"
         fill="currentColor"
       >
@@ -28,7 +28,7 @@ function RatingBar({ star, count, total }: { star: number; count: number; total:
       </svg>
       <div className="flex-1 bg-muted rounded-full h-2 overflow-hidden">
         <div
-          className="bg-amber-400 h-2 rounded-full transition-all duration-300"
+          className="bg-warning h-2 rounded-full transition-all duration-300"
           style={{ width: `${percentage}%` }}
         />
       </div>
@@ -135,8 +135,8 @@ export default function ReviewList({
             >
               <div className="flex items-start gap-3">
                 {/* User avatar */}
-                <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
-                  <span className="text-sm font-semibold text-indigo-600">
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <span className="text-sm font-semibold text-primary">
                     {getUserInitials(review.userName)}
                   </span>
                 </div>

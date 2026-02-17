@@ -348,18 +348,18 @@ function CheckoutSuccessContent() {
       <Container className="py-8 md:py-12">
         <div className="text-center mb-10 md:mb-12">
           <div className="relative inline-flex items-center justify-center mb-6">
-            <div className="absolute inset-0 animate-ping rounded-full bg-green-400/20" style={{ animationDuration: "2s" }} />
+            <div className="absolute inset-0 animate-ping rounded-full bg-success/20" style={{ animationDuration: "2s" }} />
             <div className="relative flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-green-400 to-green-600 shadow-lg shadow-green-500/30">
               <CheckCircle2 className="h-10 w-10 text-white" />
             </div>
           </div>
 
           <div className="flex items-center justify-center gap-2 mb-4">
-            <Sparkles className="h-5 w-5 text-yellow-500" />
+            <Sparkles className="h-5 w-5 text-warning" />
             <Badge variant="success" size="lg">
               Payment Successful
             </Badge>
-            <Sparkles className="h-5 w-5 text-yellow-500" />
+            <Sparkles className="h-5 w-5 text-warning" />
           </div>
 
           <h1 className="text-3xl md:text-4xl font-bold mb-3">
@@ -433,18 +433,18 @@ function CheckoutSuccessContent() {
       <div className="text-center mb-10 md:mb-12">
         {/* Animated Success Icon */}
         <div className="relative inline-flex items-center justify-center mb-6">
-          <div className="absolute inset-0 animate-ping rounded-full bg-green-400/20" style={{ animationDuration: "2s" }} />
+          <div className="absolute inset-0 animate-ping rounded-full bg-success/20" style={{ animationDuration: "2s" }} />
           <div className="relative flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-green-400 to-green-600 shadow-lg shadow-green-500/30">
             <CheckCircle2 className="h-10 w-10 text-white" />
           </div>
         </div>
 
         <div className="flex items-center justify-center gap-2 mb-4">
-          <Sparkles className="h-5 w-5 text-yellow-500" />
+          <Sparkles className="h-5 w-5 text-warning" />
           <Badge variant="success" size="lg">
             Payment Successful
           </Badge>
-          <Sparkles className="h-5 w-5 text-yellow-500" />
+          <Sparkles className="h-5 w-5 text-warning" />
         </div>
 
         <h1 className="text-3xl md:text-4xl font-bold mb-3">
@@ -456,11 +456,11 @@ function CheckoutSuccessContent() {
         </p>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+      <div className="grid lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
         {/* Left Column - Order Details */}
         <div className="lg:col-span-2 space-y-6">
           {/* Download Card */}
-          <Card className="border-green-200 dark:border-green-900 bg-green-50/50 dark:bg-green-950/20">
+          <Card className="border-success/20 bg-success/5">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Package className="h-5 w-5" />
@@ -551,7 +551,7 @@ function CheckoutSuccessContent() {
               </div>
 
               {order.discount > 0 && (
-                <div className="flex justify-between text-sm text-green-600">
+                <div className="flex justify-between text-sm text-success">
                   <span>Discount Applied</span>
                   <span>-{formatPrice(order.discount)}</span>
                 </div>
@@ -755,23 +755,23 @@ function CheckoutSuccessContent() {
             <CardContent>
               <ul className="space-y-2 text-sm">
                 <li className="flex items-start gap-2">
-                  <Check className="h-4 w-4 text-green-600 mt-0.5 shrink-0" />
+                  <Check className="h-4 w-4 text-success mt-0.5 shrink-0" />
                   <span>Full source code access</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <Check className="h-4 w-4 text-green-600 mt-0.5 shrink-0" />
+                  <Check className="h-4 w-4 text-success mt-0.5 shrink-0" />
                   <span>Lifetime updates included</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <Check className="h-4 w-4 text-green-600 mt-0.5 shrink-0" />
+                  <Check className="h-4 w-4 text-success mt-0.5 shrink-0" />
                   <span>Use for unlimited projects</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <Check className="h-4 w-4 text-green-600 mt-0.5 shrink-0" />
+                  <Check className="h-4 w-4 text-success mt-0.5 shrink-0" />
                   <span>Complete documentation</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <Check className="h-4 w-4 text-green-600 mt-0.5 shrink-0" />
+                  <Check className="h-4 w-4 text-success mt-0.5 shrink-0" />
                   <span>Community support</span>
                 </li>
               </ul>

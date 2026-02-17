@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
-import { Request, Response, NextFunction } from "express";
+import { FastifyRequest, FastifyReply } from "fastify";
 import { ZodError, ZodIssue } from "zod";
-import { ApiError, errorMiddleware } from "../../middleware/error.middleware.js";
+import { ApiError, errorHandler } from "../../middleware/error.middleware.js";
 import { ErrorCodes } from "../../utils/response.js";
 
 // Mock dependencies
@@ -21,19 +21,17 @@ vi.mock("../../config/index.js", () => ({
   },
 }));
 
-function createMockReq(): Request {
-  return { id: "req-123" } as Request;
+function createMockReq(): FastifyRequest {
+  return { id: "req-123" } as FastifyRequest;
 }
 
-function createMockRes(): Response {
-  const res = {
-    status: vi.fn().mockReturnThis(),
-    json: vi.fn().mockReturnThis(),
-  } as unknown as Response;
-  return res;
+function createMockReply(): FastifyReply {
+  const reply = {
+    code: vi.fn().mockReturnThis(),
+    send: vi.fn().mockReturnThis(),
+  } as unknown as FastifyReply;
+  return reply;
 }
-
-const mockNext: NextFunction = vi.fn();
 
 describe("ApiError", () => {
   describe("static factories", () => {
@@ -85,7 +83,7 @@ describe("ApiError", () => {
   });
 });
 
-describe("errorMiddleware", () => {
+describe("errorHandler", () => {
   it("handles ZodError with 400 status and field details", () => {
     const issues: ZodIssue[] = [
       {
@@ -110,12 +108,12 @@ describe("errorMiddleware", () => {
     const zodError = new ZodError(issues);
 
     const req = createMockReq();
-    const res = createMockRes();
+    const reply = createMockReply();
 
-    errorMiddleware(zodError, req, res, mockNext);
+    errorHandler(zodError, req, reply);
 
-    expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith(
+    expect(reply.code).toHaveBeenCalledWith(400);
+    expect(reply.send).toHaveBeenCalledWith(
       expect.objectContaining({
         success: false,
         error: expect.objectContaining({
@@ -133,12 +131,12 @@ describe("errorMiddleware", () => {
   it("handles ApiError with correct status and code", () => {
     const err = ApiError.notFound("Resource not found");
     const req = createMockReq();
-    const res = createMockRes();
+    const reply = createMockReply();
 
-    errorMiddleware(err, req, res, mockNext);
+    errorHandler(err, req, reply);
 
-    expect(res.status).toHaveBeenCalledWith(404);
-    expect(res.json).toHaveBeenCalledWith(
+    expect(reply.code).toHaveBeenCalledWith(404);
+    expect(reply.send).toHaveBeenCalledWith(
       expect.objectContaining({
         success: false,
         error: expect.objectContaining({
@@ -152,11 +150,11 @@ describe("errorMiddleware", () => {
   it("handles ApiError with 500 status", () => {
     const err = ApiError.internal("Server crashed");
     const req = createMockReq();
-    const res = createMockRes();
+    const reply = createMockReply();
 
-    errorMiddleware(err, req, res, mockNext);
+    errorHandler(err, req, reply);
 
-    expect(res.status).toHaveBeenCalledWith(500);
+    expect(reply.code).toHaveBeenCalledWith(500);
   });
 
   it("handles Prisma errors with 400 DATABASE_ERROR", () => {
@@ -164,12 +162,12 @@ describe("errorMiddleware", () => {
     prismaError.name = "PrismaClientKnownRequestError";
 
     const req = createMockReq();
-    const res = createMockRes();
+    const reply = createMockReply();
 
-    errorMiddleware(prismaError, req, res, mockNext);
+    errorHandler(prismaError, req, reply);
 
-    expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith(
+    expect(reply.code).toHaveBeenCalledWith(400);
+    expect(reply.send).toHaveBeenCalledWith(
       expect.objectContaining({
         success: false,
         error: expect.objectContaining({
@@ -183,12 +181,12 @@ describe("errorMiddleware", () => {
   it("handles unknown errors with 500 INTERNAL_ERROR", () => {
     const err = new Error("Something unexpected");
     const req = createMockReq();
-    const res = createMockRes();
+    const reply = createMockReply();
 
-    errorMiddleware(err, req, res, mockNext);
+    errorHandler(err, req, reply);
 
-    expect(res.status).toHaveBeenCalledWith(500);
-    expect(res.json).toHaveBeenCalledWith(
+    expect(reply.code).toHaveBeenCalledWith(500);
+    expect(reply.send).toHaveBeenCalledWith(
       expect.objectContaining({
         success: false,
         error: expect.objectContaining({
@@ -201,11 +199,11 @@ describe("errorMiddleware", () => {
   it("includes requestId in error response", () => {
     const err = ApiError.badRequest("Bad");
     const req = createMockReq();
-    const res = createMockRes();
+    const reply = createMockReply();
 
-    errorMiddleware(err, req, res, mockNext);
+    errorHandler(err, req, reply);
 
-    const jsonCall = vi.mocked(res.json).mock.calls[0][0] as { error: { requestId: string } };
-    expect(jsonCall.error.requestId).toBe("req-123");
+    const sendCall = vi.mocked(reply.send).mock.calls[0][0] as { error: { requestId: string } };
+    expect(sendCall.error.requestId).toBe("req-123");
   });
 });

@@ -54,8 +54,8 @@ function LessonTypeIcon({ type }: { type: Lesson['type'] }) {
 function CompletionCheck({ completed }: { completed: boolean }) {
   if (completed) {
     return (
-      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-green-500" aria-label="Completed">
-        <svg className="h-3 w-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-success" aria-label="Completed">
+        <svg className="h-3 w-3 text-success-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
         </svg>
       </span>
@@ -173,7 +173,7 @@ function SectionItem({
                         <LessonTypeIcon type={lesson.type} />
                         {lesson.duration > 0 && <span>{lesson.duration} min</span>}
                         {lesson.isFree && (
-                          <span className="text-green-600 font-medium">Free</span>
+                          <span className="text-success font-medium">Free</span>
                         )}
                       </span>
                     </div>

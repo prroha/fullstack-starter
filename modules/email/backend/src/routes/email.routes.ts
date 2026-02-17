@@ -1,13 +1,13 @@
-import { Router, Request, Response } from 'express';
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
 import {
   authMiddleware,
   AuthenticatedRequest,
-} from '../../../../../core/backend/src/middleware/auth.middleware';
+} from '../../../../../core/backend/src/middleware/auth.middleware.js';
 import {
   getEmailService,
   SendEmailOptions,
   SendEmailResult,
-} from '../services/email.service';
+} from '../services/email.service.js';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -39,12 +39,6 @@ interface EmailResponse {
   messageId?: string;
   error?: string;
 }
-
-// =============================================================================
-// Router Setup
-// =============================================================================
-
-const router = Router();
 
 // =============================================================================
 // Template Loading
@@ -114,228 +108,195 @@ function validateEmails(emails: string | string[]): { valid: boolean; error?: st
 }
 
 // =============================================================================
-// POST /send - Send transactional email
+// Routes Plugin
 // =============================================================================
 
-/**
- * POST /email/send
- * Send a transactional email (requires authentication)
- */
-router.post(
-  '/send',
-  authMiddleware,
-  async (req: Request, res: Response): Promise<void> => {
-    try {
-      const authReq = req as AuthenticatedRequest;
-      const { to, subject, html, text, replyTo, cc, bcc } = req.body as SendEmailRequest;
+const routes: FastifyPluginAsync = async (fastify) => {
+  // ===========================================================================
+  // POST /send - Send transactional email
+  // ===========================================================================
 
-      // Validate required fields
-      if (!to) {
-        res.status(400).json({
-          success: false,
-          error: 'Recipient email (to) is required',
-        } as EmailResponse);
-        return;
-      }
+  /**
+   * POST /email/send
+   * Send a transactional email (requires authentication)
+   */
+  fastify.post('/send', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const authReq = req as AuthenticatedRequest;
+    const { to, subject, html, text, replyTo, cc, bcc } = req.body as SendEmailRequest;
 
-      if (!subject) {
-        res.status(400).json({
-          success: false,
-          error: 'Email subject is required',
-        } as EmailResponse);
-        return;
-      }
-
-      if (!html && !text) {
-        res.status(400).json({
-          success: false,
-          error: 'Email content (html or text) is required',
-        } as EmailResponse);
-        return;
-      }
-
-      // Validate email addresses
-      const toValidation = validateEmails(to);
-      if (!toValidation.valid) {
-        res.status(400).json({
-          success: false,
-          error: toValidation.error,
-        } as EmailResponse);
-        return;
-      }
-
-      if (cc) {
-        const ccValidation = validateEmails(cc);
-        if (!ccValidation.valid) {
-          res.status(400).json({
-            success: false,
-            error: ccValidation.error,
-          } as EmailResponse);
-          return;
-        }
-      }
-
-      if (bcc) {
-        const bccValidation = validateEmails(bcc);
-        if (!bccValidation.valid) {
-          res.status(400).json({
-            success: false,
-            error: bccValidation.error,
-          } as EmailResponse);
-          return;
-        }
-      }
-
-      // Send email
-      const emailService = getEmailService();
-      const options: SendEmailOptions = {
-        to,
-        subject,
-        html,
-        text,
-        replyTo,
-        cc,
-        bcc,
-      };
-
-      const result: SendEmailResult = await emailService.send(options);
-
-      if (!result.success) {
-        res.status(500).json({
-          success: false,
-          error: result.error || 'Failed to send email',
-        } as EmailResponse);
-        return;
-      }
-
-      console.log(`[EmailRoutes] Email sent by user ${authReq.user.userId} to ${to}`);
-
-      res.json({
-        success: true,
-        messageId: result.messageId,
-      } as EmailResponse);
-    } catch (error) {
-      console.error('[EmailRoutes] Send email error:', error instanceof Error ? error.message : error);
-      res.status(500).json({
+    // Validate required fields
+    if (!to) {
+      return reply.code(400).send({
         success: false,
-        error: 'Internal server error',
+        error: 'Recipient email (to) is required',
       } as EmailResponse);
     }
-  }
-);
 
-// =============================================================================
-// POST /send-template - Send templated email
-// =============================================================================
-
-/**
- * POST /email/send-template
- * Send an email using a predefined template (requires authentication)
- */
-router.post(
-  '/send-template',
-  authMiddleware,
-  async (req: Request, res: Response): Promise<void> => {
-    try {
-      const authReq = req as AuthenticatedRequest;
-      const { to, template, data, replyTo, cc, bcc } = req.body as SendTemplateRequest;
-
-      // Validate required fields
-      if (!to) {
-        res.status(400).json({
-          success: false,
-          error: 'Recipient email (to) is required',
-        } as EmailResponse);
-        return;
-      }
-
-      if (!template) {
-        res.status(400).json({
-          success: false,
-          error: 'Template name is required',
-        } as EmailResponse);
-        return;
-      }
-
-      const validTemplates = ['welcome', 'password-reset', 'notification'];
-      if (!validTemplates.includes(template)) {
-        res.status(400).json({
-          success: false,
-          error: `Invalid template. Valid templates: ${validTemplates.join(', ')}`,
-        } as EmailResponse);
-        return;
-      }
-
-      // Validate email addresses
-      const toValidation = validateEmails(to);
-      if (!toValidation.valid) {
-        res.status(400).json({
-          success: false,
-          error: toValidation.error,
-        } as EmailResponse);
-        return;
-      }
-
-      // Load and render template
-      const templateContent = loadTemplate(template);
-      if (!templateContent) {
-        res.status(500).json({
-          success: false,
-          error: `Template '${template}' not found`,
-        } as EmailResponse);
-        return;
-      }
-
-      const renderedHtml = renderTemplate(templateContent, data || {});
-      const subject = data?.subject || templateSubjects[template] || 'Message from Our Platform';
-
-      // Send email
-      const emailService = getEmailService();
-      const options: SendEmailOptions = {
-        to,
-        subject,
-        html: renderedHtml,
-        replyTo,
-        cc,
-        bcc,
-      };
-
-      const result: SendEmailResult = await emailService.send(options);
-
-      if (!result.success) {
-        res.status(500).json({
-          success: false,
-          error: result.error || 'Failed to send email',
-        } as EmailResponse);
-        return;
-      }
-
-      console.log(`[EmailRoutes] Template email '${template}' sent by user ${authReq.user.userId} to ${to}`);
-
-      res.json({
-        success: true,
-        messageId: result.messageId,
-      } as EmailResponse);
-    } catch (error) {
-      console.error('[EmailRoutes] Send template email error:', error instanceof Error ? error.message : error);
-      res.status(500).json({
+    if (!subject) {
+      return reply.code(400).send({
         success: false,
-        error: 'Internal server error',
+        error: 'Email subject is required',
       } as EmailResponse);
     }
-  }
-);
 
-// =============================================================================
-// GET /templates - List available templates
-// =============================================================================
+    if (!html && !text) {
+      return reply.code(400).send({
+        success: false,
+        error: 'Email content (html or text) is required',
+      } as EmailResponse);
+    }
 
-/**
- * GET /email/templates
- * List available email templates
- */
-router.get('/templates', authMiddleware, async (_req: Request, res: Response): Promise<void> => {
-  try {
+    // Validate email addresses
+    const toValidation = validateEmails(to);
+    if (!toValidation.valid) {
+      return reply.code(400).send({
+        success: false,
+        error: toValidation.error,
+      } as EmailResponse);
+    }
+
+    if (cc) {
+      const ccValidation = validateEmails(cc);
+      if (!ccValidation.valid) {
+        return reply.code(400).send({
+          success: false,
+          error: ccValidation.error,
+        } as EmailResponse);
+      }
+    }
+
+    if (bcc) {
+      const bccValidation = validateEmails(bcc);
+      if (!bccValidation.valid) {
+        return reply.code(400).send({
+          success: false,
+          error: bccValidation.error,
+        } as EmailResponse);
+      }
+    }
+
+    // Send email
+    const emailService = getEmailService();
+    const options: SendEmailOptions = {
+      to,
+      subject,
+      html,
+      text,
+      replyTo,
+      cc,
+      bcc,
+    };
+
+    const result: SendEmailResult = await emailService.send(options);
+
+    if (!result.success) {
+      return reply.code(500).send({
+        success: false,
+        error: result.error || 'Failed to send email',
+      } as EmailResponse);
+    }
+
+    console.log(`[EmailRoutes] Email sent by user ${authReq.user.userId} to ${to}`);
+
+    return reply.send({
+      success: true,
+      messageId: result.messageId,
+    } as EmailResponse);
+  });
+
+  // ===========================================================================
+  // POST /send-template - Send templated email
+  // ===========================================================================
+
+  /**
+   * POST /email/send-template
+   * Send an email using a predefined template (requires authentication)
+   */
+  fastify.post('/send-template', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const authReq = req as AuthenticatedRequest;
+    const { to, template, data, replyTo, cc, bcc } = req.body as SendTemplateRequest;
+
+    // Validate required fields
+    if (!to) {
+      return reply.code(400).send({
+        success: false,
+        error: 'Recipient email (to) is required',
+      } as EmailResponse);
+    }
+
+    if (!template) {
+      return reply.code(400).send({
+        success: false,
+        error: 'Template name is required',
+      } as EmailResponse);
+    }
+
+    const validTemplates = ['welcome', 'password-reset', 'notification'];
+    if (!validTemplates.includes(template)) {
+      return reply.code(400).send({
+        success: false,
+        error: `Invalid template. Valid templates: ${validTemplates.join(', ')}`,
+      } as EmailResponse);
+    }
+
+    // Validate email addresses
+    const toValidation = validateEmails(to);
+    if (!toValidation.valid) {
+      return reply.code(400).send({
+        success: false,
+        error: toValidation.error,
+      } as EmailResponse);
+    }
+
+    // Load and render template
+    const templateContent = loadTemplate(template);
+    if (!templateContent) {
+      return reply.code(500).send({
+        success: false,
+        error: `Template '${template}' not found`,
+      } as EmailResponse);
+    }
+
+    const renderedHtml = renderTemplate(templateContent, data || {});
+    const subject = data?.subject || templateSubjects[template] || 'Message from Our Platform';
+
+    // Send email
+    const emailService = getEmailService();
+    const options: SendEmailOptions = {
+      to,
+      subject,
+      html: renderedHtml,
+      replyTo,
+      cc,
+      bcc,
+    };
+
+    const result: SendEmailResult = await emailService.send(options);
+
+    if (!result.success) {
+      return reply.code(500).send({
+        success: false,
+        error: result.error || 'Failed to send email',
+      } as EmailResponse);
+    }
+
+    console.log(`[EmailRoutes] Template email '${template}' sent by user ${authReq.user.userId} to ${to}`);
+
+    return reply.send({
+      success: true,
+      messageId: result.messageId,
+    } as EmailResponse);
+  });
+
+  // ===========================================================================
+  // GET /templates - List available templates
+  // ===========================================================================
+
+  /**
+   * GET /email/templates
+   * List available email templates
+   */
+  fastify.get('/templates', { preHandler: [authMiddleware] }, async (_req: FastifyRequest, reply: FastifyReply) => {
     const templates = [
       {
         id: 'welcome',
@@ -357,17 +318,11 @@ router.get('/templates', authMiddleware, async (_req: Request, res: Response): P
       },
     ];
 
-    res.json({
+    return reply.send({
       success: true,
       templates,
     });
-  } catch (error) {
-    console.error('[EmailRoutes] List templates error:', error instanceof Error ? error.message : error);
-    res.status(500).json({
-      success: false,
-      error: 'Internal server error',
-    });
-  }
-});
+  });
+};
 
-export default router;
+export default routes;

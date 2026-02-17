@@ -215,7 +215,7 @@ export function DataTable<T>({
         </TableHeader>
         <TableBody>
           <TableRow>
-            <TableCell colSpan={columns.length} className="text-center py-12">
+            <TableCell colSpan={columns.length} className="text-center py-8">
               <div className="flex flex-col items-center gap-2">
                 <Text color="muted" className="font-medium">
                   {hasActiveFilters ? "No results match your filters" : emptyMessage}

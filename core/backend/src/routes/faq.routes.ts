@@ -1,74 +1,75 @@
-import { Router, Request } from "express";
+import { FastifyPluginAsync } from "fastify";
 import { faqController } from "../controllers/faq.controller.js";
 import { authMiddleware, adminMiddleware } from "../middleware/auth.middleware.js";
-import { AuthenticatedRequest } from "../types/index.js";
 
-const router = Router();
+const routePlugin: FastifyPluginAsync = async (fastify) => {
+  // ============================================================================
+  // Public routes
+  // ============================================================================
 
-// ============================================================================
-// Public routes
-// ============================================================================
+  fastify.get("/public", (req, reply) =>
+    faqController.getPublicFaqs(req, reply)
+  );
 
-router.get("/public", (req, res, next) =>
-  faqController.getPublicFaqs(req as Request, res, next)
-);
+  fastify.get("/public/categories", (req, reply) =>
+    faqController.getPublicCategories(req, reply)
+  );
 
-router.get("/public/categories", (req, res, next) =>
-  faqController.getPublicCategories(req as Request, res, next)
-);
+  // ============================================================================
+  // Admin routes (nested plugin for scoped middleware)
+  // ============================================================================
 
-// ============================================================================
-// Admin routes
-// ============================================================================
+  await fastify.register(async (admin) => {
+    admin.addHook("preHandler", authMiddleware);
+    admin.addHook("preHandler", adminMiddleware);
 
-router.use(authMiddleware);
-router.use(adminMiddleware);
+    // Categories
+    admin.get("/categories", (req, reply) =>
+      faqController.getCategories(req, reply)
+    );
 
-// Categories
-router.get("/categories", (req, res, next) =>
-  faqController.getCategories(req as unknown as AuthenticatedRequest, res, next)
-);
+    admin.post("/categories", (req, reply) =>
+      faqController.createCategory(req, reply)
+    );
 
-router.post("/categories", (req, res, next) =>
-  faqController.createCategory(req as unknown as AuthenticatedRequest, res, next)
-);
+    admin.patch("/categories/:id", (req, reply) =>
+      faqController.updateCategory(req, reply)
+    );
 
-router.patch("/categories/:id", (req, res, next) =>
-  faqController.updateCategory(req as unknown as AuthenticatedRequest, res, next)
-);
+    admin.delete("/categories/:id", (req, reply) =>
+      faqController.deleteCategory(req, reply)
+    );
 
-router.delete("/categories/:id", (req, res, next) =>
-  faqController.deleteCategory(req as unknown as AuthenticatedRequest, res, next)
-);
+    // FAQs
+    admin.get("/", (req, reply) =>
+      faqController.getFaqs(req, reply)
+    );
 
-// FAQs
-router.get("/", (req, res, next) =>
-  faqController.getFaqs(req as unknown as AuthenticatedRequest, res, next)
-);
+    // Export FAQs (must be before /:id to avoid matching "export" as id)
+    admin.get("/export", (req, reply) =>
+      faqController.exportFaqs(req, reply)
+    );
 
-// Export FAQs (must be before /:id to avoid matching "export" as id)
-router.get("/export", (req, res, next) =>
-  faqController.exportFaqs(req as unknown as AuthenticatedRequest, res, next)
-);
+    admin.get("/:id", (req, reply) =>
+      faqController.getFaq(req, reply)
+    );
 
-router.get("/:id", (req, res, next) =>
-  faqController.getFaq(req as unknown as AuthenticatedRequest, res, next)
-);
+    admin.post("/", (req, reply) =>
+      faqController.createFaq(req, reply)
+    );
 
-router.post("/", (req, res, next) =>
-  faqController.createFaq(req as unknown as AuthenticatedRequest, res, next)
-);
+    admin.patch("/:id", (req, reply) =>
+      faqController.updateFaq(req, reply)
+    );
 
-router.patch("/:id", (req, res, next) =>
-  faqController.updateFaq(req as unknown as AuthenticatedRequest, res, next)
-);
+    admin.delete("/:id", (req, reply) =>
+      faqController.deleteFaq(req, reply)
+    );
 
-router.delete("/:id", (req, res, next) =>
-  faqController.deleteFaq(req as unknown as AuthenticatedRequest, res, next)
-);
+    admin.post("/reorder", (req, reply) =>
+      faqController.reorderFaqs(req, reply)
+    );
+  });
+};
 
-router.post("/reorder", (req, res, next) =>
-  faqController.reorderFaqs(req as unknown as AuthenticatedRequest, res, next)
-);
-
-export default router;
+export default routePlugin;

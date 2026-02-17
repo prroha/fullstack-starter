@@ -17,8 +17,8 @@ const Badge = React.forwardRef<HTMLSpanElement, BadgeProps>(
       secondary: "bg-secondary text-secondary-foreground",
       destructive: "bg-destructive text-destructive-foreground",
       outline: "border border-input bg-background text-foreground",
-      success: "bg-green-500 text-white dark:bg-green-600",
-      warning: "bg-yellow-500 text-black dark:bg-yellow-600",
+      success: "bg-success text-success-foreground",
+      warning: "bg-warning text-warning-foreground",
     };
 
     const sizes = {

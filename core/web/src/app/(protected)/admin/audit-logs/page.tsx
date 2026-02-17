@@ -7,6 +7,7 @@ import { Alert } from "@/components/feedback";
 import { FeatureGate } from "@/components";
 import { Icon } from "@/components/ui/icon";
 import { AdminPageHeader, AdminTableContainer } from "@/components/admin";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { useAdminList } from "@/lib/hooks";
 import { cn } from "@/lib/utils";
 import { downloadFile } from "@/lib/export";
@@ -54,8 +55,8 @@ function ActionBadge({ action }: { action: AuditAction }) {
 
 function LogDetails({ log }: { log: AuditLog }) {
   return (
-    <tr className="bg-muted/30">
-      <td colSpan={6} className="px-4 py-4">
+    <TableRow className="bg-muted/30">
+      <TableCell colSpan={6} className="px-4 py-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
           {/* User Info */}
           <div className="space-y-2">
@@ -126,8 +127,8 @@ function LogDetails({ log }: { log: AuditLog }) {
             </div>
           )}
         </div>
-      </td>
-    </tr>
+      </TableCell>
+    </TableRow>
   );
 }
 
@@ -146,7 +147,7 @@ function LogRow({
 }) {
   return (
     <>
-      <tr
+      <TableRow
         className={cn(
           "border-b hover:bg-muted/50 cursor-pointer",
           isExpanded && "bg-muted/30"
@@ -157,7 +158,7 @@ function LogRow({
         tabIndex={0}
         aria-expanded={isExpanded}
       >
-        <td className="px-4 py-3">
+        <TableCell className="px-4 py-3">
           <Button
             variant="ghost"
             size="sm"
@@ -173,8 +174,8 @@ function LogRow({
               <Icon name="ChevronDown" size="sm" />
             )}
           </Button>
-        </td>
-        <td className="px-4 py-3">
+        </TableCell>
+        <TableCell className="px-4 py-3">
           <Text variant="caption" color="muted">
             {log.createdAt ? (
               <>
@@ -188,11 +189,11 @@ function LogRow({
               "-"
             )}
           </Text>
-        </td>
-        <td className="px-4 py-3">
+        </TableCell>
+        <TableCell className="px-4 py-3">
           <ActionBadge action={log.action} />
-        </td>
-        <td className="px-4 py-3">
+        </TableCell>
+        <TableCell className="px-4 py-3">
           <div>
             <Text as="p" className="font-medium">{log.entity}</Text>
             {log.entityId && (
@@ -201,8 +202,8 @@ function LogRow({
               </Text>
             )}
           </div>
-        </td>
-        <td className="px-4 py-3">
+        </TableCell>
+        <TableCell className="px-4 py-3">
           {log.user ? (
             <div>
               <Text as="p" className="font-medium">{log.user.name || "No name"}</Text>
@@ -211,13 +212,13 @@ function LogRow({
           ) : (
             <Text color="muted">System / Anonymous</Text>
           )}
-        </td>
-        <td className="px-4 py-3">
+        </TableCell>
+        <TableCell className="px-4 py-3">
           <Text variant="caption" color="muted">
             {log.ipAddress || "N/A"}
           </Text>
-        </td>
-      </tr>
+        </TableCell>
+      </TableRow>
       {isExpanded && <LogDetails log={log} />}
     </>
   );
@@ -429,20 +430,20 @@ export default function AdminAuditLogsPage() {
         skeletonRows={10}
         skeletonColumns={6}
       >
-        <table className="w-full">
-          <thead>
-            <tr className="border-b bg-muted/50">
-              <th className="px-4 py-3 text-left text-sm font-medium w-10">
+        <Table className="w-full">
+          <TableHeader>
+            <TableRow className="border-b bg-muted/50">
+              <TableHead className="px-4 py-3 text-left text-sm font-medium w-10">
                 {/* Expand toggle */}
-              </th>
-              <th className="px-4 py-3 text-left text-sm font-medium">Timestamp</th>
-              <th className="px-4 py-3 text-left text-sm font-medium">Action</th>
-              <th className="px-4 py-3 text-left text-sm font-medium">Entity</th>
-              <th className="px-4 py-3 text-left text-sm font-medium">User</th>
-              <th className="px-4 py-3 text-left text-sm font-medium">IP Address</th>
-            </tr>
-          </thead>
-          <tbody>
+              </TableHead>
+              <TableHead className="px-4 py-3 text-left text-sm font-medium">Timestamp</TableHead>
+              <TableHead className="px-4 py-3 text-left text-sm font-medium">Action</TableHead>
+              <TableHead className="px-4 py-3 text-left text-sm font-medium">Entity</TableHead>
+              <TableHead className="px-4 py-3 text-left text-sm font-medium">User</TableHead>
+              <TableHead className="px-4 py-3 text-left text-sm font-medium">IP Address</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {logs.map((log) => (
               <LogRow
                 key={log.id}
@@ -451,8 +452,8 @@ export default function AdminAuditLogsPage() {
                 onToggle={() => toggleRow(log.id)}
               />
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </AdminTableContainer>
     </div>
     </FeatureGate>

@@ -84,10 +84,10 @@ const Avatar = React.forwardRef<HTMLDivElement, AvatarProps>(
     };
 
     const statusColors = {
-      online: "bg-green-500",
-      offline: "bg-gray-400",
-      busy: "bg-red-500",
-      away: "bg-yellow-500",
+      online: "bg-success",
+      offline: "bg-muted-foreground",
+      busy: "bg-destructive",
+      away: "bg-warning",
     };
 
     return (

@@ -15,7 +15,7 @@ export default function PricingLoading() {
       <section className="relative overflow-hidden border-b">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5" />
         <Container>
-          <div className="py-16 md:py-24 max-w-3xl mx-auto text-center relative">
+          <div className="py-10 md:py-16 max-w-3xl mx-auto text-center relative">
             {/* Badge */}
             <div className="flex justify-center mb-6">
               <Skeleton className="h-6 w-56 rounded-full" />
@@ -32,7 +32,7 @@ export default function PricingLoading() {
       </section>
 
       {/* Pricing Cards Skeleton */}
-      <section className="py-16 md:py-20">
+      <section className="py-10 md:py-12">
         <Container size="xl">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
             {Array.from({ length: 5 }).map((_, i) => (
@@ -65,7 +65,7 @@ export default function PricingLoading() {
       </section>
 
       {/* Feature Comparison Skeleton */}
-      <section className="py-16 md:py-20 border-t bg-muted/30">
+      <section className="py-10 md:py-12 border-t bg-muted/30">
         <Container>
           <div className="text-center mb-12">
             <Skeleton className="h-8 w-48 mx-auto mb-4" />

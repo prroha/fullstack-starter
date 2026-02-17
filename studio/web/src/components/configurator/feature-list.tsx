@@ -168,7 +168,7 @@ export function FeatureList({ category }: FeatureListProps) {
           </p>
         </div>
       ) : (
-        <div className="space-y-8">
+        <div className="space-y-6">
           {groupedFeatures.map(({ moduleSlug, moduleName, module, features }) => (
             <div key={moduleSlug}>
               {/* Module Header */}

@@ -1,5 +1,4 @@
-import { Response, NextFunction } from "express";
-import { AppRequest } from "../types/index.js";
+import { FastifyRequest } from "fastify";
 
 /**
  * HTML entities to escape for XSS prevention
@@ -31,28 +30,16 @@ function escapeHtml(str: string): string {
  * Remove potentially dangerous script tags and event handlers
  */
 function stripDangerousPatterns(str: string): string {
-  // Remove script tags
   let sanitized = str.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "");
-
-  // Remove event handlers (onclick, onerror, etc.)
   sanitized = sanitized.replace(/\s*on\w+\s*=\s*["'][^"']*["']/gi, "");
-
-  // Remove javascript: URLs
   sanitized = sanitized.replace(/javascript\s*:/gi, "");
-
-  // Remove data: URLs that could contain scripts
   sanitized = sanitized.replace(/data\s*:\s*text\/html/gi, "");
-
-  // Remove vbscript: URLs (IE specific)
   sanitized = sanitized.replace(/vbscript\s*:/gi, "");
-
   return sanitized;
 }
 
 /**
  * Sanitize a single string value
- * @param value - The string to sanitize
- * @param options - Sanitization options
  */
 export function sanitizeString(
   value: string,
@@ -72,22 +59,18 @@ export function sanitizeString(
 
   let result = value;
 
-  // Trim whitespace
   if (trim) {
     result = result.trim();
   }
 
-  // Strip dangerous patterns first
   if (stripDangerous) {
     result = stripDangerousPatterns(result);
   }
 
-  // Escape HTML entities
   if (shouldEscapeHtml) {
     result = escapeHtml(result);
   }
 
-  // Enforce max length
   if (maxLength && result.length > maxLength) {
     result = result.substring(0, maxLength);
   }
@@ -103,31 +86,25 @@ export function sanitizeObject<T>(obj: T, visited = new WeakSet<object>()): T {
     return obj;
   }
 
-  // Handle strings
   if (typeof obj === "string") {
     return sanitizeString(obj) as T;
   }
 
-  // Handle non-objects
   if (typeof obj !== "object") {
     return obj;
   }
 
-  // Handle circular references
   if (visited.has(obj as object)) {
     return obj;
   }
   visited.add(obj as object);
 
-  // Handle arrays
   if (Array.isArray(obj)) {
     return obj.map((item) => sanitizeObject(item, visited)) as T;
   }
 
-  // Handle plain objects
   const sanitized: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(obj)) {
-    // Sanitize the key as well (for dynamic keys)
     const sanitizedKey = sanitizeString(key, { escapeHtml: false, trim: false });
     sanitized[sanitizedKey] = sanitizeObject(value, visited);
   }
@@ -137,7 +114,6 @@ export function sanitizeObject<T>(obj: T, visited = new WeakSet<object>()): T {
 
 /**
  * Fields that should not be sanitized (e.g., passwords, tokens)
- * These fields may contain special characters that are valid
  */
 const SKIP_SANITIZE_FIELDS = [
   "password",
@@ -191,7 +167,6 @@ export function selectiveSanitizeObject<T>(obj: T, visited = new WeakSet<object>
   const sanitized: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(obj)) {
     if (shouldSkipField(key)) {
-      // Keep the original value for sensitive fields
       sanitized[key] = value;
     } else if (typeof value === "string") {
       sanitized[key] = sanitizeString(value);
@@ -204,39 +179,26 @@ export function selectiveSanitizeObject<T>(obj: T, visited = new WeakSet<object>
 }
 
 /**
- * Input Sanitization Middleware
+ * Input Sanitization Hook (Fastify preHandler)
  *
  * Sanitizes request body, query parameters, and URL parameters
  * to prevent XSS attacks and other injection vulnerabilities.
- *
- * Should be applied after body parsing middleware.
  */
-export function sanitizeInput(
-  req: AppRequest,
-  _res: Response,
-  next: NextFunction
-): void {
+export async function sanitizeInput(req: FastifyRequest): Promise<void> {
   try {
-    // Sanitize request body
     if (req.body && typeof req.body === "object") {
-      req.body = selectiveSanitizeObject(req.body);
+      (req as { body: unknown }).body = selectiveSanitizeObject(req.body);
     }
 
-    // Sanitize query parameters
     if (req.query && typeof req.query === "object") {
-      req.query = sanitizeObject(req.query);
+      (req as { query: unknown }).query = sanitizeObject(req.query);
     }
 
-    // Sanitize URL parameters
     if (req.params && typeof req.params === "object") {
-      req.params = sanitizeObject(req.params);
+      (req as { params: unknown }).params = sanitizeObject(req.params);
     }
-
-    next();
   } catch {
     // If sanitization fails, continue with unsanitized input
-    // but log the error (the error middleware will handle any issues)
-    next();
   }
 }
 
@@ -256,7 +218,6 @@ export function createSanitizeMiddleware(options: {
     skipFields = [],
   } = options;
 
-  // Add custom skip fields
   const allSkipFields = [...SKIP_SANITIZE_FIELDS, ...skipFields];
 
   const shouldSkip = (fieldName: string): boolean => {
@@ -288,20 +249,19 @@ export function createSanitizeMiddleware(options: {
     return sanitized as T;
   };
 
-  return (req: AppRequest, _res: Response, next: NextFunction): void => {
+  return async (req: FastifyRequest): Promise<void> => {
     try {
       if (sanitizeBody && req.body && typeof req.body === "object") {
-        req.body = customSanitize(req.body);
+        (req as { body: unknown }).body = customSanitize(req.body);
       }
       if (sanitizeQuery && req.query && typeof req.query === "object") {
-        req.query = sanitizeObject(req.query);
+        (req as { query: unknown }).query = sanitizeObject(req.query);
       }
       if (sanitizeParams && req.params && typeof req.params === "object") {
-        req.params = sanitizeObject(req.params);
+        (req as { params: unknown }).params = sanitizeObject(req.params);
       }
-      next();
     } catch {
-      next();
+      // Continue with unsanitized input
     }
   };
 }

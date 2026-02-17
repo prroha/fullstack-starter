@@ -52,7 +52,7 @@ studio/web/
 │       └── showcase/           # Component registry
 ```
 
-### Backend (Express + Prisma)
+### Backend (Fastify + Prisma)
 
 ```
 studio/backend/
@@ -105,7 +105,7 @@ studio/backend/
                               │
                               ▼ REST API
 ┌─────────────────────────────────────────────────────────────────┐
-│                        Backend (Express)                         │
+│                        Backend (Fastify)                         │
 ├─────────────────────────────────────────────────────────────────┤
 │  Public Routes (/api/*)                                          │
 │       │                                                          │

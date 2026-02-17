@@ -254,7 +254,7 @@ export default function CourseDetailPage({
       {/* Hero Section */}
       <div className="border-b bg-card">
         <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-          <div className="grid gap-8 lg:grid-cols-3">
+          <div className="grid gap-6 lg:grid-cols-3">
             {/* Course Info */}
             <div className="lg:col-span-2 space-y-4">
               {/* Breadcrumb */}
@@ -439,7 +439,7 @@ export default function CourseDetailPage({
 
           {/* Tabs */}
           <div className="border-b border-border">
-            <div className="flex gap-8">
+            <div className="flex gap-6">
               <Button
                 variant="ghost"
                 onClick={() => setActiveTab("curriculum")}
@@ -500,7 +500,7 @@ export default function CourseDetailPage({
 
             {/* Reviews Tab */}
             {activeTab === "reviews" && (
-              <div className="space-y-8">
+              <div className="space-y-6">
                 <ReviewForm
                   courseId={course.id}
                   onSubmit={async (data) => {

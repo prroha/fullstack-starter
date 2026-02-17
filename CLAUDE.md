@@ -1,7 +1,7 @@
 # CLAUDE.md - Fullstack Starter Template
 
-> **Last Updated**: 2026-02-14
-> **Codebase Version**: 1.3.0
+> **Last Updated**: 2026-02-17
+> **Codebase Version**: 1.4.0
 > **Maintainer**: AI-assisted documentation (auto-update on changes)
 
 AI-optimized documentation for quick codebase navigation and understanding.
@@ -208,7 +208,7 @@ Full component, backend, and frontend registries are in the sub-documentation fi
 
 Use these to quickly find what you need:
 
-- **Backend**: `core/backend/`, `Express`, `Prisma`, `auth.controller.ts`
+- **Backend**: `core/backend/`, `Fastify`, `Prisma`, `auth.controller.ts`
 - **Web**: `core/web/`, `Next.js`, `React`, `auth-context.tsx`
 - **Mobile**: `mobile/`, `Flutter`, `Riverpod`, `api_client.dart`
 - **Authentication**: `jwt.ts`, `auth.middleware.ts`, `auth-context.tsx`, `token_manager.dart`
@@ -228,6 +228,7 @@ Use these to quickly find what you need:
 
 | Date       | Change                                                                                                                                                    | Files                                                                                                                    |
 | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| 2026-02-17 | Full Express.js → Fastify migration: core backend, studio backend, all 16 module backends (~150 files). 3x performance improvement.                       | `core/backend/`, `studio/backend/`, `modules/*/backend/`                                                                 |
 | 2026-02-14 | Events module: Complete implementation — 43 files (backend routes/services, frontend pages/components, Prisma schema, mobile placeholders, seed data)     | `modules/events/`, `studio/backend/prisma/seed.ts`, `templates/events/config.json`                                       |
 | 2026-02-14 | Tasks module: Complete implementation — 44 files (backend routes/services, frontend pages/components, Prisma schema, mobile placeholders, seed data)      | `modules/tasks/`, `studio/backend/prisma/seed.ts`, `templates/tasks/config.json`                                         |
 | 2026-02-14 | Helpdesk module: Complete implementation — 47 files (backend routes/services, frontend pages/components, Prisma schema, mobile placeholders, seed data)   | `modules/helpdesk/`, `studio/backend/prisma/seed.ts`, `templates/helpdesk/config.json`                                   |
@@ -251,7 +252,7 @@ Use these to quickly find what you need:
 
 This is a fullstack starter template with three main applications:
 
-1. **Backend** - Express.js + Prisma + TypeScript API server
+1. **Backend** - Fastify + Prisma + TypeScript API server
 2. **Web** - Next.js 15 + React 19 + Tailwind CSS web application
 3. **Mobile** - Flutter + Riverpod + Clean Architecture mobile app
 
@@ -264,7 +265,7 @@ All three applications share a common authentication flow using JWT tokens with 
 | Layer                 | Technology                         |
 | --------------------- | ---------------------------------- |
 | **Backend Runtime**   | Node.js 20+                        |
-| **Backend Framework** | Express.js 4.x                     |
+| **Backend Framework** | Fastify 5.x                        |
 | **Database**          | PostgreSQL + Prisma ORM            |
 | **Web Framework**     | Next.js 15 (App Router)            |
 | **Web UI**            | React 19 + Tailwind CSS v4         |
@@ -280,7 +281,7 @@ All three applications share a common authentication flow using JWT tokens with 
 ```
 fullstack-starter/
 ├── core/
-│   ├── backend/               # Express + Prisma API server
+│   ├── backend/               # Fastify + Prisma API server
 │   │   ├── src/
 │   │   │   ├── config/        # Environment configuration
 │   │   │   ├── controllers/   # Route handlers

@@ -201,12 +201,12 @@ export default function CertificatePage({
 
   return (
     <div className="min-h-screen bg-background px-4 py-10 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-3xl space-y-8">
+      <div className="mx-auto max-w-3xl space-y-6">
         {/* Verification Banner */}
         {verifyCode && verification?.valid && (
-          <div className="flex items-center gap-3 rounded-lg border border-green-200 bg-green-50 px-5 py-4">
+          <div className="flex items-center gap-3 rounded-lg border border-success/20 bg-success/10 px-5 py-4">
             <svg
-              className="h-6 w-6 flex-shrink-0 text-green-600"
+              className="h-6 w-6 flex-shrink-0 text-success"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -219,10 +219,10 @@ export default function CertificatePage({
               />
             </svg>
             <div>
-              <p className="font-medium text-green-800">
+              <p className="font-medium text-success">
                 Certificate Verified
               </p>
-              <p className="text-sm text-green-700">
+              <p className="text-sm text-success">
                 This certificate is authentic and has been verified
                 successfully.
               </p>

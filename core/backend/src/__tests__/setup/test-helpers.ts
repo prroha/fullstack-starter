@@ -6,11 +6,10 @@
 
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
-import supertest from "supertest";
-import type { Express } from "express";
+import { expect } from "vitest";
+import type { FastifyInstance } from "fastify";
 
 // Dedicated Prisma client for test setup/teardown
-// (separate from the app's client to avoid import side effects)
 let testDb: PrismaClient | null = null;
 
 export function getTestDb(): PrismaClient {
@@ -29,12 +28,10 @@ export async function disconnectTestDb(): Promise<void> {
 
 /**
  * Truncate all tables in the correct order (respecting FK constraints).
- * Call this in beforeEach() to ensure test isolation.
  */
 export async function cleanDatabase(): Promise<void> {
   const db = getTestDb();
 
-  // Delete in reverse dependency order
   await db.auditLog.deleteMany();
   await db.notification.deleteMany();
   await db.order.deleteMany();
@@ -70,7 +67,7 @@ export async function createTestUser(overrides: {
 }> {
   const db = getTestDb();
   const password = overrides.password || "TestPass123";
-  const passwordHash = await bcrypt.hash(password, 4); // Low rounds for speed
+  const passwordHash = await bcrypt.hash(password, 4);
 
   const user = await db.user.create({
     data: {
@@ -94,9 +91,10 @@ export async function createTestUser(overrides: {
 
 /**
  * Log in a test user via the API and return tokens + cookies.
+ * Uses Fastify's inject() method for lightweight in-process testing.
  */
 export async function loginTestUser(
-  app: Express,
+  app: FastifyInstance,
   email: string,
   password: string
 ): Promise<{
@@ -105,41 +103,36 @@ export async function loginTestUser(
   csrfToken: string;
   cookies: string[];
 }> {
-  const res = await supertest(app)
-    .post("/api/v1/auth/login")
-    .send({ email, password })
-    .expect(200);
+  const res = await app.inject({
+    method: "POST",
+    url: "/api/v1/auth/login",
+    payload: { email, password },
+  });
 
-  const cookies = res.headers["set-cookie"] as string[] | undefined;
+  expect(res.statusCode).toBe(200);
+
+  const body = JSON.parse(res.payload);
+  const cookies = res.headers["set-cookie"];
+  const cookieArray = Array.isArray(cookies) ? cookies : (cookies ? [cookies] : []);
 
   return {
-    accessToken: res.body.data.accessToken,
-    refreshToken: res.body.data.refreshToken,
-    csrfToken: res.body.data.csrfToken,
-    cookies: cookies || [],
+    accessToken: body.data.accessToken,
+    refreshToken: body.data.refreshToken,
+    csrfToken: body.data.csrfToken,
+    cookies: cookieArray,
   };
 }
 
 /**
- * Create a user, log them in, and return an authenticated supertest agent.
+ * Helper to make authenticated requests using Fastify inject
  */
-export async function getAuthenticatedAgent(
-  app: Express,
-  userOverrides: Parameters<typeof createTestUser>[0] = {}
-): Promise<{
-  agent: supertest.Agent;
-  user: Awaited<ReturnType<typeof createTestUser>>;
-  tokens: Awaited<ReturnType<typeof loginTestUser>>;
-}> {
-  const user = await createTestUser(userOverrides);
-  const tokens = await loginTestUser(app, user.email, user.password);
-
-  const agent = supertest.agent(app);
-
-  // Set cookies from login response
-  for (const cookie of tokens.cookies) {
-    agent.set("Cookie", cookie);
+export function createAuthHeaders(accessToken: string, csrfToken?: string): Record<string, string> {
+  const headers: Record<string, string> = {
+    authorization: `Bearer ${accessToken}`,
+  };
+  if (csrfToken) {
+    headers["x-csrf-token"] = csrfToken;
+    headers.cookie = `csrfToken=${csrfToken}`;
   }
-
-  return { agent, user, tokens };
+  return headers;
 }

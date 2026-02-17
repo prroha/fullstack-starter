@@ -85,7 +85,7 @@ function FileIcon({ mimeType }: { mimeType: string }) {
 
   if (isImage) {
     return (
-      <svg className="w-8 h-8 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+      <svg className="w-8 h-8 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
         <path
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -98,7 +98,7 @@ function FileIcon({ mimeType }: { mimeType: string }) {
 
   if (isPdf) {
     return (
-      <svg className="w-8 h-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+      <svg className="w-8 h-8 text-destructive" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
         <path
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -127,7 +127,7 @@ function FileIcon({ mimeType }: { mimeType: string }) {
 
 function SuccessIcon() {
   return (
-    <svg className="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+    <svg className="w-5 h-5 text-success" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
       <path
         fillRule="evenodd"
         d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
@@ -513,16 +513,18 @@ export function FileUpload({
                 {fileWithProgress.status === 'error' && <ErrorIcon />}
                 {fileWithProgress.status === 'uploading' && <Spinner size="sm" />}
                 {fileWithProgress.status === 'pending' && (
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     onClick={(e) => {
                       e.stopPropagation();
                       removeFile(fileWithProgress.id);
                     }}
-                    className="text-muted-foreground hover:text-foreground"
+                    className="text-muted-foreground hover:text-foreground h-7 w-7"
                     aria-label={`Remove ${fileWithProgress.file.name}`}
                   >
                     <CloseIcon />
-                  </button>
+                  </Button>
                 )}
               </div>
             </div>

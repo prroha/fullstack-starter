@@ -29,9 +29,9 @@ function StatsCard({
 }) {
   const colorClasses = {
     primary: "bg-primary/10 text-primary",
-    success: "bg-green-500/10 text-green-600 dark:text-green-400",
-    warning: "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400",
-    destructive: "bg-red-500/10 text-red-600 dark:text-red-400",
+    success: "bg-success/10 text-success",
+    warning: "bg-warning/10 text-warning",
+    destructive: "bg-destructive/10 text-destructive",
     muted: "bg-muted text-muted-foreground",
   };
 
@@ -103,9 +103,9 @@ function MiniStat({
   color?: "success" | "warning" | "destructive" | "muted";
 }) {
   const dotColors = {
-    success: "bg-green-500",
-    warning: "bg-yellow-500",
-    destructive: "bg-red-500",
+    success: "bg-success",
+    warning: "bg-warning",
+    destructive: "bg-destructive",
     muted: "bg-muted-foreground",
   };
 
@@ -188,9 +188,9 @@ function ActivityFeed({
   activities?: ActivityItem[];
 }) {
   const getActionColor = (action?: string) => {
-    if (action === "CREATE" || action === "LOGIN") return "text-green-600 dark:text-green-400";
-    if (action === "DELETE" || action === "LOGIN_FAILED") return "text-red-600 dark:text-red-400";
-    if (action === "UPDATE") return "text-blue-600 dark:text-blue-400";
+    if (action === "CREATE" || action === "LOGIN") return "text-success";
+    if (action === "DELETE" || action === "LOGIN_FAILED") return "text-destructive";
+    if (action === "UPDATE") return "text-primary";
     return "text-muted-foreground";
   };
 
@@ -356,7 +356,7 @@ export default function AdminDashboardPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -439,7 +439,7 @@ export default function AdminDashboardPage() {
                 <div className="mt-4 pt-3 border-t">
                   <div className="flex items-center justify-between">
                     <Text variant="caption" color="muted">Total Revenue</Text>
-                    <Text className="text-lg font-bold text-green-600 dark:text-green-400">
+                    <Text className="text-lg font-bold text-success">
                       ${(stats.orders?.totalRevenue ?? 0).toLocaleString()}
                     </Text>
                   </div>

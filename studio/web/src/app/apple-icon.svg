@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180" viewBox="0 0 180 180">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1a1f4e"/>
+      <stop offset="100%" stop-color="#2d3a8c"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#6ee7b7"/>
+    </linearGradient>
+  </defs>
+  <!-- Rounded square background -->
+  <rect width="180" height="180" rx="40" fill="url(#bg)"/>
+  <!-- Rocket body (central diamond/arrow pointing up-right) -->
+  <path d="M90 34 L146 90 L90 146 L34 90 Z" fill="none" stroke="url(#accent)" stroke-width="8" stroke-linejoin="round"/>
+  <!-- Launch trail (bottom-left to center) -->
+  <path d="M45 135 L79 101" stroke="#38bdf8" stroke-width="8" stroke-linecap="round" opacity="0.7"/>
+  <path d="M34 124 L62 96" stroke="#38bdf8" stroke-width="6" stroke-linecap="round" opacity="0.4"/>
+  <!-- Inner arrow/bolt pointing up-right -->
+  <path d="M73 107 L90 67 L96 90 L118 73 L101 112 L96 90 Z" fill="url(#accent)" opacity="0.95"/>
+  <!-- Spark dots -->
+  <circle cx="135" cy="45" r="7" fill="#6ee7b7" opacity="0.8"/>
+  <circle cx="124" cy="62" r="4.5" fill="#38bdf8" opacity="0.6"/>
+</svg>

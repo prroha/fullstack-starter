@@ -594,7 +594,7 @@ interface EmptyStateProps {
 
 function EmptyState({ onAddClick, hasFilters }: EmptyStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center py-16 px-4 bg-background rounded-lg border border-dashed border-border">
+    <div className="flex flex-col items-center justify-center py-10 px-4 bg-background rounded-lg border border-dashed border-border">
       <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted mb-4">
         <PackageIcon className="h-8 w-8 text-muted-foreground" />
       </div>

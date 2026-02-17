@@ -8,7 +8,7 @@
  * In preview mode (PREVIEW_MODE=true), this middleware is loaded dynamically.
  */
 
-import { Request, Response, NextFunction } from "express";
+import { FastifyRequest, FastifyReply } from "fastify";
 import fs from "fs";
 import path from "path";
 import { logger } from "../../lib/logger.js";
@@ -18,15 +18,6 @@ export interface PreviewConfig {
   sessionToken: string | null;
   enabledFeatures: string[];
   tier: string | null;
-}
-
-// Extend Express Request type
-declare global {
-  namespace Express {
-    interface Request {
-      previewConfig: PreviewConfig;
-    }
-  }
 }
 
 const STUDIO_API_URL = process.env.STUDIO_API_URL || "http://localhost:8001";
@@ -173,14 +164,12 @@ loadStarterConfig();
  * Middleware that detects preview mode and fetches session configuration
  */
 export async function previewMiddleware(
-  req: Request,
-  res: Response,
-  next: NextFunction
+  req: FastifyRequest
 ): Promise<void> {
   // Check for preview token in header or query
   const previewToken =
     (req.headers["x-preview-session"] as string) ||
-    (req.query.preview as string);
+    ((req.query as Record<string, string>)?.preview);
 
   // If preview token exists, check cache first, then fetch from Studio API
   if (previewToken) {
@@ -188,7 +177,7 @@ export async function previewMiddleware(
     const cachedConfig = getCachedConfig(previewToken);
     if (cachedConfig) {
       req.previewConfig = cachedConfig;
-      return next();
+      return;
     }
 
     // Default config if fetch fails
@@ -224,7 +213,7 @@ export async function previewMiddleware(
       logger.warn("Failed to fetch preview session", { error: String(error) });
     }
 
-    return next();
+    return;
   }
 
   // Not in preview mode - check for starter-config.json
@@ -247,13 +236,11 @@ export async function previewMiddleware(
       tier: null,
     };
   }
-
-  next();
 }
 
 /**
  * Route guard that checks if a feature is enabled
- * Usage: router.get("/path", requireFeature("payments.stripe"), handler)
+ * Usage: fastify.get("/path", { preHandler: [requireFeature("payments.stripe")] }, handler)
  *
  * Works in both modes:
  * - Preview mode: checks against session features from Studio API
@@ -261,21 +248,24 @@ export async function previewMiddleware(
  * - Development mode (no config): allows all features
  */
 export function requireFeature(featureSlug: string) {
-  return (req: Request, res: Response, next: NextFunction) => {
-    const { enabledFeatures } = req.previewConfig;
+  return async (req: FastifyRequest, reply: FastifyReply): Promise<void> => {
+    const config = req.previewConfig;
+    if (!config) return;
+
+    const { enabledFeatures } = config;
 
     // If no features are configured, allow all (development mode)
     if (enabledFeatures.length === 0) {
-      return next();
+      return;
     }
 
     // Check if feature is enabled
     if (enabledFeatures.includes(featureSlug)) {
-      return next();
+      return;
     }
 
     // Feature not enabled in this configuration
-    res.status(404).json({
+    reply.code(404).send({
       success: false,
       error: "Feature not available in this configuration",
     });
@@ -290,8 +280,11 @@ export function requireFeature(featureSlug: string) {
  * - Deployed mode: checks against features from starter-config.json
  * - Development mode (no config): returns true for all features
  */
-export function isFeatureEnabled(req: Request, featureSlug: string): boolean {
-  const { enabledFeatures } = req.previewConfig;
+export function isFeatureEnabled(req: FastifyRequest, featureSlug: string): boolean {
+  const config = req.previewConfig;
+  if (!config) return true;
+
+  const { enabledFeatures } = config;
 
   // If no features are configured, allow all (development mode)
   if (enabledFeatures.length === 0) {

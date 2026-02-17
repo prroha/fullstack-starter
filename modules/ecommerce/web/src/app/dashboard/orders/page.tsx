@@ -84,7 +84,7 @@ export default function MyOrdersPage() {
   // ---------------------------------------------------------------------------
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-foreground">
@@ -115,7 +115,7 @@ export default function MyOrdersPage() {
 
       {/* Loading State */}
       {loading && (
-        <div className="flex items-center justify-center py-20">
+        <div className="flex items-center justify-center py-12">
           <Spinner size="lg" />
         </div>
       )}
@@ -149,7 +149,7 @@ export default function MyOrdersPage() {
 
       {/* Empty State */}
       {!loading && !error && orders.length === 0 && (
-        <div className="py-20 text-center">
+        <div className="py-12 text-center">
           <svg
             className="mx-auto h-16 w-16 text-muted-foreground/30"
             fill="none"

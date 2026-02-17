@@ -1,94 +1,74 @@
-import { Router, Request, Response } from 'express';
-import { getScheduleService } from '../services/schedule.service';
-import { authMiddleware } from '../middleware/auth';
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
+import { getScheduleService } from '../services/schedule.service.js';
+import { authMiddleware } from '../middleware/auth.js';
 
 // =============================================================================
-// Router
+// Routes
 // =============================================================================
 
-const router = Router();
 const scheduleService = getScheduleService();
 
 // =============================================================================
 // Schedule Endpoints (All Authenticated)
 // =============================================================================
 
-/**
- * GET /schedules/:providerId
- * Get weekly schedule for a provider
- */
-router.get('/:providerId', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const schedule = await scheduleService.getWeeklySchedule(req.params.providerId);
-    res.json({ success: true, data: schedule });
-  } catch (error) {
-    console.error('[ScheduleRoutes] Get schedule error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to get schedule' });
-  }
-});
+const routes: FastifyPluginAsync = async (fastify) => {
+  /**
+   * GET /schedules/:providerId
+   * Get weekly schedule for a provider
+   */
+  fastify.get('/:providerId', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const { providerId } = req.params as { providerId: string };
+    const schedule = await scheduleService.getWeeklySchedule(providerId);
+    return reply.send({ success: true, data: schedule });
+  });
 
-/**
- * PUT /schedules/:providerId
- * Update the full 7-day weekly schedule for a provider
- */
-router.put('/:providerId', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { schedules } = req.body;
+  /**
+   * PUT /schedules/:providerId
+   * Update the full 7-day weekly schedule for a provider
+   */
+  fastify.put('/:providerId', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const { providerId } = req.params as { providerId: string };
+    const { schedules } = req.body as { schedules: unknown[] };
 
     if (!schedules || !Array.isArray(schedules)) {
-      res.status(400).json({ error: 'schedules array is required' });
-      return;
+      return reply.code(400).send({ error: 'schedules array is required' });
     }
 
-    const result = await scheduleService.updateWeeklySchedule(req.params.providerId, schedules);
-    res.json({ success: true, data: result });
-  } catch (error) {
-    console.error('[ScheduleRoutes] Update schedule error:', error instanceof Error ? error.message : error);
-    res.status(500).json({
-      error: error instanceof Error ? error.message : 'Failed to update schedule',
-    });
-  }
-});
+    const result = await scheduleService.updateWeeklySchedule(providerId, schedules);
+    return reply.send({ success: true, data: result });
+  });
 
-// =============================================================================
-// Schedule Overrides
-// =============================================================================
+  // =============================================================================
+  // Schedule Overrides
+  // =============================================================================
 
-/**
- * GET /schedules/:providerId/overrides
- * List schedule overrides for a date range
- */
-router.get('/:providerId/overrides', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { startDate, endDate } = req.query;
+  /**
+   * GET /schedules/:providerId/overrides
+   * List schedule overrides for a date range
+   */
+  fastify.get('/:providerId/overrides', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const { providerId } = req.params as { providerId: string };
+    const { startDate, endDate } = req.query as Record<string, string>;
 
-    const overrides = await scheduleService.listOverrides(
-      req.params.providerId,
-      startDate as string,
-      endDate as string,
-    );
+    const overrides = await scheduleService.listOverrides(providerId, startDate, endDate);
 
-    res.json({ success: true, data: overrides });
-  } catch (error) {
-    console.error('[ScheduleRoutes] List overrides error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to list schedule overrides' });
-  }
-});
+    return reply.send({ success: true, data: overrides });
+  });
 
-/**
- * POST /schedules/:providerId/overrides
- * Add a schedule override (e.g., day off, special hours)
- */
-router.post('/:providerId/overrides', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { date, isAvailable, startTime, endTime, reason } = req.body;
+  /**
+   * POST /schedules/:providerId/overrides
+   * Add a schedule override (e.g., day off, special hours)
+   */
+  fastify.post('/:providerId/overrides', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const { providerId } = req.params as { providerId: string };
+    const { date, isAvailable, startTime, endTime, reason } = req.body as Record<string, unknown>;
 
     if (!date) {
-      res.status(400).json({ error: 'date is required' });
-      return;
+      return reply.code(400).send({ error: 'date is required' });
     }
 
-    const override = await scheduleService.createOverride(req.params.providerId, {
+    const override = await scheduleService.createOverride(providerId, {
       date,
       isAvailable,
       startTime,
@@ -96,27 +76,18 @@ router.post('/:providerId/overrides', authMiddleware, async (req: Request, res: 
       reason,
     });
 
-    res.status(201).json({ success: true, data: override });
-  } catch (error) {
-    console.error('[ScheduleRoutes] Create override error:', error instanceof Error ? error.message : error);
-    res.status(500).json({
-      error: error instanceof Error ? error.message : 'Failed to create schedule override',
-    });
-  }
-});
+    return reply.code(201).send({ success: true, data: override });
+  });
 
-/**
- * DELETE /schedules/:providerId/overrides/:id
- * Remove a schedule override
- */
-router.delete('/:providerId/overrides/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
-    await scheduleService.deleteOverride(req.params.id);
-    res.json({ success: true, message: 'Schedule override removed' });
-  } catch (error) {
-    console.error('[ScheduleRoutes] Delete override error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to delete schedule override' });
-  }
-});
+  /**
+   * DELETE /schedules/:providerId/overrides/:id
+   * Remove a schedule override
+   */
+  fastify.delete('/:providerId/overrides/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as { id: string };
+    await scheduleService.deleteOverride(id);
+    return reply.send({ success: true, message: 'Schedule override removed' });
+  });
+};
 
-export default router;
+export default routes;

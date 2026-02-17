@@ -134,9 +134,9 @@ export default function InstructorStats({ stats }: InstructorStatsProps) {
                 {completionPercent}%
               </p>
             </div>
-            <div className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center bg-purple-100 dark:bg-purple-900/30">
+            <div className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center bg-accent/10">
               <svg
-                className="w-5 h-5 text-purple-600 dark:text-purple-400"
+                className="w-5 h-5 text-accent"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"

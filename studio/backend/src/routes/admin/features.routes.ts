@@ -1,10 +1,8 @@
-import { Router } from "express";
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from "fastify";
 import { z } from "zod";
 import { prisma } from "../../config/db.js";
 import { sendSuccess, sendPaginated, parsePaginationParams, createPaginationInfo } from "../../utils/response.js";
 import { ApiError } from "../../utils/errors.js";
-
-const router = Router();
 
 const featureSchema = z.object({
   slug: z.string().min(2).max(50).regex(/^[a-z0-9-_.]+$/),
@@ -26,14 +24,15 @@ const featureSchema = z.object({
   isPopular: z.boolean().optional(),
 });
 
-/**
- * GET /api/admin/features
- * List all features
- */
-router.get("/", async (req, res, next) => {
-  try {
-    const { page, limit, skip } = parsePaginationParams(req.query as { page?: string; limit?: string });
-    const { search, moduleId, tier, isActive } = req.query;
+const routePlugin: FastifyPluginAsync = async (fastify) => {
+  /**
+   * GET /api/admin/features
+   * List all features
+   */
+  fastify.get("/", async (req: FastifyRequest, reply: FastifyReply) => {
+    const query = req.query as Record<string, string>;
+    const { page, limit, skip } = parsePaginationParams(query as { page?: string; limit?: string });
+    const { search, moduleId, tier, isActive } = query;
 
     const where: Record<string, unknown> = {};
     if (moduleId) where.moduleId = moduleId;
@@ -41,8 +40,8 @@ router.get("/", async (req, res, next) => {
     if (isActive !== undefined) where.isActive = isActive === "true";
     if (search) {
       where.OR = [
-        { name: { contains: search as string, mode: "insensitive" } },
-        { slug: { contains: search as string, mode: "insensitive" } },
+        { name: { contains: search, mode: "insensitive" } },
+        { slug: { contains: search, mode: "insensitive" } },
       ];
     }
 
@@ -59,20 +58,17 @@ router.get("/", async (req, res, next) => {
       prisma.feature.count({ where }),
     ]);
 
-    sendPaginated(res, features, createPaginationInfo(page, limit, total));
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendPaginated(reply, features, createPaginationInfo(page, limit, total));
+  });
 
-/**
- * GET /api/admin/features/:id
- * Get single feature
- */
-router.get("/:id", async (req, res, next) => {
-  try {
+  /**
+   * GET /api/admin/features/:id
+   * Get single feature
+   */
+  fastify.get("/:id", async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as Record<string, string>;
     const feature = await prisma.feature.findUnique({
-      where: { id: req.params.id },
+      where: { id },
       include: {
         module: true,
       },
@@ -82,18 +78,14 @@ router.get("/:id", async (req, res, next) => {
       throw ApiError.notFound("Feature");
     }
 
-    sendSuccess(res, feature);
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendSuccess(reply, feature);
+  });
 
-/**
- * POST /api/admin/features
- * Create new feature
- */
-router.post("/", async (req, res, next) => {
-  try {
+  /**
+   * POST /api/admin/features
+   * Create new feature
+   */
+  fastify.post("/", async (req: FastifyRequest, reply: FastifyReply) => {
     const data = featureSchema.parse(req.body);
 
     // Verify module exists
@@ -121,21 +113,18 @@ router.post("/", async (req, res, next) => {
       },
     });
 
-    sendSuccess(res, feature, "Feature created", 201);
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendSuccess(reply, feature, "Feature created", 201);
+  });
 
-/**
- * PATCH /api/admin/features/:id
- * Partial update feature
- */
-router.patch("/:id", async (req, res, next) => {
-  try {
+  /**
+   * PATCH /api/admin/features/:id
+   * Partial update feature
+   */
+  fastify.patch("/:id", async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as Record<string, string>;
     const data = featureSchema.partial().parse(req.body);
 
-    const existing = await prisma.feature.findUnique({ where: { id: req.params.id } });
+    const existing = await prisma.feature.findUnique({ where: { id } });
     if (!existing) {
       throw ApiError.notFound("Feature");
     }
@@ -155,7 +144,7 @@ router.patch("/:id", async (req, res, next) => {
     }
 
     const feature = await prisma.feature.update({
-      where: { id: req.params.id },
+      where: { id },
       data,
     });
 
@@ -171,21 +160,18 @@ router.patch("/:id", async (req, res, next) => {
       },
     });
 
-    sendSuccess(res, feature, "Feature updated");
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendSuccess(reply, feature, "Feature updated");
+  });
 
-/**
- * PUT /api/admin/features/:id
- * Update feature
- */
-router.put("/:id", async (req, res, next) => {
-  try {
+  /**
+   * PUT /api/admin/features/:id
+   * Update feature
+   */
+  fastify.put("/:id", async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as Record<string, string>;
     const data = featureSchema.partial().parse(req.body);
 
-    const existing = await prisma.feature.findUnique({ where: { id: req.params.id } });
+    const existing = await prisma.feature.findUnique({ where: { id } });
     if (!existing) {
       throw ApiError.notFound("Feature");
     }
@@ -205,7 +191,7 @@ router.put("/:id", async (req, res, next) => {
     }
 
     const feature = await prisma.feature.update({
-      where: { id: req.params.id },
+      where: { id },
       data,
     });
 
@@ -221,41 +207,35 @@ router.put("/:id", async (req, res, next) => {
       },
     });
 
-    sendSuccess(res, feature, "Feature updated");
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendSuccess(reply, feature, "Feature updated");
+  });
 
-/**
- * PATCH /api/admin/features/:id/toggle
- * Toggle feature active status
- */
-router.patch("/:id/toggle", async (req, res, next) => {
-  try {
-    const feature = await prisma.feature.findUnique({ where: { id: req.params.id } });
+  /**
+   * PATCH /api/admin/features/:id/toggle
+   * Toggle feature active status
+   */
+  fastify.patch("/:id/toggle", async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as Record<string, string>;
+    const feature = await prisma.feature.findUnique({ where: { id } });
     if (!feature) {
       throw ApiError.notFound("Feature");
     }
 
     const updated = await prisma.feature.update({
-      where: { id: req.params.id },
+      where: { id },
       data: { isActive: !feature.isActive },
     });
 
-    sendSuccess(res, updated, `Feature ${updated.isActive ? "activated" : "deactivated"}`);
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendSuccess(reply, updated, `Feature ${updated.isActive ? "activated" : "deactivated"}`);
+  });
 
-/**
- * DELETE /api/admin/features/:id
- * Delete feature
- */
-router.delete("/:id", async (req, res, next) => {
-  try {
-    const feature = await prisma.feature.findUnique({ where: { id: req.params.id } });
+  /**
+   * DELETE /api/admin/features/:id
+   * Delete feature
+   */
+  fastify.delete("/:id", async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as Record<string, string>;
+    const feature = await prisma.feature.findUnique({ where: { id } });
     if (!feature) {
       throw ApiError.notFound("Feature");
     }
@@ -269,7 +249,7 @@ router.delete("/:id", async (req, res, next) => {
       throw ApiError.badRequest("Cannot delete feature used in templates. Remove from templates first.");
     }
 
-    await prisma.feature.delete({ where: { id: req.params.id } });
+    await prisma.feature.delete({ where: { id } });
 
     await prisma.studioAuditLog.create({
       data: {
@@ -282,18 +262,14 @@ router.delete("/:id", async (req, res, next) => {
       },
     });
 
-    sendSuccess(res, null, "Feature deleted");
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendSuccess(reply, null, "Feature deleted");
+  });
 
-/**
- * POST /api/admin/features/bulk-update-price
- * Bulk update feature prices (direct updates)
- */
-router.post("/bulk-update-price", async (req, res, next) => {
-  try {
+  /**
+   * POST /api/admin/features/bulk-update-price
+   * Bulk update feature prices (direct updates)
+   */
+  fastify.post("/bulk-update-price", async (req: FastifyRequest, reply: FastifyReply) => {
     const schema = z.object({
       updates: z.array(z.object({
         id: z.string(),
@@ -318,18 +294,14 @@ router.post("/bulk-update-price", async (req, res, next) => {
       },
     });
 
-    sendSuccess(res, null, `${updates.length} features updated`);
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendSuccess(reply, null, `${updates.length} features updated`);
+  });
 
-/**
- * POST /api/admin/features/bulk-price-update
- * Bulk update feature prices with adjustment type (percentage or fixed)
- */
-router.post("/bulk-price-update", async (req, res, next) => {
-  try {
+  /**
+   * POST /api/admin/features/bulk-price-update
+   * Bulk update feature prices with adjustment type (percentage or fixed)
+   */
+  fastify.post("/bulk-price-update", async (req: FastifyRequest, reply: FastifyReply) => {
     const schema = z.object({
       featureIds: z.array(z.string()).max(100),
       adjustmentType: z.enum(["percentage", "fixed"]),
@@ -374,10 +346,8 @@ router.post("/bulk-price-update", async (req, res, next) => {
       },
     });
 
-    sendSuccess(res, { updatedCount: updates.length, updates }, `${updates.length} features updated`);
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendSuccess(reply, { updatedCount: updates.length, updates }, `${updates.length} features updated`);
+  });
+};
 
-export { router as featuresRoutes };
+export { routePlugin as featuresRoutes };

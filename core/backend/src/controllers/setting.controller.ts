@@ -5,7 +5,7 @@
  * Delegates business logic to settingService.
  */
 
-import { Request, Response, NextFunction } from "express";
+import { FastifyRequest, FastifyReply } from "fastify";
 import { AuthenticatedRequest } from "../types/index.js";
 import { settingService } from "../services/setting.service.js";
 import { auditService } from "../services/audit.service.js";
@@ -41,147 +41,119 @@ export const settingController = {
   // Admin endpoints
   // ==========================================================================
 
-  async getAll(req: AuthenticatedRequest, res: Response, next: NextFunction) {
-    try {
-      const settings = await settingService.getAll();
-      res.json(successResponse({ settings }));
-    } catch (error) {
-      next(error);
-    }
+  async getAll(req: FastifyRequest, reply: FastifyReply) {
+    const settings = await settingService.getAll();
+    return reply.send(successResponse({ settings }));
   },
 
-  async getByKey(req: AuthenticatedRequest, res: Response, next: NextFunction) {
-    try {
-      const key = req.params.key as string;
-      const setting = await settingService.getByKey(key);
-      res.json(successResponse({ setting }));
-    } catch (error) {
-      next(error);
-    }
+  async getByKey(req: FastifyRequest, reply: FastifyReply) {
+    const key = (req.params as Record<string, string>).key;
+    const setting = await settingService.getByKey(key);
+    return reply.send(successResponse({ setting }));
   },
 
-  async create(req: AuthenticatedRequest, res: Response, next: NextFunction) {
-    try {
-      const validated = validateOrRespond(settingSchema, req.body, res);
-      if (!validated) return;
+  async create(req: FastifyRequest, reply: FastifyReply) {
+    const authReq = req as AuthenticatedRequest;
+    const validated = validateOrRespond(settingSchema, req.body, reply);
+    if (!validated) return;
 
-      const setting = await settingService.create(validated);
+    const setting = await settingService.create(validated);
 
-      await auditService.log({
-        userId: req.user.userId,
-        action: "CREATE",
-        entity: "Setting",
-        entityId: setting.id,
-        changes: { new: { key: validated.key, isPublic: validated.isPublic } },
-        req,
-      });
+    await auditService.log({
+      userId: authReq.user.userId,
+      action: "CREATE",
+      entity: "Setting",
+      entityId: setting.id,
+      changes: { new: { key: validated.key, isPublic: validated.isPublic } },
+      req,
+    });
 
-      res.status(201).json(successResponse({ setting }));
-    } catch (error) {
-      next(error);
-    }
+    return reply.code(201).send(successResponse({ setting }));
   },
 
-  async update(req: AuthenticatedRequest, res: Response, next: NextFunction) {
-    try {
-      const key = req.params.key as string;
-      const validated = validateOrRespond(settingSchema.partial().omit({ key: true }), req.body, res);
-      if (!validated) return;
+  async update(req: FastifyRequest, reply: FastifyReply) {
+    const authReq = req as AuthenticatedRequest;
+    const key = (req.params as Record<string, string>).key;
+    const validated = validateOrRespond(settingSchema.partial().omit({ key: true }), req.body, reply);
+    if (!validated) return;
 
-      const existing = await settingService.getByKey(key);
-      const setting = await settingService.update(key, validated);
+    const existing = await settingService.getByKey(key);
+    const setting = await settingService.update(key, validated);
 
-      await auditService.log({
-        userId: req.user.userId,
-        action: "UPDATE",
-        entity: "Setting",
-        entityId: existing.id,
-        changes: { old: { value: "[REDACTED]" }, new: { value: "[REDACTED]" } },
-        req,
-        metadata: { settingKey: key },
-      });
+    await auditService.log({
+      userId: authReq.user.userId,
+      action: "UPDATE",
+      entity: "Setting",
+      entityId: existing.id,
+      changes: { old: { value: "[REDACTED]" }, new: { value: "[REDACTED]" } },
+      req,
+      metadata: { settingKey: key },
+    });
 
-      res.json(successResponse({ setting }));
-    } catch (error) {
-      next(error);
-    }
+    return reply.send(successResponse({ setting }));
   },
 
-  async bulkUpdate(req: AuthenticatedRequest, res: Response, next: NextFunction) {
-    try {
-      const validated = validateOrRespond(bulkUpdateSchema, req.body, res);
-      if (!validated) return;
+  async bulkUpdate(req: FastifyRequest, reply: FastifyReply) {
+    const authReq = req as AuthenticatedRequest;
+    const validated = validateOrRespond(bulkUpdateSchema, req.body, reply);
+    if (!validated) return;
 
-      const count = await settingService.bulkUpdate(validated.settings);
+    const count = await settingService.bulkUpdate(validated.settings);
 
-      await auditService.log({
-        userId: req.user.userId,
-        action: "UPDATE",
-        entity: "Setting",
-        changes: { keys: validated.settings.map((s) => s.key) },
-        req,
-        metadata: { bulkUpdate: true, count },
-      });
+    await auditService.log({
+      userId: authReq.user.userId,
+      action: "UPDATE",
+      entity: "Setting",
+      changes: { keys: validated.settings.map((s) => s.key) },
+      req,
+      metadata: { bulkUpdate: true, count },
+    });
 
-      res.json(successResponse({ message: "Settings updated", count }));
-    } catch (error) {
-      next(error);
-    }
+    return reply.send(successResponse({ message: "Settings updated", count }));
   },
 
-  async delete(req: AuthenticatedRequest, res: Response, next: NextFunction) {
-    try {
-      const key = req.params.key as string;
-      const existing = await settingService.delete(key);
+  async delete(req: FastifyRequest, reply: FastifyReply) {
+    const authReq = req as AuthenticatedRequest;
+    const key = (req.params as Record<string, string>).key;
+    const existing = await settingService.delete(key);
 
-      await auditService.log({
-        userId: req.user.userId,
-        action: "DELETE",
-        entity: "Setting",
-        entityId: existing.id,
-        changes: { old: { key } },
-        req,
-      });
+    await auditService.log({
+      userId: authReq.user.userId,
+      action: "DELETE",
+      entity: "Setting",
+      entityId: existing.id,
+      changes: { old: { key } },
+      req,
+    });
 
-      res.json(successResponse({ message: "Setting deleted" }));
-    } catch (error) {
-      next(error);
-    }
+    return reply.send(successResponse({ message: "Setting deleted" }));
   },
 
   // ==========================================================================
   // Public endpoints
   // ==========================================================================
 
-  async getPublic(req: Request, res: Response, next: NextFunction) {
-    try {
-      const settings = await settingService.getPublic();
-      res.json(successResponse({ settings }));
-    } catch (error) {
-      next(error);
-    }
+  async getPublic(req: FastifyRequest, reply: FastifyReply) {
+    const settings = await settingService.getPublic();
+    return reply.send(successResponse({ settings }));
   },
 
   /**
    * Export all settings as CSV (admin only)
    * GET /api/v1/admin/settings/export
    */
-  async exportSettings(req: AuthenticatedRequest, res: Response, next: NextFunction) {
-    try {
-      const settings = await settingService.getAllForExport();
+  async exportSettings(req: FastifyRequest, reply: FastifyReply) {
+    const settings = await settingService.getAllForExport();
 
-      sendCsvExport(res, settings, [
-        { header: "ID", accessor: "id" },
-        { header: "Key", accessor: "key" },
-        { header: "Value", accessor: "value" },
-        { header: "Type", accessor: "type" },
-        { header: "Description", accessor: (item) => item.description || "" },
-        { header: "Public", accessor: "isPublic" },
-        { header: "Created At", accessor: (item) => item.createdAt.toISOString() },
-        { header: "Updated At", accessor: (item) => item.updatedAt.toISOString() },
-      ], { filenamePrefix: "settings-export" });
-    } catch (error) {
-      next(error);
-    }
+    sendCsvExport(reply, settings, [
+      { header: "ID", accessor: "id" },
+      { header: "Key", accessor: "key" },
+      { header: "Value", accessor: "value" },
+      { header: "Type", accessor: "type" },
+      { header: "Description", accessor: (item) => item.description || "" },
+      { header: "Public", accessor: "isPublic" },
+      { header: "Created At", accessor: (item) => item.createdAt.toISOString() },
+      { header: "Updated At", accessor: (item) => item.updatedAt.toISOString() },
+    ], { filenamePrefix: "settings-export" });
   },
 };

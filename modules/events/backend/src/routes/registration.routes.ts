@@ -1,106 +1,81 @@
-import { Router, Request, Response } from 'express';
-import { getRegistrationService } from '../services/registration.service';
-import { authMiddleware, AuthenticatedRequest } from '../middleware/auth';
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
+import { getRegistrationService } from '../services/registration.service.js';
+import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
 
 // =============================================================================
-// Router
+// Routes
 // =============================================================================
 
-const router = Router();
 const registrationService = getRegistrationService();
 
 // =============================================================================
 // Registration Endpoints (All Authenticated)
 // =============================================================================
 
-/**
- * GET /registrations
- * List all registrations with filtering and pagination
- */
-router.get('/', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+const routes: FastifyPluginAsync = async (fastify) => {
+  /**
+   * GET /registrations
+   * List all registrations with filtering and pagination
+   */
+  fastify.get('/', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { search, status, eventId, page, limit } = req.query;
+    const { search, status, eventId, page, limit } = req.query as Record<string, string>;
 
     const result = await registrationService.listAll(authReq.user.userId, {
-      search: search as string,
-      status: status as string,
-      eventId: eventId as string,
+      search,
+      status,
+      eventId,
       page: page ? Number(page) : 1,
       limit: limit ? Number(limit) : 20,
     });
 
-    res.json({ success: true, data: result });
-  } catch (error) {
-    console.error('[RegistrationRoutes] List error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to list registrations' });
-  }
-});
+    return reply.send({ success: true, data: result });
+  });
 
-/**
- * POST /registrations/:id/confirm
- * Confirm a registration
- */
-router.post('/:id/confirm', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * POST /registrations/:id/confirm
+   * Confirm a registration
+   */
+  fastify.post('/:id/confirm', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
+    const { id } = req.params as { id: string };
 
-    const registration = await registrationService.confirm(req.params.id, authReq.user.userId);
+    const registration = await registrationService.confirm(id, authReq.user.userId);
     if (!registration) {
-      res.status(404).json({ error: 'Registration not found' });
-      return;
+      return reply.code(404).send({ error: 'Registration not found' });
     }
-    res.json({ success: true, data: registration });
-  } catch (error) {
-    console.error('[RegistrationRoutes] Confirm error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to confirm registration',
-    });
-  }
-});
+    return reply.send({ success: true, data: registration });
+  });
 
-/**
- * POST /registrations/:id/check-in
- * Check in a registration
- */
-router.post('/:id/check-in', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * POST /registrations/:id/check-in
+   * Check in a registration
+   */
+  fastify.post('/:id/check-in', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
+    const { id } = req.params as { id: string };
 
-    const registration = await registrationService.checkIn(req.params.id, authReq.user.userId);
+    const registration = await registrationService.checkIn(id, authReq.user.userId);
     if (!registration) {
-      res.status(404).json({ error: 'Registration not found' });
-      return;
+      return reply.code(404).send({ error: 'Registration not found' });
     }
-    res.json({ success: true, data: registration });
-  } catch (error) {
-    console.error('[RegistrationRoutes] Check-in error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to check in',
-    });
-  }
-});
+    return reply.send({ success: true, data: registration });
+  });
 
-/**
- * POST /registrations/:id/cancel
- * Cancel a registration
- */
-router.post('/:id/cancel', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * POST /registrations/:id/cancel
+   * Cancel a registration
+   */
+  fastify.post('/:id/cancel', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
+    const { id } = req.params as { id: string };
 
-    const registration = await registrationService.cancel(req.params.id, authReq.user.userId);
+    const registration = await registrationService.cancel(id, authReq.user.userId);
     if (!registration) {
-      res.status(404).json({ error: 'Registration not found' });
-      return;
+      return reply.code(404).send({ error: 'Registration not found' });
     }
-    res.json({ success: true, data: registration });
-  } catch (error) {
-    console.error('[RegistrationRoutes] Cancel error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to cancel registration',
-    });
-  }
-});
+    return reply.send({ success: true, data: registration });
+  });
+};
 
-export default router;
+export default routes;

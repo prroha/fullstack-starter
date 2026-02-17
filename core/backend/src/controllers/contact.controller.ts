@@ -1,8 +1,7 @@
-import { Response, NextFunction } from "express";
+import { FastifyRequest, FastifyReply } from "fastify";
 import { contactService } from "../services/contact.service.js";
 import { successResponse, paginatedResponse } from "../utils/response.js";
 import { z } from "zod";
-import { AppRequest } from "../types/index.js";
 import { ContactMessageStatus } from "@prisma/client";
 import { emailSchema, paginationSchema } from "../utils/validation-schemas.js";
 import { sendCsvExport } from "../utils/controller-helpers.js";
@@ -47,128 +46,100 @@ class ContactController {
    * Submit a contact form message (public endpoint)
    * POST /api/v1/contact
    */
-  async submit(req: AppRequest, res: Response, next: NextFunction) {
-    try {
-      const validated = createContactMessageSchema.parse(req.body);
-      const message = await contactService.create(validated);
+  async submit(req: FastifyRequest, reply: FastifyReply) {
+    const validated = createContactMessageSchema.parse(req.body);
+    const message = await contactService.create(validated);
 
-      res.status(201).json(
-        successResponse(
-          {
-            id: message.id,
-            createdAt: message.createdAt,
-          },
-          "Thank you for your message. We will get back to you soon."
-        )
-      );
-    } catch (error) {
-      next(error);
-    }
+    return reply.code(201).send(
+      successResponse(
+        {
+          id: message.id,
+          createdAt: message.createdAt,
+        },
+        "Thank you for your message. We will get back to you soon."
+      )
+    );
   }
 
   /**
    * Get all contact messages (admin only)
    * GET /api/v1/admin/contact-messages
    */
-  async getAll(req: AppRequest, res: Response, next: NextFunction) {
-    try {
-      const params = getContactMessagesSchema.parse(req.query);
-      const result = await contactService.getAll(params);
+  async getAll(req: FastifyRequest, reply: FastifyReply) {
+    const params = getContactMessagesSchema.parse(req.query);
+    const result = await contactService.getAll(params);
 
-      res.json(
-        paginatedResponse(
-          result.items,
-          result.pagination.page,
-          result.pagination.limit,
-          result.pagination.total
-        )
-      );
-    } catch (error) {
-      next(error);
-    }
+    return reply.send(
+      paginatedResponse(
+        result.items,
+        result.pagination.page,
+        result.pagination.limit,
+        result.pagination.total
+      )
+    );
   }
 
   /**
    * Get a single contact message (admin only)
    * GET /api/v1/admin/contact-messages/:id
    */
-  async getById(req: AppRequest, res: Response, next: NextFunction) {
-    try {
-      const id = req.params.id as string;
-      const message = await contactService.getById(id);
+  async getById(req: FastifyRequest, reply: FastifyReply) {
+    const id = (req.params as Record<string, string>).id;
+    const message = await contactService.getById(id);
 
-      res.json(successResponse({ message }));
-    } catch (error) {
-      next(error);
-    }
+    return reply.send(successResponse({ message }));
   }
 
   /**
    * Update contact message status (admin only)
    * PATCH /api/v1/admin/contact-messages/:id
    */
-  async update(req: AppRequest, res: Response, next: NextFunction) {
-    try {
-      const id = req.params.id as string;
-      const validated = updateContactMessageSchema.parse(req.body);
-      const message = await contactService.update(id, validated);
+  async update(req: FastifyRequest, reply: FastifyReply) {
+    const id = (req.params as Record<string, string>).id;
+    const validated = updateContactMessageSchema.parse(req.body);
+    const message = await contactService.update(id, validated);
 
-      res.json(successResponse({ message }, "Message updated successfully"));
-    } catch (error) {
-      next(error);
-    }
+    return reply.send(successResponse({ message }, "Message updated successfully"));
   }
 
   /**
    * Delete a contact message (admin only)
    * DELETE /api/v1/admin/contact-messages/:id
    */
-  async delete(req: AppRequest, res: Response, next: NextFunction) {
-    try {
-      const id = req.params.id as string;
-      await contactService.delete(id);
+  async delete(req: FastifyRequest, reply: FastifyReply) {
+    const id = (req.params as Record<string, string>).id;
+    await contactService.delete(id);
 
-      res.json(successResponse(null, "Message deleted successfully"));
-    } catch (error) {
-      next(error);
-    }
+    return reply.send(successResponse(null, "Message deleted successfully"));
   }
 
   /**
    * Get unread message count (admin only)
    * GET /api/v1/admin/contact-messages/unread-count
    */
-  async getUnreadCount(req: AppRequest, res: Response, next: NextFunction) {
-    try {
-      const count = await contactService.getUnreadCount();
+  async getUnreadCount(req: FastifyRequest, reply: FastifyReply) {
+    const count = await contactService.getUnreadCount();
 
-      res.json(successResponse({ count }));
-    } catch (error) {
-      next(error);
-    }
+    return reply.send(successResponse({ count }));
   }
 
   /**
    * Export all contact messages as CSV (admin only)
    * GET /api/v1/admin/contact-messages/export
    */
-  async exportMessages(req: AppRequest, res: Response, next: NextFunction) {
-    try {
-      const messages = await contactService.getAllForExport();
+  async exportMessages(req: FastifyRequest, reply: FastifyReply) {
+    const messages = await contactService.getAllForExport();
 
-      sendCsvExport(res, messages, [
-        { header: "ID", accessor: "id" },
-        { header: "Name", accessor: "name" },
-        { header: "Email", accessor: "email" },
-        { header: "Subject", accessor: "subject" },
-        { header: "Message", accessor: "message" },
-        { header: "Status", accessor: "status" },
-        { header: "Created At", accessor: (item) => item.createdAt.toISOString() },
-        { header: "Updated At", accessor: (item) => item.updatedAt.toISOString() },
-      ], { filenamePrefix: "contact-messages-export" });
-    } catch (error) {
-      next(error);
-    }
+    sendCsvExport(reply, messages, [
+      { header: "ID", accessor: "id" },
+      { header: "Name", accessor: "name" },
+      { header: "Email", accessor: "email" },
+      { header: "Subject", accessor: "subject" },
+      { header: "Message", accessor: "message" },
+      { header: "Status", accessor: "status" },
+      { header: "Created At", accessor: (item) => item.createdAt.toISOString() },
+      { header: "Updated At", accessor: (item) => item.updatedAt.toISOString() },
+    ], { filenamePrefix: "contact-messages-export" });
   }
 }
 

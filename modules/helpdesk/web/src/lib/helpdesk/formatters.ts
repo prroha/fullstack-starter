@@ -103,16 +103,8 @@ export function getArticleStatusBadge(status: ArticleStatus): string {
   return articleStatusBadgeMap[status] ?? 'pending';
 }
 
-/**
- * Format a date string to a locale display string.
- */
-export function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
-}
+import { formatDate } from '@/lib/utils';
+export { formatDate };
 
 /**
  * Format a date string to a relative time (e.g., "2 hours ago").

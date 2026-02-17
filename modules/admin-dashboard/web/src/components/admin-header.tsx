@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 
 // =============================================================================
 // Types
@@ -130,9 +131,9 @@ const Icons = {
 
 function RoleBadge({ role }: { role: string }) {
   const roleStyles: Record<string, string> = {
-    ADMIN: 'bg-purple-100 text-purple-800',
-    MANAGER: 'bg-blue-100 text-blue-800',
-    USER: 'bg-gray-100 text-gray-800',
+    ADMIN: 'bg-accent/10 text-accent',
+    MANAGER: 'bg-primary/10 text-primary',
+    USER: 'bg-muted text-muted-foreground',
   };
 
   return (
@@ -174,9 +175,10 @@ function UserMenu({
 
   return (
     <div className="relative" ref={menuRef}>
-      <button
+      <Button
+        variant="ghost"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+        className="flex items-center gap-3 px-3 py-2 rounded-lg h-auto"
         aria-expanded={isOpen}
         aria-haspopup="true"
       >
@@ -187,21 +189,21 @@ function UserMenu({
             className="h-8 w-8 rounded-full object-cover"
           />
         ) : (
-          <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
-            <span className="text-sm font-medium text-blue-600">
+          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+            <span className="text-sm font-medium text-primary">
               {(user.name?.[0] || user.email[0]).toUpperCase()}
             </span>
           </div>
         )}
         <div className="hidden md:block text-left">
-          <p className="text-sm font-medium text-gray-900">
+          <p className="text-sm font-medium text-foreground">
             {user.name || 'User'}
           </p>
-          <p className="text-xs text-gray-500">{user.email}</p>
+          <p className="text-xs text-muted-foreground">{user.email}</p>
         </div>
         <svg
           className={cn(
-            'w-4 h-4 text-gray-400 transition-transform',
+            'w-4 h-4 text-muted-foreground transition-transform',
             isOpen && 'rotate-180'
           )}
           fill="none"
@@ -215,16 +217,16 @@ function UserMenu({
             d="M19 9l-7 7-7-7"
           />
         </svg>
-      </button>
+      </Button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-50">
+        <div className="absolute right-0 mt-2 w-64 bg-card rounded-xl shadow-lg border border-border py-2 z-50">
           {/* User info */}
-          <div className="px-4 py-3 border-b border-gray-100">
-            <p className="text-sm font-medium text-gray-900">
+          <div className="px-4 py-3 border-b border-border">
+            <p className="text-sm font-medium text-foreground">
               {user.name || 'User'}
             </p>
-            <p className="text-sm text-gray-500 truncate">{user.email}</p>
+            <p className="text-sm text-muted-foreground truncate">{user.email}</p>
             <div className="mt-2">
               <RoleBadge role={user.role} />
             </div>
@@ -234,7 +236,7 @@ function UserMenu({
           <div className="py-2">
             <Link
               href="/profile"
-              className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+              className="flex items-center gap-3 px-4 py-2 text-sm text-foreground hover:bg-muted"
               onClick={() => setIsOpen(false)}
             >
               {Icons.User}
@@ -242,7 +244,7 @@ function UserMenu({
             </Link>
             <Link
               href="/admin/settings"
-              className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+              className="flex items-center gap-3 px-4 py-2 text-sm text-foreground hover:bg-muted"
               onClick={() => setIsOpen(false)}
             >
               {Icons.Settings}
@@ -251,17 +253,18 @@ function UserMenu({
           </div>
 
           {/* Logout */}
-          <div className="border-t border-gray-100 pt-2">
-            <button
+          <div className="border-t border-border pt-2">
+            <Button
+              variant="ghost"
               onClick={() => {
                 setIsOpen(false);
                 onLogout?.();
               }}
-              className="flex items-center gap-3 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+              className="flex items-center gap-3 w-full px-4 py-2 text-sm text-destructive hover:bg-destructive/10 h-auto justify-start rounded-none"
             >
               {Icons.Logout}
               <span>Sign out</span>
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -282,22 +285,22 @@ function Breadcrumbs({
     <nav className="flex items-center gap-2 text-sm">
       <Link
         href="/admin"
-        className="text-gray-400 hover:text-gray-600 transition-colors"
+        className="text-muted-foreground hover:text-foreground transition-colors"
       >
         {Icons.Home}
       </Link>
       {items.map((item, index) => (
         <span key={index} className="flex items-center gap-2">
-          <span className="text-gray-300">{Icons.ChevronRight}</span>
+          <span className="text-muted-foreground/50">{Icons.ChevronRight}</span>
           {item.href ? (
             <Link
               href={item.href}
-              className="text-gray-500 hover:text-gray-700 transition-colors"
+              className="text-muted-foreground hover:text-foreground transition-colors"
             >
               {item.label}
             </Link>
           ) : (
-            <span className="text-gray-900 font-medium">{item.label}</span>
+            <span className="text-foreground font-medium">{item.label}</span>
           )}
         </span>
       ))}
@@ -325,7 +328,7 @@ export function AdminHeader({
   return (
     <header
       className={cn(
-        'bg-white border-b border-gray-200 sticky top-0 z-40',
+        'bg-card border-b border-border sticky top-0 z-40',
         className
       )}
     >
@@ -333,22 +336,24 @@ export function AdminHeader({
         {/* Left side */}
         <div className="flex items-center gap-4">
           {showMenuButton && (
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={onMenuToggle}
-              className="p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 lg:hidden"
+              className="lg:hidden"
               aria-label="Toggle menu"
             >
               {Icons.Menu}
-            </button>
+            </Button>
           )}
 
           {/* Breadcrumbs or page title */}
           {breadcrumbs && breadcrumbs.length > 0 ? (
             <Breadcrumbs items={breadcrumbs} />
           ) : pageTitle ? (
-            <h1 className="text-lg font-semibold text-gray-900">{pageTitle}</h1>
+            <h1 className="text-lg font-semibold text-foreground">{pageTitle}</h1>
           ) : (
-            <span className="text-lg font-semibold text-gray-900 lg:hidden">
+            <span className="text-lg font-semibold text-foreground lg:hidden">
               {appName}
             </span>
           )}
@@ -361,24 +366,26 @@ export function AdminHeader({
 
           {/* Notifications */}
           {onNotificationsClick && (
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={onNotificationsClick}
-              className="relative p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+              className="relative"
               aria-label="Notifications"
             >
               {Icons.Bell}
               {notificationCount !== undefined && notificationCount > 0 && (
-                <span className="absolute top-1 right-1 h-4 w-4 text-xs font-medium text-white bg-red-500 rounded-full flex items-center justify-center">
+                <span className="absolute top-1 right-1 h-4 w-4 text-xs font-medium text-destructive-foreground bg-destructive rounded-full flex items-center justify-center">
                   {notificationCount > 9 ? '9+' : notificationCount}
                 </span>
               )}
-            </button>
+            </Button>
           )}
 
           {/* View site link */}
           <Link
             href="/"
-            className="hidden sm:flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+            className="hidden sm:flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
             target="_blank"
           >
             <svg

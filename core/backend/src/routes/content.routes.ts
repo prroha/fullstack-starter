@@ -1,48 +1,49 @@
-import { Router, Request } from "express";
+import { FastifyPluginAsync } from "fastify";
 import { contentController } from "../controllers/content.controller.js";
 import { authMiddleware, adminMiddleware } from "../middleware/auth.middleware.js";
-import { AuthenticatedRequest } from "../types/index.js";
 
-const router = Router();
+const routePlugin: FastifyPluginAsync = async (fastify) => {
+  // ============================================================================
+  // Public routes
+  // ============================================================================
 
-// ============================================================================
-// Public routes
-// ============================================================================
+  fastify.get("/page/:slug", (req, reply) =>
+    contentController.getBySlug(req, reply)
+  );
 
-router.get("/page/:slug", (req, res, next) =>
-  contentController.getBySlug(req as Request, res, next)
-);
+  // ============================================================================
+  // Admin routes (nested plugin for scoped middleware)
+  // ============================================================================
 
-// ============================================================================
-// Admin routes
-// ============================================================================
+  await fastify.register(async (admin) => {
+    admin.addHook("preHandler", authMiddleware);
+    admin.addHook("preHandler", adminMiddleware);
 
-router.use(authMiddleware);
-router.use(adminMiddleware);
+    admin.get("/", (req, reply) =>
+      contentController.getAll(req, reply)
+    );
 
-router.get("/", (req, res, next) =>
-  contentController.getAll(req as unknown as AuthenticatedRequest, res, next)
-);
+    // Export content pages (must be before /:id to avoid matching "export" as id)
+    admin.get("/export", (req, reply) =>
+      contentController.exportContentPages(req, reply)
+    );
 
-// Export content pages (must be before /:id to avoid matching "export" as id)
-router.get("/export", (req, res, next) =>
-  contentController.exportContentPages(req as unknown as AuthenticatedRequest, res, next)
-);
+    admin.get("/:id", (req, reply) =>
+      contentController.getById(req, reply)
+    );
 
-router.get("/:id", (req, res, next) =>
-  contentController.getById(req as unknown as AuthenticatedRequest, res, next)
-);
+    admin.post("/", (req, reply) =>
+      contentController.create(req, reply)
+    );
 
-router.post("/", (req, res, next) =>
-  contentController.create(req as unknown as AuthenticatedRequest, res, next)
-);
+    admin.patch("/:id", (req, reply) =>
+      contentController.update(req, reply)
+    );
 
-router.patch("/:id", (req, res, next) =>
-  contentController.update(req as unknown as AuthenticatedRequest, res, next)
-);
+    admin.delete("/:id", (req, reply) =>
+      contentController.delete(req, reply)
+    );
+  });
+};
 
-router.delete("/:id", (req, res, next) =>
-  contentController.delete(req as unknown as AuthenticatedRequest, res, next)
-);
-
-export default router;
+export default routePlugin;

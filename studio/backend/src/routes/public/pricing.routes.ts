@@ -1,10 +1,8 @@
-import { Router } from "express";
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from "fastify";
 import { z } from "zod";
 import { prisma } from "../../config/db.js";
 import { sendSuccess } from "../../utils/response.js";
 import { ApiError } from "../../utils/errors.js";
-
-const router = Router();
 
 // Parameter validation schemas
 const slugParamSchema = z.object({
@@ -19,12 +17,12 @@ const calculatePriceSchema = z.object({
   couponCode: z.string().max(50).optional(),
 });
 
-/**
- * GET /api/pricing/tiers
- * List all active pricing tiers
- */
-router.get("/tiers", async (_req, res, next) => {
-  try {
+const routePlugin: FastifyPluginAsync = async (fastify) => {
+  /**
+   * GET /api/pricing/tiers
+   * List all active pricing tiers
+   */
+  fastify.get("/tiers", async (_req: FastifyRequest, reply: FastifyReply) => {
     const tiers = await prisma.pricingTier.findMany({
       where: { isActive: true },
       orderBy: { displayOrder: "asc" },
@@ -42,18 +40,14 @@ router.get("/tiers", async (_req, res, next) => {
       },
     });
 
-    sendSuccess(res, { items: tiers });
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendSuccess(reply, { items: tiers });
+  });
 
-/**
- * GET /api/pricing/tiers/:slug
- * Get single tier by slug with feature details
- */
-router.get("/tiers/:slug", async (req, res, next) => {
-  try {
+  /**
+   * GET /api/pricing/tiers/:slug
+   * Get single tier by slug with feature details
+   */
+  fastify.get("/tiers/:slug", async (req: FastifyRequest, reply: FastifyReply) => {
     // Validate slug parameter
     const paramResult = slugParamSchema.safeParse(req.params);
     if (!paramResult.success) {
@@ -89,21 +83,17 @@ router.get("/tiers/:slug", async (req, res, next) => {
       },
     });
 
-    sendSuccess(res, {
+    return sendSuccess(reply, {
       ...tier,
       features,
     });
-  } catch (error) {
-    next(error);
-  }
-});
+  });
 
-/**
- * POST /api/pricing/calculate
- * Calculate price for a configuration
- */
-router.post("/calculate", async (req, res, next) => {
-  try {
+  /**
+   * POST /api/pricing/calculate
+   * Calculate price for a configuration
+   */
+  fastify.post("/calculate", async (req: FastifyRequest, reply: FastifyReply) => {
     // Validate request body
     const parseResult = calculatePriceSchema.safeParse(req.body);
     if (!parseResult.success) {
@@ -261,7 +251,7 @@ router.post("/calculate", async (req, res, next) => {
     // Calculate final total
     const total = Math.max(0, taxableAmount + tax);
 
-    sendSuccess(res, {
+    return sendSuccess(reply, {
       tierPrice,
       featuresPrice,
       subtotal,
@@ -282,9 +272,7 @@ router.post("/calculate", async (req, res, next) => {
         addOnCount: addOnFeatures.length,
       },
     });
-  } catch (error) {
-    next(error);
-  }
-});
+  });
+};
 
-export { router as publicPricingRoutes };
+export { routePlugin as publicPricingRoutes };

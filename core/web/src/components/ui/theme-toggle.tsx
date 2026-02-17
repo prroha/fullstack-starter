@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { useTheme, type ColorMode } from "@/lib/theme-context";
+import { useTheme, type ColorMode } from "../../lib/theme-context";
 
 // =====================================================
 // Theme Toggle Types

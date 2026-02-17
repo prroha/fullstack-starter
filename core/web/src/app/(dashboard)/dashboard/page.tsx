@@ -55,7 +55,7 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Welcome Section */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight">
@@ -108,7 +108,7 @@ export default function DashboardPage() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <CardSection>
             <Text variant="caption" color="muted">Account Status</Text>
-            <p className="text-2xl font-bold text-green-600 mt-1">Active</p>
+            <p className="text-2xl font-bold text-success mt-1">Active</p>
           </CardSection>
           <CardSection>
             <Text variant="caption" color="muted">Member Since</Text>
@@ -118,9 +118,9 @@ export default function DashboardPage() {
             <Text variant="caption" color="muted">Email Verified</Text>
             <p className="text-2xl font-bold mt-1">
               {user?.emailVerified ? (
-                <span className="text-green-600">Yes</span>
+                <span className="text-success">Yes</span>
               ) : (
-                <span className="text-amber-600">Pending</span>
+                <span className="text-warning">Pending</span>
               )}
             </p>
           </CardSection>

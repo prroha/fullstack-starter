@@ -1,30 +1,28 @@
-import { Router, Request, Response } from 'express';
-import { getBookingService } from '../services/booking.service';
-import { authMiddleware, AuthenticatedRequest } from '../middleware/auth';
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
+import { getBookingService } from '../services/booking.service.js';
+import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
 
 // =============================================================================
-// Router
+// Routes
 // =============================================================================
 
-const router = Router();
 const bookingService = getBookingService();
 
 // =============================================================================
 // Booking Endpoints (All Authenticated)
 // =============================================================================
 
-/**
- * POST /bookings
- * Create a new booking
- */
-router.post('/', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+const routes: FastifyPluginAsync = async (fastify) => {
+  /**
+   * POST /bookings
+   * Create a new booking
+   */
+  fastify.post('/', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { serviceId, providerId, date, startTime, notes } = req.body;
+    const { serviceId, providerId, date, startTime, notes } = req.body as Record<string, string>;
 
     if (!serviceId || !providerId || !date || !startTime) {
-      res.status(400).json({ error: 'serviceId, providerId, date, and startTime are required' });
-      return;
+      return reply.code(400).send({ error: 'serviceId, providerId, date, and startTime are required' });
     }
 
     const booking = await bookingService.createBooking({
@@ -36,169 +34,118 @@ router.post('/', authMiddleware, async (req: Request, res: Response): Promise<vo
       notes,
     });
 
-    res.status(201).json({ success: true, data: booking });
-  } catch (error) {
-    console.error('[BookingRoutes] Create error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to create booking',
-    });
-  }
-});
+    return reply.code(201).send({ success: true, data: booking });
+  });
 
-/**
- * GET /bookings
- * List current user's bookings with filtering and pagination
- */
-router.get('/', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * GET /bookings
+   * List current user's bookings with filtering and pagination
+   */
+  fastify.get('/', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { status, page, limit } = req.query;
+    const { status, page, limit } = req.query as Record<string, string>;
 
     const result = await bookingService.listUserBookings({
       userId: authReq.user.userId,
-      status: status as string,
+      status,
       page: page ? Number(page) : 1,
       limit: limit ? Number(limit) : 20,
     });
 
-    res.json({ success: true, data: result });
-  } catch (error) {
-    console.error('[BookingRoutes] List error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to list bookings' });
-  }
-});
+    return reply.send({ success: true, data: result });
+  });
 
-/**
- * GET /bookings/:id
- * Get booking detail
- */
-router.get('/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const booking = await bookingService.getBookingById(req.params.id);
+  /**
+   * GET /bookings/:id
+   * Get booking detail
+   */
+  fastify.get('/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as { id: string };
+    const booking = await bookingService.getBookingById(id);
     if (!booking) {
-      res.status(404).json({ error: 'Booking not found' });
-      return;
+      return reply.code(404).send({ error: 'Booking not found' });
     }
-    res.json({ success: true, data: booking });
-  } catch (error) {
-    console.error('[BookingRoutes] Get error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to get booking' });
-  }
-});
+    return reply.send({ success: true, data: booking });
+  });
 
-/**
- * POST /bookings/:id/cancel
- * Cancel a booking
- */
-router.post('/:id/cancel', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { reason } = req.body;
+  /**
+   * POST /bookings/:id/cancel
+   * Cancel a booking
+   */
+  fastify.post('/:id/cancel', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as { id: string };
+    const { reason } = req.body as { reason?: string };
 
-    const booking = await bookingService.cancelBooking(req.params.id, reason);
+    const booking = await bookingService.cancelBooking(id, reason);
     if (!booking) {
-      res.status(404).json({ error: 'Booking not found' });
-      return;
+      return reply.code(404).send({ error: 'Booking not found' });
     }
 
-    res.json({ success: true, data: booking });
-  } catch (error) {
-    console.error('[BookingRoutes] Cancel error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to cancel booking',
-    });
-  }
-});
+    return reply.send({ success: true, data: booking });
+  });
 
-/**
- * POST /bookings/:id/reschedule
- * Reschedule a booking to a new date and time
- */
-router.post('/:id/reschedule', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { date, startTime } = req.body;
+  /**
+   * POST /bookings/:id/reschedule
+   * Reschedule a booking to a new date and time
+   */
+  fastify.post('/:id/reschedule', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as { id: string };
+    const { date, startTime } = req.body as { date: string; startTime: string };
 
     if (!date || !startTime) {
-      res.status(400).json({ error: 'date and startTime are required' });
-      return;
+      return reply.code(400).send({ error: 'date and startTime are required' });
     }
 
-    const booking = await bookingService.rescheduleBooking(req.params.id, { date, startTime });
+    const booking = await bookingService.rescheduleBooking(id, { date, startTime });
     if (!booking) {
-      res.status(404).json({ error: 'Booking not found' });
-      return;
+      return reply.code(404).send({ error: 'Booking not found' });
     }
 
-    res.json({ success: true, data: booking });
-  } catch (error) {
-    console.error('[BookingRoutes] Reschedule error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to reschedule booking',
-    });
-  }
-});
+    return reply.send({ success: true, data: booking });
+  });
 
-// =============================================================================
-// Provider Actions
-// =============================================================================
+  // =============================================================================
+  // Provider Actions
+  // =============================================================================
 
-/**
- * POST /bookings/:id/confirm
- * Confirm a pending booking (provider)
- */
-router.post('/:id/confirm', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const booking = await bookingService.confirmBooking(req.params.id);
+  /**
+   * POST /bookings/:id/confirm
+   * Confirm a pending booking (provider)
+   */
+  fastify.post('/:id/confirm', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as { id: string };
+    const booking = await bookingService.confirmBooking(id);
     if (!booking) {
-      res.status(404).json({ error: 'Booking not found' });
-      return;
+      return reply.code(404).send({ error: 'Booking not found' });
     }
-    res.json({ success: true, data: booking });
-  } catch (error) {
-    console.error('[BookingRoutes] Confirm error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to confirm booking',
-    });
-  }
-});
+    return reply.send({ success: true, data: booking });
+  });
 
-/**
- * POST /bookings/:id/complete
- * Mark a booking as completed (provider)
- */
-router.post('/:id/complete', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const booking = await bookingService.completeBooking(req.params.id);
+  /**
+   * POST /bookings/:id/complete
+   * Mark a booking as completed (provider)
+   */
+  fastify.post('/:id/complete', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as { id: string };
+    const booking = await bookingService.completeBooking(id);
     if (!booking) {
-      res.status(404).json({ error: 'Booking not found' });
-      return;
+      return reply.code(404).send({ error: 'Booking not found' });
     }
-    res.json({ success: true, data: booking });
-  } catch (error) {
-    console.error('[BookingRoutes] Complete error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to complete booking',
-    });
-  }
-});
+    return reply.send({ success: true, data: booking });
+  });
 
-/**
- * POST /bookings/:id/no-show
- * Mark a booking as no-show (provider)
- */
-router.post('/:id/no-show', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const booking = await bookingService.markNoShow(req.params.id);
+  /**
+   * POST /bookings/:id/no-show
+   * Mark a booking as no-show (provider)
+   */
+  fastify.post('/:id/no-show', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as { id: string };
+    const booking = await bookingService.markNoShow(id);
     if (!booking) {
-      res.status(404).json({ error: 'Booking not found' });
-      return;
+      return reply.code(404).send({ error: 'Booking not found' });
     }
-    res.json({ success: true, data: booking });
-  } catch (error) {
-    console.error('[BookingRoutes] No-show error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to mark booking as no-show',
-    });
-  }
-});
+    return reply.send({ success: true, data: booking });
+  });
+};
 
-export default router;
+export default routes;

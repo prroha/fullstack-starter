@@ -1,4 +1,4 @@
-import { Response } from "express";
+import { FastifyReply } from "fastify";
 
 export interface ApiResponse<T = unknown> {
   success: boolean;
@@ -29,12 +29,12 @@ export interface PaginatedData<T> {
  * Send a successful response
  */
 export function sendSuccess<T>(
-  res: Response,
+  reply: FastifyReply,
   data: T,
   message?: string,
   statusCode = 200
-): Response {
-  return res.status(statusCode).json({
+): FastifyReply {
+  return reply.code(statusCode).send({
     success: true,
     data,
     message,
@@ -45,12 +45,12 @@ export function sendSuccess<T>(
  * Send a paginated response
  */
 export function sendPaginated<T>(
-  res: Response,
+  reply: FastifyReply,
   items: T[],
   pagination: PaginationInfo,
   message?: string
-): Response {
-  return res.status(200).json({
+): FastifyReply {
+  return reply.code(200).send({
     success: true,
     data: {
       items,
@@ -64,13 +64,13 @@ export function sendPaginated<T>(
  * Send an error response
  */
 export function sendError(
-  res: Response,
+  reply: FastifyReply,
   message: string,
   statusCode = 400,
   code = "ERROR",
   details?: unknown
-): Response {
-  return res.status(statusCode).json({
+): FastifyReply {
+  return reply.code(statusCode).send({
     success: false,
     error: {
       code,

@@ -56,7 +56,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
               isError
                 ? "text-destructive font-medium animate-pulse"
                 : isWarning
-                  ? "text-orange-500 font-medium"
+                  ? "text-warning font-medium"
                   : "text-muted-foreground"
             )}
           >

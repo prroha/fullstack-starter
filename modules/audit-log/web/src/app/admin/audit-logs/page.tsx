@@ -418,7 +418,7 @@ export default function AuditLogsPage() {
                             'text-sm font-medium',
                             log.statusCode >= 400
                               ? 'text-destructive'
-                              : 'text-green-600 dark:text-green-400'
+                              : 'text-success'
                           )}
                         >
                           {log.statusCode}

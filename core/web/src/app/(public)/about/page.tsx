@@ -21,7 +21,7 @@ export default function AboutPage() {
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
       <section className="border-b border-border">
-        <div className="container mx-auto px-4 py-16 md:py-24 text-center">
+        <div className="container mx-auto px-4 py-10 md:py-12 text-center">
           <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-6">
             About Us
           </h1>
@@ -33,7 +33,7 @@ export default function AboutPage() {
       </section>
 
       {/* Mission Section */}
-      <section className="py-16 md:py-24">
+      <section className="py-10 md:py-12">
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto">
             <h2 className="text-3xl font-bold text-foreground mb-6 text-center">
@@ -58,12 +58,12 @@ export default function AboutPage() {
       </section>
 
       {/* Values Section */}
-      <section className="py-16 md:py-24 bg-muted/30">
+      <section className="py-10 md:py-12 bg-muted/30">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-foreground mb-12 text-center">
+          <h2 className="text-3xl font-bold text-foreground mb-8 text-center">
             Our Values
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
             <ValueCard
               icon={<Icon name="Sparkles" size="lg" />}
               title="Quality First"
@@ -84,16 +84,16 @@ export default function AboutPage() {
       </section>
 
       {/* Team Section */}
-      <section className="py-16 md:py-24">
+      <section className="py-10 md:py-12">
         <div className="container mx-auto px-4">
           <h2 className="text-3xl font-bold text-foreground mb-4 text-center">
             Our Team
           </h2>
-          <Text size="lg" color="muted" className="text-center mb-12 max-w-2xl mx-auto">
+          <Text size="lg" color="muted" className="text-center mb-8 max-w-2xl mx-auto">
             A passionate group of developers, designers, and problem solvers
             dedicated to making your development journey smoother.
           </Text>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 max-w-5xl mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
             <TeamMember
               name="John Doe"
               role="Founder & CEO"
@@ -119,7 +119,7 @@ export default function AboutPage() {
       </section>
 
       {/* Contact Section */}
-      <section className="py-16 md:py-24 bg-muted/30">
+      <section className="py-10 md:py-12 bg-muted/30">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-3xl font-bold text-foreground mb-4">
             Get in Touch

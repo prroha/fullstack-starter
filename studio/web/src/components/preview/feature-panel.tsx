@@ -2,7 +2,7 @@
 
 import { Check, X, ChevronDown, ChevronRight } from "lucide-react";
 import { useState } from "react";
-import { Badge } from "@/components/ui";
+import { Badge, Button } from "@/components/ui";
 import { cn } from "@/lib/utils";
 
 interface FeaturePanelProps {
@@ -94,12 +94,10 @@ export function FeaturePanel({
 
           return (
             <div key={category} className="mb-1">
-              <button
+              <Button
+                variant="ghost"
                 onClick={() => toggleCategory(category)}
-                className={cn(
-                  "w-full flex items-center justify-between px-3 py-3 min-h-[44px] rounded-md text-sm font-medium transition-colors",
-                  "hover:bg-accent"
-                )}
+                className="w-full flex items-center justify-between px-3 py-3 min-h-[44px] h-auto"
               >
                 <div className="flex items-center gap-2">
                   {isExpanded ? (
@@ -114,7 +112,7 @@ export function FeaturePanel({
                     {enabledCount}/{categoryFeatures.length}
                   </span>
                 </div>
-              </button>
+              </Button>
 
               {isExpanded && (
                 <div className="ml-6 space-y-0.5 mt-1">
@@ -132,7 +130,7 @@ export function FeaturePanel({
                         )}
                       >
                         {isEnabled ? (
-                          <Check className="h-3.5 w-3.5 text-green-500 shrink-0" />
+                          <Check className="h-3.5 w-3.5 text-success shrink-0" />
                         ) : (
                           <X className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />
                         )}

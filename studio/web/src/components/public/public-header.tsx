@@ -68,8 +68,10 @@ export function PublicHeader() {
             </Button>
 
             {/* Mobile Menu Button - 44px min touch target */}
-            <button
-              className="md:hidden min-h-[44px] min-w-[44px] flex items-center justify-center hover:bg-accent rounded-md"
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden min-h-[44px] min-w-[44px]"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
               aria-expanded={mobileMenuOpen}
@@ -80,7 +82,7 @@ export function PublicHeader() {
               ) : (
                 <Menu className="h-5 w-5" />
               )}
-            </button>
+            </Button>
           </div>
         </div>
       </Container>

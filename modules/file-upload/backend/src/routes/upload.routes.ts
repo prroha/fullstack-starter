@@ -1,13 +1,11 @@
-import { Router, Request, Response } from 'express';
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
 import {
-  createSingleUpload,
-  createMultipleUpload,
-  requireFile,
-  requireFiles,
+  parseSingleFile,
+  parseMultipleFiles,
   validateFileContent,
-  virusScanPlaceholder,
-} from '../middleware/upload.middleware';
-import { getStorageService } from '../services/storage.service';
+  virusScanFile,
+} from '../middleware/upload.middleware.js';
+import { getStorageService } from '../services/storage.service.js';
 
 // =============================================================================
 // Auth Middleware Import
@@ -18,7 +16,7 @@ import {
   authMiddleware,
   optionalAuthMiddleware,
   AuthenticatedRequest,
-} from '../../../../core/backend/src/middleware/auth.middleware';
+} from '../../../../core/backend/src/middleware/auth.middleware.js';
 
 // =============================================================================
 // Types
@@ -40,42 +38,183 @@ interface UploadResponse {
 }
 
 // =============================================================================
-// Router Setup
+// Routes Plugin
 // =============================================================================
 
-const router = Router();
-const storage = getStorageService();
+const routes: FastifyPluginAsync = async (fastify) => {
+  const storage = getStorageService();
 
-// =============================================================================
-// Single File Upload
-// =============================================================================
+  // ===========================================================================
+  // Single File Upload
+  // ===========================================================================
 
-/**
- * POST /upload
- * Upload a single file (requires authentication)
- */
-router.post(
-  '/',
-  authMiddleware,
-  createSingleUpload({
-    maxFileSize: 10 * 1024 * 1024, // 10MB
-    allowedTypes: [
-      'image/jpeg',
-      'image/png',
-      'image/gif',
-      'image/webp',
-      'application/pdf',
-    ],
-  }),
-  requireFile,
-  validateFileContent,
-  virusScanPlaceholder,
-  async (req: Request, res: Response): Promise<void> => {
-    try {
-      const file = req.file!;
-      const folder = (req.query.folder as string) || undefined;
-      const isPublic = req.query.public === 'true';
+  /**
+   * POST /upload
+   * Upload a single file (requires authentication)
+   */
+  fastify.post('/', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const query = req.query as Record<string, string>;
+    const folder = query.folder || undefined;
+    const isPublic = query.public === 'true';
 
+    const file = await parseSingleFile(req, {
+      maxFileSize: 10 * 1024 * 1024, // 10MB
+      allowedTypes: [
+        'image/jpeg',
+        'image/png',
+        'image/gif',
+        'image/webp',
+        'application/pdf',
+      ],
+    });
+
+    // Validate file content
+    const contentValidation = validateFileContent(file);
+    if (!contentValidation.valid) {
+      return reply.code(400).send({
+        error: contentValidation.error,
+        code: 'INVALID_FILE_CONTENT',
+      });
+    }
+
+    // Virus scan
+    const scanResult = virusScanFile(file);
+    if (!scanResult.safe) {
+      return reply.code(400).send({
+        error: scanResult.error,
+        code: 'SUSPICIOUS_FILE',
+      });
+    }
+
+    const result = await storage.upload(file.buffer, {
+      filename: file.originalname,
+      contentType: file.mimetype,
+      folder,
+      isPublic,
+    });
+
+    if (!result.success) {
+      return reply.code(500).send({
+        success: false,
+        error: result.error || 'Upload failed',
+      } as UploadResponse);
+    }
+
+    return reply.send({
+      success: true,
+      file: {
+        key: result.key!,
+        url: result.url!,
+        size: result.size!,
+        contentType: result.contentType!,
+        originalName: file.originalname,
+      },
+    } as UploadResponse);
+  });
+
+  // ===========================================================================
+  // Public Single File Upload (Optional Auth)
+  // ===========================================================================
+
+  /**
+   * POST /upload/public
+   * Upload a single file to public storage (optional authentication)
+   * Use this for public-facing uploads like profile pictures
+   */
+  fastify.post('/public', { preHandler: [optionalAuthMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const authReq = req as AuthenticatedRequest;
+    const userId = authReq.user?.userId;
+
+    const file = await parseSingleFile(req, {
+      maxFileSize: 5 * 1024 * 1024, // 5MB for public uploads
+      allowedTypes: [
+        'image/jpeg',
+        'image/png',
+        'image/gif',
+        'image/webp',
+      ],
+    });
+
+    // Validate file content
+    const contentValidation = validateFileContent(file);
+    if (!contentValidation.valid) {
+      return reply.code(400).send({
+        error: contentValidation.error,
+        code: 'INVALID_FILE_CONTENT',
+      });
+    }
+
+    // Virus scan
+    const scanResult = virusScanFile(file);
+    if (!scanResult.safe) {
+      return reply.code(400).send({
+        error: scanResult.error,
+        code: 'SUSPICIOUS_FILE',
+      });
+    }
+
+    const folder = 'public';
+
+    const result = await storage.upload(file.buffer, {
+      filename: file.originalname,
+      contentType: file.mimetype,
+      folder: userId ? `${folder}/${userId}` : folder,
+      isPublic: true,
+      metadata: userId ? { uploadedBy: userId } : undefined,
+    });
+
+    if (!result.success) {
+      return reply.code(500).send({
+        success: false,
+        error: result.error || 'Upload failed',
+      } as UploadResponse);
+    }
+
+    return reply.send({
+      success: true,
+      file: {
+        key: result.key!,
+        url: result.url!,
+        size: result.size!,
+        contentType: result.contentType!,
+        originalName: file.originalname,
+      },
+    } as UploadResponse);
+  });
+
+  // ===========================================================================
+  // Multiple Files Upload
+  // ===========================================================================
+
+  /**
+   * POST /upload/multiple
+   * Upload multiple files (max 10, requires authentication)
+   */
+  fastify.post('/multiple', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const query = req.query as Record<string, string>;
+    const folder = query.folder || undefined;
+    const isPublic = query.public === 'true';
+
+    const files = await parseMultipleFiles(req, {
+      maxFileSize: 10 * 1024 * 1024,
+      maxFiles: 10,
+      allowedTypes: [
+        'image/jpeg',
+        'image/png',
+        'image/gif',
+        'image/webp',
+        'application/pdf',
+      ],
+    });
+
+    if (files.length === 0) {
+      return reply.code(400).send({ error: 'No files uploaded' });
+    }
+
+    const uploadedFiles: UploadedFile[] = [];
+    const errors: string[] = [];
+
+    for (const file of files) {
       const result = await storage.upload(file.buffer, {
         filename: file.originalname,
         contentType: file.mimetype,
@@ -83,231 +222,79 @@ router.post(
         isPublic,
       });
 
-      if (!result.success) {
-        res.status(500).json({
-          success: false,
-          error: result.error || 'Upload failed',
-        } as UploadResponse);
-        return;
-      }
-
-      res.json({
-        success: true,
-        file: {
+      if (result.success) {
+        uploadedFiles.push({
           key: result.key!,
           url: result.url!,
           size: result.size!,
           contentType: result.contentType!,
           originalName: file.originalname,
-        },
-      } as UploadResponse);
-    } catch (error) {
-      console.error('[UploadRoutes] Upload error:', error instanceof Error ? error.message : error);
-      res.status(500).json({
-        success: false,
-        error: 'Internal server error',
-      } as UploadResponse);
-    }
-  }
-);
-
-// =============================================================================
-// Public Single File Upload (Optional Auth)
-// =============================================================================
-
-/**
- * POST /upload/public
- * Upload a single file to public storage (optional authentication)
- * Use this for public-facing uploads like profile pictures
- */
-router.post(
-  '/public',
-  optionalAuthMiddleware,
-  createSingleUpload({
-    maxFileSize: 5 * 1024 * 1024, // 5MB for public uploads
-    allowedTypes: [
-      'image/jpeg',
-      'image/png',
-      'image/gif',
-      'image/webp',
-    ],
-  }),
-  requireFile,
-  validateFileContent,
-  virusScanPlaceholder,
-  async (req: Request, res: Response): Promise<void> => {
-    try {
-      const file = req.file!;
-      const folder = 'public';
-      const authReq = req as AuthenticatedRequest;
-      const userId = authReq.user?.userId;
-
-      const result = await storage.upload(file.buffer, {
-        filename: file.originalname,
-        contentType: file.mimetype,
-        folder: userId ? `${folder}/${userId}` : folder,
-        isPublic: true,
-        metadata: userId ? { uploadedBy: userId } : undefined,
-      });
-
-      if (!result.success) {
-        res.status(500).json({
-          success: false,
-          error: result.error || 'Upload failed',
-        } as UploadResponse);
-        return;
-      }
-
-      res.json({
-        success: true,
-        file: {
-          key: result.key!,
-          url: result.url!,
-          size: result.size!,
-          contentType: result.contentType!,
-          originalName: file.originalname,
-        },
-      } as UploadResponse);
-    } catch (error) {
-      console.error('[UploadRoutes] Public upload error:', error instanceof Error ? error.message : error);
-      res.status(500).json({
-        success: false,
-        error: 'Internal server error',
-      } as UploadResponse);
-    }
-  }
-);
-
-// =============================================================================
-// Multiple Files Upload
-// =============================================================================
-
-/**
- * POST /upload/multiple
- * Upload multiple files (max 10, requires authentication)
- */
-router.post(
-  '/multiple',
-  authMiddleware,
-  createMultipleUpload({
-    maxFileSize: 10 * 1024 * 1024,
-    maxFiles: 10,
-    allowedTypes: [
-      'image/jpeg',
-      'image/png',
-      'image/gif',
-      'image/webp',
-      'application/pdf',
-    ],
-  }),
-  requireFiles,
-  async (req: Request, res: Response): Promise<void> => {
-    try {
-      const files = req.files as Express.Multer.File[];
-      const folder = (req.query.folder as string) || undefined;
-      const isPublic = req.query.public === 'true';
-
-      const uploadedFiles: UploadedFile[] = [];
-      const errors: string[] = [];
-
-      for (const file of files) {
-        const result = await storage.upload(file.buffer, {
-          filename: file.originalname,
-          contentType: file.mimetype,
-          folder,
-          isPublic,
         });
-
-        if (result.success) {
-          uploadedFiles.push({
-            key: result.key!,
-            url: result.url!,
-            size: result.size!,
-            contentType: result.contentType!,
-            originalName: file.originalname,
-          });
-        } else {
-          errors.push(`Failed to upload ${file.originalname}: ${result.error}`);
-        }
+      } else {
+        errors.push(`Failed to upload ${file.originalname}: ${result.error}`);
       }
+    }
 
-      if (uploadedFiles.length === 0) {
-        res.status(500).json({
-          success: false,
-          error: errors.join('; '),
-        } as UploadResponse);
-        return;
-      }
-
-      res.json({
-        success: true,
-        files: uploadedFiles,
-        ...(errors.length > 0 && { partialErrors: errors }),
-      });
-    } catch (error) {
-      console.error('[UploadRoutes] Multiple upload error:', error instanceof Error ? error.message : error);
-      res.status(500).json({
+    if (uploadedFiles.length === 0) {
+      return reply.code(500).send({
         success: false,
-        error: 'Internal server error',
+        error: errors.join('; '),
       } as UploadResponse);
     }
-  }
-);
 
-// =============================================================================
-// Get Signed URL
-// =============================================================================
+    return reply.send({
+      success: true,
+      files: uploadedFiles,
+      ...(errors.length > 0 && { partialErrors: errors }),
+    });
+  });
 
-/**
- * GET /upload/signed-url/:key
- * Get a signed URL for a private file (requires authentication)
- */
-router.get('/signed-url/*', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const key = req.params[0];
+  // ===========================================================================
+  // Get Signed URL
+  // ===========================================================================
+
+  /**
+   * GET /upload/signed-url/*
+   * Get a signed URL for a private file (requires authentication)
+   */
+  fastify.get('/signed-url/*', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const key = (req.params as Record<string, string>)['*'];
 
     if (!key) {
-      res.status(400).json({ error: 'File key is required' });
-      return;
+      return reply.code(400).send({ error: 'File key is required' });
     }
 
     const exists = await storage.exists(key);
     if (!exists) {
-      res.status(404).json({ error: 'File not found' });
-      return;
+      return reply.code(404).send({ error: 'File not found' });
     }
 
-    const expiresIn = parseInt(req.query.expires as string) || 3600;
+    const query = req.query as Record<string, string>;
+    const expiresIn = parseInt(query.expires) || 3600;
     const url = await storage.getSignedUrl(key, expiresIn);
 
-    res.json({
+    return reply.send({
       success: true,
       url,
       expiresIn,
     });
-  } catch (error) {
-    console.error('[UploadRoutes] Signed URL error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to generate signed URL' });
-  }
-});
+  });
 
-// =============================================================================
-// Get Presigned Upload URL
-// =============================================================================
+  // ===========================================================================
+  // Get Presigned Upload URL
+  // ===========================================================================
 
-/**
- * POST /upload/presigned
- * Get a presigned URL for direct client-side upload (requires authentication)
- */
-router.post('/presigned', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { filename, contentType, folder } = req.body;
+  /**
+   * POST /upload/presigned
+   * Get a presigned URL for direct client-side upload (requires authentication)
+   */
+  fastify.post('/presigned', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const { filename, contentType, folder } = req.body as { filename: string; contentType: string; folder?: string };
 
     if (!filename || !contentType) {
-      res.status(400).json({
+      return reply.code(400).send({
         error: 'filename and contentType are required',
       });
-      return;
     }
 
     // Generate a unique key
@@ -318,82 +305,68 @@ router.post('/presigned', authMiddleware, async (req: Request, res: Response): P
       ? `${folder}/${timestamp}-${random}.${ext}`
       : `${timestamp}-${random}.${ext}`;
 
-    const expiresIn = parseInt(req.query.expires as string) || 3600;
+    const query = req.query as Record<string, string>;
+    const expiresIn = parseInt(query.expires) || 3600;
     const url = await storage.getUploadUrl(key, contentType, expiresIn);
 
-    res.json({
+    return reply.send({
       success: true,
       key,
       uploadUrl: url,
       expiresIn,
     });
-  } catch (error) {
-    console.error('[UploadRoutes] Presigned URL error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to generate presigned URL' });
-  }
-});
+  });
 
-// =============================================================================
-// Delete File
-// =============================================================================
+  // ===========================================================================
+  // Delete File
+  // ===========================================================================
 
-/**
- * DELETE /upload/:key
- * Delete a file (requires authentication)
- */
-router.delete('/*', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const key = req.params[0];
+  /**
+   * DELETE /upload/*
+   * Delete a file (requires authentication)
+   */
+  fastify.delete('/*', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const key = (req.params as Record<string, string>)['*'];
 
     if (!key) {
-      res.status(400).json({ error: 'File key is required' });
-      return;
+      return reply.code(400).send({ error: 'File key is required' });
     }
 
     const exists = await storage.exists(key);
     if (!exists) {
-      res.status(404).json({ error: 'File not found' });
-      return;
+      return reply.code(404).send({ error: 'File not found' });
     }
 
     const deleted = await storage.delete(key);
 
     if (!deleted) {
-      res.status(500).json({ error: 'Failed to delete file' });
-      return;
+      return reply.code(500).send({ error: 'Failed to delete file' });
     }
 
-    res.json({ success: true });
-  } catch (error) {
-    console.error('[UploadRoutes] Delete error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to delete file' });
-  }
-});
+    return reply.send({ success: true });
+  });
 
-// =============================================================================
-// List Files
-// =============================================================================
+  // ===========================================================================
+  // List Files
+  // ===========================================================================
 
-/**
- * GET /upload/list
- * List files in a folder (requires authentication)
- */
-router.get('/list', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const prefix = (req.query.prefix as string) || '';
-    const limit = parseInt(req.query.limit as string) || 100;
-    const cursor = req.query.cursor as string | undefined;
+  /**
+   * GET /upload/list
+   * List files in a folder (requires authentication)
+   */
+  fastify.get('/list', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const query = req.query as Record<string, string>;
+    const prefix = query.prefix || '';
+    const limit = parseInt(query.limit) || 100;
+    const cursor = query.cursor || undefined;
 
     const result = await storage.list(prefix, limit, cursor);
 
-    res.json({
+    return reply.send({
       success: true,
       ...result,
     });
-  } catch (error) {
-    console.error('[UploadRoutes] List error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to list files' });
-  }
-});
+  });
+};
 
-export default router;
+export default routes;

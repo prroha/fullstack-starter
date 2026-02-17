@@ -1,92 +1,75 @@
-import { Router, Request, Response } from 'express';
-import { getProductService } from '../services/product.service';
-import { authMiddleware, AuthenticatedRequest } from '../middleware/auth';
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
+import { getProductService } from '../services/product.service.js';
+import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
 
 // =============================================================================
-// Router
+// Routes
 // =============================================================================
 
-const router = Router();
 const productService = getProductService();
 
 // =============================================================================
 // Public Endpoints
 // =============================================================================
 
-/**
- * GET /products
- * List published products with filtering and pagination
- */
-router.get('/', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { search, category, minPrice, maxPrice, sort, page, limit } = req.query;
+const routes: FastifyPluginAsync = async (fastify) => {
+  /**
+   * GET /products
+   * List published products with filtering and pagination
+   */
+  fastify.get('/', async (req: FastifyRequest, reply: FastifyReply) => {
+    const { search, category, minPrice, maxPrice, sort, page, limit } = req.query as Record<string, string>;
 
     const result = await productService.listProducts({
       status: 'ACTIVE',
-      search: search as string,
-      categorySlug: category as string,
+      search,
+      categorySlug: category,
       minPrice: minPrice ? Number(minPrice) : undefined,
       maxPrice: maxPrice ? Number(maxPrice) : undefined,
-      sort: sort as string,
+      sort,
       page: page ? Number(page) : 1,
       limit: limit ? Number(limit) : 20,
     });
 
-    res.json({ success: true, data: result });
-  } catch (error) {
-    console.error('[ProductRoutes] List error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to list products' });
-  }
-});
+    return reply.send({ success: true, data: result });
+  });
 
-/**
- * GET /products/categories
- * List all product categories
- */
-router.get('/categories', async (_req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * GET /products/categories
+   * List all product categories
+   */
+  fastify.get('/categories', async (_req: FastifyRequest, reply: FastifyReply) => {
     const categories = await productService.listCategories();
-    res.json({ success: true, data: categories });
-  } catch (error) {
-    console.error('[ProductRoutes] Categories error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to list categories' });
-  }
-});
+    return reply.send({ success: true, data: categories });
+  });
 
-/**
- * GET /products/:slug
- * Get product details by slug (public)
- */
-router.get('/:slug', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const product = await productService.getProductBySlug(req.params.slug);
+  /**
+   * GET /products/:slug
+   * Get product details by slug (public)
+   */
+  fastify.get('/:slug', async (req: FastifyRequest, reply: FastifyReply) => {
+    const { slug } = req.params as { slug: string };
+    const product = await productService.getProductBySlug(slug);
     if (!product) {
-      res.status(404).json({ error: 'Product not found' });
-      return;
+      return reply.code(404).send({ error: 'Product not found' });
     }
-    res.json({ success: true, data: product });
-  } catch (error) {
-    console.error('[ProductRoutes] Get by slug error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to get product' });
-  }
-});
+    return reply.send({ success: true, data: product });
+  });
 
-// =============================================================================
-// Authenticated Endpoints (Seller)
-// =============================================================================
+  // =============================================================================
+  // Authenticated Endpoints (Seller)
+  // =============================================================================
 
-/**
- * POST /products
- * Create a new product (seller)
- */
-router.post('/', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * POST /products
+   * Create a new product (seller)
+   */
+  fastify.post('/', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { title, description, shortDescription, price, compareAtPrice, sku, images, categoryIds, variants } = req.body;
+    const { title, description, shortDescription, price, compareAtPrice, sku, images, categoryIds, variants } = req.body as Record<string, unknown>;
 
     if (!title || !description) {
-      res.status(400).json({ error: 'Title and description are required' });
-      return;
+      return reply.code(400).send({ error: 'Title and description are required' });
     }
 
     const product = await productService.createProduct({
@@ -102,24 +85,18 @@ router.post('/', authMiddleware, async (req: Request, res: Response): Promise<vo
       variants,
     });
 
-    res.status(201).json({ success: true, data: product });
-  } catch (error) {
-    console.error('[ProductRoutes] Create error:', error instanceof Error ? error.message : error);
-    res.status(500).json({
-      error: error instanceof Error ? error.message : 'Failed to create product',
-    });
-  }
-});
+    return reply.code(201).send({ success: true, data: product });
+  });
 
-/**
- * PATCH /products/:id
- * Update a product (seller)
- */
-router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { title, description, shortDescription, price, compareAtPrice, sku, images, categoryIds, variants } = req.body;
+  /**
+   * PATCH /products/:id
+   * Update a product (seller)
+   */
+  fastify.patch('/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as { id: string };
+    const { title, description, shortDescription, price, compareAtPrice, sku, images, categoryIds, variants } = req.body as Record<string, unknown>;
 
-    const product = await productService.updateProduct(req.params.id, {
+    const product = await productService.updateProduct(id, {
       title,
       description,
       shortDescription,
@@ -132,92 +109,66 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promis
     });
 
     if (!product) {
-      res.status(404).json({ error: 'Product not found' });
-      return;
+      return reply.code(404).send({ error: 'Product not found' });
     }
 
-    res.json({ success: true, data: product });
-  } catch (error) {
-    console.error('[ProductRoutes] Update error:', error instanceof Error ? error.message : error);
-    res.status(500).json({
-      error: error instanceof Error ? error.message : 'Failed to update product',
-    });
-  }
-});
+    return reply.send({ success: true, data: product });
+  });
 
-/**
- * DELETE /products/:id
- * Delete a product (seller)
- */
-router.delete('/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
-    await productService.deleteProduct(req.params.id);
-    res.json({ success: true, message: 'Product deleted' });
-  } catch (error) {
-    console.error('[ProductRoutes] Delete error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to delete product' });
-  }
-});
+  /**
+   * DELETE /products/:id
+   * Delete a product (seller)
+   */
+  fastify.delete('/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as { id: string };
+    await productService.deleteProduct(id);
+    return reply.send({ success: true, message: 'Product deleted' });
+  });
 
-/**
- * POST /products/:id/publish
- * Publish a product
- */
-router.post('/:id/publish', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const product = await productService.publishProduct(req.params.id);
+  /**
+   * POST /products/:id/publish
+   * Publish a product
+   */
+  fastify.post('/:id/publish', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as { id: string };
+    const product = await productService.publishProduct(id);
     if (!product) {
-      res.status(404).json({ error: 'Product not found' });
-      return;
+      return reply.code(404).send({ error: 'Product not found' });
     }
-    res.json({ success: true, data: product });
-  } catch (error) {
-    console.error('[ProductRoutes] Publish error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to publish product' });
-  }
-});
+    return reply.send({ success: true, data: product });
+  });
 
-/**
- * POST /products/:id/unpublish
- * Unpublish a product
- */
-router.post('/:id/unpublish', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const product = await productService.unpublishProduct(req.params.id);
+  /**
+   * POST /products/:id/unpublish
+   * Unpublish a product
+   */
+  fastify.post('/:id/unpublish', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as { id: string };
+    const product = await productService.unpublishProduct(id);
     if (!product) {
-      res.status(404).json({ error: 'Product not found' });
-      return;
+      return reply.code(404).send({ error: 'Product not found' });
     }
-    res.json({ success: true, data: product });
-  } catch (error) {
-    console.error('[ProductRoutes] Unpublish error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to unpublish product' });
-  }
-});
+    return reply.send({ success: true, data: product });
+  });
 
-// =============================================================================
-// Categories (Admin)
-// =============================================================================
+  // =============================================================================
+  // Categories (Admin)
+  // =============================================================================
 
-/**
- * POST /products/categories
- * Create a new category
- */
-router.post('/categories', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { name, description, imageUrl } = req.body;
+  /**
+   * POST /products/categories
+   * Create a new category
+   */
+  fastify.post('/categories', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const { name, description, imageUrl } = req.body as { name: string; description?: string; imageUrl?: string };
 
     if (!name) {
-      res.status(400).json({ error: 'Category name is required' });
-      return;
+      return reply.code(400).send({ error: 'Category name is required' });
     }
 
     const category = await productService.createCategory({ name, description, imageUrl });
-    res.status(201).json({ success: true, data: category });
-  } catch (error) {
-    console.error('[ProductRoutes] Create category error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to create category' });
-  }
-});
+    return reply.code(201).send({ success: true, data: category });
+  });
+};
 
-export default router;
+export default routes;

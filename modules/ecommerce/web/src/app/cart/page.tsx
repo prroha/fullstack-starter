@@ -92,7 +92,7 @@ export default function CartPage() {
       <div className="min-h-screen bg-background">
         <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
           <div className="h-8 w-48 animate-pulse rounded bg-muted" />
-          <div className="mt-8 grid gap-8 lg:grid-cols-12">
+          <div className="mt-8 grid gap-6 lg:grid-cols-12">
             <div className="lg:col-span-8 space-y-4">
               {[1, 2, 3].map((i) => (
                 <div
@@ -150,7 +150,7 @@ export default function CartPage() {
 
         {/* Empty State */}
         {isEmpty && !error && (
-          <div className="py-20 text-center">
+          <div className="py-12 text-center">
             <svg
               className="mx-auto h-16 w-16 text-muted-foreground/30"
               fill="none"
@@ -178,7 +178,7 @@ export default function CartPage() {
 
         {/* Cart Content */}
         {!isEmpty && (
-          <div className="mt-8 grid gap-8 lg:grid-cols-12">
+          <div className="mt-8 grid gap-6 lg:grid-cols-12">
             {/* Cart Items */}
             <div className="lg:col-span-8">
               <div className="space-y-4">

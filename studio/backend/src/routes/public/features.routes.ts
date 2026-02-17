@@ -1,10 +1,8 @@
-import { Router } from "express";
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from "fastify";
 import { z } from "zod";
 import { prisma } from "../../config/db.js";
 import { sendSuccess, sendPaginated, parsePaginationParams, createPaginationInfo } from "../../utils/response.js";
 import { ApiError } from "../../utils/errors.js";
-
-const router = Router();
 
 // Query parameter validation schemas
 const listFeaturesQuerySchema = z.object({
@@ -23,12 +21,12 @@ const categoryParamSchema = z.object({
   category: z.string().min(1).max(50).regex(/^[a-z0-9-_]+$/),
 });
 
-/**
- * GET /api/features
- * List all active features with their modules
- */
-router.get("/", async (req, res, next) => {
-  try {
+const routePlugin: FastifyPluginAsync = async (fastify) => {
+  /**
+   * GET /api/features
+   * List all active features with their modules
+   */
+  fastify.get("/", async (req: FastifyRequest, reply: FastifyReply) => {
     // Validate query parameters
     const queryResult = listFeaturesQuerySchema.safeParse(req.query);
     if (!queryResult.success) {
@@ -121,22 +119,18 @@ router.get("/", async (req, res, next) => {
     ]);
 
     // Return features and modules together
-    sendSuccess(res, {
+    return sendSuccess(reply, {
       items: features,
       modules,
       pagination: createPaginationInfo(page, limit, total),
     });
-  } catch (error) {
-    next(error);
-  }
-});
+  });
 
-/**
- * GET /api/features/:slug
- * Get single feature by slug
- */
-router.get("/:slug", async (req, res, next) => {
-  try {
+  /**
+   * GET /api/features/:slug
+   * Get single feature by slug
+   */
+  fastify.get("/:slug", async (req: FastifyRequest, reply: FastifyReply) => {
     // Validate slug parameter
     const paramResult = slugParamSchema.safeParse(req.params);
     if (!paramResult.success) {
@@ -180,18 +174,14 @@ router.get("/:slug", async (req, res, next) => {
       throw ApiError.notFound("Feature");
     }
 
-    sendSuccess(res, feature);
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendSuccess(reply, feature);
+  });
 
-/**
- * GET /api/features/category/:category
- * Get features by category
- */
-router.get("/category/:category", async (req, res, next) => {
-  try {
+  /**
+   * GET /api/features/category/:category
+   * Get features by category
+   */
+  fastify.get("/category/:category", async (req: FastifyRequest, reply: FastifyReply) => {
     // Validate category parameter
     const paramResult = categoryParamSchema.safeParse(req.params);
     if (!paramResult.success) {
@@ -249,10 +239,8 @@ router.get("/category/:category", async (req, res, next) => {
       }),
     ]);
 
-    sendPaginated(res, features, createPaginationInfo(page, limit, total));
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendPaginated(reply, features, createPaginationInfo(page, limit, total));
+  });
+};
 
-export { router as publicFeaturesRoutes };
+export { routePlugin as publicFeaturesRoutes };

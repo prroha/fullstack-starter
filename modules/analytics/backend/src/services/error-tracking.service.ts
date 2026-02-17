@@ -502,7 +502,7 @@ class ErrorTrackingService {
 export const errorTracking = new ErrorTrackingService();
 
 // =============================================================================
-// Express Request Handler Helper
+// Request Handler Helper
 // =============================================================================
 
 /**

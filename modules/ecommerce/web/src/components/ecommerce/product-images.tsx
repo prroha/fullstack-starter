@@ -94,7 +94,7 @@ export default function ProductImages({ images, productTitle }: ProductImagesPro
               onClick={() => handleSelect(index)}
               className={`h-16 w-16 flex-shrink-0 overflow-hidden rounded-md border-2 p-0 transition-colors ${
                 index === selectedIndex
-                  ? 'border-blue-600'
+                  ? 'border-primary'
                   : 'border-border hover:border-muted-foreground'
               }`}
               aria-label={`View image ${index + 1}`}

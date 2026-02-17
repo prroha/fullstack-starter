@@ -190,7 +190,7 @@ export function CartSummary() {
             {pricing.bundleDiscounts.length > 0 && (
               <>
                 {pricing.bundleDiscounts.map((discount) => (
-                  <div key={discount.id} className="flex justify-between text-green-600">
+                  <div key={discount.id} className="flex justify-between text-success">
                     <span className="flex items-center gap-1">
                       <Tag className="h-3 w-3" />
                       {discount.name}
@@ -204,7 +204,7 @@ export function CartSummary() {
             {pricing.totalDiscount > 0 && (
               <>
                 <Divider className="my-2" />
-                <div className="flex justify-between text-green-600">
+                <div className="flex justify-between text-success">
                   <span>Total Savings</span>
                   <span>-{formatPrice(pricing.totalDiscount)}</span>
                 </div>

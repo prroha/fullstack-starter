@@ -1,92 +1,75 @@
-import { Router, Request, Response } from 'express';
-import { getArticleService } from '../services/article.service';
-import { authMiddleware, AuthenticatedRequest } from '../middleware/auth';
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
+import { getArticleService } from '../services/article.service.js';
+import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
 
 // =============================================================================
-// Router
+// Routes
 // =============================================================================
 
-const router = Router();
 const articleService = getArticleService();
 
 // =============================================================================
 // Article Endpoints (All Authenticated)
 // =============================================================================
 
-/**
- * GET /articles/search
- * Search articles by query string
- * MUST be before /:id route to avoid matching "search" as an ID
- */
-router.get('/search', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+const routes: FastifyPluginAsync = async (fastify) => {
+  /**
+   * GET /articles/search
+   * Search articles by query string
+   * MUST be before /:id route to avoid matching "search" as an ID
+   */
+  fastify.get('/search', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { q } = req.query;
+    const { q } = req.query as Record<string, string>;
 
-    const results = await articleService.search(authReq.user.userId, q as string);
-    res.json({ success: true, data: results });
-  } catch (error) {
-    console.error('[ArticleRoutes] Search error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to search articles' });
-  }
-});
+    const results = await articleService.search(authReq.user.userId, q);
+    return reply.send({ success: true, data: results });
+  });
 
-/**
- * GET /articles
- * List articles with filtering and pagination
- */
-router.get('/', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * GET /articles
+   * List articles with filtering and pagination
+   */
+  fastify.get('/', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { search, status, categoryId, page, limit } = req.query;
+    const { search, status, categoryId, page, limit } = req.query as Record<string, string>;
 
     const result = await articleService.list(authReq.user.userId, {
-      search: search as string,
-      status: status as string,
-      categoryId: categoryId as string,
+      search,
+      status,
+      categoryId,
       page: page ? Number(page) : 1,
       limit: limit ? Number(limit) : 20,
     });
 
-    res.json({ success: true, data: result });
-  } catch (error) {
-    console.error('[ArticleRoutes] List error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to list articles' });
-  }
-});
+    return reply.send({ success: true, data: result });
+  });
 
-/**
- * GET /articles/:id
- * Get article by ID
- */
-router.get('/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * GET /articles/:id
+   * Get article by ID
+   */
+  fastify.get('/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
+    const { id } = req.params as { id: string };
 
-    const article = await articleService.getById(req.params.id, authReq.user.userId);
+    const article = await articleService.getById(id, authReq.user.userId);
     if (!article) {
-      res.status(404).json({ error: 'Article not found' });
-      return;
+      return reply.code(404).send({ error: 'Article not found' });
     }
-    res.json({ success: true, data: article });
-  } catch (error) {
-    console.error('[ArticleRoutes] Get error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to get article' });
-  }
-});
+    return reply.send({ success: true, data: article });
+  });
 
-/**
- * POST /articles
- * Create a new article
- */
-router.post('/', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * POST /articles
+   * Create a new article
+   */
+  fastify.post('/', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { title, slug, content, excerpt, categoryId, tags, metaTitle, metaDescription } = req.body;
+    const { title, slug, content, excerpt, categoryId, tags, metaTitle, metaDescription } = req.body as Record<string, unknown>;
 
     if (!title || !content) {
-      res.status(400).json({ error: 'title and content are required' });
-      return;
+      return reply.code(400).send({ error: 'title and content are required' });
     }
 
     const article = await articleService.create({
@@ -101,25 +84,19 @@ router.post('/', authMiddleware, async (req: Request, res: Response): Promise<vo
       metaDescription,
     });
 
-    res.status(201).json({ success: true, data: article });
-  } catch (error) {
-    console.error('[ArticleRoutes] Create error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to create article',
-    });
-  }
-});
+    return reply.code(201).send({ success: true, data: article });
+  });
 
-/**
- * PATCH /articles/:id
- * Update an article
- */
-router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * PATCH /articles/:id
+   * Update an article
+   */
+  fastify.patch('/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { title, slug, content, excerpt, categoryId, tags, metaTitle, metaDescription } = req.body;
+    const { id } = req.params as { id: string };
+    const { title, slug, content, excerpt, categoryId, tags, metaTitle, metaDescription } = req.body as Record<string, unknown>;
 
-    const article = await articleService.update(req.params.id, authReq.user.userId, {
+    const article = await articleService.update(id, authReq.user.userId, {
       title,
       slug,
       content,
@@ -131,107 +108,74 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promis
     });
 
     if (!article) {
-      res.status(404).json({ error: 'Article not found' });
-      return;
+      return reply.code(404).send({ error: 'Article not found' });
     }
 
-    res.json({ success: true, data: article });
-  } catch (error) {
-    console.error('[ArticleRoutes] Update error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to update article',
-    });
-  }
-});
+    return reply.send({ success: true, data: article });
+  });
 
-/**
- * DELETE /articles/:id
- * Delete an article
- */
-router.delete('/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * DELETE /articles/:id
+   * Delete an article
+   */
+  fastify.delete('/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
+    const { id } = req.params as { id: string };
 
-    await articleService.delete(req.params.id, authReq.user.userId);
-    res.json({ success: true, message: 'Article deleted' });
-  } catch (error) {
-    console.error('[ArticleRoutes] Delete error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to delete article',
-    });
-  }
-});
+    await articleService.delete(id, authReq.user.userId);
+    return reply.send({ success: true, message: 'Article deleted' });
+  });
 
-/**
- * POST /articles/:id/publish
- * Publish an article
- */
-router.post('/:id/publish', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * POST /articles/:id/publish
+   * Publish an article
+   */
+  fastify.post('/:id/publish', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
+    const { id } = req.params as { id: string };
 
-    const article = await articleService.publish(req.params.id, authReq.user.userId);
+    const article = await articleService.publish(id, authReq.user.userId);
     if (!article) {
-      res.status(404).json({ error: 'Article not found' });
-      return;
+      return reply.code(404).send({ error: 'Article not found' });
     }
-    res.json({ success: true, data: article });
-  } catch (error) {
-    console.error('[ArticleRoutes] Publish error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to publish article',
-    });
-  }
-});
+    return reply.send({ success: true, data: article });
+  });
 
-/**
- * POST /articles/:id/archive
- * Archive an article
- */
-router.post('/:id/archive', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * POST /articles/:id/archive
+   * Archive an article
+   */
+  fastify.post('/:id/archive', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
+    const { id } = req.params as { id: string };
 
-    const article = await articleService.archive(req.params.id, authReq.user.userId);
+    const article = await articleService.archive(id, authReq.user.userId);
     if (!article) {
-      res.status(404).json({ error: 'Article not found' });
-      return;
+      return reply.code(404).send({ error: 'Article not found' });
     }
-    res.json({ success: true, data: article });
-  } catch (error) {
-    console.error('[ArticleRoutes] Archive error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to archive article',
-    });
-  }
-});
+    return reply.send({ success: true, data: article });
+  });
 
-/**
- * POST /articles/:id/feedback
- * Submit feedback on an article (helpful/not helpful)
- */
-router.post('/:id/feedback', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * POST /articles/:id/feedback
+   * Submit feedback on an article (helpful/not helpful)
+   */
+  fastify.post('/:id/feedback', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { helpful, comment } = req.body;
+    const { id } = req.params as { id: string };
+    const { helpful, comment } = req.body as Record<string, unknown>;
 
     if (helpful === undefined) {
-      res.status(400).json({ error: 'helpful is required' });
-      return;
+      return reply.code(400).send({ error: 'helpful is required' });
     }
 
     const feedback = await articleService.recordFeedback(authReq.user.userId, {
-      articleId: req.params.id,
+      articleId: id,
       helpful,
       comment,
     });
-    res.json({ success: true, data: feedback });
-  } catch (error) {
-    console.error('[ArticleRoutes] Feedback error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to submit article feedback',
-    });
-  }
-});
+    return reply.send({ success: true, data: feedback });
+  });
+};
 
-export default router;
+export default routes;

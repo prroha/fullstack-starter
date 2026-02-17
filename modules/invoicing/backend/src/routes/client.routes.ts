@@ -1,92 +1,75 @@
-import { Router, Request, Response } from 'express';
-import { getClientService } from '../services/client.service';
-import { authMiddleware, AuthenticatedRequest } from '../middleware/auth';
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
+import { getClientService } from '../services/client.service.js';
+import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
 
 // =============================================================================
-// Router
+// Routes
 // =============================================================================
 
-const router = Router();
 const clientService = getClientService();
 
 // =============================================================================
 // Client Endpoints (All Authenticated)
 // =============================================================================
 
-/**
- * GET /clients
- * List clients with search and pagination
- */
-router.get('/', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+const routes: FastifyPluginAsync = async (fastify) => {
+  /**
+   * GET /clients
+   * List clients with search and pagination
+   */
+  fastify.get('/', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { search, page, limit } = req.query;
+    const { search, page, limit } = req.query as Record<string, string>;
 
     const result = await clientService.list(authReq.user.userId, {
-      search: search as string,
+      search,
       page: page ? Number(page) : 1,
       limit: limit ? Number(limit) : 20,
     });
 
-    res.json({ success: true, data: result });
-  } catch (error) {
-    console.error('[ClientRoutes] List error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to list clients' });
-  }
-});
+    return reply.send({ success: true, data: result });
+  });
 
-/**
- * GET /clients/:id
- * Get client by ID
- */
-router.get('/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * GET /clients/:id
+   * Get client by ID
+   */
+  fastify.get('/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
+    const { id } = req.params as { id: string };
 
-    const client = await clientService.getById(req.params.id, authReq.user.userId);
+    const client = await clientService.getById(id, authReq.user.userId);
     if (!client) {
-      res.status(404).json({ error: 'Client not found' });
-      return;
+      return reply.code(404).send({ error: 'Client not found' });
     }
-    res.json({ success: true, data: client });
-  } catch (error) {
-    console.error('[ClientRoutes] Get error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to get client' });
-  }
-});
+    return reply.send({ success: true, data: client });
+  });
 
-/**
- * GET /clients/:id/stats
- * Get client stats (total invoices, total paid, outstanding, etc.)
- */
-router.get('/:id/stats', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * GET /clients/:id/stats
+   * Get client stats (total invoices, total paid, outstanding, etc.)
+   */
+  fastify.get('/:id/stats', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
+    const { id } = req.params as { id: string };
 
-    const stats = await clientService.getStats(req.params.id, authReq.user.userId);
+    const stats = await clientService.getStats(id, authReq.user.userId);
     if (!stats) {
-      res.status(404).json({ error: 'Client not found' });
-      return;
+      return reply.code(404).send({ error: 'Client not found' });
     }
-    res.json({ success: true, data: stats });
-  } catch (error) {
-    console.error('[ClientRoutes] Stats error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to get client stats' });
-  }
-});
+    return reply.send({ success: true, data: stats });
+  });
 
-/**
- * POST /clients
- * Create a new client
- */
-router.post('/', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * POST /clients
+   * Create a new client
+   */
+  fastify.post('/', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { name, email, phone, companyName, taxId, billingAddress, notes } = req.body;
+    const { name, email, phone, companyName, taxId, billingAddress, notes } = req.body as Record<string, unknown>;
 
     if (!name) {
-      res.status(400).json({ error: 'name is required' });
-      return;
+      return reply.code(400).send({ error: 'name is required' });
     }
 
     const client = await clientService.create({
@@ -100,25 +83,19 @@ router.post('/', authMiddleware, async (req: Request, res: Response): Promise<vo
       notes,
     });
 
-    res.status(201).json({ success: true, data: client });
-  } catch (error) {
-    console.error('[ClientRoutes] Create error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to create client',
-    });
-  }
-});
+    return reply.code(201).send({ success: true, data: client });
+  });
 
-/**
- * PATCH /clients/:id
- * Update a client
- */
-router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * PATCH /clients/:id
+   * Update a client
+   */
+  fastify.patch('/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { name, email, phone, companyName, taxId, billingAddress, notes } = req.body;
+    const { id } = req.params as { id: string };
+    const { name, email, phone, companyName, taxId, billingAddress, notes } = req.body as Record<string, unknown>;
 
-    const client = await clientService.update(req.params.id, authReq.user.userId, {
+    const client = await clientService.update(id, authReq.user.userId, {
       name,
       email,
       phone,
@@ -129,35 +106,23 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promis
     });
 
     if (!client) {
-      res.status(404).json({ error: 'Client not found' });
-      return;
+      return reply.code(404).send({ error: 'Client not found' });
     }
 
-    res.json({ success: true, data: client });
-  } catch (error) {
-    console.error('[ClientRoutes] Update error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to update client',
-    });
-  }
-});
+    return reply.send({ success: true, data: client });
+  });
 
-/**
- * DELETE /clients/:id
- * Delete a client
- */
-router.delete('/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * DELETE /clients/:id
+   * Delete a client
+   */
+  fastify.delete('/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
+    const { id } = req.params as { id: string };
 
-    await clientService.delete(req.params.id, authReq.user.userId);
-    res.json({ success: true, message: 'Client deleted' });
-  } catch (error) {
-    console.error('[ClientRoutes] Delete error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to delete client',
-    });
-  }
-});
+    await clientService.delete(id, authReq.user.userId);
+    return reply.send({ success: true, message: 'Client deleted' });
+  });
+};
 
-export default router;
+export default routes;

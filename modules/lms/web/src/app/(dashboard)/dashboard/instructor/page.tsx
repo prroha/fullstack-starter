@@ -85,7 +85,7 @@ export default function InstructorDashboardPage() {
       {stats && <InstructorStatsComponent stats={stats} />}
 
       {/* Content Grid */}
-      <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Enrollments */}
         <div className="bg-card rounded-lg shadow-sm border border-border">
           <div className="px-6 py-4 border-b border-border">

@@ -157,7 +157,7 @@ export default function SettingsPage() {
   const appVersion = process.env.NEXT_PUBLIC_APP_VERSION || "1.0.0";
 
   return (
-    <div className="max-w-2xl mx-auto space-y-8">
+    <div className="max-w-2xl mx-auto space-y-6">
       {/* Page Title */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Settings</h1>

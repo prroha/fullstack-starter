@@ -1,12 +1,10 @@
-import { Router } from "express";
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from "fastify";
 import { z } from "zod";
 import { prisma } from "../../config/db.js";
 import { sendSuccess } from "../../utils/response.js";
 import { ApiError } from "../../utils/errors.js";
 import { emailService } from "../../services/email.service.js";
 import crypto from "crypto";
-
-const router = Router();
 
 // Validation schema
 const generateSchema = z.object({
@@ -19,12 +17,12 @@ const generateSchema = z.object({
   notes: z.string().max(500).optional(),
 });
 
-/**
- * POST /api/admin/generate
- * Generate a project for a customer without payment
- */
-router.post("/", async (req, res, next) => {
-  try {
+const routePlugin: FastifyPluginAsync = async (fastify) => {
+  /**
+   * POST /api/admin/generate
+   * Generate a project for a customer without payment
+   */
+  fastify.post("/", async (req: FastifyRequest, reply: FastifyReply) => {
     const data = generateSchema.parse(req.body);
 
     // Get or create customer user
@@ -142,7 +140,7 @@ router.post("/", async (req, res, next) => {
       }
     }
 
-    sendSuccess(res, {
+    return sendSuccess(reply, {
       order: {
         id: order.id,
         orderNumber: order.orderNumber,
@@ -160,17 +158,13 @@ router.post("/", async (req, res, next) => {
       },
       downloadUrl: `/api/admin/orders/${order.id}/download`,
     }, "Project generated successfully", 201);
-  } catch (error) {
-    next(error);
-  }
-});
+  });
 
-/**
- * GET /api/admin/generate/options
- * Get available options for generation (tiers, features, templates)
- */
-router.get("/options", async (_req, res, next) => {
-  try {
+  /**
+   * GET /api/admin/generate/options
+   * Get available options for generation (tiers, features, templates)
+   */
+  fastify.get("/options", async (_req: FastifyRequest, reply: FastifyReply) => {
     const [tiers, features, templates] = await Promise.all([
       prisma.pricingTier.findMany({
         where: { isActive: true },
@@ -210,10 +204,8 @@ router.get("/options", async (_req, res, next) => {
       }),
     ]);
 
-    sendSuccess(res, { tiers, features, templates });
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendSuccess(reply, { tiers, features, templates });
+  });
+};
 
-export { router as generationRoutes };
+export { routePlugin as generationRoutes };

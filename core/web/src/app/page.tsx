@@ -52,7 +52,7 @@ export default function Home() {
 
       {/* Hero Section */}
       <div className="flex flex-col items-center justify-center min-h-screen px-4 text-center">
-        <div className="max-w-3xl mx-auto space-y-8">
+        <div className="max-w-3xl mx-auto space-y-6">
           {/* Logo */}
           <div className="flex justify-center">
             <Icon name="Layers" size="xl" color="primary" className="h-16 w-16" />
@@ -80,7 +80,7 @@ export default function Home() {
           </div>
 
           {/* Features */}
-          <div className="grid sm:grid-cols-3 gap-4 pt-12 text-left">
+          <div className="grid sm:grid-cols-3 gap-4 pt-8 text-left">
             <CardSection title="Authentication">
               <Text variant="caption" color="muted">
                 Secure login, registration, and session management out of the box.

@@ -47,9 +47,9 @@ export default function ServiceCard({ service, onClick }: ServiceCardProps) {
             loading="lazy"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-cyan-50 to-teal-100">
+          <div className="flex h-full w-full items-center justify-center bg-muted">
             <svg
-              className="h-12 w-12 text-teal-300"
+              className="h-12 w-12 text-muted-foreground"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"

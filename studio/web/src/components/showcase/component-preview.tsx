@@ -2,6 +2,7 @@
 
 import { useState, useId } from "react";
 import { Monitor, Smartphone, Sun, Moon } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 interface ComponentPreviewProps {
@@ -23,18 +24,20 @@ interface ToggleButtonProps {
 
 function ToggleButton({ isActive, onClick, icon, label }: ToggleButtonProps) {
   return (
-    <button
+    <Button
       type="button"
+      variant="ghost"
+      size="icon"
       onClick={onClick}
       className={cn(
-        "p-1.5 rounded transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
-        isActive ? "bg-background shadow-sm" : "hover:bg-accent"
+        "h-auto w-auto p-1.5",
+        isActive && "bg-background shadow-sm"
       )}
       aria-label={label}
       aria-pressed={isActive}
     >
       {icon}
-    </button>
+    </Button>
   );
 }
 

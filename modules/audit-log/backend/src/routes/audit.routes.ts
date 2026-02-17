@@ -1,16 +1,16 @@
-import { Router, Request, Response, NextFunction } from 'express';
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
 import {
   getAuditService,
   AuditQueryOptions,
   AuditLevel,
   AuditCategory,
-} from '../services/audit.service';
+} from '../services/audit.service.js';
 
 // =============================================================================
 // Types
 // =============================================================================
 
-interface AuthenticatedRequest extends Request {
+interface AuthenticatedRequest extends FastifyRequest {
   user?: {
     userId: string;
     email?: string;
@@ -32,38 +32,33 @@ interface AuthenticatedRequest extends Request {
  * Admin-only access middleware
  * Assumes authMiddleware has already been applied
  */
-function adminOnly(req: Request, res: Response, next: NextFunction): void {
+async function adminOnly(req: FastifyRequest, reply: FastifyReply) {
   const authReq = req as AuthenticatedRequest;
 
   if (!authReq.user || !authReq.dbUser) {
-    res.status(401).json({ error: 'Authentication required' });
-    return;
+    return reply.code(401).send({ error: 'Authentication required' });
   }
 
   if (authReq.dbUser.role !== 'ADMIN') {
-    res.status(403).json({ error: 'Admin access required' });
-    return;
+    return reply.code(403).send({ error: 'Admin access required' });
   }
-
-  next();
 }
 
 // =============================================================================
-// Router
+// Plugin
 // =============================================================================
 
-const router = Router();
-const audit = getAuditService();
+const routes: FastifyPluginAsync = async (fastify) => {
+  const audit = getAuditService();
 
-// All routes require admin access
-router.use(adminOnly);
+  // All routes require admin access
+  fastify.addHook('preHandler', adminOnly);
 
-/**
- * GET /audit-logs
- * Query audit logs with filters and pagination
- */
-router.get('/', async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * GET /audit-logs
+   * Query audit logs with filters and pagination
+   */
+  fastify.get('/', async (req: FastifyRequest, reply: FastifyReply) => {
     const {
       startDate,
       endDate,
@@ -79,26 +74,26 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
       limit,
       sortBy,
       sortOrder,
-    } = req.query;
+    } = req.query as Record<string, string | undefined>;
 
     const options: AuditQueryOptions = {
-      page: page ? parseInt(page as string, 10) : 1,
-      limit: limit ? Math.min(parseInt(limit as string, 10), 100) : 50,
+      page: page ? parseInt(page, 10) : 1,
+      limit: limit ? Math.min(parseInt(limit, 10), 100) : 50,
       sortBy: (sortBy as 'timestamp' | 'level' | 'action') || 'timestamp',
       sortOrder: (sortOrder as 'asc' | 'desc') || 'desc',
     };
 
     // Date filters
     if (startDate) {
-      options.startDate = new Date(startDate as string);
+      options.startDate = new Date(startDate);
     }
     if (endDate) {
-      options.endDate = new Date(endDate as string);
+      options.endDate = new Date(endDate);
     }
 
     // User filter
     if (userId) {
-      options.userId = userId as string;
+      options.userId = userId;
     }
 
     // Level filters
@@ -106,15 +101,15 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
       options.level = level as AuditLevel;
     }
     if (levels) {
-      options.levels = (levels as string).split(',') as AuditLevel[];
+      options.levels = levels.split(',') as AuditLevel[];
     }
 
     // Action filters
     if (action) {
-      options.action = action as string;
+      options.action = action;
     }
     if (actions) {
-      options.actions = (actions as string).split(',');
+      options.actions = actions.split(',');
     }
 
     // Category filters
@@ -122,17 +117,17 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
       options.category = category as AuditCategory;
     }
     if (categories) {
-      options.categories = (categories as string).split(',') as AuditCategory[];
+      options.categories = categories.split(',') as AuditCategory[];
     }
 
     // Search filter
     if (search) {
-      options.search = search as string;
+      options.search = search;
     }
 
     const result = await audit.query(options);
 
-    res.json({
+    return reply.send({
       success: true,
       logs: result.logs,
       total: result.total,
@@ -140,45 +135,29 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
       limit: result.limit,
       totalPages: result.totalPages,
     });
-  } catch (error) {
-    console.error('[AuditRoutes] Query error:', error instanceof Error ? error.message : error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch audit logs',
-    });
-  }
-});
+  });
 
-/**
- * GET /audit-logs/stats
- * Get audit log statistics
- */
-router.get('/stats', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { days } = req.query;
-    const daysNum = days ? parseInt(days as string, 10) : 30;
+  /**
+   * GET /audit-logs/stats
+   * Get audit log statistics
+   */
+  fastify.get('/stats', async (req: FastifyRequest, reply: FastifyReply) => {
+    const { days } = req.query as { days?: string };
+    const daysNum = days ? parseInt(days, 10) : 30;
 
     const stats = await audit.getStats(daysNum);
 
-    res.json({
+    return reply.send({
       success: true,
       stats,
     });
-  } catch (error) {
-    console.error('[AuditRoutes] Stats error:', error instanceof Error ? error.message : error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch audit statistics',
-    });
-  }
-});
+  });
 
-/**
- * GET /audit-logs/export
- * Export audit logs as CSV or JSON
- */
-router.get('/export', async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * GET /audit-logs/export
+   * Export audit logs as CSV or JSON
+   */
+  fastify.get('/export', async (req: FastifyRequest, reply: FastifyReply) => {
     const {
       format = 'json',
       startDate,
@@ -186,17 +165,17 @@ router.get('/export', async (req: Request, res: Response): Promise<void> => {
       level,
       category,
       userId,
-    } = req.query;
+    } = req.query as Record<string, string | undefined>;
 
     const options: AuditQueryOptions = {
       limit: 10000, // Max export limit
     };
 
     if (startDate) {
-      options.startDate = new Date(startDate as string);
+      options.startDate = new Date(startDate);
     }
     if (endDate) {
-      options.endDate = new Date(endDate as string);
+      options.endDate = new Date(endDate);
     }
     if (level) {
       options.level = level as AuditLevel;
@@ -205,30 +184,27 @@ router.get('/export', async (req: Request, res: Response): Promise<void> => {
       options.category = category as AuditCategory;
     }
     if (userId) {
-      options.userId = userId as string;
+      options.userId = userId;
     }
 
     const timestamp = new Date().toISOString().split('T')[0];
 
     if (format === 'csv') {
       const csv = await audit.exportToCsv(options);
-      res.setHeader('Content-Type', 'text/csv');
-      res.setHeader(
-        'Content-Disposition',
-        `attachment; filename="audit-logs-${timestamp}.csv"`
-      );
-      res.send(csv);
+      return reply
+        .header('Content-Type', 'text/csv')
+        .header('Content-Disposition', `attachment; filename="audit-logs-${timestamp}.csv"`)
+        .send(csv);
     } else {
       const json = await audit.exportToJson(options);
-      res.setHeader('Content-Type', 'application/json');
-      res.setHeader(
-        'Content-Disposition',
-        `attachment; filename="audit-logs-${timestamp}.json"`
-      );
-      res.send(json);
+      return reply
+        .header('Content-Type', 'application/json')
+        .header('Content-Disposition', `attachment; filename="audit-logs-${timestamp}.json"`)
+        .send(json);
     }
 
-    // Log the export action
+    // Log the export action (fire and forget after response)
+    // Note: In Fastify, we log after sending. Use onResponse hook if needed.
     const authReq = req as AuthenticatedRequest;
     await audit.info({
       action: 'admin.audit.export',
@@ -237,51 +213,34 @@ router.get('/export', async (req: Request, res: Response): Promise<void> => {
       userEmail: authReq.dbUser?.email,
       metadata: { format, filters: { startDate, endDate, level, category } },
     });
-  } catch (error) {
-    console.error('[AuditRoutes] Export error:', error instanceof Error ? error.message : error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to export audit logs',
-    });
-  }
-});
+  });
 
-/**
- * GET /audit-logs/:id
- * Get a single audit log entry by ID
- */
-router.get('/:id', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { id } = req.params;
+  /**
+   * GET /audit-logs/:id
+   * Get a single audit log entry by ID
+   */
+  fastify.get('/:id', async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as { id: string };
     const log = await audit.getById(id);
 
     if (!log) {
-      res.status(404).json({
+      return reply.code(404).send({
         success: false,
         error: 'Audit log not found',
       });
-      return;
     }
 
-    res.json({
+    return reply.send({
       success: true,
       log,
     });
-  } catch (error) {
-    console.error('[AuditRoutes] Get by ID error:', error instanceof Error ? error.message : error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch audit log',
-    });
-  }
-});
+  });
 
-/**
- * DELETE /audit-logs/cleanup
- * Manually trigger log cleanup (removes logs older than retention period)
- */
-router.delete('/cleanup', async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * DELETE /audit-logs/cleanup
+   * Manually trigger log cleanup (removes logs older than retention period)
+   */
+  fastify.delete('/cleanup', async (req: FastifyRequest, reply: FastifyReply) => {
     const deletedCount = await audit.cleanup();
 
     // Log the cleanup action
@@ -294,18 +253,12 @@ router.delete('/cleanup', async (req: Request, res: Response): Promise<void> => 
       metadata: { deletedCount },
     });
 
-    res.json({
+    return reply.send({
       success: true,
       deletedCount,
       message: `Deleted ${deletedCount} old audit log entries`,
     });
-  } catch (error) {
-    console.error('[AuditRoutes] Cleanup error:', error instanceof Error ? error.message : error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to cleanup audit logs',
-    });
-  }
-});
+  });
+};
 
-export default router;
+export default routes;

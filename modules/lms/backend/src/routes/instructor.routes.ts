@@ -1,103 +1,79 @@
-import { Router, Request, Response } from 'express';
-import { getInstructorService } from '../services/instructor.service';
-import { authMiddleware, AuthenticatedRequest } from '../middleware/auth';
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
+import { getInstructorService } from '../services/instructor.service.js';
+import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
 
 // =============================================================================
-// Router
+// Routes
 // =============================================================================
 
-const router = Router();
 const instructorService = getInstructorService();
 
 // =============================================================================
 // Instructor Dashboard Endpoints
 // =============================================================================
 
-/**
- * GET /instructor/stats
- * Get instructor dashboard statistics
- */
-router.get('/stats', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+const routes: FastifyPluginAsync = async (fastify) => {
+  /**
+   * GET /instructor/stats
+   * Get instructor dashboard statistics
+   */
+  fastify.get('/stats', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
     const stats = await instructorService.getDashboardStats(authReq.user.userId);
-    res.json({ success: true, data: stats });
-  } catch (error) {
-    console.error('[InstructorRoutes] Stats error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to get instructor stats' });
-  }
-});
+    return reply.send({ success: true, data: stats });
+  });
 
-/**
- * GET /instructor/courses/analytics
- * Get per-course analytics
- */
-router.get('/courses/analytics', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * GET /instructor/courses/analytics
+   * Get per-course analytics
+   */
+  fastify.get('/courses/analytics', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
     const analytics = await instructorService.getCourseAnalytics(authReq.user.userId);
-    res.json({ success: true, data: analytics });
-  } catch (error) {
-    console.error('[InstructorRoutes] Course analytics error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to get course analytics' });
-  }
-});
+    return reply.send({ success: true, data: analytics });
+  });
 
-/**
- * GET /instructor/earnings
- * Get earnings breakdown
- */
-router.get('/earnings', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * GET /instructor/earnings
+   * Get earnings breakdown
+   */
+  fastify.get('/earnings', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { period, startDate, endDate } = req.query;
+    const { period, startDate, endDate } = req.query as Record<string, string>;
 
     const earnings = await instructorService.getEarnings(
       authReq.user.userId,
       (period as 'daily' | 'weekly' | 'monthly') || 'monthly',
-      startDate ? new Date(startDate as string) : undefined,
-      endDate ? new Date(endDate as string) : undefined,
+      startDate ? new Date(startDate) : undefined,
+      endDate ? new Date(endDate) : undefined,
     );
 
-    res.json({ success: true, data: earnings });
-  } catch (error) {
-    console.error('[InstructorRoutes] Earnings error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to get earnings' });
-  }
-});
+    return reply.send({ success: true, data: earnings });
+  });
 
-/**
- * GET /instructor/enrollments/recent
- * Get recent enrollments across all courses
- */
-router.get('/enrollments/recent', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * GET /instructor/enrollments/recent
+   * Get recent enrollments across all courses
+   */
+  fastify.get('/enrollments/recent', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const limit = req.query.limit ? Number(req.query.limit) : 10;
+    const { limit } = req.query as Record<string, string>;
 
-    const enrollments = await instructorService.getRecentEnrollments(authReq.user.userId, limit);
-    res.json({ success: true, data: enrollments });
-  } catch (error) {
-    console.error('[InstructorRoutes] Recent enrollments error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to get recent enrollments' });
-  }
-});
+    const enrollments = await instructorService.getRecentEnrollments(authReq.user.userId, limit ? Number(limit) : 10);
+    return reply.send({ success: true, data: enrollments });
+  });
 
-/**
- * GET /instructor/reviews/recent
- * Get recent reviews across all courses
- */
-router.get('/reviews/recent', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * GET /instructor/reviews/recent
+   * Get recent reviews across all courses
+   */
+  fastify.get('/reviews/recent', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const limit = req.query.limit ? Number(req.query.limit) : 10;
+    const { limit } = req.query as Record<string, string>;
 
-    const reviews = await instructorService.getRecentReviews(authReq.user.userId, limit);
-    res.json({ success: true, data: reviews });
-  } catch (error) {
-    console.error('[InstructorRoutes] Recent reviews error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to get recent reviews' });
-  }
-});
+    const reviews = await instructorService.getRecentReviews(authReq.user.userId, limit ? Number(limit) : 10);
+    return reply.send({ success: true, data: reviews });
+  });
+};
 
-export default router;
+export default routes;

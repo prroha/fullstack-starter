@@ -36,26 +36,26 @@ const STRENGTH_CONFIG: Record<
   { color: string; bgColor: string; width: string; label: string }
 > = {
   weak: {
-    color: "bg-red-500",
-    bgColor: "bg-red-100 dark:bg-red-950",
+    color: "bg-destructive",
+    bgColor: "bg-destructive/10",
     width: "w-1/4",
     label: "Weak",
   },
   fair: {
-    color: "bg-orange-500",
-    bgColor: "bg-orange-100 dark:bg-orange-950",
+    color: "bg-warning",
+    bgColor: "bg-warning/10",
     width: "w-2/4",
     label: "Fair",
   },
   good: {
-    color: "bg-yellow-500",
-    bgColor: "bg-yellow-100 dark:bg-yellow-950",
+    color: "bg-warning",
+    bgColor: "bg-warning/10",
     width: "w-3/4",
     label: "Good",
   },
   strong: {
-    color: "bg-green-500",
-    bgColor: "bg-green-100 dark:bg-green-950",
+    color: "bg-success",
+    bgColor: "bg-success/10",
     width: "w-full",
     label: "Strong",
   },
@@ -200,10 +200,10 @@ const PasswordStrengthMeter = React.forwardRef<
             <span
               className={cn(
                 "font-medium ",
-                strength === "weak" && "text-red-600 dark:text-red-400",
-                strength === "fair" && "text-orange-600 dark:text-orange-400",
-                strength === "good" && "text-yellow-600 dark:text-yellow-400",
-                strength === "strong" && "text-green-600 dark:text-green-400"
+                strength === "weak" && "text-destructive",
+                strength === "fair" && "text-warning",
+                strength === "good" && "text-warning",
+                strength === "strong" && "text-success"
               )}
             >
               {password ? config.label : ""}
@@ -234,7 +234,7 @@ const PasswordStrengthMeter = React.forwardRef<
                 className={cn(
                   "flex items-center gap-2 ",
                   req.passed
-                    ? "text-green-600 dark:text-green-400"
+                    ? "text-success"
                     : "text-muted-foreground"
                 )}
               >

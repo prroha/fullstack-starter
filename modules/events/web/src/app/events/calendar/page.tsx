@@ -55,7 +55,7 @@ export default function EventCalendarPage() {
         {error && (<Alert variant="destructive" className="mb-6">{error}</Alert>)}
 
         {loading ? (
-          <div className="flex items-center justify-center py-20"><Spinner size="lg" /></div>
+          <div className="flex items-center justify-center py-12"><Spinner size="lg" /></div>
         ) : events.length === 0 ? (
           <EmptyState title="No events yet" description="Create an event to see it on the calendar." action={{ label: "New Event", onClick: () => router.push("/events/new") }} />
         ) : (

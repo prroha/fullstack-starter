@@ -79,16 +79,8 @@ export function formatTaskView(view: TaskView): string {
   return taskViewLabels[view] ?? view;
 }
 
-/**
- * Format a date string to a locale display string.
- */
-export function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
-}
+import { formatDate } from '@/lib/utils';
+export { formatDate };
 
 /**
  * Format a date string to a relative time (e.g., "2 hours ago").

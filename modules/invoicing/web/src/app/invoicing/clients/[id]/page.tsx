@@ -166,7 +166,7 @@ export default function ClientDetailPage({
         </div>
       </div>
 
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-8">
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-6">
         {/* Error banner */}
         {error && (
           <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-center">

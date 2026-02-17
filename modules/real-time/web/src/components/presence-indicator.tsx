@@ -52,23 +52,23 @@ const statusConfig: Record<
   { color: string; bgColor: string; label: string }
 > = {
   online: {
-    color: "bg-green-500",
-    bgColor: "bg-green-100 dark:bg-green-900/30",
+    color: "bg-success",
+    bgColor: "bg-success/10",
     label: "Online",
   },
   away: {
-    color: "bg-yellow-500",
-    bgColor: "bg-yellow-100 dark:bg-yellow-900/30",
+    color: "bg-warning",
+    bgColor: "bg-warning/10",
     label: "Away",
   },
   busy: {
-    color: "bg-red-500",
-    bgColor: "bg-red-100 dark:bg-red-900/30",
+    color: "bg-destructive",
+    bgColor: "bg-destructive/10",
     label: "Busy",
   },
   offline: {
-    color: "bg-gray-400",
-    bgColor: "bg-gray-100 dark:bg-gray-900/30",
+    color: "bg-muted-foreground",
+    bgColor: "bg-muted",
     label: "Offline",
   },
 };
@@ -131,13 +131,13 @@ export function PresenceIndicator({
       className={`inline-flex items-center ${sizes.gap} ${className}`}
     >
       {labelPosition === "left" && (
-        <span className={`${sizes.text} text-gray-600 dark:text-gray-400`}>
+        <span className={`${sizes.text} text-muted-foreground`}>
           {config.label}
         </span>
       )}
       {dot}
       {labelPosition === "right" && (
-        <span className={`${sizes.text} text-gray-600 dark:text-gray-400`}>
+        <span className={`${sizes.text} text-muted-foreground`}>
           {config.label}
         </span>
       )}
@@ -197,14 +197,14 @@ export function UserPresence({
           />
         ) : (
           <div
-            className={`${sizes.avatar} rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center ${sizes.text} font-medium text-gray-600 dark:text-gray-300`}
+            className={`${sizes.avatar} rounded-full bg-muted flex items-center justify-center ${sizes.text} font-medium text-muted-foreground`}
           >
             {initials}
           </div>
         )}
         {/* Status indicator */}
         <span
-          className={`absolute bottom-0 right-0 block rounded-full ring-2 ring-white dark:ring-gray-800 ${
+          className={`absolute bottom-0 right-0 block rounded-full ring-2 ring-background ${
             size === "sm" ? "w-2 h-2" : size === "md" ? "w-3 h-3" : "w-4 h-4"
           } ${config.color}`}
         />
@@ -213,10 +213,10 @@ export function UserPresence({
       {/* Name and status */}
       {showStatus && (
         <div className="flex flex-col">
-          <span className={`${sizes.text} font-medium text-gray-900 dark:text-gray-100`}>
+          <span className={`${sizes.text} font-medium text-foreground`}>
             {displayName}
           </span>
-          <span className="text-xs text-gray-500 dark:text-gray-400">
+          <span className="text-xs text-muted-foreground">
             {status === "offline" && lastSeen
               ? `Last seen ${formatLastSeen(lastSeen)}`
               : config.label}
@@ -257,10 +257,10 @@ export function PresenceList({
     <div className={className}>
       {/* Header */}
       <div className="flex items-center justify-between mb-3 px-2">
-        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+        <span className="text-sm font-medium text-foreground">
           Online
         </span>
-        <span className="text-xs text-gray-500 dark:text-gray-400">
+        <span className="text-xs text-muted-foreground">
           {onlineCount} / {users.length}
         </span>
       </div>
@@ -273,7 +273,7 @@ export function PresenceList({
             onClick={() => onUserClick?.(user.userId)}
             className={`p-2 rounded-lg transition-colors ${
               onUserClick
-                ? "cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
+                ? "cursor-pointer hover:bg-muted"
                 : ""
             }`}
           >
@@ -290,7 +290,7 @@ export function PresenceList({
         ))}
 
         {filteredUsers.length === 0 && (
-          <div className="text-center py-4 text-sm text-gray-500 dark:text-gray-400">
+          <div className="text-center py-4 text-sm text-muted-foreground">
             No users online
           </div>
         )}
@@ -316,10 +316,10 @@ export function PresenceBadge({
 }: PresenceBadgeProps) {
   return (
     <div
-      className={`inline-flex items-center gap-1 px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-700 ${className}`}
+      className={`inline-flex items-center gap-1 px-2 py-1 rounded-full bg-muted ${className}`}
     >
-      <span className="w-2 h-2 rounded-full bg-green-500" />
-      <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+      <span className="w-2 h-2 rounded-full bg-success" />
+      <span className="text-xs font-medium text-foreground">
         {onlineCount}
         {totalCount !== undefined && ` / ${totalCount}`}
       </span>

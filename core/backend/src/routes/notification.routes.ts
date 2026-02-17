@@ -1,78 +1,57 @@
-import { Router } from "express";
+import { FastifyPluginAsync } from "fastify";
 import { notificationController } from "../controllers/notification.controller.js";
 import { authMiddleware } from "../middleware/auth.middleware.js";
 import { requireFeature } from "../middleware/preview.middleware.js";
 
-const router = Router();
+const routePlugin: FastifyPluginAsync = async (fastify) => {
+  // Feature Gate: Notifications require comms.push or comms.email feature
+  fastify.addHook("preHandler", requireFeature("comms.email"));
 
-// Feature Gate: Notifications require comms.push or comms.email feature
-router.use(requireFeature("comms.email"));
+  // All notification routes require authentication
+  fastify.addHook("preHandler", authMiddleware);
 
-// All notification routes require authentication
-router.use(authMiddleware);
+  /**
+   * GET /api/v1/notifications
+   * Get all notifications for the authenticated user (paginated)
+   * Query params: page, limit, read (true/false), type
+   */
+  fastify.get("/", (req, reply) => notificationController.getAll(req, reply));
 
-/**
- * GET /api/v1/notifications
- * Get all notifications for the authenticated user (paginated)
- * Query params: page, limit, read (true/false), type
- */
-router.get(
-  "/",
-  (req, res, next) => notificationController.getAll(req, res, next)
-);
+  /**
+   * GET /api/v1/notifications/unread-count
+   * Get the count of unread notifications
+   */
+  fastify.get("/unread-count", (req, reply) => notificationController.getUnreadCount(req, reply));
 
-/**
- * GET /api/v1/notifications/unread-count
- * Get the count of unread notifications
- */
-router.get(
-  "/unread-count",
-  (req, res, next) => notificationController.getUnreadCount(req, res, next)
-);
+  /**
+   * PATCH /api/v1/notifications/read-all
+   * Mark all notifications as read
+   */
+  fastify.patch("/read-all", (req, reply) => notificationController.markAllAsRead(req, reply));
 
-/**
- * PATCH /api/v1/notifications/read-all
- * Mark all notifications as read
- */
-router.patch(
-  "/read-all",
-  (req, res, next) => notificationController.markAllAsRead(req, res, next)
-);
+  /**
+   * GET /api/v1/notifications/:id
+   * Get a single notification
+   */
+  fastify.get("/:id", (req, reply) => notificationController.getById(req, reply));
 
-/**
- * GET /api/v1/notifications/:id
- * Get a single notification
- */
-router.get(
-  "/:id",
-  (req, res, next) => notificationController.getById(req, res, next)
-);
+  /**
+   * PATCH /api/v1/notifications/:id/read
+   * Mark a notification as read
+   */
+  fastify.patch("/:id/read", (req, reply) => notificationController.markAsRead(req, reply));
 
-/**
- * PATCH /api/v1/notifications/:id/read
- * Mark a notification as read
- */
-router.patch(
-  "/:id/read",
-  (req, res, next) => notificationController.markAsRead(req, res, next)
-);
+  /**
+   * DELETE /api/v1/notifications/:id
+   * Delete a single notification
+   */
+  fastify.delete("/:id", (req, reply) => notificationController.delete(req, reply));
 
-/**
- * DELETE /api/v1/notifications/:id
- * Delete a single notification
- */
-router.delete(
-  "/:id",
-  (req, res, next) => notificationController.delete(req, res, next)
-);
+  /**
+   * DELETE /api/v1/notifications
+   * Delete all notifications for the authenticated user
+   */
+  fastify.delete("/", (req, reply) => notificationController.deleteAll(req, reply));
+};
 
-/**
- * DELETE /api/v1/notifications
- * Delete all notifications for the authenticated user
- */
-router.delete(
-  "/",
-  (req, res, next) => notificationController.deleteAll(req, res, next)
-);
-
-export default router;
+export default routePlugin;

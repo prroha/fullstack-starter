@@ -77,12 +77,12 @@ export function Toaster({ ...props }: ToasterProps) {
             "group-[.toaster]:bg-destructive group-[.toaster]:text-destructive-foreground group-[.toaster]:border-destructive [&_[data-description]]:text-destructive-foreground/90",
           // Success variant - green background
           success:
-            "group-[.toaster]:bg-green-600 group-[.toaster]:text-white group-[.toaster]:border-green-600 dark:group-[.toaster]:bg-green-700 dark:group-[.toaster]:border-green-700 [&_[data-description]]:text-white/90",
+            "group-[.toaster]:bg-success group-[.toaster]:text-success-foreground group-[.toaster]:border-success [&_[data-description]]:text-success-foreground/90",
           // Warning variant - amber/yellow background
           warning:
-            "group-[.toaster]:bg-amber-500 group-[.toaster]:text-white group-[.toaster]:border-amber-500 dark:group-[.toaster]:bg-amber-600 dark:group-[.toaster]:border-amber-600 [&_[data-description]]:text-white/90",
+            "group-[.toaster]:bg-warning group-[.toaster]:text-warning-foreground group-[.toaster]:border-warning [&_[data-description]]:text-warning-foreground/90",
           // Info variant - blue background
-          info: "group-[.toaster]:bg-blue-600 group-[.toaster]:text-white group-[.toaster]:border-blue-600 dark:group-[.toaster]:bg-blue-700 dark:group-[.toaster]:border-blue-700 [&_[data-description]]:text-white/90",
+          info: "group-[.toaster]:bg-primary group-[.toaster]:text-primary-foreground group-[.toaster]:border-primary [&_[data-description]]:text-primary-foreground/90",
           // Loading variant
           loading:
             "group-[.toaster]:bg-card group-[.toaster]:text-card-foreground group-[.toaster]:border-border",

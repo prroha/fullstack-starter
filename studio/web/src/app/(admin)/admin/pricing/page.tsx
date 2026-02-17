@@ -99,10 +99,10 @@ const TIER_ICONS: Record<string, React.ReactNode> = {
 };
 
 const TIER_COLORS: Record<string, string> = {
-  starter: "text-emerald-500",
-  pro: "text-blue-500",
-  business: "text-purple-500",
-  enterprise: "text-amber-500",
+  starter: "text-success",
+  pro: "text-primary",
+  business: "text-accent",
+  enterprise: "text-warning",
 };
 
 const DISCOUNT_TYPE_OPTIONS = [
@@ -795,7 +795,7 @@ export default function PricingPage() {
                     <div className="flex items-center gap-3">
                       <div className={cn(
                         "w-2 h-2 rounded-full",
-                        entry.newPrice > entry.oldPrice ? "bg-red-500" : "bg-green-500"
+                        entry.newPrice > entry.oldPrice ? "bg-destructive" : "bg-success"
                       )} />
                       <div>
                         <div className="flex items-center gap-2">
@@ -808,7 +808,7 @@ export default function PricingPage() {
                           {formatCurrency(entry.oldPrice)} → {formatCurrency(entry.newPrice)}
                           <span className={cn(
                             "ml-2 font-medium",
-                            entry.changePercent > 0 ? "text-red-600" : "text-green-600"
+                            entry.changePercent > 0 ? "text-destructive" : "text-success"
                           )}>
                             ({entry.changePercent > 0 ? "+" : ""}{entry.changePercent.toFixed(1)}%)
                           </span>
@@ -859,7 +859,7 @@ export default function PricingPage() {
                       <p className="text-xs text-muted-foreground">of {rec.totalOrders} orders</p>
                     </div>
                     <div>
-                      <p className="text-2xl font-bold text-green-600">{formatCurrency(rec.avgPotentialSavings)}</p>
+                      <p className="text-2xl font-bold text-success">{formatCurrency(rec.avgPotentialSavings)}</p>
                       <p className="text-xs text-muted-foreground">Avg Savings</p>
                     </div>
                   </div>

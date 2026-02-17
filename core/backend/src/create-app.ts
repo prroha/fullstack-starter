@@ -1,37 +1,49 @@
-import express from "express";
-import cors from "cors";
-import helmet from "helmet";
-import cookieParser from "cookie-parser";
+import Fastify, { FastifyInstance } from "fastify";
+import fastifyCors from "@fastify/cors";
+import fastifyHelmet from "@fastify/helmet";
+import fastifyCookie from "@fastify/cookie";
+import fastifyFormbody from "@fastify/formbody";
+import fastifyCompress from "@fastify/compress";
+import fastifyMultipart from "@fastify/multipart";
+import fastifyStatic from "@fastify/static";
+import fastifySwagger from "@fastify/swagger";
+import fastifySwaggerUi from "@fastify/swagger-ui";
 import path from "path";
-import swaggerUi from "swagger-ui-express";
 
 import { config } from "./config/index.js";
-import { errorMiddleware } from "./middleware/error.middleware.js";
-import { csrfProtection } from "./middleware/csrf.middleware.js";
+import { requestIdHook } from "./middleware/request-id.middleware.js";
 import { sanitizeInput } from "./middleware/sanitize.middleware.js";
-import { generalRateLimiter } from "./middleware/rate-limit.middleware.js";
-import { requestIdMiddleware, REQUEST_ID_HEADER } from "./middleware/request-id.middleware.js";
+import { csrfProtection } from "./middleware/csrf.middleware.js";
+import { registerRateLimiter } from "./middleware/rate-limit.middleware.js";
 import { previewMiddleware } from "./middleware/preview.middleware.js";
-import { UPLOAD_DIR as _UPLOAD_DIR } from "./middleware/upload.middleware.js";
+import { errorHandler } from "./middleware/error.middleware.js";
 import { requestContext } from "./lib/logger.js";
 import { db } from "./lib/db.js";
 import routes from "./routes/index.js";
-import { swaggerSpec } from "./swagger.js";
+import { swaggerOptions } from "./swagger.js";
 
 /**
- * Create and configure the Express application.
+ * Create and configure the Fastify application.
  * Does NOT start listening — use app.listen() separately.
  */
-export function createApp(): express.Express {
-  const app = express();
+export async function createApp(): Promise<FastifyInstance> {
+  const app = Fastify({
+    logger: config.isTest()
+      ? false
+      : {
+          level: config.isProduction() ? "warn" : "info",
+          transport: config.isDevelopment()
+            ? { target: "pino-pretty", options: { colorize: true, translateTime: "HH:MM:ss Z", ignore: "pid,hostname" } }
+            : undefined,
+        },
+    trustProxy: config.trustProxy,
+    requestIdHeader: "x-request-id",
+    genReqId: () => crypto.randomUUID(),
+    bodyLimit: 1_048_576, // 1MB default; override per-route for uploads
+  });
 
-  // Trust proxy for rate limiting behind reverse proxy
-  if (config.trustProxy) {
-    app.set("trust proxy", 1);
-  }
-
-  // Security middleware
-  app.use(helmet({
+  // Security headers
+  await app.register(fastifyHelmet, {
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
@@ -46,10 +58,10 @@ export function createApp(): express.Express {
       },
     },
     crossOriginEmbedderPolicy: false,
-  }));
+  });
 
   // CORS
-  app.use(cors({
+  await app.register(fastifyCors, {
     origin: config.corsOrigin,
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
@@ -61,77 +73,91 @@ export function createApp(): express.Express {
       "X-XSRF-Token",
       "X-API-Key",
       "X-Preview-Session",
-      REQUEST_ID_HEADER,
+      "x-request-id",
     ],
     exposedHeaders: [
       "X-RateLimit-Limit",
       "X-RateLimit-Remaining",
       "X-RateLimit-Reset",
-      REQUEST_ID_HEADER,
+      "x-request-id",
     ],
-  }));
-
-  // Request ID middleware (early in chain for request tracing)
-  app.use(requestIdMiddleware);
-
-  // Wrap all requests in AsyncLocalStorage for request-scoped logging
-  app.use((req, res, next) => {
-    requestContext.run({ requestId: req.id }, () => {
-      next();
-    });
   });
 
-  // Body parsing
-  app.use(express.json({ limit: "10mb" }));
-  app.use(express.urlencoded({ extended: true }));
-
   // Cookie parsing
-  app.use(cookieParser());
+  await app.register(fastifyCookie);
+
+  // Body parsing (URL-encoded)
+  await app.register(fastifyFormbody);
+
+  // Response compression (gzip/brotli)
+  await app.register(fastifyCompress, {
+    global: true,
+    threshold: 1024, // Only compress responses > 1KB
+  });
+
+  // Multipart file uploads (available globally, routes opt-in via req.file())
+  await app.register(fastifyMultipart, {
+    limits: {
+      fileSize: 10 * 1024 * 1024, // 10MB max file size
+      files: 5,
+    },
+  });
+
+  // Request ID hook (sets req.id and response header)
+  app.addHook("onRequest", requestIdHook);
+
+  // Wrap all requests in AsyncLocalStorage for request-scoped logging
+  app.addHook("onRequest", async (req) => {
+    requestContext.enterWith({ requestId: req.id });
+  });
 
   // Input sanitization (XSS prevention) - after body parsing
-  app.use(sanitizeInput);
+  app.addHook("preHandler", sanitizeInput);
 
   // Preview/Feature flag middleware
-  app.use(previewMiddleware);
+  app.addHook("preHandler", previewMiddleware);
 
   // General rate limiting
-  app.use(generalRateLimiter);
+  await registerRateLimiter(app);
 
   // Health check (before CSRF to allow monitoring)
-  app.get("/health", async (_req, res) => {
+  app.get("/health", async (_req, reply) => {
     try {
       await db.$queryRaw`SELECT 1`;
-      res.json({ status: "ok", timestamp: new Date().toISOString() });
+      return reply.send({ status: "ok", timestamp: new Date().toISOString() });
     } catch {
-      res.status(503).json({ status: "error", timestamp: new Date().toISOString() });
+      return reply.code(503).send({ status: "error", timestamp: new Date().toISOString() });
     }
   });
 
   // Swagger API documentation
-  app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
-    explorer: true,
-    customSiteTitle: "Fullstack Starter API Docs",
-  }));
-  app.get("/api-docs.json", (_req, res) => {
-    res.setHeader("Content-Type", "application/json");
-    res.send(swaggerSpec);
+  await app.register(fastifySwagger, swaggerOptions);
+  await app.register(fastifySwaggerUi, {
+    routePrefix: "/api-docs",
+    uiConfig: {
+      docExpansion: "list",
+      deepLinking: true,
+    },
+    staticCSP: true,
   });
 
   // CSRF protection for state-changing requests
-  app.use(csrfProtection);
+  app.addHook("onRequest", csrfProtection);
 
   // Serve uploaded files (static)
-  app.use("/uploads", express.static(path.join(process.cwd(), "uploads"), {
+  await app.register(fastifyStatic, {
+    root: path.join(process.cwd(), "uploads"),
+    prefix: "/uploads/",
+    decorateReply: false,
     maxAge: "1d",
-    immutable: true,
-  }));
+  });
 
-  // API routes
-  app.use("/api", routes);
+  // Error handler (catches all thrown errors) — must be set before routes
+  app.setErrorHandler(errorHandler);
 
   // 404 handler
-  app.use((_req, res) => {
-    res.status(404).json({
+  app.setNotFoundHandler((_req, reply) => {
+    return reply.code(404).send({
       success: false,
       error: {
         code: "NOT_FOUND",
@@ -140,8 +166,8 @@ export function createApp(): express.Express {
     });
   });
 
-  // Error handler (must be last)
-  app.use(errorMiddleware);
+  // API routes
+  await app.register(routes, { prefix: "/api" });
 
   return app;
 }

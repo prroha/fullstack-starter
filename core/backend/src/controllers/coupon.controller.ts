@@ -5,7 +5,7 @@
  * Delegates business logic to couponService.
  */
 
-import { Request, Response, NextFunction } from "express";
+import { FastifyRequest, FastifyReply } from "fastify";
 import { AuthenticatedRequest } from "../types/index.js";
 import { couponService } from "../services/coupon.service.js";
 import { auditService } from "../services/audit.service.js";
@@ -77,175 +77,147 @@ export const couponController = {
   // Admin Coupon Management
   // ==========================================================================
 
-  async getAll(req: AuthenticatedRequest, res: Response, next: NextFunction) {
-    try {
-      const query = getCouponsQuerySchema.parse(req.query);
-      const result = await couponService.getAll({
-        page: query.page,
-        limit: query.limit,
-        isActive: query.isActive,
-        search: query.search,
-      });
+  async getAll(req: FastifyRequest, reply: FastifyReply) {
+    const query = getCouponsQuerySchema.parse(req.query);
+    const result = await couponService.getAll({
+      page: query.page,
+      limit: query.limit,
+      isActive: query.isActive,
+      search: query.search,
+    });
 
-      res.json(paginatedResponse(result.coupons, result.page, result.limit, result.total));
-    } catch (error) {
-      next(error);
-    }
+    return reply.send(paginatedResponse(result.coupons, result.page, result.limit, result.total));
   },
 
-  async getById(req: AuthenticatedRequest, res: Response, next: NextFunction) {
-    try {
-      const id = req.params.id as string;
-      const coupon = await couponService.getById(id);
-      res.json(successResponse({ coupon }));
-    } catch (error) {
-      next(error);
-    }
+  async getById(req: FastifyRequest, reply: FastifyReply) {
+    const id = (req.params as Record<string, string>).id;
+    const coupon = await couponService.getById(id);
+    return reply.send(successResponse({ coupon }));
   },
 
-  async create(req: AuthenticatedRequest, res: Response, next: NextFunction) {
-    try {
-      const validated = validateOrRespond(couponSchema, req.body, res);
-      if (!validated) return;
+  async create(req: FastifyRequest, reply: FastifyReply) {
+    const authReq = req as AuthenticatedRequest;
+    const validated = validateOrRespond(couponSchema, req.body, reply);
+    if (!validated) return;
 
-      const { validFrom, validUntil, ...rest } = validated;
-      const coupon = await couponService.create({
-        ...rest,
-        ...parseCouponDates({ validFrom, validUntil }),
-      });
+    const { validFrom, validUntil, ...rest } = validated;
+    const coupon = await couponService.create({
+      ...rest,
+      ...parseCouponDates({ validFrom, validUntil }),
+    });
 
-      await auditService.log({
-        userId: req.user.userId,
-        action: "CREATE",
-        entity: "Coupon",
-        entityId: coupon.id,
-        changes: { new: validated },
-        req,
-      });
+    await auditService.log({
+      userId: authReq.user.userId,
+      action: "CREATE",
+      entity: "Coupon",
+      entityId: coupon.id,
+      changes: { new: validated },
+      req,
+    });
 
-      res.status(201).json(successResponse({ coupon }));
-    } catch (error) {
-      next(error);
-    }
+    return reply.code(201).send(successResponse({ coupon }));
   },
 
-  async update(req: AuthenticatedRequest, res: Response, next: NextFunction) {
-    try {
-      const id = req.params.id as string;
-      const validated = validateOrRespond(couponSchema.partial(), req.body, res);
-      if (!validated) return;
+  async update(req: FastifyRequest, reply: FastifyReply) {
+    const authReq = req as AuthenticatedRequest;
+    const id = (req.params as Record<string, string>).id;
+    const validated = validateOrRespond(couponSchema.partial(), req.body, reply);
+    if (!validated) return;
 
-      const existing = await couponService.getById(id);
+    const existing = await couponService.getById(id);
 
-      const { validFrom, validUntil, ...rest } = validated;
-      const coupon = await couponService.update(id, {
-        ...rest,
-        ...parseCouponDates({ validFrom, validUntil }),
-      });
+    const { validFrom, validUntil, ...rest } = validated;
+    const coupon = await couponService.update(id, {
+      ...rest,
+      ...parseCouponDates({ validFrom, validUntil }),
+    });
 
-      await auditService.log({
-        userId: req.user.userId,
-        action: "UPDATE",
-        entity: "Coupon",
-        entityId: id,
-        changes: { old: existing, new: coupon },
-        req,
-      });
+    await auditService.log({
+      userId: authReq.user.userId,
+      action: "UPDATE",
+      entity: "Coupon",
+      entityId: id,
+      changes: { old: existing, new: coupon },
+      req,
+    });
 
-      res.json(successResponse({ coupon }));
-    } catch (error) {
-      next(error);
-    }
+    return reply.send(successResponse({ coupon }));
   },
 
-  async delete(req: AuthenticatedRequest, res: Response, next: NextFunction) {
-    try {
-      const id = req.params.id as string;
-      const existing = await couponService.delete(id);
+  async delete(req: FastifyRequest, reply: FastifyReply) {
+    const authReq = req as AuthenticatedRequest;
+    const id = (req.params as Record<string, string>).id;
+    const existing = await couponService.delete(id);
 
-      await auditService.log({
-        userId: req.user.userId,
-        action: "DELETE",
-        entity: "Coupon",
-        entityId: id,
-        changes: { old: existing },
-        req,
-      });
+    await auditService.log({
+      userId: authReq.user.userId,
+      action: "DELETE",
+      entity: "Coupon",
+      entityId: id,
+      changes: { old: existing },
+      req,
+    });
 
-      res.json(successResponse({ message: "Coupon deleted" }));
-    } catch (error) {
-      next(error);
-    }
+    return reply.send(successResponse({ message: "Coupon deleted" }));
   },
 
   // ==========================================================================
   // Public endpoint (validate coupon)
   // ==========================================================================
 
-  async validateCoupon(req: Request, res: Response, next: NextFunction) {
-    try {
-      const validated = validateOrRespond(validateCouponSchema, req.body, res);
-      if (!validated) return;
+  async validateCoupon(req: FastifyRequest, reply: FastifyReply) {
+    const validated = validateOrRespond(validateCouponSchema, req.body, reply);
+    if (!validated) return;
 
-      const result = await couponService.validate(validated.code, validated.purchaseAmount);
-      res.json(successResponse(result));
-    } catch (error) {
-      next(error);
-    }
+    const result = await couponService.validate(validated.code, validated.purchaseAmount);
+    return reply.send(successResponse(result));
   },
 
   // ==========================================================================
   // Utility: Increment coupon usage (to be called after successful purchase)
   // ==========================================================================
 
-  async incrementUsage(req: AuthenticatedRequest, res: Response, next: NextFunction) {
-    try {
-      const validated = validateOrRespond(incrementUsageSchema, req.body, res);
-      if (!validated) return;
+  async incrementUsage(req: FastifyRequest, reply: FastifyReply) {
+    const authReq = req as AuthenticatedRequest;
+    const validated = validateOrRespond(incrementUsageSchema, req.body, reply);
+    if (!validated) return;
 
-      const previousCoupon = await couponService.getByCode(validated.code);
-      const coupon = await couponService.incrementUsage(validated.code);
+    const previousCoupon = await couponService.getByCode(validated.code);
+    const coupon = await couponService.incrementUsage(validated.code);
 
-      await auditService.log({
-        userId: req.user.userId,
-        action: "UPDATE",
-        entity: "Coupon",
-        entityId: coupon.id,
-        changes: { old: { usedCount: previousCoupon.usedCount }, new: { usedCount: coupon.usedCount } },
-        metadata: { action: "increment_usage" },
-        req,
-      });
+    await auditService.log({
+      userId: authReq.user.userId,
+      action: "UPDATE",
+      entity: "Coupon",
+      entityId: coupon.id,
+      changes: { old: { usedCount: previousCoupon.usedCount }, new: { usedCount: coupon.usedCount } },
+      metadata: { action: "increment_usage" },
+      req,
+    });
 
-      res.json(successResponse({ coupon }));
-    } catch (error) {
-      next(error);
-    }
+    return reply.send(successResponse({ coupon }));
   },
 
   /**
    * Export all coupons as CSV (admin only)
    * GET /api/v1/admin/coupons/export
    */
-  async exportCoupons(req: AuthenticatedRequest, res: Response, next: NextFunction) {
-    try {
-      const coupons = await couponService.getAllForExport();
+  async exportCoupons(req: FastifyRequest, reply: FastifyReply) {
+    const coupons = await couponService.getAllForExport();
 
-      sendCsvExport(res, coupons, [
-        { header: "ID", accessor: "id" },
-        { header: "Code", accessor: "code" },
-        { header: "Discount Type", accessor: "discountType" },
-        { header: "Discount Value", accessor: "discountValue" },
-        { header: "Min Purchase", accessor: (item) => item.minPurchase?.toString() || "" },
-        { header: "Max Uses", accessor: (item) => item.maxUses?.toString() || "" },
-        { header: "Used Count", accessor: "usedCount" },
-        { header: "Valid From", accessor: (item) => item.validFrom?.toISOString() || "" },
-        { header: "Valid Until", accessor: (item) => item.validUntil?.toISOString() || "" },
-        { header: "Active", accessor: "isActive" },
-        { header: "Created At", accessor: (item) => item.createdAt.toISOString() },
-        { header: "Updated At", accessor: (item) => item.updatedAt.toISOString() },
-      ], { filenamePrefix: "coupons-export" });
-    } catch (error) {
-      next(error);
-    }
+    sendCsvExport(reply, coupons, [
+      { header: "ID", accessor: "id" },
+      { header: "Code", accessor: "code" },
+      { header: "Discount Type", accessor: "discountType" },
+      { header: "Discount Value", accessor: "discountValue" },
+      { header: "Min Purchase", accessor: (item) => item.minPurchase?.toString() || "" },
+      { header: "Max Uses", accessor: (item) => item.maxUses?.toString() || "" },
+      { header: "Used Count", accessor: "usedCount" },
+      { header: "Valid From", accessor: (item) => item.validFrom?.toISOString() || "" },
+      { header: "Valid Until", accessor: (item) => item.validUntil?.toISOString() || "" },
+      { header: "Active", accessor: "isActive" },
+      { header: "Created At", accessor: (item) => item.createdAt.toISOString() },
+      { header: "Updated At", accessor: (item) => item.updatedAt.toISOString() },
+    ], { filenamePrefix: "coupons-export" });
   },
 };

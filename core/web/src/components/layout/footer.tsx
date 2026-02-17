@@ -41,9 +41,9 @@ function Footer({
       className={cn("w-full border-t border-border bg-background", className)}
       {...props}
     >
-      <div className="container mx-auto px-4 py-12">
+      <div className="container mx-auto px-4 py-8">
         {/* Main footer content */}
-        <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
           {/* Logo and description */}
           <div className="space-y-4">
             {logo ?? (
@@ -78,7 +78,7 @@ function Footer({
         </div>
 
         {/* Bottom bar */}
-        <div className="mt-12 pt-8 border-t border-border flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="mt-8 pt-6 border-t border-border flex flex-col md:flex-row items-center justify-between gap-4">
           <Text size="sm" color="muted">
             {copyright ?? defaultCopyright}
           </Text>

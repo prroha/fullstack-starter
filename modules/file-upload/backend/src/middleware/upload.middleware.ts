@@ -1,7 +1,5 @@
-import multer, { FileFilterCallback, type Multer, type StorageEngine } from 'multer';
-import { Request, Response, NextFunction, RequestHandler } from 'express';
+import { FastifyRequest, FastifyReply } from 'fastify';
 import * as path from 'path';
-import * as crypto from 'crypto';
 
 // =============================================================================
 // Magic Number Signatures for File Type Validation
@@ -102,18 +100,12 @@ export interface UploadConfig {
   fieldName?: string;
 }
 
-export interface MulterFile extends Express.Multer.File {
-  key?: string;
-}
-
-// Extend Request type to include file(s)
-declare global {
-  namespace Express {
-    interface Request {
-      file?: MulterFile;
-      files?: MulterFile[] | { [fieldname: string]: MulterFile[] };
-    }
-  }
+export interface ParsedFile {
+  buffer: Buffer;
+  filename: string;
+  mimetype: string;
+  size: number;
+  originalname: string;
 }
 
 // =============================================================================
@@ -130,183 +122,130 @@ const DEFAULT_ALLOWED_TYPES = process.env.UPLOAD_ALLOWED_TYPES
   : ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];
 
 // =============================================================================
-// File Filter
+// Dangerous Extensions Check
 // =============================================================================
 
-function createFileFilter(allowedTypes: string[]) {
-  return (
-    _req: Request,
-    file: Express.Multer.File,
-    cb: FileFilterCallback
-  ): void => {
+const DANGEROUS_EXTENSIONS = [
+  '.exe',
+  '.bat',
+  '.cmd',
+  '.sh',
+  '.php',
+  '.js',
+  '.jsx',
+  '.ts',
+  '.tsx',
+];
+
+// =============================================================================
+// File Parsing Helper (uses @fastify/multipart)
+// =============================================================================
+
+/**
+ * Parse a single file from a multipart request using @fastify/multipart.
+ * The caller must have registered @fastify/multipart on the Fastify instance.
+ */
+export async function parseSingleFile(
+  req: FastifyRequest,
+  config: UploadConfig = {}
+): Promise<ParsedFile> {
+  const maxFileSize = config.maxFileSize || DEFAULT_MAX_FILE_SIZE;
+  const allowedTypes = config.allowedTypes || DEFAULT_ALLOWED_TYPES;
+
+  const file = await (req as any).file({ limits: { fileSize: maxFileSize } });
+
+  if (!file) {
+    throw Object.assign(new Error('No file uploaded'), { statusCode: 400 });
+  }
+
+  const buffer = await file.toBuffer();
+
+  // Check MIME type
+  if (allowedTypes.length > 0 && !allowedTypes.includes(file.mimetype)) {
+    throw Object.assign(
+      new Error(`File type not allowed. Allowed types: ${allowedTypes.join(', ')}`),
+      { statusCode: 400 }
+    );
+  }
+
+  // Check dangerous extensions
+  const ext = path.extname(file.filename).toLowerCase();
+  if (DANGEROUS_EXTENSIONS.includes(ext)) {
+    throw Object.assign(
+      new Error('File extension not allowed for security reasons'),
+      { statusCode: 400 }
+    );
+  }
+
+  // Check file size (toBuffer may already enforce limit, but double-check)
+  if (buffer.length > maxFileSize) {
+    throw Object.assign(
+      new Error('File too large'),
+      { statusCode: 400, maxSize: maxFileSize }
+    );
+  }
+
+  return {
+    buffer,
+    filename: file.filename,
+    mimetype: file.mimetype,
+    size: buffer.length,
+    originalname: file.filename,
+  };
+}
+
+/**
+ * Parse multiple files from a multipart request using @fastify/multipart.
+ * The caller must have registered @fastify/multipart on the Fastify instance.
+ */
+export async function parseMultipleFiles(
+  req: FastifyRequest,
+  config: UploadConfig = {}
+): Promise<ParsedFile[]> {
+  const maxFileSize = config.maxFileSize || DEFAULT_MAX_FILE_SIZE;
+  const maxFiles = config.maxFiles || 10;
+  const allowedTypes = config.allowedTypes || DEFAULT_ALLOWED_TYPES;
+
+  const parts = (req as any).files({ limits: { fileSize: maxFileSize, files: maxFiles } });
+  const files: ParsedFile[] = [];
+
+  for await (const part of parts) {
+    const buffer = await part.toBuffer();
+
     // Check MIME type
-    if (allowedTypes.length > 0 && !allowedTypes.includes(file.mimetype)) {
-      cb(
-        new Error(
-          `File type not allowed. Allowed types: ${allowedTypes.join(', ')}`
-        )
+    if (allowedTypes.length > 0 && !allowedTypes.includes(part.mimetype)) {
+      throw Object.assign(
+        new Error(`File type not allowed. Allowed types: ${allowedTypes.join(', ')}`),
+        { statusCode: 400 }
       );
-      return;
     }
 
-    // Additional security: check file extension
-    const ext = path.extname(file.originalname).toLowerCase();
-    const dangerousExtensions = [
-      '.exe',
-      '.bat',
-      '.cmd',
-      '.sh',
-      '.php',
-      '.js',
-      '.jsx',
-      '.ts',
-      '.tsx',
-    ];
-
-    if (dangerousExtensions.includes(ext)) {
-      cb(new Error('File extension not allowed for security reasons'));
-      return;
+    // Check dangerous extensions
+    const ext = path.extname(part.filename).toLowerCase();
+    if (DANGEROUS_EXTENSIONS.includes(ext)) {
+      throw Object.assign(
+        new Error('File extension not allowed for security reasons'),
+        { statusCode: 400 }
+      );
     }
 
-    cb(null, true);
-  };
-}
+    if (buffer.length > maxFileSize) {
+      throw Object.assign(
+        new Error('File too large'),
+        { statusCode: 400, maxSize: maxFileSize }
+      );
+    }
 
-// =============================================================================
-// Memory Storage (for processing before uploading to S3)
-// =============================================================================
-
-function createMemoryStorage(): StorageEngine {
-  return multer.memoryStorage();
-}
-
-// =============================================================================
-// Disk Storage (for local file storage)
-// =============================================================================
-
-function createDiskStorage(uploadPath: string): StorageEngine {
-  return multer.diskStorage({
-    destination: (_req, _file, cb) => {
-      cb(null, uploadPath);
-    },
-    filename: (_req, file, cb) => {
-      const timestamp = Date.now();
-      const random = crypto.randomBytes(8).toString('hex');
-      const ext = path.extname(file.originalname);
-      cb(null, `${timestamp}-${random}${ext}`);
-    },
-  });
-}
-
-// =============================================================================
-// Upload Middleware Factory
-// =============================================================================
-
-/**
- * Create a single file upload middleware
- */
-export function createSingleUpload(config: UploadConfig = {}): RequestHandler {
-  const upload = multer({
-    storage: createMemoryStorage(),
-    limits: {
-      fileSize: config.maxFileSize || DEFAULT_MAX_FILE_SIZE,
-    },
-    fileFilter: createFileFilter(config.allowedTypes || DEFAULT_ALLOWED_TYPES),
-  });
-
-  const fieldName = config.fieldName || 'file';
-
-  return (req: Request, res: Response, next: NextFunction): void => {
-    upload.single(fieldName)(req, res, (err: unknown) => {
-      if (err) {
-        if (err instanceof multer.MulterError) {
-          if (err.code === 'LIMIT_FILE_SIZE') {
-            res.status(400).json({
-              error: 'File too large',
-              maxSize: config.maxFileSize || DEFAULT_MAX_FILE_SIZE,
-            });
-            return;
-          }
-          res.status(400).json({ error: err.message });
-          return;
-        }
-        if (err instanceof Error) {
-          res.status(400).json({ error: err.message });
-          return;
-        }
-        res.status(500).json({ error: 'Upload failed' });
-        return;
-      }
-      next();
+    files.push({
+      buffer,
+      filename: part.filename,
+      mimetype: part.mimetype,
+      size: buffer.length,
+      originalname: part.filename,
     });
-  };
-}
+  }
 
-/**
- * Create a multiple file upload middleware
- */
-export function createMultipleUpload(
-  config: UploadConfig = {}
-): RequestHandler {
-  const upload = multer({
-    storage: createMemoryStorage(),
-    limits: {
-      fileSize: config.maxFileSize || DEFAULT_MAX_FILE_SIZE,
-      files: config.maxFiles || 10,
-    },
-    fileFilter: createFileFilter(config.allowedTypes || DEFAULT_ALLOWED_TYPES),
-  });
-
-  const fieldName = config.fieldName || 'files';
-
-  return (req: Request, res: Response, next: NextFunction): void => {
-    upload.array(fieldName, config.maxFiles || 10)(req, res, (err: unknown) => {
-      if (err) {
-        if (err instanceof multer.MulterError) {
-          if (err.code === 'LIMIT_FILE_SIZE') {
-            res.status(400).json({
-              error: 'File too large',
-              maxSize: config.maxFileSize || DEFAULT_MAX_FILE_SIZE,
-            });
-            return;
-          }
-          if (err.code === 'LIMIT_FILE_COUNT') {
-            res.status(400).json({
-              error: 'Too many files',
-              maxFiles: config.maxFiles || 10,
-            });
-            return;
-          }
-          res.status(400).json({ error: err.message });
-          return;
-        }
-        if (err instanceof Error) {
-          res.status(400).json({ error: err.message });
-          return;
-        }
-        res.status(500).json({ error: 'Upload failed' });
-        return;
-      }
-      next();
-    });
-  };
-}
-
-/**
- * Create a disk-based upload middleware (for local storage)
- */
-export function createDiskUpload(
-  uploadPath: string,
-  config: UploadConfig = {}
-): Multer {
-  return multer({
-    storage: createDiskStorage(uploadPath),
-    limits: {
-      fileSize: config.maxFileSize || DEFAULT_MAX_FILE_SIZE,
-      files: config.maxFiles || 10,
-    },
-    fileFilter: createFileFilter(config.allowedTypes || DEFAULT_ALLOWED_TYPES),
-  });
+  return files;
 }
 
 // =============================================================================
@@ -314,123 +253,36 @@ export function createDiskUpload(
 // =============================================================================
 
 /**
- * Validate that a file was uploaded
+ * Validate that file content matches declared MIME type.
+ * This prevents MIME type spoofing attacks.
  */
-export function requireFile(
-  req: Request,
-  res: Response,
-  next: NextFunction
-): void {
-  if (!req.file) {
-    res.status(400).json({ error: 'No file uploaded' });
-    return;
-  }
-  next();
-}
-
-/**
- * Validate that files were uploaded
- */
-export function requireFiles(
-  req: Request,
-  res: Response,
-  next: NextFunction
-): void {
-  if (!req.files || (Array.isArray(req.files) && req.files.length === 0)) {
-    res.status(400).json({ error: 'No files uploaded' });
-    return;
-  }
-  next();
-}
-
-// =============================================================================
-// Prebuilt Middleware Instances
-// =============================================================================
-
-/** Single image upload (max 5MB, images only) */
-export const uploadImage = createSingleUpload({
-  maxFileSize: 5 * 1024 * 1024,
-  allowedTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
-  fieldName: 'image',
-});
-
-/** Single document upload (max 10MB, PDFs and images) */
-export const uploadDocument = createSingleUpload({
-  maxFileSize: 10 * 1024 * 1024,
-  allowedTypes: [
-    'application/pdf',
-    'image/jpeg',
-    'image/png',
-    'application/msword',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  ],
-  fieldName: 'document',
-});
-
-/** Multiple images upload (max 5 files, 5MB each) */
-export const uploadImages = createMultipleUpload({
-  maxFileSize: 5 * 1024 * 1024,
-  maxFiles: 5,
-  allowedTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
-  fieldName: 'images',
-});
-
-// =============================================================================
-// Content Validation Middleware
-// =============================================================================
-
-/**
- * Validate file content matches declared MIME type
- * This prevents MIME type spoofing attacks
- */
-export function validateFileContent(
-  req: Request,
-  res: Response,
-  next: NextFunction
-): void {
-  const file = req.file;
-
-  if (!file || !file.buffer) {
-    next();
-    return;
+export function validateFileContent(file: ParsedFile): { valid: boolean; error?: string } {
+  if (!file.buffer) {
+    return { valid: true };
   }
 
-  // Validate that file content matches declared MIME type
   const isValid = validateMagicNumber(file.buffer, file.mimetype);
 
   if (!isValid) {
-    // Log suspicious upload attempt
     console.warn('[UploadMiddleware] Content mismatch detected:', {
       originalname: file.originalname,
       declaredMime: file.mimetype,
       size: file.size,
     });
 
-    res.status(400).json({
+    return {
+      valid: false,
       error: 'File content does not match declared type',
-      code: 'INVALID_FILE_CONTENT',
-    });
-    return;
+    };
   }
 
-  next();
+  return { valid: true };
 }
 
 /**
  * Validate multiple files content
  */
-export function validateFilesContent(
-  req: Request,
-  res: Response,
-  next: NextFunction
-): void {
-  const files = req.files as Express.Multer.File[] | undefined;
-
-  if (!files || files.length === 0) {
-    next();
-    return;
-  }
-
+export function validateFilesContent(files: ParsedFile[]): { valid: boolean; error?: string } {
   for (const file of files) {
     if (!file.buffer) continue;
 
@@ -443,15 +295,14 @@ export function validateFilesContent(
         size: file.size,
       });
 
-      res.status(400).json({
+      return {
+        valid: false,
         error: `File ${file.originalname} content does not match declared type`,
-        code: 'INVALID_FILE_CONTENT',
-      });
-      return;
+      };
     }
   }
 
-  next();
+  return { valid: true };
 }
 
 // =============================================================================
@@ -459,44 +310,22 @@ export function validateFilesContent(
 // =============================================================================
 
 /**
- * Virus scan placeholder middleware
+ * Virus scan placeholder.
  *
  * In production, integrate with a virus scanning service:
  * - ClamAV (open source, self-hosted)
  * - VirusTotal API (cloud-based)
  * - AWS S3 Malware Protection
  * - Other commercial solutions
- *
- * Example integration with ClamAV:
- * ```typescript
- * import NodeClam from 'clamscan';
- *
- * const clamscan = await new NodeClam().init({
- *   clamdscan: {
- *     socket: '/var/run/clamav/clamd.ctl',
- *     timeout: 60000,
- *   },
- * });
- *
- * const { isInfected, viruses } = await clamscan.scanBuffer(file.buffer);
- * ```
  */
-export function virusScanPlaceholder(
-  req: Request,
-  res: Response,
-  next: NextFunction
-): void {
-  const file = req.file;
-
-  if (!file || !file.buffer) {
-    next();
-    return;
+export function virusScanFile(file: ParsedFile): { safe: boolean; error?: string } {
+  if (!file.buffer) {
+    return { safe: true };
   }
 
   // Placeholder: In production, implement actual virus scanning
   // For now, just check for suspiciously small executable-like content
   const suspiciousPatterns = [
-    // Common malicious script patterns (simplified)
     Buffer.from('MZ'), // DOS/Windows executable header
     Buffer.from('\x7fELF'), // Linux executable header
   ];
@@ -510,62 +339,14 @@ export function virusScanPlaceholder(
         size: file.size,
       });
 
-      res.status(400).json({
+      return {
+        safe: false,
         error: 'File appears to be an executable and was rejected for security',
-        code: 'SUSPICIOUS_FILE',
-      });
-      return;
+      };
     }
   }
 
-  // TODO: Implement actual virus scanning in production
-  // Example: await virusScanService.scan(file.buffer);
-
-  next();
-}
-
-/**
- * Async virus scan middleware for production use
- * Replace the implementation with your actual virus scanning service
- */
-export async function asyncVirusScan(
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> {
-  const file = req.file;
-
-  if (!file || !file.buffer) {
-    next();
-    return;
-  }
-
-  try {
-    // TODO: Replace with actual virus scan implementation
-    // Example with ClamAV:
-    // const clamscan = getClamscanInstance();
-    // const { isInfected, viruses } = await clamscan.scanBuffer(file.buffer);
-    // if (isInfected) {
-    //   console.warn('[UploadMiddleware] Virus detected:', viruses);
-    //   res.status(400).json({
-    //     error: 'File contains malware',
-    //     code: 'MALWARE_DETECTED',
-    //   });
-    //   return;
-    // }
-
-    // Placeholder: simulate scan delay
-    // await new Promise(resolve => setTimeout(resolve, 10));
-
-    next();
-  } catch (error) {
-    console.error('[UploadMiddleware] Virus scan error:', error);
-    // Fail safe: reject file if scan fails
-    res.status(500).json({
-      error: 'File security check failed',
-      code: 'SCAN_ERROR',
-    });
-  }
+  return { safe: true };
 }
 
 // =============================================================================
@@ -573,73 +354,42 @@ export async function asyncVirusScan(
 // =============================================================================
 
 /**
- * Create a file size validator middleware
+ * Validate file size
  */
-export function validateFileSize(maxSizeBytes: number): RequestHandler {
-  return (req: Request, res: Response, next: NextFunction): void => {
-    const file = req.file;
+export function validateFileSize(file: ParsedFile, maxSizeBytes: number): { valid: boolean; error?: string } {
+  if (file.size > maxSizeBytes) {
+    const maxSizeMB = (maxSizeBytes / (1024 * 1024)).toFixed(1);
+    const fileSizeMB = (file.size / (1024 * 1024)).toFixed(1);
 
-    if (!file) {
-      next();
-      return;
-    }
+    return {
+      valid: false,
+      error: `File too large. Maximum size is ${maxSizeMB}MB, but file is ${fileSizeMB}MB`,
+    };
+  }
 
-    if (file.size > maxSizeBytes) {
-      const maxSizeMB = (maxSizeBytes / (1024 * 1024)).toFixed(1);
-      const fileSizeMB = (file.size / (1024 * 1024)).toFixed(1);
-
-      res.status(400).json({
-        error: `File too large. Maximum size is ${maxSizeMB}MB, but file is ${fileSizeMB}MB`,
-        code: 'FILE_TOO_LARGE',
-        maxSize: maxSizeBytes,
-        fileSize: file.size,
-      });
-      return;
-    }
-
-    next();
-  };
+  return { valid: true };
 }
 
 /**
- * Create a MIME type validator middleware
+ * Validate MIME type
  */
-export function validateMimeType(allowedTypes: string[]): RequestHandler {
-  return (req: Request, res: Response, next: NextFunction): void => {
-    const file = req.file;
+export function validateMimeType(file: ParsedFile, allowedTypes: string[]): { valid: boolean; error?: string } {
+  if (!allowedTypes.includes(file.mimetype)) {
+    return {
+      valid: false,
+      error: `File type not allowed. Allowed types: ${allowedTypes.join(', ')}`,
+    };
+  }
 
-    if (!file) {
-      next();
-      return;
-    }
-
-    if (!allowedTypes.includes(file.mimetype)) {
-      res.status(400).json({
-        error: `File type not allowed. Allowed types: ${allowedTypes.join(', ')}`,
-        code: 'INVALID_FILE_TYPE',
-        allowedTypes,
-        receivedType: file.mimetype,
-      });
-      return;
-    }
-
-    next();
-  };
+  return { valid: true };
 }
 
 export default {
-  createSingleUpload,
-  createMultipleUpload,
-  createDiskUpload,
-  requireFile,
-  requireFiles,
-  uploadImage,
-  uploadDocument,
-  uploadImages,
+  parseSingleFile,
+  parseMultipleFiles,
   validateFileContent,
   validateFilesContent,
-  virusScanPlaceholder,
-  asyncVirusScan,
+  virusScanFile,
   validateFileSize,
   validateMimeType,
 };

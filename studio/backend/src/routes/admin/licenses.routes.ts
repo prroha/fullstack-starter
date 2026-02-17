@@ -1,28 +1,27 @@
-import { Router } from "express";
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from "fastify";
 import { z } from "zod";
 import { v4 as uuid } from "uuid";
 import { prisma } from "../../config/db.js";
 import { sendSuccess, sendPaginated, parsePaginationParams, createPaginationInfo } from "../../utils/response.js";
 import { ApiError } from "../../utils/errors.js";
 
-const router = Router();
-
-/**
- * GET /api/admin/licenses
- * List all licenses
- */
-router.get("/", async (req, res, next) => {
-  try {
-    const { page, limit, skip } = parsePaginationParams(req.query as { page?: string; limit?: string });
-    const { status, search } = req.query;
+const routePlugin: FastifyPluginAsync = async (fastify) => {
+  /**
+   * GET /api/admin/licenses
+   * List all licenses
+   */
+  fastify.get("/", async (req: FastifyRequest, reply: FastifyReply) => {
+    const query = req.query as Record<string, string>;
+    const { page, limit, skip } = parsePaginationParams(query as { page?: string; limit?: string });
+    const { status, search } = query;
 
     const where: Record<string, unknown> = {};
     if (status) where.status = status;
     if (search) {
       where.OR = [
-        { licenseKey: { contains: search as string, mode: "insensitive" } },
-        { order: { orderNumber: { contains: search as string, mode: "insensitive" } } },
-        { order: { customerEmail: { contains: search as string, mode: "insensitive" } } },
+        { licenseKey: { contains: search, mode: "insensitive" } },
+        { order: { orderNumber: { contains: search, mode: "insensitive" } } },
+        { order: { customerEmail: { contains: search, mode: "insensitive" } } },
       ];
     }
 
@@ -47,20 +46,17 @@ router.get("/", async (req, res, next) => {
       prisma.license.count({ where }),
     ]);
 
-    sendPaginated(res, licenses, createPaginationInfo(page, limit, total));
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendPaginated(reply, licenses, createPaginationInfo(page, limit, total));
+  });
 
-/**
- * GET /api/admin/licenses/:id
- * Get single license
- */
-router.get("/:id", async (req, res, next) => {
-  try {
+  /**
+   * GET /api/admin/licenses/:id
+   * Get single license
+   */
+  fastify.get("/:id", async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as Record<string, string>;
     const license = await prisma.license.findUnique({
-      where: { id: req.params.id },
+      where: { id },
       include: {
         order: {
           include: {
@@ -75,24 +71,21 @@ router.get("/:id", async (req, res, next) => {
       throw ApiError.notFound("License");
     }
 
-    sendSuccess(res, license);
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendSuccess(reply, license);
+  });
 
-/**
- * PATCH /api/admin/licenses/:id/extend
- * Extend license expiry
- */
-router.patch("/:id/extend", async (req, res, next) => {
-  try {
+  /**
+   * PATCH /api/admin/licenses/:id/extend
+   * Extend license expiry
+   */
+  fastify.patch("/:id/extend", async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as Record<string, string>;
     const schema = z.object({
       days: z.number().int().min(1).max(365),
     });
     const { days } = schema.parse(req.body);
 
-    const license = await prisma.license.findUnique({ where: { id: req.params.id } });
+    const license = await prisma.license.findUnique({ where: { id } });
     if (!license) {
       throw ApiError.notFound("License");
     }
@@ -101,7 +94,7 @@ router.patch("/:id/extend", async (req, res, next) => {
     const newExpiry = new Date(currentExpiry.getTime() + days * 24 * 60 * 60 * 1000);
 
     const updated = await prisma.license.update({
-      where: { id: req.params.id },
+      where: { id },
       data: {
         expiresAt: newExpiry,
         status: "ACTIVE",
@@ -119,30 +112,27 @@ router.patch("/:id/extend", async (req, res, next) => {
       },
     });
 
-    sendSuccess(res, updated, `License extended by ${days} days`);
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendSuccess(reply, updated, `License extended by ${days} days`);
+  });
 
-/**
- * PATCH /api/admin/licenses/:id/revoke
- * Revoke license
- */
-router.patch("/:id/revoke", async (req, res, next) => {
-  try {
+  /**
+   * PATCH /api/admin/licenses/:id/revoke
+   * Revoke license
+   */
+  fastify.patch("/:id/revoke", async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as Record<string, string>;
     const schema = z.object({
       reason: z.string().min(1),
     });
     const { reason } = schema.parse(req.body);
 
-    const license = await prisma.license.findUnique({ where: { id: req.params.id } });
+    const license = await prisma.license.findUnique({ where: { id } });
     if (!license) {
       throw ApiError.notFound("License");
     }
 
     const updated = await prisma.license.update({
-      where: { id: req.params.id },
+      where: { id },
       data: {
         status: "REVOKED",
         revokedAt: new Date(),
@@ -161,19 +151,16 @@ router.patch("/:id/revoke", async (req, res, next) => {
       },
     });
 
-    sendSuccess(res, updated, "License revoked");
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendSuccess(reply, updated, "License revoked");
+  });
 
-/**
- * POST /api/admin/licenses/:id/regenerate
- * Regenerate download token
- */
-router.post("/:id/regenerate", async (req, res, next) => {
-  try {
-    const license = await prisma.license.findUnique({ where: { id: req.params.id } });
+  /**
+   * POST /api/admin/licenses/:id/regenerate
+   * Regenerate download token
+   */
+  fastify.post("/:id/regenerate", async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as Record<string, string>;
+    const license = await prisma.license.findUnique({ where: { id } });
     if (!license) {
       throw ApiError.notFound("License");
     }
@@ -184,7 +171,7 @@ router.post("/:id/regenerate", async (req, res, next) => {
 
     const newToken = uuid();
     const updated = await prisma.license.update({
-      where: { id: req.params.id },
+      where: { id },
       data: {
         downloadToken: newToken,
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
@@ -201,10 +188,8 @@ router.post("/:id/regenerate", async (req, res, next) => {
       },
     });
 
-    sendSuccess(res, { downloadToken: updated.downloadToken }, "Download token regenerated");
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendSuccess(reply, { downloadToken: updated.downloadToken }, "Download token regenerated");
+  });
+};
 
-export { router as licensesRoutes };
+export { routePlugin as licensesRoutes };

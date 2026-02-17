@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { Response, NextFunction } from "express";
+import { FastifyRequest, FastifyReply } from "fastify";
 import {
   authMiddleware,
   adminMiddleware,
   superAdminMiddleware,
   optionalAuthMiddleware,
 } from "../../middleware/auth.middleware.js";
-import { AppRequest, AuthenticatedRequest } from "../../types/index.js";
+import { AuthenticatedRequest } from "../../types/index.js";
 
 // Mock dependencies
 vi.mock("../../utils/jwt.js", () => ({
@@ -34,24 +34,20 @@ import { db } from "../../lib/db.js";
 const mockVerifyToken = vi.mocked(verifyToken);
 const mockFindUnique = vi.mocked(db.user.findUnique);
 
-function createMockReq(overrides: Partial<AppRequest> = {}): AppRequest {
+function createMockReq(overrides: Partial<FastifyRequest> = {}): FastifyRequest {
   return {
     cookies: {},
     headers: {},
     ...overrides,
-  } as AppRequest;
+  } as FastifyRequest;
 }
 
-function createMockRes(): Response {
-  const res = {
-    status: vi.fn().mockReturnThis(),
-    json: vi.fn().mockReturnThis(),
-  } as unknown as Response;
-  return res;
-}
-
-function createMockNext(): NextFunction {
-  return vi.fn();
+function createMockReply(): FastifyReply {
+  const reply = {
+    code: vi.fn().mockReturnThis(),
+    send: vi.fn().mockReturnThis(),
+  } as unknown as FastifyReply;
+  return reply;
 }
 
 const mockUser = {
@@ -73,47 +69,44 @@ beforeEach(() => {
 describe("authMiddleware", () => {
   it("should return 401 AUTH_REQUIRED when no token provided", async () => {
     const req = createMockReq();
-    const res = createMockRes();
-    const next = createMockNext();
+    const reply = createMockReply();
 
-    await authMiddleware(req, res, next);
+    await authMiddleware(req, reply);
 
-    expect(res.status).toHaveBeenCalledWith(401);
-    expect(res.json).toHaveBeenCalledWith(
+    expect(reply.code).toHaveBeenCalledWith(401);
+    expect(reply.send).toHaveBeenCalledWith(
       expect.objectContaining({
         success: false,
         error: expect.objectContaining({ code: "AUTH_REQUIRED" }),
       })
     );
-    expect(next).not.toHaveBeenCalled();
   });
 
   it("should return 401 AUTH_REQUIRED for empty string token", async () => {
-    const req = createMockReq({ cookies: { accessToken: "  " } });
-    const res = createMockRes();
-    const next = createMockNext();
+    const req = createMockReq({ cookies: { accessToken: "  " } } as Partial<FastifyRequest>);
+    const reply = createMockReply();
 
-    await authMiddleware(req, res, next);
+    await authMiddleware(req, reply);
 
-    expect(res.status).toHaveBeenCalledWith(401);
-    expect(res.json).toHaveBeenCalledWith(
+    expect(reply.code).toHaveBeenCalledWith(401);
+    expect(reply.send).toHaveBeenCalledWith(
       expect.objectContaining({
         error: expect.objectContaining({ code: "AUTH_REQUIRED" }),
       })
     );
   });
 
-  it("should attach user and call next() for valid token + active user", async () => {
+  it("should attach user for valid token + active user (no reply call)", async () => {
     mockVerifyToken.mockReturnValue(mockPayload as ReturnType<typeof verifyToken>);
     mockFindUnique.mockResolvedValue(mockUser as Awaited<ReturnType<typeof db.user.findUnique>>);
 
-    const req = createMockReq({ cookies: { accessToken: "valid-token" } });
-    const res = createMockRes();
-    const next = createMockNext();
+    const req = createMockReq({ cookies: { accessToken: "valid-token" } } as Partial<FastifyRequest>);
+    const reply = createMockReply();
 
-    await authMiddleware(req, res, next);
+    await authMiddleware(req, reply);
 
-    expect(next).toHaveBeenCalled();
+    // In Fastify, successful middleware just returns without calling reply
+    expect(reply.code).not.toHaveBeenCalled();
     expect((req as AuthenticatedRequest).user).toEqual(mockPayload);
     expect((req as AuthenticatedRequest).dbUser).toEqual(mockUser);
   });
@@ -123,14 +116,13 @@ describe("authMiddleware", () => {
       throw new Error("Token expired");
     });
 
-    const req = createMockReq({ cookies: { accessToken: "expired-token" } });
-    const res = createMockRes();
-    const next = createMockNext();
+    const req = createMockReq({ cookies: { accessToken: "expired-token" } } as Partial<FastifyRequest>);
+    const reply = createMockReply();
 
-    await authMiddleware(req, res, next);
+    await authMiddleware(req, reply);
 
-    expect(res.status).toHaveBeenCalledWith(401);
-    expect(res.json).toHaveBeenCalledWith(
+    expect(reply.code).toHaveBeenCalledWith(401);
+    expect(reply.send).toHaveBeenCalledWith(
       expect.objectContaining({
         error: expect.objectContaining({ code: "TOKEN_EXPIRED" }),
       })
@@ -142,14 +134,13 @@ describe("authMiddleware", () => {
       throw new Error("Invalid token");
     });
 
-    const req = createMockReq({ cookies: { accessToken: "bad-token" } });
-    const res = createMockRes();
-    const next = createMockNext();
+    const req = createMockReq({ cookies: { accessToken: "bad-token" } } as Partial<FastifyRequest>);
+    const reply = createMockReply();
 
-    await authMiddleware(req, res, next);
+    await authMiddleware(req, reply);
 
-    expect(res.status).toHaveBeenCalledWith(401);
-    expect(res.json).toHaveBeenCalledWith(
+    expect(reply.code).toHaveBeenCalledWith(401);
+    expect(reply.send).toHaveBeenCalledWith(
       expect.objectContaining({
         error: expect.objectContaining({ code: "INVALID_TOKEN" }),
       })
@@ -160,14 +151,13 @@ describe("authMiddleware", () => {
     mockVerifyToken.mockReturnValue(mockPayload as ReturnType<typeof verifyToken>);
     mockFindUnique.mockResolvedValue(null);
 
-    const req = createMockReq({ cookies: { accessToken: "valid-token" } });
-    const res = createMockRes();
-    const next = createMockNext();
+    const req = createMockReq({ cookies: { accessToken: "valid-token" } } as Partial<FastifyRequest>);
+    const reply = createMockReply();
 
-    await authMiddleware(req, res, next);
+    await authMiddleware(req, reply);
 
-    expect(res.status).toHaveBeenCalledWith(401);
-    expect(res.json).toHaveBeenCalledWith(
+    expect(reply.code).toHaveBeenCalledWith(401);
+    expect(reply.send).toHaveBeenCalledWith(
       expect.objectContaining({
         error: expect.objectContaining({ code: "USER_NOT_FOUND" }),
       })
@@ -181,14 +171,13 @@ describe("authMiddleware", () => {
       isActive: false,
     } as Awaited<ReturnType<typeof db.user.findUnique>>);
 
-    const req = createMockReq({ cookies: { accessToken: "valid-token" } });
-    const res = createMockRes();
-    const next = createMockNext();
+    const req = createMockReq({ cookies: { accessToken: "valid-token" } } as Partial<FastifyRequest>);
+    const reply = createMockReply();
 
-    await authMiddleware(req, res, next);
+    await authMiddleware(req, reply);
 
-    expect(res.status).toHaveBeenCalledWith(403);
-    expect(res.json).toHaveBeenCalledWith(
+    expect(reply.code).toHaveBeenCalledWith(403);
+    expect(reply.send).toHaveBeenCalledWith(
       expect.objectContaining({
         error: expect.objectContaining({ code: "USER_DEACTIVATED" }),
       })
@@ -202,11 +191,10 @@ describe("authMiddleware", () => {
     const req = createMockReq({
       cookies: { accessToken: "cookie-token" },
       headers: { authorization: "Bearer header-token" },
-    });
-    const res = createMockRes();
-    const next = createMockNext();
+    } as Partial<FastifyRequest>);
+    const reply = createMockReply();
 
-    await authMiddleware(req, res, next);
+    await authMiddleware(req, reply);
 
     expect(mockVerifyToken).toHaveBeenCalledWith("cookie-token");
   });
@@ -218,103 +206,91 @@ describe("authMiddleware", () => {
     const req = createMockReq({
       cookies: {},
       headers: { authorization: "Bearer header-token" },
-    });
-    const res = createMockRes();
-    const next = createMockNext();
+    } as Partial<FastifyRequest>);
+    const reply = createMockReply();
 
-    await authMiddleware(req, res, next);
+    await authMiddleware(req, reply);
 
     expect(mockVerifyToken).toHaveBeenCalledWith("header-token");
   });
 });
 
 describe("adminMiddleware", () => {
-  it("should call next() for ADMIN user", async () => {
+  it("should not call reply for ADMIN user", async () => {
     const req = createMockReq() as AuthenticatedRequest;
     req.user = mockPayload;
     req.dbUser = { ...mockUser, role: "ADMIN" } as AuthenticatedRequest["dbUser"];
-    const res = createMockRes();
-    const next = createMockNext();
+    const reply = createMockReply();
 
-    await adminMiddleware(req, res, next);
+    await adminMiddleware(req, reply);
 
-    expect(next).toHaveBeenCalled();
+    expect(reply.code).not.toHaveBeenCalled();
   });
 
-  it("should call next() for SUPER_ADMIN user", async () => {
+  it("should not call reply for SUPER_ADMIN user", async () => {
     const req = createMockReq() as AuthenticatedRequest;
     req.user = mockPayload;
     req.dbUser = { ...mockUser, role: "SUPER_ADMIN" } as AuthenticatedRequest["dbUser"];
-    const res = createMockRes();
-    const next = createMockNext();
+    const reply = createMockReply();
 
-    await adminMiddleware(req, res, next);
+    await adminMiddleware(req, reply);
 
-    expect(next).toHaveBeenCalled();
+    expect(reply.code).not.toHaveBeenCalled();
   });
 
   it("should return 403 for regular USER", async () => {
     const req = createMockReq() as AuthenticatedRequest;
     req.user = mockPayload;
     req.dbUser = mockUser as AuthenticatedRequest["dbUser"];
-    const res = createMockRes();
-    const next = createMockNext();
+    const reply = createMockReply();
 
-    await adminMiddleware(req, res, next);
+    await adminMiddleware(req, reply);
 
-    expect(res.status).toHaveBeenCalledWith(403);
-    expect(next).not.toHaveBeenCalled();
+    expect(reply.code).toHaveBeenCalledWith(403);
   });
 
   it("should return 401 when no user attached", async () => {
     const req = createMockReq();
-    const res = createMockRes();
-    const next = createMockNext();
+    const reply = createMockReply();
 
-    await adminMiddleware(req, res, next);
+    await adminMiddleware(req, reply);
 
-    expect(res.status).toHaveBeenCalledWith(401);
-    expect(next).not.toHaveBeenCalled();
+    expect(reply.code).toHaveBeenCalledWith(401);
   });
 });
 
 describe("superAdminMiddleware", () => {
-  it("should call next() for SUPER_ADMIN user", async () => {
+  it("should not call reply for SUPER_ADMIN user", async () => {
     const req = createMockReq() as AuthenticatedRequest;
     req.user = mockPayload;
     req.dbUser = { ...mockUser, role: "SUPER_ADMIN" } as AuthenticatedRequest["dbUser"];
-    const res = createMockRes();
-    const next = createMockNext();
+    const reply = createMockReply();
 
-    await superAdminMiddleware(req, res, next);
+    await superAdminMiddleware(req, reply);
 
-    expect(next).toHaveBeenCalled();
+    expect(reply.code).not.toHaveBeenCalled();
   });
 
   it("should return 403 for ADMIN user", async () => {
     const req = createMockReq() as AuthenticatedRequest;
     req.user = mockPayload;
     req.dbUser = { ...mockUser, role: "ADMIN" } as AuthenticatedRequest["dbUser"];
-    const res = createMockRes();
-    const next = createMockNext();
+    const reply = createMockReply();
 
-    await superAdminMiddleware(req, res, next);
+    await superAdminMiddleware(req, reply);
 
-    expect(res.status).toHaveBeenCalledWith(403);
-    expect(next).not.toHaveBeenCalled();
+    expect(reply.code).toHaveBeenCalledWith(403);
   });
 
   it("should return 403 for regular USER", async () => {
     const req = createMockReq() as AuthenticatedRequest;
     req.user = mockPayload;
     req.dbUser = mockUser as AuthenticatedRequest["dbUser"];
-    const res = createMockRes();
-    const next = createMockNext();
+    const reply = createMockReply();
 
-    await superAdminMiddleware(req, res, next);
+    await superAdminMiddleware(req, reply);
 
-    expect(res.status).toHaveBeenCalledWith(403);
-    expect(next).not.toHaveBeenCalled();
+    expect(reply.code).toHaveBeenCalledWith(403);
   });
 });
 
@@ -323,39 +299,30 @@ describe("optionalAuthMiddleware", () => {
     mockVerifyToken.mockReturnValue(mockPayload as ReturnType<typeof verifyToken>);
     mockFindUnique.mockResolvedValue(mockUser as Awaited<ReturnType<typeof db.user.findUnique>>);
 
-    const req = createMockReq({ cookies: { accessToken: "valid-token" } });
-    const res = createMockRes();
-    const next = createMockNext();
+    const req = createMockReq({ cookies: { accessToken: "valid-token" } } as Partial<FastifyRequest>);
 
-    await optionalAuthMiddleware(req, res, next);
+    await optionalAuthMiddleware(req);
 
-    expect(next).toHaveBeenCalled();
     expect((req as AuthenticatedRequest).user).toEqual(mockPayload);
   });
 
-  it("should call next() without user when no token", async () => {
+  it("should not attach user when no token", async () => {
     const req = createMockReq();
-    const res = createMockRes();
-    const next = createMockNext();
 
-    await optionalAuthMiddleware(req, res, next);
+    await optionalAuthMiddleware(req);
 
-    expect(next).toHaveBeenCalled();
     expect(req.user).toBeUndefined();
   });
 
-  it("should call next() without user when token is invalid", async () => {
+  it("should not attach user when token is invalid", async () => {
     mockVerifyToken.mockImplementation(() => {
       throw new Error("Invalid token");
     });
 
-    const req = createMockReq({ cookies: { accessToken: "bad-token" } });
-    const res = createMockRes();
-    const next = createMockNext();
+    const req = createMockReq({ cookies: { accessToken: "bad-token" } } as Partial<FastifyRequest>);
 
-    await optionalAuthMiddleware(req, res, next);
+    await optionalAuthMiddleware(req);
 
-    expect(next).toHaveBeenCalled();
     expect(req.user).toBeUndefined();
   });
 });

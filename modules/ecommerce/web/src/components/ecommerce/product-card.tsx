@@ -52,9 +52,9 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
             loading="lazy"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-orange-50 to-amber-100">
+          <div className="flex h-full w-full items-center justify-center bg-muted">
             <svg
-              className="h-12 w-12 text-orange-300"
+              className="h-12 w-12 text-muted-foreground"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -87,7 +87,7 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
       {/* Content */}
       <div className="flex flex-1 flex-col p-4">
         {/* Title */}
-        <h3 className="mb-1 line-clamp-2 text-sm font-semibold text-foreground group-hover:text-blue-600">
+        <h3 className="mb-1 line-clamp-2 text-sm font-semibold text-foreground group-hover:text-primary">
           {product.title}
         </h3>
 
@@ -131,12 +131,12 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
         <div className="flex items-center gap-1.5">
           <span
             className={`inline-block h-2 w-2 rounded-full ${
-              inStock ? 'bg-green-500' : 'bg-red-500'
+              inStock ? 'bg-success' : 'bg-destructive'
             }`}
           />
           <span
             className={`text-xs font-medium ${
-              inStock ? 'text-green-700' : 'text-red-700'
+              inStock ? 'text-success' : 'text-destructive'
             }`}
           >
             {inStock ? 'In Stock' : 'Out of Stock'}

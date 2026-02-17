@@ -1,61 +1,50 @@
-import { Router, Request, Response } from 'express';
-import { getQuizService } from '../services/quiz.service';
-import { authMiddleware, AuthenticatedRequest } from '../middleware/auth';
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
+import { getQuizService } from '../services/quiz.service.js';
+import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
 
 // =============================================================================
-// Router
+// Routes
 // =============================================================================
 
-const router = Router();
 const quizService = getQuizService();
 
 // =============================================================================
 // Quiz CRUD
 // =============================================================================
 
-/**
- * GET /quizzes/lesson/:lessonId
- * Get all quizzes for a lesson
- */
-router.get('/lesson/:lessonId', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const quizzes = await quizService.getQuizzesByLesson(req.params.lessonId);
-    res.json({ success: true, data: quizzes });
-  } catch (error) {
-    console.error('[QuizRoutes] List quizzes error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to list quizzes' });
-  }
-});
+const routes: FastifyPluginAsync = async (fastify) => {
+  /**
+   * GET /quizzes/lesson/:lessonId
+   * Get all quizzes for a lesson
+   */
+  fastify.get('/lesson/:lessonId', async (req: FastifyRequest, reply: FastifyReply) => {
+    const { lessonId } = req.params as { lessonId: string };
+    const quizzes = await quizService.getQuizzesByLesson(lessonId);
+    return reply.send({ success: true, data: quizzes });
+  });
 
-/**
- * GET /quizzes/:id
- * Get a quiz with its questions
- */
-router.get('/:id', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const quiz = await quizService.getQuiz(req.params.id);
+  /**
+   * GET /quizzes/:id
+   * Get a quiz with its questions
+   */
+  fastify.get('/:id', async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as { id: string };
+    const quiz = await quizService.getQuiz(id);
     if (!quiz) {
-      res.status(404).json({ error: 'Quiz not found' });
-      return;
+      return reply.code(404).send({ error: 'Quiz not found' });
     }
-    res.json({ success: true, data: quiz });
-  } catch (error) {
-    console.error('[QuizRoutes] Get quiz error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to get quiz' });
-  }
-});
+    return reply.send({ success: true, data: quiz });
+  });
 
-/**
- * POST /quizzes
- * Create a new quiz (instructor)
- */
-router.post('/', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { lessonId, title, description, passingScore, maxAttempts, timeLimitMins, shuffleQuestions } = req.body;
+  /**
+   * POST /quizzes
+   * Create a new quiz (instructor)
+   */
+  fastify.post('/', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const { lessonId, title, description, passingScore, maxAttempts, timeLimitMins, shuffleQuestions } = req.body as Record<string, unknown>;
 
     if (!lessonId || !title) {
-      res.status(400).json({ error: 'lessonId and title are required' });
-      return;
+      return reply.code(400).send({ error: 'lessonId and title are required' });
     }
 
     const quiz = await quizService.createQuiz({
@@ -68,22 +57,18 @@ router.post('/', authMiddleware, async (req: Request, res: Response): Promise<vo
       shuffleQuestions,
     });
 
-    res.status(201).json({ success: true, data: quiz });
-  } catch (error) {
-    console.error('[QuizRoutes] Create quiz error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to create quiz' });
-  }
-});
+    return reply.code(201).send({ success: true, data: quiz });
+  });
 
-/**
- * PATCH /quizzes/:id
- * Update a quiz (instructor)
- */
-router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { title, description, passingScore, maxAttempts, timeLimitMins, shuffleQuestions } = req.body;
+  /**
+   * PATCH /quizzes/:id
+   * Update a quiz (instructor)
+   */
+  fastify.patch('/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as { id: string };
+    const { title, description, passingScore, maxAttempts, timeLimitMins, shuffleQuestions } = req.body as Record<string, unknown>;
 
-    const quiz = await quizService.updateQuiz(req.params.id, {
+    const quiz = await quizService.updateQuiz(id, {
       title,
       description,
       passingScore,
@@ -93,64 +78,50 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promis
     });
 
     if (!quiz) {
-      res.status(404).json({ error: 'Quiz not found' });
-      return;
+      return reply.code(404).send({ error: 'Quiz not found' });
     }
 
-    res.json({ success: true, data: quiz });
-  } catch (error) {
-    console.error('[QuizRoutes] Update quiz error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to update quiz' });
-  }
-});
+    return reply.send({ success: true, data: quiz });
+  });
 
-/**
- * DELETE /quizzes/:id
- * Delete a quiz (instructor)
- */
-router.delete('/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
-    await quizService.deleteQuiz(req.params.id);
-    res.json({ success: true, message: 'Quiz deleted' });
-  } catch (error) {
-    console.error('[QuizRoutes] Delete quiz error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to delete quiz' });
-  }
-});
+  /**
+   * DELETE /quizzes/:id
+   * Delete a quiz (instructor)
+   */
+  fastify.delete('/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as { id: string };
+    await quizService.deleteQuiz(id);
+    return reply.send({ success: true, message: 'Quiz deleted' });
+  });
 
-// =============================================================================
-// Question Management
-// =============================================================================
+  // =============================================================================
+  // Question Management
+  // =============================================================================
 
-/**
- * GET /quizzes/:quizId/questions
- * Get all questions for a quiz
- */
-router.get('/:quizId/questions', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const questions = await quizService.getQuestions(req.params.quizId);
-    res.json({ success: true, data: questions });
-  } catch (error) {
-    console.error('[QuizRoutes] List questions error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to list questions' });
-  }
-});
+  /**
+   * GET /quizzes/:quizId/questions
+   * Get all questions for a quiz
+   */
+  fastify.get('/:quizId/questions', async (req: FastifyRequest, reply: FastifyReply) => {
+    const { quizId } = req.params as { quizId: string };
+    const questions = await quizService.getQuestions(quizId);
+    return reply.send({ success: true, data: questions });
+  });
 
-/**
- * POST /quizzes/:quizId/questions
- * Add a question to a quiz (instructor)
- */
-router.post('/:quizId/questions', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { type, text, options, correctAnswer, explanation, points } = req.body;
+  /**
+   * POST /quizzes/:quizId/questions
+   * Add a question to a quiz (instructor)
+   */
+  fastify.post('/:quizId/questions', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const { quizId } = req.params as { quizId: string };
+    const { type, text, options, correctAnswer, explanation, points } = req.body as Record<string, unknown>;
 
     if (!text) {
-      res.status(400).json({ error: 'Question text is required' });
-      return;
+      return reply.code(400).send({ error: 'Question text is required' });
     }
 
     const question = await quizService.createQuestion({
-      quizId: req.params.quizId,
+      quizId,
       type,
       text,
       options,
@@ -159,22 +130,18 @@ router.post('/:quizId/questions', authMiddleware, async (req: Request, res: Resp
       points,
     });
 
-    res.status(201).json({ success: true, data: question });
-  } catch (error) {
-    console.error('[QuizRoutes] Create question error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to create question' });
-  }
-});
+    return reply.code(201).send({ success: true, data: question });
+  });
 
-/**
- * PATCH /quizzes/questions/:id
- * Update a question (instructor)
- */
-router.patch('/questions/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { type, text, options, correctAnswer, explanation, points } = req.body;
+  /**
+   * PATCH /quizzes/questions/:id
+   * Update a question (instructor)
+   */
+  fastify.patch('/questions/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as { id: string };
+    const { type, text, options, correctAnswer, explanation, points } = req.body as Record<string, unknown>;
 
-    const question = await quizService.updateQuestion(req.params.id, {
+    const question = await quizService.updateQuestion(id, {
       type,
       text,
       options,
@@ -184,92 +151,69 @@ router.patch('/questions/:id', authMiddleware, async (req: Request, res: Respons
     });
 
     if (!question) {
-      res.status(404).json({ error: 'Question not found' });
-      return;
+      return reply.code(404).send({ error: 'Question not found' });
     }
 
-    res.json({ success: true, data: question });
-  } catch (error) {
-    console.error('[QuizRoutes] Update question error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to update question' });
-  }
-});
+    return reply.send({ success: true, data: question });
+  });
 
-/**
- * DELETE /quizzes/questions/:id
- * Delete a question (instructor)
- */
-router.delete('/questions/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
-    await quizService.deleteQuestion(req.params.id);
-    res.json({ success: true, message: 'Question deleted' });
-  } catch (error) {
-    console.error('[QuizRoutes] Delete question error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to delete question' });
-  }
-});
+  /**
+   * DELETE /quizzes/questions/:id
+   * Delete a question (instructor)
+   */
+  fastify.delete('/questions/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as { id: string };
+    await quizService.deleteQuestion(id);
+    return reply.send({ success: true, message: 'Question deleted' });
+  });
 
-// =============================================================================
-// Quiz Attempts
-// =============================================================================
+  // =============================================================================
+  // Quiz Attempts
+  // =============================================================================
 
-/**
- * POST /quizzes/:quizId/submit
- * Submit a quiz attempt
- */
-router.post('/:quizId/submit', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * POST /quizzes/:quizId/submit
+   * Submit a quiz attempt
+   */
+  fastify.post('/:quizId/submit', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { answers } = req.body;
+    const { quizId } = req.params as { quizId: string };
+    const { answers } = req.body as { answers: unknown[] };
 
     if (!Array.isArray(answers)) {
-      res.status(400).json({ error: 'answers array is required' });
-      return;
+      return reply.code(400).send({ error: 'answers array is required' });
     }
 
     const attempt = await quizService.submitAttempt({
-      quizId: req.params.quizId,
+      quizId,
       userId: authReq.user.userId,
       answers,
     });
 
-    res.json({ success: true, data: attempt });
-  } catch (error) {
-    console.error('[QuizRoutes] Submit attempt error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to submit quiz',
-    });
-  }
-});
+    return reply.send({ success: true, data: attempt });
+  });
 
-/**
- * GET /quizzes/:quizId/attempts
- * Get user's attempts for a quiz
- */
-router.get('/:quizId/attempts', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * GET /quizzes/:quizId/attempts
+   * Get user's attempts for a quiz
+   */
+  fastify.get('/:quizId/attempts', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const attempts = await quizService.getAttempts(req.params.quizId, authReq.user.userId);
-    res.json({ success: true, data: attempts });
-  } catch (error) {
-    console.error('[QuizRoutes] Get attempts error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to get attempts' });
-  }
-});
+    const { quizId } = req.params as { quizId: string };
+    const attempts = await quizService.getAttempts(quizId, authReq.user.userId);
+    return reply.send({ success: true, data: attempts });
+  });
 
-/**
- * GET /quizzes/:quizId/best
- * Get user's best attempt for a quiz
- */
-router.get('/:quizId/best', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * GET /quizzes/:quizId/best
+   * Get user's best attempt for a quiz
+   */
+  fastify.get('/:quizId/best', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const attempt = await quizService.getBestAttempt(req.params.quizId, authReq.user.userId);
-    res.json({ success: true, data: attempt });
-  } catch (error) {
-    console.error('[QuizRoutes] Get best attempt error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to get best attempt' });
-  }
-});
+    const { quizId } = req.params as { quizId: string };
+    const attempt = await quizService.getBestAttempt(quizId, authReq.user.userId);
+    return reply.send({ success: true, data: attempt });
+  });
+};
 
-export default router;
+export default routes;

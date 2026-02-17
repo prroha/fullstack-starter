@@ -1,6 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { Button } from '@/components/ui/button';
+import { Select } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import { emailService, EmailTemplate } from '../lib/email';
 
 // =============================================================================
@@ -171,8 +174,8 @@ export default function EmailTemplatePreview({
   if (loading) {
     return (
       <div className={`animate-pulse ${className}`}>
-        <div className="h-8 bg-gray-200 rounded mb-4 w-1/3" />
-        <div className="h-64 bg-gray-200 rounded" />
+        <div className="h-8 bg-muted rounded mb-4 w-1/3" />
+        <div className="h-64 bg-muted rounded" />
       </div>
     );
   }
@@ -183,46 +186,44 @@ export default function EmailTemplatePreview({
       <div>
         <label
           htmlFor="template-select"
-          className="block text-sm font-medium text-gray-700 mb-2"
+          className="block text-sm font-medium text-foreground mb-2"
         >
           Select Template
         </label>
-        <select
+        <Select
           id="template-select"
           value={selectedTemplate}
-          onChange={(e) => setSelectedTemplate(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-        >
-          {templates.map((template) => (
-            <option key={template.id} value={template.id}>
-              {template.name}
-            </option>
-          ))}
-        </select>
+          onChange={(value) => setSelectedTemplate(value)}
+          options={templates.map((template) => ({
+            value: template.id,
+            label: template.name,
+          }))}
+          className="w-full"
+        />
         {currentTemplate && (
-          <p className="mt-1 text-sm text-gray-500">{currentTemplate.description}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{currentTemplate.description}</p>
         )}
       </div>
 
       {/* Template Variables */}
       {currentTemplate && currentTemplate.variables.length > 0 && (
         <div>
-          <h3 className="text-sm font-medium text-gray-700 mb-3">Template Variables</h3>
+          <h3 className="text-sm font-medium text-foreground mb-3">Template Variables</h3>
           <div className="space-y-3">
             {currentTemplate.variables.map((variable) => (
               <div key={variable}>
                 <label
                   htmlFor={`var-${variable}`}
-                  className="block text-sm text-gray-600 mb-1"
+                  className="block text-sm text-muted-foreground mb-1"
                 >
                   {variable}
                 </label>
-                <input
+                <Input
                   id={`var-${variable}`}
                   type="text"
                   value={templateData[variable] || ''}
                   onChange={(e) => handleDataChange(variable, e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                  className="w-full text-sm"
                   placeholder={`Enter ${variable}`}
                 />
               </div>
@@ -233,15 +234,15 @@ export default function EmailTemplatePreview({
 
       {/* Preview */}
       <div>
-        <h3 className="text-sm font-medium text-gray-700 mb-3">Preview</h3>
-        <div className="border border-gray-300 rounded-lg overflow-hidden bg-white">
+        <h3 className="text-sm font-medium text-foreground mb-3">Preview</h3>
+        <div className="border border-border rounded-lg overflow-hidden bg-card">
           {/* Email Header Bar */}
-          <div className="bg-gray-100 px-4 py-2 border-b border-gray-300">
+          <div className="bg-muted px-4 py-2 border-b border-border">
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-red-400" />
-              <div className="w-3 h-3 rounded-full bg-yellow-400" />
-              <div className="w-3 h-3 rounded-full bg-green-400" />
-              <span className="ml-2 text-sm text-gray-600">Email Preview</span>
+              <div className="w-3 h-3 rounded-full bg-destructive/60" />
+              <div className="w-3 h-3 rounded-full bg-warning/60" />
+              <div className="w-3 h-3 rounded-full bg-success/60" />
+              <span className="ml-2 text-sm text-muted-foreground">Email Preview</span>
             </div>
           </div>
 
@@ -256,12 +257,9 @@ export default function EmailTemplatePreview({
       {/* Send Button */}
       {showSendButton && onSend && (
         <div className="flex justify-end">
-          <button
-            onClick={handleSend}
-            className="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
-          >
+          <Button onClick={handleSend}>
             Send Test Email
-          </button>
+          </Button>
         </div>
       )}
     </div>
@@ -287,7 +285,7 @@ export function WelcomeEmailPreview({
   const html = templatePreviews.welcome({ name, loginUrl });
   return (
     <div
-      className="border border-gray-300 rounded-lg overflow-hidden bg-white p-4"
+      className="border border-border rounded-lg overflow-hidden bg-card p-4"
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );
@@ -305,7 +303,7 @@ export function PasswordResetEmailPreview({
   const html = templatePreviews['password-reset']({ name, resetUrl, expiresIn });
   return (
     <div
-      className="border border-gray-300 rounded-lg overflow-hidden bg-white p-4"
+      className="border border-border rounded-lg overflow-hidden bg-card p-4"
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );
@@ -333,7 +331,7 @@ export function NotificationEmailPreview({
   });
   return (
     <div
-      className="border border-gray-300 rounded-lg overflow-hidden bg-white p-4"
+      className="border border-border rounded-lg overflow-hidden bg-card p-4"
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );

@@ -1,66 +1,63 @@
-import { Router } from "express";
+import { FastifyPluginAsync } from "fastify";
 import { orderController } from "../controllers/order.controller.js";
 import { authMiddleware, adminMiddleware } from "../middleware/auth.middleware.js";
 import { requireFeature } from "../middleware/preview.middleware.js";
-import { AuthenticatedRequest } from "../types/index.js";
-
-const router = Router();
-
-// ============================================================================
-// Feature Gate: Orders require payments.stripe feature
-// ============================================================================
-router.use(requireFeature("payments.stripe"));
 
 // ============================================================================
 // USER ROUTES (authenticated users can view their own orders)
 // ============================================================================
 
-// Get user's own orders
-router.get("/", authMiddleware, (req, res, next) =>
-  orderController.getUserOrders(req as unknown as AuthenticatedRequest, res, next)
-);
+const orderRoutes: FastifyPluginAsync = async (fastify) => {
+  // Feature Gate: Orders require payments.stripe feature
+  fastify.addHook("preHandler", requireFeature("payments.stripe"));
 
-// Get a specific order (user's own)
-router.get("/:id", authMiddleware, (req, res, next) =>
-  orderController.getUserOrderById(req as unknown as AuthenticatedRequest, res, next)
-);
+  // Get user's own orders
+  fastify.get("/", { preHandler: [authMiddleware] }, (req, reply) =>
+    orderController.getUserOrders(req, reply)
+  );
+
+  // Get a specific order (user's own)
+  fastify.get("/:id", { preHandler: [authMiddleware] }, (req, reply) =>
+    orderController.getUserOrderById(req, reply)
+  );
+};
 
 // ============================================================================
 // ADMIN ROUTES (require admin role)
 // ============================================================================
 
-const adminRouter = Router();
+const adminOrderRoutes: FastifyPluginAsync = async (fastify) => {
+  // Feature Gate: Admin orders require payments.stripe feature
+  fastify.addHook("preHandler", requireFeature("payments.stripe"));
 
-// Feature Gate: Admin orders require payments.stripe feature
-adminRouter.use(requireFeature("payments.stripe"));
+  // All admin routes require authentication and admin role
+  fastify.addHook("preHandler", authMiddleware);
+  fastify.addHook("preHandler", adminMiddleware);
 
-// All admin routes require authentication and admin role
-adminRouter.use(authMiddleware);
-adminRouter.use(adminMiddleware);
+  // Get order statistics (must be before /:id to avoid matching "stats" as id)
+  fastify.get("/stats", (req, reply) =>
+    orderController.getStats(req, reply)
+  );
 
-// Get order statistics (must be before /:id to avoid matching "stats" as id)
-adminRouter.get("/stats", (req, res, next) =>
-  orderController.getStats(req as unknown as AuthenticatedRequest, res, next)
-);
+  // Export orders (must be before /:id to avoid matching "export" as id)
+  fastify.get("/export", (req, reply) =>
+    orderController.exportOrders(req, reply)
+  );
 
-// Export orders (must be before /:id to avoid matching "export" as id)
-adminRouter.get("/export", (req, res, next) =>
-  orderController.exportOrders(req as unknown as AuthenticatedRequest, res, next)
-);
+  // Get all orders
+  fastify.get("/", (req, reply) =>
+    orderController.getAll(req, reply)
+  );
 
-// Get all orders
-adminRouter.get("/", (req, res, next) =>
-  orderController.getAll(req as unknown as AuthenticatedRequest, res, next)
-);
+  // Get order by ID
+  fastify.get("/:id", (req, reply) =>
+    orderController.getById(req, reply)
+  );
 
-// Get order by ID
-adminRouter.get("/:id", (req, res, next) =>
-  orderController.getById(req as unknown as AuthenticatedRequest, res, next)
-);
+  // Update order status
+  fastify.patch("/:id/status", (req, reply) =>
+    orderController.updateStatus(req, reply)
+  );
+};
 
-// Update order status
-adminRouter.patch("/:id/status", (req, res, next) =>
-  orderController.updateStatus(req as unknown as AuthenticatedRequest, res, next)
-);
-
-export { router as orderRoutes, adminRouter as adminOrderRoutes };
+export { orderRoutes, adminOrderRoutes };

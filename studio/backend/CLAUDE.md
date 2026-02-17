@@ -1,6 +1,6 @@
 # Studio Backend
 
-> **Last Updated**: 2026-02-11
+> **Last Updated**: 2026-02-17
 
 AI-optimized documentation for the Studio backend (Express + Prisma).
 
@@ -8,7 +8,7 @@ AI-optimized documentation for the Studio backend (Express + Prisma).
 
 ## Overview
 
-The Studio backend is an Express.js API server that provides:
+The Studio backend is a Fastify API server that provides:
 
 1. **Public API** - Feature listing, pricing calculation, checkout
 2. **Admin API** - Full CRUD for orders, templates, features, settings
@@ -23,7 +23,7 @@ The Studio backend is an Express.js API server that provides:
 ```
 studio/backend/
 ├── src/
-│   ├── index.ts                   # Express app entry point
+│   ├── index.ts                   # Fastify app entry point
 │   ├── config/
 │   │   ├── env.ts                 # Environment configuration
 │   │   └── db.ts                  # Prisma client singleton

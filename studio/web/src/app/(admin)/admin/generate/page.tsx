@@ -224,8 +224,8 @@ export default function GeneratePage() {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-3 mb-6">
-              <div className="p-3 rounded-full bg-green-100">
-                <Check className="h-6 w-6 text-green-600" />
+              <div className="p-3 rounded-full bg-success/10">
+                <Check className="h-6 w-6 text-success" />
               </div>
               <div>
                 <h2 className="text-xl font-bold">Project Generated</h2>
@@ -399,11 +399,12 @@ export default function GeneratePage() {
             </CardHeader>
             <CardContent className="space-y-2">
               {options?.tiers.map((tier) => (
-                <button
+                <Button
                   key={tier.slug}
+                  variant="outline"
                   onClick={() => setSelectedTier(tier.slug)}
                   className={cn(
-                    "w-full flex items-center justify-between p-3 rounded-lg border text-left transition-colors",
+                    "w-full flex items-center justify-between p-3 h-auto text-left",
                     selectedTier === tier.slug
                       ? "border-primary bg-primary/5"
                       : "hover:bg-muted/50"
@@ -418,7 +419,7 @@ export default function GeneratePage() {
                   {selectedTier === tier.slug && (
                     <Check className="h-5 w-5 text-primary" />
                   )}
-                </button>
+                </Button>
               ))}
             </CardContent>
           </Card>
@@ -431,11 +432,12 @@ export default function GeneratePage() {
               </CardHeader>
               <CardContent className="space-y-2">
                 {options.templates.map((template) => (
-                  <button
+                  <Button
                     key={template.id}
+                    variant="outline"
                     onClick={() => applyTemplate(template.id)}
                     className={cn(
-                      "w-full flex items-center justify-between p-3 rounded-lg border text-left transition-colors",
+                      "w-full flex items-center justify-between p-3 h-auto text-left",
                       selectedTemplate === template.id
                         ? "border-primary bg-primary/5"
                         : "hover:bg-muted/50"
@@ -450,7 +452,7 @@ export default function GeneratePage() {
                     {selectedTemplate === template.id && (
                       <Check className="h-5 w-5 text-primary" />
                     )}
-                  </button>
+                  </Button>
                 ))}
               </CardContent>
             </Card>
@@ -490,9 +492,10 @@ export default function GeneratePage() {
               <div className="divide-y">
                 {Object.entries(featuresByModule).map(([moduleSlug, module]) => (
                   <div key={moduleSlug}>
-                    <button
+                    <Button
+                      variant="ghost"
                       onClick={() => toggleModule(moduleSlug)}
-                      className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
+                      className="w-full flex items-center justify-between p-4 h-auto rounded-none"
                     >
                       <div className="flex items-center gap-2">
                         {expandedModules.has(moduleSlug) ? (
@@ -506,7 +509,7 @@ export default function GeneratePage() {
                         </Badge>
                       </div>
                       <Badge variant="outline" size="sm">{module.category}</Badge>
-                    </button>
+                    </Button>
                     {expandedModules.has(moduleSlug) && (
                       <div className="px-4 pb-4 space-y-2">
                         {module.features.map((feature) => {
@@ -520,7 +523,7 @@ export default function GeneratePage() {
                                 isSelected
                                   ? "border-primary bg-primary/5"
                                   : isIncluded
-                                    ? "border-green-200 bg-green-50"
+                                    ? "border-success/20 bg-success/10"
                                     : "hover:bg-muted/50"
                               )}
                             >
@@ -534,7 +537,7 @@ export default function GeneratePage() {
                                 <div>
                                   <p className="text-sm font-medium">{feature.name}</p>
                                   {isIncluded && (
-                                    <p className="text-xs text-green-600">Included in tier</p>
+                                    <p className="text-xs text-success">Included in tier</p>
                                   )}
                                 </div>
                               </div>

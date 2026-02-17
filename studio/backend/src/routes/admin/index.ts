@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { FastifyPluginAsync } from "fastify";
 import { authenticate, requireAdmin } from "../../middleware/auth.middleware.js";
 import { dashboardRoutes } from "./dashboard.routes.js";
 import { ordersRoutes } from "./orders.routes.js";
@@ -14,24 +14,25 @@ import { settingsRoutes } from "./settings.routes.js";
 import { uploadsRoutes } from "./uploads.routes.js";
 import { generationRoutes } from "./generation.routes.js";
 
-const router = Router();
+const adminRoutesPlugin: FastifyPluginAsync = async (fastify) => {
+  // All admin routes require authentication and admin role
+  fastify.addHook("preHandler", authenticate);
+  fastify.addHook("preHandler", requireAdmin);
 
-// All admin routes require authentication and admin role
-router.use(authenticate, requireAdmin);
+  // Admin routes
+  await fastify.register(dashboardRoutes, { prefix: "/dashboard" });
+  await fastify.register(ordersRoutes, { prefix: "/orders" });
+  await fastify.register(templatesRoutes, { prefix: "/templates" });
+  await fastify.register(modulesRoutes, { prefix: "/modules" });
+  await fastify.register(featuresRoutes, { prefix: "/features" });
+  await fastify.register(customersRoutes, { prefix: "/customers" });
+  await fastify.register(licensesRoutes, { prefix: "/licenses" });
+  await fastify.register(couponsRoutes, { prefix: "/coupons" });
+  await fastify.register(pricingRoutes, { prefix: "/pricing" });
+  await fastify.register(analyticsRoutes, { prefix: "/analytics" });
+  await fastify.register(settingsRoutes, { prefix: "/settings" });
+  await fastify.register(uploadsRoutes, { prefix: "/uploads" });
+  await fastify.register(generationRoutes, { prefix: "/generate" });
+};
 
-// Admin routes
-router.use("/dashboard", dashboardRoutes);
-router.use("/orders", ordersRoutes);
-router.use("/templates", templatesRoutes);
-router.use("/modules", modulesRoutes);
-router.use("/features", featuresRoutes);
-router.use("/customers", customersRoutes);
-router.use("/licenses", licensesRoutes);
-router.use("/coupons", couponsRoutes);
-router.use("/pricing", pricingRoutes);
-router.use("/analytics", analyticsRoutes);
-router.use("/settings", settingsRoutes);
-router.use("/uploads", uploadsRoutes);
-router.use("/generate", generationRoutes);
-
-export { router as adminRoutes };
+export { adminRoutesPlugin as adminRoutes };

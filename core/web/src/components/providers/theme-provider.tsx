@@ -11,8 +11,8 @@ import {
   ThemeProvider as CoreThemeProvider,
   ThemeScript,
   type ColorMode,
-} from "@/lib/theme-context";
-import { type AppThemeType } from "@/lib/themes";
+} from "../../lib/theme-context";
+import { type AppThemeType } from "../../lib/themes";
 
 // =====================================================
 // Types
@@ -97,5 +97,5 @@ export { ThemeScript };
 export type { ThemeProviderProps };
 
 // Re-export types from theme-context
-export type { ColorMode } from "@/lib/theme-context";
-export type { AppThemeType } from "@/lib/themes";
+export type { ColorMode } from "../../lib/theme-context";
+export type { AppThemeType } from "../../lib/themes";

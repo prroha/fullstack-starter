@@ -52,7 +52,7 @@ export function EmailVerificationBanner({
   return (
     <div
       className={cn(
-        "bg-yellow-50 border-b border-yellow-200 dark:bg-yellow-950/50 dark:border-yellow-800",
+        "bg-warning/10 border-b border-warning/30",
         className
       )}
     >
@@ -65,7 +65,7 @@ export function EmailVerificationBanner({
               viewBox="0 0 24 24"
               strokeWidth={1.5}
               stroke="currentColor"
-              className="h-5 w-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0"
+              className="h-5 w-5 text-warning flex-shrink-0"
               aria-hidden="true"
             >
               <path
@@ -74,7 +74,7 @@ export function EmailVerificationBanner({
                 d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"
               />
             </svg>
-            <p className="text-sm text-yellow-800 dark:text-yellow-200">
+            <p className="text-sm text-warning">
               <span className="font-medium">Verify your email address.</span>
               {email && (
                 <span className="hidden sm:inline">
@@ -90,14 +90,14 @@ export function EmailVerificationBanner({
               size="sm"
               onClick={handleResendVerification}
               isLoading={isSending}
-              className="border-yellow-400 text-yellow-700 hover:bg-yellow-100 dark:border-yellow-600 dark:text-yellow-200 dark:hover:bg-yellow-900"
+              className="border-warning/50 text-warning hover:bg-warning/10"
             >
               Resend email
             </Button>
             <button
               type="button"
               onClick={handleDismiss}
-              className="p-1 rounded-md text-yellow-600 hover:text-yellow-800 dark:text-yellow-400 dark:hover:text-yellow-200 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2"
+              className="p-1 rounded-md text-warning hover:text-warning/80 focus:outline-none focus:ring-2 focus:ring-warning focus:ring-offset-2"
               aria-label="Dismiss"
             >
               <svg

@@ -117,7 +117,7 @@ export default function TaskSettingsPage() {
           Configure your task management preferences
         </p>
 
-        <div className="mt-8 space-y-8">
+        <div className="mt-8 space-y-6">
           {error && (
             <Alert variant="destructive" onDismiss={() => setError(null)}>
               {error}

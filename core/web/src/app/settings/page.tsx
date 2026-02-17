@@ -162,7 +162,7 @@ export default function SettingsPage() {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8 max-w-2xl">
-        <div className="space-y-8">
+        <div className="space-y-6">
           {/* Page Title */}
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Settings</h1>

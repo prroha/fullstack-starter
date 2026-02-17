@@ -68,7 +68,7 @@ export default function ClientCard({ client, onClick }: ClientCardProps) {
           {client.totalPaid !== undefined && (
             <div>
               <span className="text-muted-foreground">Paid: </span>
-              <span className="font-medium text-green-600">
+              <span className="font-medium text-success">
                 {formatPrice(client.totalPaid)}
               </span>
             </div>

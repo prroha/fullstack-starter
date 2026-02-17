@@ -12,7 +12,6 @@ import {
   Ban,
   CheckCircle,
   X,
-  Loader2,
   AlertTriangle,
   Package,
   Calendar,
@@ -22,6 +21,7 @@ import { cn, formatCurrency, formatDate } from "@/lib/utils";
 import { showSuccess, showError } from "@/lib/toast";
 import { adminApi, ApiError, type Customer as ApiCustomer, type PaginationInfo } from "@/lib/api";
 import {
+  Button,
   StatCard,
   Badge,
   Avatar,
@@ -201,26 +201,26 @@ function BlockConfirmDialog({
             )}
 
             <div className="flex gap-3 mt-6">
-              <button
+              <Button
+                variant="outline"
                 onClick={onClose}
                 disabled={isBlocking}
-                className="flex-1 px-4 py-2 border rounded-md text-sm font-medium hover:bg-accent transition-colors disabled:opacity-50"
+                className="flex-1"
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
+                variant={isBlockAction ? "destructive" : "default"}
                 onClick={() => onConfirm(reason)}
                 disabled={isBlocking}
+                isLoading={isBlocking}
                 className={cn(
-                  "flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2",
-                  isBlockAction
-                    ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    : "bg-success text-success-foreground hover:bg-success/90"
+                  "flex-1",
+                  !isBlockAction && "bg-success text-success-foreground hover:bg-success/90"
                 )}
               >
-                {isBlocking && <Loader2 className="h-4 w-4 animate-spin" />}
                 {isBlockAction ? "Block Customer" : "Unblock Customer"}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -257,12 +257,14 @@ function CustomerDetailsDrawer({
         {/* Header */}
         <div className="sticky top-0 bg-background border-b p-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold">Customer Details</h2>
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={onClose}
-            className="p-2 hover:bg-accent rounded-md transition-colors"
+            aria-label="Close customer details"
           >
             <X className="h-5 w-5" />
-          </button>
+          </Button>
         </div>
 
         {/* Content */}
@@ -364,27 +366,26 @@ function CustomerDetailsDrawer({
 
           {/* Actions */}
           <div className="border-t pt-4">
-            <button
+            <Button
+              variant={!customer.isBlocked ? "destructive" : "default"}
               onClick={() => onBlockToggle(customer)}
               className={cn(
-                "w-full px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-2",
-                !customer.isBlocked
-                  ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  : "bg-success text-success-foreground hover:bg-success/90"
+                "w-full",
+                customer.isBlocked && "bg-success text-success-foreground hover:bg-success/90"
               )}
             >
               {!customer.isBlocked ? (
                 <>
-                  <Ban className="h-4 w-4" />
+                  <Ban className="h-4 w-4 mr-2" />
                   Block Customer
                 </>
               ) : (
                 <>
-                  <CheckCircle className="h-4 w-4" />
+                  <CheckCircle className="h-4 w-4 mr-2" />
                   Unblock Customer
                 </>
               )}
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -657,9 +658,10 @@ export default function CustomersPage() {
                 { value: "totalSpent", label: "Total Spent" },
               ]}
             />
-            <button
+            <Button
+              variant="outline"
+              size="icon"
               onClick={() => setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"))}
-              className="p-2 border rounded-md hover:bg-accent transition-colors"
               title={sortOrder === "asc" ? "Ascending" : "Descending"}
             >
               <ArrowUpDown
@@ -668,7 +670,7 @@ export default function CustomersPage() {
                   sortOrder === "asc" && "rotate-180"
                 )}
               />
-            </button>
+            </Button>
           </div>
         </AdminFilters>
       </div>
@@ -740,17 +742,19 @@ export default function CustomersPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center justify-end gap-2">
-                        <button
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           onClick={() => handleViewCustomer(customer)}
-                          className="p-2 hover:bg-accent rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                           aria-label={`View details for ${customer.name || customer.email}`}
                         >
                           <Eye className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                        </button>
-                        <button
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           onClick={() => handleBlockToggle(customer)}
                           className={cn(
-                            "p-2 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
                             !customer.isBlocked
                               ? "hover:bg-destructive/10 text-destructive"
                               : "hover:bg-success/10 text-success"
@@ -766,7 +770,7 @@ export default function CustomersPage() {
                           ) : (
                             <CheckCircle className="h-4 w-4" aria-hidden="true" />
                           )}
-                        </button>
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>

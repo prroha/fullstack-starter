@@ -437,7 +437,7 @@ export default function CourseLearnPage({
 
                   {currentLesson &&
                     completedLessonIds.has(currentLesson.id) && (
-                      <span className="flex items-center gap-2 text-sm font-medium text-green-600">
+                      <span className="flex items-center gap-2 text-sm font-medium text-success">
                         <svg
                           className="h-4 w-4"
                           fill="none"

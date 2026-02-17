@@ -122,7 +122,7 @@ export function PriceBreakdown({ showDetails = true }: PriceBreakdownProps) {
         {pricing.bundleDiscounts.length > 0 && (
           <div className="space-y-2">
             {pricing.bundleDiscounts.map((discount) => (
-              <div key={discount.id} className="flex justify-between text-green-600">
+              <div key={discount.id} className="flex justify-between text-success">
                 <span className="flex items-center gap-1">
                   {discount.type === "percentage" ? (
                     <Percent className="h-4 w-4" />
@@ -138,7 +138,7 @@ export function PriceBreakdown({ showDetails = true }: PriceBreakdownProps) {
         )}
 
         {pricing.couponDiscount && (
-          <div className="flex justify-between text-green-600">
+          <div className="flex justify-between text-success">
             <span className="flex items-center gap-1">
               <Gift className="h-4 w-4" />
               {pricing.couponDiscount.name}
@@ -151,7 +151,7 @@ export function PriceBreakdown({ showDetails = true }: PriceBreakdownProps) {
         {pricing.totalDiscount > 0 && (
           <>
             <Divider />
-            <div className="flex justify-between text-green-600 font-medium">
+            <div className="flex justify-between text-success font-medium">
               <span>You Save</span>
               <span>-{formatPrice(pricing.totalDiscount)}</span>
             </div>

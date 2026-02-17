@@ -67,8 +67,8 @@ export default function ContactPage() {
       <div className="min-h-screen bg-background">
         {/* Hero Section */}
         <section className="border-b border-border">
-          <div className="container mx-auto px-4 py-16 md:py-24 text-center">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400 mb-6">
+          <div className="container mx-auto px-4 py-10 md:py-12 text-center">
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-success/10 text-success mb-6">
               <Icon name="Check" size="xl" className="w-10 h-10" />
             </div>
             <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-6">
@@ -93,7 +93,7 @@ export default function ContactPage() {
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
       <section className="border-b border-border">
-        <div className="container mx-auto px-4 py-16 md:py-24 text-center">
+        <div className="container mx-auto px-4 py-10 md:py-12 text-center">
           <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-6">
             Contact Us
           </h1>
@@ -105,7 +105,7 @@ export default function ContactPage() {
       </section>
 
       {/* Contact Form Section */}
-      <section className="py-16 md:py-24">
+      <section className="py-10 md:py-12">
         <div className="container mx-auto px-4">
           <div className="max-w-xl mx-auto">
             <Form form={form} onSubmit={onSubmit} className="space-y-4">
@@ -158,7 +158,7 @@ export default function ContactPage() {
             </Form>
 
             {/* Additional Contact Info */}
-            <div className="mt-12 pt-12 border-t border-border">
+            <div className="mt-8 pt-8 border-t border-border">
               <h2 className="text-lg font-semibold text-foreground mb-4 text-center">
                 Other Ways to Reach Us
               </h2>

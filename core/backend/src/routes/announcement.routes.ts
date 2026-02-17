@@ -1,48 +1,49 @@
-import { Router, Request } from "express";
+import { FastifyPluginAsync } from "fastify";
 import { announcementController } from "../controllers/announcement.controller.js";
 import { authMiddleware, adminMiddleware } from "../middleware/auth.middleware.js";
-import { AuthenticatedRequest } from "../types/index.js";
 
-const router = Router();
+const routePlugin: FastifyPluginAsync = async (fastify) => {
+  // ============================================================================
+  // Public routes
+  // ============================================================================
 
-// ============================================================================
-// Public routes
-// ============================================================================
+  fastify.get("/active", (req, reply) =>
+    announcementController.getActive(req, reply)
+  );
 
-router.get("/active", (req, res, next) =>
-  announcementController.getActive(req as Request, res, next)
-);
+  // ============================================================================
+  // Admin routes (nested plugin for scoped middleware)
+  // ============================================================================
 
-// ============================================================================
-// Admin routes
-// ============================================================================
+  await fastify.register(async (admin) => {
+    admin.addHook("preHandler", authMiddleware);
+    admin.addHook("preHandler", adminMiddleware);
 
-router.use(authMiddleware);
-router.use(adminMiddleware);
+    admin.get("/", (req, reply) =>
+      announcementController.getAll(req, reply)
+    );
 
-router.get("/", (req, res, next) =>
-  announcementController.getAll(req as unknown as AuthenticatedRequest, res, next)
-);
+    // Export announcements (must be before /:id to avoid matching "export" as id)
+    admin.get("/export", (req, reply) =>
+      announcementController.exportAnnouncements(req, reply)
+    );
 
-// Export announcements (must be before /:id to avoid matching "export" as id)
-router.get("/export", (req, res, next) =>
-  announcementController.exportAnnouncements(req as unknown as AuthenticatedRequest, res, next)
-);
+    admin.get("/:id", (req, reply) =>
+      announcementController.getById(req, reply)
+    );
 
-router.get("/:id", (req, res, next) =>
-  announcementController.getById(req as unknown as AuthenticatedRequest, res, next)
-);
+    admin.post("/", (req, reply) =>
+      announcementController.create(req, reply)
+    );
 
-router.post("/", (req, res, next) =>
-  announcementController.create(req as unknown as AuthenticatedRequest, res, next)
-);
+    admin.patch("/:id", (req, reply) =>
+      announcementController.update(req, reply)
+    );
 
-router.patch("/:id", (req, res, next) =>
-  announcementController.update(req as unknown as AuthenticatedRequest, res, next)
-);
+    admin.delete("/:id", (req, reply) =>
+      announcementController.delete(req, reply)
+    );
+  });
+};
 
-router.delete("/:id", (req, res, next) =>
-  announcementController.delete(req as unknown as AuthenticatedRequest, res, next)
-);
-
-export default router;
+export default routePlugin;

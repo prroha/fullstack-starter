@@ -1,96 +1,74 @@
-import { Router, Request, Response } from 'express';
-import { getProviderService } from '../services/provider.service';
-import { authMiddleware, AuthenticatedRequest } from '../middleware/auth';
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
+import { getProviderService } from '../services/provider.service.js';
+import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
 
 // =============================================================================
-// Router
+// Routes
 // =============================================================================
 
-const router = Router();
 const providerService = getProviderService();
 
 // =============================================================================
 // Public Endpoints
 // =============================================================================
 
-/**
- * GET /providers
- * List active providers
- */
-router.get('/', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { page, limit } = req.query;
+const routes: FastifyPluginAsync = async (fastify) => {
+  /**
+   * GET /providers
+   * List active providers
+   */
+  fastify.get('/', async (req: FastifyRequest, reply: FastifyReply) => {
+    const { page, limit } = req.query as Record<string, string>;
 
     const result = await providerService.listProviders({
       page: page ? Number(page) : 1,
       limit: limit ? Number(limit) : 20,
     });
 
-    res.json({ success: true, data: result });
-  } catch (error) {
-    console.error('[ProviderRoutes] List error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to list providers' });
-  }
-});
+    return reply.send({ success: true, data: result });
+  });
 
-/**
- * GET /providers/:id
- * Get provider profile with services and rating
- */
-router.get('/:id', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const provider = await providerService.getProviderById(req.params.id);
+  /**
+   * GET /providers/:id
+   * Get provider profile with services and rating
+   */
+  fastify.get('/:id', async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as { id: string };
+    const provider = await providerService.getProviderById(id);
     if (!provider) {
-      res.status(404).json({ error: 'Provider not found' });
-      return;
+      return reply.code(404).send({ error: 'Provider not found' });
     }
-    res.json({ success: true, data: provider });
-  } catch (error) {
-    console.error('[ProviderRoutes] Get by id error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to get provider' });
-  }
-});
+    return reply.send({ success: true, data: provider });
+  });
 
-/**
- * GET /providers/:id/availability
- * Get available time slots for a specific provider, service, and date
- */
-router.get('/:id/availability', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { serviceId, date } = req.query;
+  /**
+   * GET /providers/:id/availability
+   * Get available time slots for a specific provider, service, and date
+   */
+  fastify.get('/:id/availability', async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as { id: string };
+    const { serviceId, date } = req.query as Record<string, string>;
 
     if (!serviceId || !date) {
-      res.status(400).json({ error: 'serviceId and date are required' });
-      return;
+      return reply.code(400).send({ error: 'serviceId and date are required' });
     }
 
-    const slots = await providerService.getAvailability(
-      req.params.id,
-      serviceId as string,
-      date as string,
-    );
+    const slots = await providerService.getAvailability(id, serviceId, date);
 
-    res.json({ success: true, data: slots });
-  } catch (error) {
-    console.error('[ProviderRoutes] Availability error:', error instanceof Error ? error.message : error);
-    res.status(500).json({
-      error: error instanceof Error ? error.message : 'Failed to get availability',
-    });
-  }
-});
+    return reply.send({ success: true, data: slots });
+  });
 
-// =============================================================================
-// Authenticated Endpoints
-// =============================================================================
+  // =============================================================================
+  // Authenticated Endpoints
+  // =============================================================================
 
-/**
- * POST /providers
- * Create a provider profile
- */
-router.post('/', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * POST /providers
+   * Create a provider profile
+   */
+  fastify.post('/', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { bio, specialties, avatarUrl, phone, location } = req.body;
+    const { bio, specialties, avatarUrl, phone, location } = req.body as Record<string, unknown>;
 
     const provider = await providerService.createProvider({
       userId: authReq.user.userId,
@@ -101,24 +79,18 @@ router.post('/', authMiddleware, async (req: Request, res: Response): Promise<vo
       location,
     });
 
-    res.status(201).json({ success: true, data: provider });
-  } catch (error) {
-    console.error('[ProviderRoutes] Create error:', error instanceof Error ? error.message : error);
-    res.status(500).json({
-      error: error instanceof Error ? error.message : 'Failed to create provider profile',
-    });
-  }
-});
+    return reply.code(201).send({ success: true, data: provider });
+  });
 
-/**
- * PATCH /providers/:id
- * Update a provider profile
- */
-router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { bio, specialties, avatarUrl, phone, location } = req.body;
+  /**
+   * PATCH /providers/:id
+   * Update a provider profile
+   */
+  fastify.patch('/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as { id: string };
+    const { bio, specialties, avatarUrl, phone, location } = req.body as Record<string, unknown>;
 
-    const provider = await providerService.updateProvider(req.params.id, {
+    const provider = await providerService.updateProvider(id, {
       bio,
       specialties,
       avatarUrl,
@@ -127,56 +99,37 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promis
     });
 
     if (!provider) {
-      res.status(404).json({ error: 'Provider not found' });
-      return;
+      return reply.code(404).send({ error: 'Provider not found' });
     }
 
-    res.json({ success: true, data: provider });
-  } catch (error) {
-    console.error('[ProviderRoutes] Update error:', error instanceof Error ? error.message : error);
-    res.status(500).json({
-      error: error instanceof Error ? error.message : 'Failed to update provider profile',
-    });
-  }
-});
+    return reply.send({ success: true, data: provider });
+  });
 
-/**
- * POST /providers/:id/services
- * Link a service to a provider
- */
-router.post('/:id/services', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { serviceId } = req.body;
+  /**
+   * POST /providers/:id/services
+   * Link a service to a provider
+   */
+  fastify.post('/:id/services', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as { id: string };
+    const { serviceId } = req.body as { serviceId: string };
 
     if (!serviceId) {
-      res.status(400).json({ error: 'serviceId is required' });
-      return;
+      return reply.code(400).send({ error: 'serviceId is required' });
     }
 
-    const result = await providerService.linkService(req.params.id, serviceId);
-    res.status(201).json({ success: true, data: result });
-  } catch (error) {
-    console.error('[ProviderRoutes] Link service error:', error instanceof Error ? error.message : error);
-    res.status(500).json({
-      error: error instanceof Error ? error.message : 'Failed to link service',
-    });
-  }
-});
+    const result = await providerService.linkService(id, serviceId);
+    return reply.code(201).send({ success: true, data: result });
+  });
 
-/**
- * DELETE /providers/:id/services/:serviceId
- * Unlink a service from a provider
- */
-router.delete('/:id/services/:serviceId', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
-    await providerService.unlinkService(req.params.id, req.params.serviceId);
-    res.json({ success: true, message: 'Service unlinked from provider' });
-  } catch (error) {
-    console.error('[ProviderRoutes] Unlink service error:', error instanceof Error ? error.message : error);
-    res.status(500).json({
-      error: error instanceof Error ? error.message : 'Failed to unlink service',
-    });
-  }
-});
+  /**
+   * DELETE /providers/:id/services/:serviceId
+   * Unlink a service from a provider
+   */
+  fastify.delete('/:id/services/:serviceId', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id, serviceId } = req.params as { id: string; serviceId: string };
+    await providerService.unlinkService(id, serviceId);
+    return reply.send({ success: true, message: 'Service unlinked from provider' });
+  });
+};
 
-export default router;
+export default routes;

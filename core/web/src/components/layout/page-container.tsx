@@ -31,8 +31,8 @@ function PageContainer({
   const paddings = {
     none: "",
     sm: "px-4 py-4",
-    md: "px-4 py-8 md:px-6",
-    lg: "px-4 py-12 md:px-8",
+    md: "px-4 py-6 md:px-6",
+    lg: "px-4 py-10 md:px-6",
   };
 
   return (

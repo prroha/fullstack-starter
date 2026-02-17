@@ -16,12 +16,12 @@ const sizeStyles: Record<string, { bar: string; text: string; label: string }> =
 };
 
 const colorStyles: Record<string, { fill: string; bg: string; text: string }> = {
-  blue: { fill: 'bg-blue-600', bg: 'bg-blue-100', text: 'text-blue-700' },
-  green: { fill: 'bg-green-600', bg: 'bg-green-100', text: 'text-green-700' },
-  yellow: { fill: 'bg-yellow-500', bg: 'bg-yellow-100', text: 'text-yellow-700' },
-  red: { fill: 'bg-red-600', bg: 'bg-red-100', text: 'text-red-700' },
-  purple: { fill: 'bg-purple-600', bg: 'bg-purple-100', text: 'text-purple-700' },
-  indigo: { fill: 'bg-indigo-600', bg: 'bg-indigo-100', text: 'text-indigo-700' },
+  blue: { fill: 'bg-primary', bg: 'bg-primary/10', text: 'text-primary' },
+  green: { fill: 'bg-success', bg: 'bg-success/10', text: 'text-success' },
+  yellow: { fill: 'bg-warning', bg: 'bg-warning/10', text: 'text-warning' },
+  red: { fill: 'bg-destructive', bg: 'bg-destructive/10', text: 'text-destructive' },
+  purple: { fill: 'bg-accent', bg: 'bg-accent/10', text: 'text-accent' },
+  indigo: { fill: 'bg-secondary', bg: 'bg-secondary/10', text: 'text-secondary-foreground' },
 };
 
 export default function ProgressBar({

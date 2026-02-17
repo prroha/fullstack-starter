@@ -52,24 +52,24 @@ const variantConfig: Record<
     iconColor: "text-muted-foreground",
   },
   success: {
-    border: "border-green-200 dark:border-green-800",
-    iconBg: "bg-green-100 dark:bg-green-900/30",
-    iconColor: "text-green-600 dark:text-green-400",
+    border: "border-success/30",
+    iconBg: "bg-success/10",
+    iconColor: "text-success",
   },
   warning: {
-    border: "border-yellow-200 dark:border-yellow-800",
-    iconBg: "bg-yellow-100 dark:bg-yellow-900/30",
-    iconColor: "text-yellow-600 dark:text-yellow-400",
+    border: "border-warning/30",
+    iconBg: "bg-warning/10",
+    iconColor: "text-warning",
   },
   error: {
-    border: "border-red-200 dark:border-red-800",
-    iconBg: "bg-red-100 dark:bg-red-900/30",
-    iconColor: "text-red-600 dark:text-red-400",
+    border: "border-destructive/30",
+    iconBg: "bg-destructive/10",
+    iconColor: "text-destructive",
   },
   info: {
-    border: "border-blue-200 dark:border-blue-800",
-    iconBg: "bg-blue-100 dark:bg-blue-900/30",
-    iconColor: "text-blue-600 dark:text-blue-400",
+    border: "border-primary/30",
+    iconBg: "bg-primary/10",
+    iconColor: "text-primary",
   },
 };
 
@@ -279,18 +279,18 @@ const StatCard = React.forwardRef<HTMLDivElement, StatCardProps>(
             {(changeDisplay || trendLabel) && (
               <div className={cn("flex items-center gap-1 mt-1", sizeStyles.change)}>
                 {effectiveTrend === "up" && (
-                  <TrendUpIcon className="h-4 w-4 text-green-500" />
+                  <TrendUpIcon className="h-4 w-4 text-success" />
                 )}
                 {effectiveTrend === "down" && (
-                  <TrendDownIcon className="h-4 w-4 text-red-500" />
+                  <TrendDownIcon className="h-4 w-4 text-destructive" />
                 )}
                 {effectiveTrend === "neutral" && (
                   <TrendNeutralIcon className="h-4 w-4 text-muted-foreground" />
                 )}
                 <span
                   className={cn(
-                    effectiveTrend === "up" && "text-green-600 dark:text-green-400",
-                    effectiveTrend === "down" && "text-red-600 dark:text-red-400",
+                    effectiveTrend === "up" && "text-success",
+                    effectiveTrend === "down" && "text-destructive",
                     effectiveTrend === "neutral" && "text-muted-foreground"
                   )}
                 >

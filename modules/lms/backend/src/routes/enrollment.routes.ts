@@ -1,30 +1,28 @@
-import { Router, Request, Response } from 'express';
-import { getEnrollmentService } from '../services/enrollment.service';
-import { authMiddleware, AuthenticatedRequest } from '../middleware/auth';
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
+import { getEnrollmentService } from '../services/enrollment.service.js';
+import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
 
 // =============================================================================
-// Router
+// Routes
 // =============================================================================
 
-const router = Router();
 const enrollmentService = getEnrollmentService();
 
 // =============================================================================
 // Enrollment Endpoints
 // =============================================================================
 
-/**
- * POST /enrollments
- * Enroll current user in a course
- */
-router.post('/', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+const routes: FastifyPluginAsync = async (fastify) => {
+  /**
+   * POST /enrollments
+   * Enroll current user in a course
+   */
+  fastify.post('/', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { courseId } = req.body;
+    const { courseId } = req.body as { courseId: string };
 
     if (!courseId) {
-      res.status(400).json({ error: 'courseId is required' });
-      return;
+      return reply.code(400).send({ error: 'courseId is required' });
     }
 
     const enrollment = await enrollmentService.enroll({
@@ -32,119 +30,81 @@ router.post('/', authMiddleware, async (req: Request, res: Response): Promise<vo
       courseId,
     });
 
-    res.status(201).json({ success: true, data: enrollment });
-  } catch (error) {
-    console.error('[EnrollmentRoutes] Enroll error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Enrollment failed',
-    });
-  }
-});
+    return reply.code(201).send({ success: true, data: enrollment });
+  });
 
-/**
- * GET /enrollments
- * Get current user's enrollments
- */
-router.get('/', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * GET /enrollments
+   * Get current user's enrollments
+   */
+  fastify.get('/', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
     const enrollments = await enrollmentService.getUserEnrollments(authReq.user.userId);
-    res.json({ success: true, data: enrollments });
-  } catch (error) {
-    console.error('[EnrollmentRoutes] List error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to list enrollments' });
-  }
-});
+    return reply.send({ success: true, data: enrollments });
+  });
 
-/**
- * GET /enrollments/course/:courseId
- * Get enrollments for a specific course (instructor view)
- */
-router.get('/course/:courseId', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const enrollments = await enrollmentService.getCourseEnrollments(req.params.courseId);
-    res.json({ success: true, data: enrollments });
-  } catch (error) {
-    console.error('[EnrollmentRoutes] Course enrollments error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to get course enrollments' });
-  }
-});
+  /**
+   * GET /enrollments/course/:courseId
+   * Get enrollments for a specific course (instructor view)
+   */
+  fastify.get('/course/:courseId', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const { courseId } = req.params as { courseId: string };
+    const enrollments = await enrollmentService.getCourseEnrollments(courseId);
+    return reply.send({ success: true, data: enrollments });
+  });
 
-/**
- * GET /enrollments/:enrollmentId/progress
- * Get progress details for an enrollment
- */
-router.get('/:enrollmentId/progress', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const progress = await enrollmentService.getProgress(req.params.enrollmentId);
-    res.json({ success: true, data: progress });
-  } catch (error) {
-    console.error('[EnrollmentRoutes] Get progress error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to get progress' });
-  }
-});
+  /**
+   * GET /enrollments/:enrollmentId/progress
+   * Get progress details for an enrollment
+   */
+  fastify.get('/:enrollmentId/progress', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const { enrollmentId } = req.params as { enrollmentId: string };
+    const progress = await enrollmentService.getProgress(enrollmentId);
+    return reply.send({ success: true, data: progress });
+  });
 
-/**
- * POST /enrollments/:enrollmentId/progress
- * Update lesson progress (time spent, position, etc.)
- */
-router.post('/:enrollmentId/progress', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { lessonId, completed, timeSpent, lastPosition } = req.body;
+  /**
+   * POST /enrollments/:enrollmentId/progress
+   * Update lesson progress (time spent, position, etc.)
+   */
+  fastify.post('/:enrollmentId/progress', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const { enrollmentId } = req.params as { enrollmentId: string };
+    const { lessonId, completed, timeSpent, lastPosition } = req.body as { lessonId: string; completed?: boolean; timeSpent?: number; lastPosition?: number };
 
     if (!lessonId) {
-      res.status(400).json({ error: 'lessonId is required' });
-      return;
+      return reply.code(400).send({ error: 'lessonId is required' });
     }
 
     const progress = await enrollmentService.updateProgress({
-      enrollmentId: req.params.enrollmentId,
+      enrollmentId,
       lessonId,
       completed,
       timeSpent,
       lastPosition,
     });
 
-    res.json({ success: true, data: progress });
-  } catch (error) {
-    console.error('[EnrollmentRoutes] Update progress error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to update progress' });
-  }
-});
+    return reply.send({ success: true, data: progress });
+  });
 
-/**
- * POST /enrollments/:enrollmentId/complete/:lessonId
- * Mark a lesson as completed
- */
-router.post(
-  '/:enrollmentId/complete/:lessonId',
-  authMiddleware,
-  async (req: Request, res: Response): Promise<void> => {
-    try {
-      const progress = await enrollmentService.completeLesson(
-        req.params.enrollmentId,
-        req.params.lessonId,
-      );
-      res.json({ success: true, data: progress });
-    } catch (error) {
-      console.error('[EnrollmentRoutes] Complete lesson error:', error instanceof Error ? error.message : error);
-      res.status(500).json({ error: 'Failed to complete lesson' });
-    }
-  },
-);
+  /**
+   * POST /enrollments/:enrollmentId/complete/:lessonId
+   * Mark a lesson as completed
+   */
+  fastify.post('/:enrollmentId/complete/:lessonId', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const { enrollmentId, lessonId } = req.params as { enrollmentId: string; lessonId: string };
+    const progress = await enrollmentService.completeLesson(enrollmentId, lessonId);
+    return reply.send({ success: true, data: progress });
+  });
 
-/**
- * POST /enrollments/:enrollmentId/drop
- * Drop an enrollment
- */
-router.post('/:enrollmentId/drop', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const enrollment = await enrollmentService.dropEnrollment(req.params.enrollmentId);
-    res.json({ success: true, data: enrollment });
-  } catch (error) {
-    console.error('[EnrollmentRoutes] Drop error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to drop enrollment' });
-  }
-});
+  /**
+   * POST /enrollments/:enrollmentId/drop
+   * Drop an enrollment
+   */
+  fastify.post('/:enrollmentId/drop', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const { enrollmentId } = req.params as { enrollmentId: string };
+    const enrollment = await enrollmentService.dropEnrollment(enrollmentId);
+    return reply.send({ success: true, data: enrollment });
+  });
+};
 
-export default router;
+export default routes;

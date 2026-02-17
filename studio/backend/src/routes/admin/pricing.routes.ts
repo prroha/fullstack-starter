@@ -1,10 +1,8 @@
-import { Router } from "express";
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from "fastify";
 import { z } from "zod";
 import { prisma } from "../../config/db.js";
 import { sendSuccess, sendPaginated, parsePaginationParams, createPaginationInfo } from "../../utils/response.js";
 import { ApiError } from "../../utils/errors.js";
-
-const router = Router();
 
 // =====================================================
 // Validation Schemas
@@ -21,7 +19,7 @@ const tierUpdateSchema = z.object({
   isActive: z.boolean().optional(),
 });
 
-const bundleSchema = z.object({
+const bundleBaseSchema = z.object({
   name: z.string().min(2).max(100),
   description: z.string().max(500).optional(),
   type: z.enum(["PERCENTAGE", "FIXED"]),
@@ -32,21 +30,23 @@ const bundleSchema = z.object({
   isActive: z.boolean().default(true),
   startsAt: z.string().datetime().nullable().optional(),
   expiresAt: z.string().datetime().nullable().optional(),
-}).refine(
+});
+
+const bundleSchema = bundleBaseSchema.refine(
   (data) => data.type !== "PERCENTAGE" || (data.value >= 0 && data.value <= 100),
   { message: "Percentage discount value must be between 0 and 100", path: ["value"] }
 );
 
-// =====================================================
-// Pricing Tier Routes
-// =====================================================
+const routePlugin: FastifyPluginAsync = async (fastify) => {
+  // =====================================================
+  // Pricing Tier Routes
+  // =====================================================
 
-/**
- * GET /api/admin/pricing/tiers
- * Get all pricing tier configurations
- */
-router.get("/tiers", async (_req, res, next) => {
-  try {
+  /**
+   * GET /api/admin/pricing/tiers
+   * Get all pricing tier configurations
+   */
+  fastify.get("/tiers", async (_req: FastifyRequest, reply: FastifyReply) => {
     const tiers = await prisma.pricingTier.findMany({
       orderBy: { displayOrder: "asc" },
     });
@@ -70,19 +70,15 @@ router.get("/tiers", async (_req, res, next) => {
       };
     });
 
-    sendSuccess(res, tiersWithStats);
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendSuccess(reply, tiersWithStats);
+  });
 
-/**
- * PUT /api/admin/pricing/tiers/reorder
- * Reorder pricing tiers
- * NOTE: Must be defined BEFORE /tiers/:tier routes to avoid "reorder" being matched as a tier
- */
-router.put("/tiers/reorder", async (req, res, next) => {
-  try {
+  /**
+   * PUT /api/admin/pricing/tiers/reorder
+   * Reorder pricing tiers
+   * NOTE: Must be defined BEFORE /tiers/:tier routes to avoid "reorder" being matched as a tier
+   */
+  fastify.put("/tiers/reorder", async (req: FastifyRequest, reply: FastifyReply) => {
     const schema = z.object({
       orders: z.array(
         z.object({
@@ -99,20 +95,17 @@ router.put("/tiers/reorder", async (req, res, next) => {
       )
     );
 
-    sendSuccess(res, null, "Tiers reordered");
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendSuccess(reply, null, "Tiers reordered");
+  });
 
-/**
- * GET /api/admin/pricing/tiers/:tier
- * Get single pricing tier
- */
-router.get("/tiers/:tier", async (req, res, next) => {
-  try {
+  /**
+   * GET /api/admin/pricing/tiers/:tier
+   * Get single pricing tier
+   */
+  fastify.get("/tiers/:tier", async (req: FastifyRequest, reply: FastifyReply) => {
+    const { tier: tierSlug } = req.params as Record<string, string>;
     const tier = await prisma.pricingTier.findUnique({
-      where: { slug: req.params.tier },
+      where: { slug: tierSlug },
     });
 
     if (!tier) {
@@ -142,7 +135,7 @@ router.get("/tiers/:tier", async (req, res, next) => {
       take: 5,
     });
 
-    sendSuccess(res, {
+    return sendSuccess(reply, {
       ...tier,
       stats: {
         totalOrders: stats._count.id,
@@ -151,21 +144,18 @@ router.get("/tiers/:tier", async (req, res, next) => {
       },
       recentOrders,
     });
-  } catch (error) {
-    next(error);
-  }
-});
+  });
 
-/**
- * PUT /api/admin/pricing/tiers/:tier
- * Update pricing tier configuration
- */
-router.put("/tiers/:tier", async (req, res, next) => {
-  try {
+  /**
+   * PUT /api/admin/pricing/tiers/:tier
+   * Update pricing tier configuration
+   */
+  fastify.put("/tiers/:tier", async (req: FastifyRequest, reply: FastifyReply) => {
+    const { tier: tierSlug } = req.params as Record<string, string>;
     const data = tierUpdateSchema.parse(req.body);
 
     const existing = await prisma.pricingTier.findUnique({
-      where: { slug: req.params.tier },
+      where: { slug: tierSlug },
     });
 
     if (!existing) {
@@ -173,7 +163,7 @@ router.put("/tiers/:tier", async (req, res, next) => {
     }
 
     const tier = await prisma.pricingTier.update({
-      where: { slug: req.params.tier },
+      where: { slug: tierSlug },
       data,
     });
 
@@ -208,20 +198,17 @@ router.put("/tiers/:tier", async (req, res, next) => {
       },
     });
 
-    sendSuccess(res, tier, "Pricing tier updated");
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendSuccess(reply, tier, "Pricing tier updated");
+  });
 
-/**
- * PATCH /api/admin/pricing/tiers/:tier/toggle
- * Toggle tier active status
- */
-router.patch("/tiers/:tier/toggle", async (req, res, next) => {
-  try {
+  /**
+   * PATCH /api/admin/pricing/tiers/:tier/toggle
+   * Toggle tier active status
+   */
+  fastify.patch("/tiers/:tier/toggle", async (req: FastifyRequest, reply: FastifyReply) => {
+    const { tier: tierSlug } = req.params as Record<string, string>;
     const tier = await prisma.pricingTier.findUnique({
-      where: { slug: req.params.tier },
+      where: { slug: tierSlug },
     });
 
     if (!tier) {
@@ -229,35 +216,32 @@ router.patch("/tiers/:tier/toggle", async (req, res, next) => {
     }
 
     const updated = await prisma.pricingTier.update({
-      where: { slug: req.params.tier },
+      where: { slug: tierSlug },
       data: { isActive: !tier.isActive },
     });
 
-    sendSuccess(res, updated, `Tier ${updated.isActive ? "activated" : "deactivated"}`);
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendSuccess(reply, updated, `Tier ${updated.isActive ? "activated" : "deactivated"}`);
+  });
 
-// =====================================================
-// Bundle Discount Routes
-// =====================================================
+  // =====================================================
+  // Bundle Discount Routes
+  // =====================================================
 
-/**
- * GET /api/admin/pricing/bundles
- * List all bundle discounts
- */
-router.get("/bundles", async (req, res, next) => {
-  try {
+  /**
+   * GET /api/admin/pricing/bundles
+   * List all bundle discounts
+   */
+  fastify.get("/bundles", async (req: FastifyRequest, reply: FastifyReply) => {
+    const query = req.query as Record<string, string>;
     const { page, limit, skip } = parsePaginationParams(
-      req.query as { page?: string; limit?: string }
+      query as { page?: string; limit?: string }
     );
-    const { search, isActive } = req.query;
+    const { search, isActive } = query;
 
     const where: Record<string, unknown> = {};
     if (isActive !== undefined) where.isActive = isActive === "true";
     if (search) {
-      where.name = { contains: search as string, mode: "insensitive" };
+      where.name = { contains: search, mode: "insensitive" };
     }
 
     const [bundles, total] = await Promise.all([
@@ -270,38 +254,31 @@ router.get("/bundles", async (req, res, next) => {
       prisma.bundleDiscount.count({ where }),
     ]);
 
-    sendPaginated(res, bundles, createPaginationInfo(page, limit, total));
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendPaginated(reply, bundles, createPaginationInfo(page, limit, total));
+  });
 
-/**
- * GET /api/admin/pricing/bundles/:id
- * Get single bundle discount
- */
-router.get("/bundles/:id", async (req, res, next) => {
-  try {
+  /**
+   * GET /api/admin/pricing/bundles/:id
+   * Get single bundle discount
+   */
+  fastify.get("/bundles/:id", async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as Record<string, string>;
     const bundle = await prisma.bundleDiscount.findUnique({
-      where: { id: req.params.id },
+      where: { id },
     });
 
     if (!bundle) {
       throw ApiError.notFound("Bundle discount");
     }
 
-    sendSuccess(res, bundle);
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendSuccess(reply, bundle);
+  });
 
-/**
- * POST /api/admin/pricing/bundles
- * Create new bundle discount
- */
-router.post("/bundles", async (req, res, next) => {
-  try {
+  /**
+   * POST /api/admin/pricing/bundles
+   * Create new bundle discount
+   */
+  fastify.post("/bundles", async (req: FastifyRequest, reply: FastifyReply) => {
     const data = bundleSchema.parse(req.body);
 
     const bundle = await prisma.bundleDiscount.create({
@@ -323,22 +300,19 @@ router.post("/bundles", async (req, res, next) => {
       },
     });
 
-    sendSuccess(res, bundle, "Bundle discount created", 201);
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendSuccess(reply, bundle, "Bundle discount created", 201);
+  });
 
-/**
- * PUT /api/admin/pricing/bundles/:id
- * Update bundle discount
- */
-router.put("/bundles/:id", async (req, res, next) => {
-  try {
-    const data = bundleSchema.partial().parse(req.body);
+  /**
+   * PUT /api/admin/pricing/bundles/:id
+   * Update bundle discount
+   */
+  fastify.put("/bundles/:id", async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as Record<string, string>;
+    const data = bundleBaseSchema.partial().parse(req.body);
 
     const existing = await prisma.bundleDiscount.findUnique({
-      where: { id: req.params.id },
+      where: { id },
     });
 
     if (!existing) {
@@ -353,7 +327,7 @@ router.put("/bundles/:id", async (req, res, next) => {
     }
 
     const bundle = await prisma.bundleDiscount.update({
-      where: { id: req.params.id },
+      where: { id },
       data: {
         ...data,
         startsAt: data.startsAt ? new Date(data.startsAt) : undefined,
@@ -373,20 +347,17 @@ router.put("/bundles/:id", async (req, res, next) => {
       },
     });
 
-    sendSuccess(res, bundle, "Bundle discount updated");
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendSuccess(reply, bundle, "Bundle discount updated");
+  });
 
-/**
- * PATCH /api/admin/pricing/bundles/:id/toggle
- * Toggle bundle active status
- */
-router.patch("/bundles/:id/toggle", async (req, res, next) => {
-  try {
+  /**
+   * PATCH /api/admin/pricing/bundles/:id/toggle
+   * Toggle bundle active status
+   */
+  fastify.patch("/bundles/:id/toggle", async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as Record<string, string>;
     const bundle = await prisma.bundleDiscount.findUnique({
-      where: { id: req.params.id },
+      where: { id },
     });
 
     if (!bundle) {
@@ -394,31 +365,28 @@ router.patch("/bundles/:id/toggle", async (req, res, next) => {
     }
 
     const updated = await prisma.bundleDiscount.update({
-      where: { id: req.params.id },
+      where: { id },
       data: { isActive: !bundle.isActive },
     });
 
-    sendSuccess(res, updated, `Bundle ${updated.isActive ? "activated" : "deactivated"}`);
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendSuccess(reply, updated, `Bundle ${updated.isActive ? "activated" : "deactivated"}`);
+  });
 
-/**
- * DELETE /api/admin/pricing/bundles/:id
- * Delete bundle discount
- */
-router.delete("/bundles/:id", async (req, res, next) => {
-  try {
+  /**
+   * DELETE /api/admin/pricing/bundles/:id
+   * Delete bundle discount
+   */
+  fastify.delete("/bundles/:id", async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as Record<string, string>;
     const bundle = await prisma.bundleDiscount.findUnique({
-      where: { id: req.params.id },
+      where: { id },
     });
 
     if (!bundle) {
       throw ApiError.notFound("Bundle discount");
     }
 
-    await prisma.bundleDiscount.delete({ where: { id: req.params.id } });
+    await prisma.bundleDiscount.delete({ where: { id } });
 
     await prisma.studioAuditLog.create({
       data: {
@@ -431,30 +399,27 @@ router.delete("/bundles/:id", async (req, res, next) => {
       },
     });
 
-    sendSuccess(res, null, "Bundle discount deleted");
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendSuccess(reply, null, "Bundle discount deleted");
+  });
 
-// =====================================================
-// Price History Routes
-// =====================================================
+  // =====================================================
+  // Price History Routes
+  // =====================================================
 
-/**
- * GET /api/admin/pricing/history
- * Get price change history
- */
-router.get("/history", async (req, res, next) => {
-  try {
+  /**
+   * GET /api/admin/pricing/history
+   * Get price change history
+   */
+  fastify.get("/history", async (req: FastifyRequest, reply: FastifyReply) => {
+    const query = req.query as Record<string, string>;
     const { page, limit, skip } = parsePaginationParams(
-      req.query as { page?: string; limit?: string }
+      query as { page?: string; limit?: string }
     );
-    const { entityType, entitySlug } = req.query;
+    const { entityType, entitySlug } = query;
 
     const where: Record<string, unknown> = {};
-    if (entityType) where.entityType = entityType as string;
-    if (entitySlug) where.entitySlug = entitySlug as string;
+    if (entityType) where.entityType = entityType;
+    if (entitySlug) where.entitySlug = entitySlug;
 
     const [history, total] = await Promise.all([
       prisma.priceHistory.findMany({
@@ -466,23 +431,19 @@ router.get("/history", async (req, res, next) => {
       prisma.priceHistory.count({ where }),
     ]);
 
-    sendPaginated(res, history, createPaginationInfo(page, limit, total));
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendPaginated(reply, history, createPaginationInfo(page, limit, total));
+  });
 
-// =====================================================
-// Upgrade Recommendation Rules
-// =====================================================
+  // =====================================================
+  // Upgrade Recommendation Rules
+  // =====================================================
 
-/**
- * GET /api/admin/pricing/recommendations
- * Get upgrade recommendation analysis
- * Analyzes order data to suggest when customers should be recommended to upgrade tiers
- */
-router.get("/recommendations", async (_req, res, next) => {
-  try {
+  /**
+   * GET /api/admin/pricing/recommendations
+   * Get upgrade recommendation analysis
+   * Analyzes order data to suggest when customers should be recommended to upgrade tiers
+   */
+  fastify.get("/recommendations", async (_req: FastifyRequest, reply: FastifyReply) => {
     // Get all completed orders with their features and tiers
     const orders = await prisma.order.findMany({
       where: { status: "COMPLETED" },
@@ -595,10 +556,8 @@ router.get("/recommendations", async (_req, res, next) => {
       };
     });
 
-    sendSuccess(res, { recommendations, addOnPatterns });
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendSuccess(reply, { recommendations, addOnPatterns });
+  });
+};
 
-export { router as pricingRoutes };
+export { routePlugin as pricingRoutes };

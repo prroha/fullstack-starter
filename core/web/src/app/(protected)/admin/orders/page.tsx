@@ -14,6 +14,7 @@ import {
   Icon,
 } from "@/components/ui";
 import { Alert } from "@/components/feedback";
+import { Table, TableHeader, TableBody, TableFooter, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { EmptySearch, EmptyList } from "@/components/shared";
 import { FeatureGate } from "@/components";
 import { toast } from "sonner";
@@ -120,14 +121,14 @@ function OrderRow({
       : `${order.items[0].name} +${order.items.length - 1} more`;
 
   return (
-    <tr
-      className="border-b hover:bg-muted/50 cursor-pointer"
+    <TableRow
+      className="cursor-pointer"
       onClick={() => onViewDetails(order)}
     >
-      <td className="px-4 py-3">
+      <TableCell className="px-4 py-3">
         <Text className="font-medium font-mono text-sm">{order.orderNumber}</Text>
-      </td>
-      <td className="px-4 py-3">
+      </TableCell>
+      <TableCell className="px-4 py-3">
         <div>
           <Text as="p" className="font-medium">
             {order.customer.name}
@@ -136,24 +137,24 @@ function OrderRow({
             {order.customer.email}
           </Text>
         </div>
-      </td>
-      <td className="px-4 py-3">
+      </TableCell>
+      <TableCell className="px-4 py-3">
         <Text size="sm" color="muted">
           {itemsSummary}
         </Text>
-      </td>
-      <td className="px-4 py-3">
+      </TableCell>
+      <TableCell className="px-4 py-3">
         <Text className="font-medium">{formatCurrency(order.total)}</Text>
-      </td>
-      <td className="px-4 py-3">
+      </TableCell>
+      <TableCell className="px-4 py-3">
         <OrderStatusBadge status={order.status} />
-      </td>
-      <td className="px-4 py-3">
+      </TableCell>
+      <TableCell className="px-4 py-3">
         <Text variant="caption" color="muted">
           {formatDate(order.createdAt)}
         </Text>
-      </td>
-    </tr>
+      </TableCell>
+    </TableRow>
   );
 }
 
@@ -243,40 +244,40 @@ function OrderDetailsModal({
           </div>
           <div className="pl-6">
             <div className="rounded-md border">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b bg-muted/50">
-                    <th className="px-3 py-2 text-left font-medium">Item</th>
-                    <th className="px-3 py-2 text-right font-medium">Qty</th>
-                    <th className="px-3 py-2 text-right font-medium">Price</th>
-                    <th className="px-3 py-2 text-right font-medium">Total</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <Table className="text-sm">
+                <TableHeader>
+                  <TableRow className="bg-muted/50">
+                    <TableHead className="px-3 py-2 text-left font-medium">Item</TableHead>
+                    <TableHead className="px-3 py-2 text-right font-medium">Qty</TableHead>
+                    <TableHead className="px-3 py-2 text-right font-medium">Price</TableHead>
+                    <TableHead className="px-3 py-2 text-right font-medium">Total</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {order.items.map((item) => (
-                    <tr key={item.id} className="border-b last:border-0">
-                      <td className="px-3 py-2">{item.name}</td>
-                      <td className="px-3 py-2 text-right">{item.quantity}</td>
-                      <td className="px-3 py-2 text-right">
+                    <TableRow key={item.id} className="last:border-0">
+                      <TableCell className="px-3 py-2">{item.name}</TableCell>
+                      <TableCell className="px-3 py-2 text-right">{item.quantity}</TableCell>
+                      <TableCell className="px-3 py-2 text-right">
                         {formatCurrency(item.unitPrice)}
-                      </td>
-                      <td className="px-3 py-2 text-right font-medium">
+                      </TableCell>
+                      <TableCell className="px-3 py-2 text-right font-medium">
                         {formatCurrency(item.quantity * item.unitPrice)}
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-                <tfoot>
-                  <tr className="bg-muted/30">
-                    <td colSpan={3} className="px-3 py-2 text-right font-medium">
+                </TableBody>
+                <TableFooter className="bg-muted/30">
+                  <TableRow>
+                    <TableCell colSpan={3} className="px-3 py-2 text-right font-medium">
                       Total
-                    </td>
-                    <td className="px-3 py-2 text-right font-bold">
+                    </TableCell>
+                    <TableCell className="px-3 py-2 text-right font-bold">
                       {formatCurrency(order.total)}
-                    </td>
-                  </tr>
-                </tfoot>
-              </table>
+                    </TableCell>
+                  </TableRow>
+                </TableFooter>
+              </Table>
             </div>
           </div>
         </div>
@@ -690,41 +691,39 @@ export default function AdminOrdersPage() {
               )}
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b bg-muted/50">
-                    <th className="px-4 py-3 text-left text-sm font-medium">
-                      Order ID
-                    </th>
-                    <th className="px-4 py-3 text-left text-sm font-medium">
-                      Customer
-                    </th>
-                    <th className="px-4 py-3 text-left text-sm font-medium">
-                      Items
-                    </th>
-                    <th className="px-4 py-3 text-left text-sm font-medium">
-                      Total
-                    </th>
-                    <th className="px-4 py-3 text-left text-sm font-medium">
-                      Status
-                    </th>
-                    <th className="px-4 py-3 text-left text-sm font-medium">
-                      Date
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {orders.map((order) => (
-                    <OrderRow
-                      key={order.id}
-                      order={order}
-                      onViewDetails={setSelectedOrder}
-                    />
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/50">
+                  <TableHead className="px-4 py-3 text-left text-sm font-medium">
+                    Order ID
+                  </TableHead>
+                  <TableHead className="px-4 py-3 text-left text-sm font-medium">
+                    Customer
+                  </TableHead>
+                  <TableHead className="px-4 py-3 text-left text-sm font-medium">
+                    Items
+                  </TableHead>
+                  <TableHead className="px-4 py-3 text-left text-sm font-medium">
+                    Total
+                  </TableHead>
+                  <TableHead className="px-4 py-3 text-left text-sm font-medium">
+                    Status
+                  </TableHead>
+                  <TableHead className="px-4 py-3 text-left text-sm font-medium">
+                    Date
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {orders.map((order) => (
+                  <OrderRow
+                    key={order.id}
+                    order={order}
+                    onViewDetails={setSelectedOrder}
+                  />
+                ))}
+              </TableBody>
+            </Table>
           )}
 
           {/* Pagination */}

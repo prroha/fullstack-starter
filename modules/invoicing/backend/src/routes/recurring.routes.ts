@@ -1,65 +1,54 @@
-import { Router, Request, Response } from 'express';
-import { getRecurringService } from '../services/recurring.service';
-import { authMiddleware, AuthenticatedRequest } from '../middleware/auth';
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
+import { getRecurringService } from '../services/recurring.service.js';
+import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
 
 // =============================================================================
-// Router
+// Routes
 // =============================================================================
 
-const router = Router();
 const recurringService = getRecurringService();
 
 // =============================================================================
 // Recurring Invoice Endpoints (All Authenticated)
 // =============================================================================
 
-/**
- * GET /recurring
- * List recurring invoices with pagination
- */
-router.get('/', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+const routes: FastifyPluginAsync = async (fastify) => {
+  /**
+   * GET /recurring
+   * List recurring invoices with pagination
+   */
+  fastify.get('/', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { page, limit } = req.query;
+    const { page, limit } = req.query as Record<string, string>;
 
     const result = await recurringService.list(authReq.user.userId, {
       page: page ? Number(page) : 1,
       limit: limit ? Number(limit) : 20,
     });
 
-    res.json({ success: true, data: result });
-  } catch (error) {
-    console.error('[RecurringRoutes] List error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to list recurring invoices' });
-  }
-});
+    return reply.send({ success: true, data: result });
+  });
 
-/**
- * GET /recurring/:id
- * Get recurring invoice by ID
- */
-router.get('/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * GET /recurring/:id
+   * Get recurring invoice by ID
+   */
+  fastify.get('/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
+    const { id } = req.params as { id: string };
 
-    const recurring = await recurringService.getById(req.params.id, authReq.user.userId);
+    const recurring = await recurringService.getById(id, authReq.user.userId);
     if (!recurring) {
-      res.status(404).json({ error: 'Recurring invoice not found' });
-      return;
+      return reply.code(404).send({ error: 'Recurring invoice not found' });
     }
-    res.json({ success: true, data: recurring });
-  } catch (error) {
-    console.error('[RecurringRoutes] Get error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to get recurring invoice' });
-  }
-});
+    return reply.send({ success: true, data: recurring });
+  });
 
-/**
- * POST /recurring
- * Create a new recurring invoice
- */
-router.post('/', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * POST /recurring
+   * Create a new recurring invoice
+   */
+  fastify.post('/', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
     const {
       clientId,
@@ -71,16 +60,14 @@ router.post('/', authMiddleware, async (req: Request, res: Response): Promise<vo
       notes,
       terms,
       maxOccurrences,
-    } = req.body;
+    } = req.body as Record<string, unknown>;
 
     if (!clientId || !frequency || !startDate || !templateItems) {
-      res.status(400).json({ error: 'clientId, frequency, startDate, and templateItems are required' });
-      return;
+      return reply.code(400).send({ error: 'clientId, frequency, startDate, and templateItems are required' });
     }
 
     if (!Array.isArray(templateItems) || templateItems.length === 0) {
-      res.status(400).json({ error: 'templateItems must be a non-empty array' });
-      return;
+      return reply.code(400).send({ error: 'templateItems must be a non-empty array' });
     }
 
     const recurring = await recurringService.create({
@@ -96,22 +83,16 @@ router.post('/', authMiddleware, async (req: Request, res: Response): Promise<vo
       maxOccurrences,
     });
 
-    res.status(201).json({ success: true, data: recurring });
-  } catch (error) {
-    console.error('[RecurringRoutes] Create error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to create recurring invoice',
-    });
-  }
-});
+    return reply.code(201).send({ success: true, data: recurring });
+  });
 
-/**
- * PATCH /recurring/:id
- * Update a recurring invoice
- */
-router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * PATCH /recurring/:id
+   * Update a recurring invoice
+   */
+  fastify.patch('/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
+    const { id } = req.params as { id: string };
     const {
       clientId,
       frequency,
@@ -122,9 +103,9 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promis
       notes,
       terms,
       maxOccurrences,
-    } = req.body;
+    } = req.body as Record<string, unknown>;
 
-    const recurring = await recurringService.update(req.params.id, authReq.user.userId, {
+    const recurring = await recurringService.update(id, authReq.user.userId, {
       clientId,
       frequency,
       startDate,
@@ -137,83 +118,56 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promis
     });
 
     if (!recurring) {
-      res.status(404).json({ error: 'Recurring invoice not found' });
-      return;
+      return reply.code(404).send({ error: 'Recurring invoice not found' });
     }
 
-    res.json({ success: true, data: recurring });
-  } catch (error) {
-    console.error('[RecurringRoutes] Update error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to update recurring invoice',
-    });
-  }
-});
+    return reply.send({ success: true, data: recurring });
+  });
 
-/**
- * POST /recurring/:id/pause
- * Pause a recurring invoice
- */
-router.post('/:id/pause', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * POST /recurring/:id/pause
+   * Pause a recurring invoice
+   */
+  fastify.post('/:id/pause', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
+    const { id } = req.params as { id: string };
 
-    const recurring = await recurringService.pause(req.params.id, authReq.user.userId);
+    const recurring = await recurringService.pause(id, authReq.user.userId);
     if (!recurring) {
-      res.status(404).json({ error: 'Recurring invoice not found' });
-      return;
+      return reply.code(404).send({ error: 'Recurring invoice not found' });
     }
-    res.json({ success: true, data: recurring });
-  } catch (error) {
-    console.error('[RecurringRoutes] Pause error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to pause recurring invoice',
-    });
-  }
-});
+    return reply.send({ success: true, data: recurring });
+  });
 
-/**
- * POST /recurring/:id/resume
- * Resume a paused recurring invoice
- */
-router.post('/:id/resume', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * POST /recurring/:id/resume
+   * Resume a paused recurring invoice
+   */
+  fastify.post('/:id/resume', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
+    const { id } = req.params as { id: string };
 
-    const recurring = await recurringService.resume(req.params.id, authReq.user.userId);
+    const recurring = await recurringService.resume(id, authReq.user.userId);
     if (!recurring) {
-      res.status(404).json({ error: 'Recurring invoice not found' });
-      return;
+      return reply.code(404).send({ error: 'Recurring invoice not found' });
     }
-    res.json({ success: true, data: recurring });
-  } catch (error) {
-    console.error('[RecurringRoutes] Resume error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to resume recurring invoice',
-    });
-  }
-});
+    return reply.send({ success: true, data: recurring });
+  });
 
-/**
- * POST /recurring/:id/cancel
- * Cancel a recurring invoice
- */
-router.post('/:id/cancel', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * POST /recurring/:id/cancel
+   * Cancel a recurring invoice
+   */
+  fastify.post('/:id/cancel', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
+    const { id } = req.params as { id: string };
 
-    const recurring = await recurringService.cancel(req.params.id, authReq.user.userId);
+    const recurring = await recurringService.cancel(id, authReq.user.userId);
     if (!recurring) {
-      res.status(404).json({ error: 'Recurring invoice not found' });
-      return;
+      return reply.code(404).send({ error: 'Recurring invoice not found' });
     }
-    res.json({ success: true, data: recurring });
-  } catch (error) {
-    console.error('[RecurringRoutes] Cancel error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to cancel recurring invoice',
-    });
-  }
-});
+    return reply.send({ success: true, data: recurring });
+  });
+};
 
-export default router;
+export default routes;

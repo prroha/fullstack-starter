@@ -1,14 +1,4 @@
-/**
- * Format a price stored in cents to a display currency string.
- * Returns "Free" for zero prices.
- */
-export function formatPrice(priceInCents: number, currency = 'usd'): string {
-  if (priceInCents === 0) return 'Free';
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: currency.toUpperCase(),
-  }).format(priceInCents / 100);
-}
+export { formatPrice } from '@/lib/utils';
 
 /**
  * Format a duration in minutes to a human-readable string.

@@ -1,17 +1,17 @@
-import { Router, Request, Response, NextFunction } from 'express';
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
 import { PrismaClient } from '@prisma/client';
 import {
   getAdminController,
   hasPermission,
   Permission,
   ROLE_PERMISSIONS,
-} from '../controllers/admin.controller';
+} from '../controllers/admin.controller.js';
 
 // =============================================================================
 // Types
 // =============================================================================
 
-interface AuthenticatedRequest extends Request {
+interface AuthenticatedRequest extends FastifyRequest {
   user?: {
     id: string;
     userId: string;
@@ -35,132 +35,113 @@ interface AuthenticatedRequest extends Request {
  * Middleware to check if user has admin or manager role
  * Assumes authentication middleware has already run and attached user to request
  */
-export function requireAdminOrManager(
+export async function requireAdminOrManager(
   req: AuthenticatedRequest,
-  res: Response,
-  next: NextFunction
-): void {
+  reply: FastifyReply
+) {
   const user = req.user;
   const dbUser = req.dbUser;
 
   if (!user || !dbUser) {
-    res.status(401).json({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
-    return;
+    return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
   }
 
   const role = dbUser.role;
   if (role !== 'ADMIN' && role !== 'MANAGER') {
-    res.status(403).json({
+    return reply.code(403).send({
       error: 'Admin or Manager access required',
       code: 'INSUFFICIENT_ROLE',
     });
-    return;
   }
-
-  next();
 }
 
 /**
  * Middleware to check if user is an admin (full access)
  * Assumes authentication middleware has already run and attached user to request
  */
-export function requireAdmin(
+export async function requireAdmin(
   req: AuthenticatedRequest,
-  res: Response,
-  next: NextFunction
-): void {
+  reply: FastifyReply
+) {
   const user = req.user;
   const dbUser = req.dbUser;
 
   if (!user || !dbUser) {
-    res.status(401).json({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
-    return;
+    return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
   }
 
   if (dbUser.role !== 'ADMIN') {
-    res.status(403).json({ error: 'Admin access required', code: 'ADMIN_REQUIRED' });
-    return;
+    return reply.code(403).send({ error: 'Admin access required', code: 'ADMIN_REQUIRED' });
   }
-
-  next();
 }
 
 /**
  * Factory to create permission check middleware
  * @param permission - The permission to check
- * @returns Express middleware function
+ * @returns Fastify preHandler function
  */
 export function requirePermission(permission: Permission) {
-  return function (req: AuthenticatedRequest, res: Response, next: NextFunction): void {
+  return async function (req: AuthenticatedRequest, reply: FastifyReply) {
     const user = req.user;
     const dbUser = req.dbUser;
 
     if (!user || !dbUser) {
-      res.status(401).json({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
-      return;
+      return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
     }
 
     const role = dbUser.role;
 
     if (!hasPermission(role, permission)) {
-      res.status(403).json({
+      return reply.code(403).send({
         error: `Permission denied: ${permission}`,
         code: 'PERMISSION_DENIED',
         requiredPermission: permission,
         userRole: role,
       });
-      return;
     }
-
-    next();
   };
 }
 
 /**
  * Factory to create middleware that requires any of the specified permissions
  * @param permissions - Array of permissions (user needs at least one)
- * @returns Express middleware function
+ * @returns Fastify preHandler function
  */
 export function requireAnyPermission(permissions: Permission[]) {
-  return function (req: AuthenticatedRequest, res: Response, next: NextFunction): void {
+  return async function (req: AuthenticatedRequest, reply: FastifyReply) {
     const user = req.user;
     const dbUser = req.dbUser;
 
     if (!user || !dbUser) {
-      res.status(401).json({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
-      return;
+      return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
     }
 
     const role = dbUser.role;
     const hasAny = permissions.some((permission) => hasPermission(role, permission));
 
     if (!hasAny) {
-      res.status(403).json({
+      return reply.code(403).send({
         error: 'Permission denied',
         code: 'PERMISSION_DENIED',
         requiredPermissions: permissions,
         userRole: role,
       });
-      return;
     }
-
-    next();
   };
 }
 
 /**
  * Factory to create middleware that requires all specified permissions
  * @param permissions - Array of permissions (user needs all)
- * @returns Express middleware function
+ * @returns Fastify preHandler function
  */
 export function requireAllPermissions(permissions: Permission[]) {
-  return function (req: AuthenticatedRequest, res: Response, next: NextFunction): void {
+  return async function (req: AuthenticatedRequest, reply: FastifyReply) {
     const user = req.user;
     const dbUser = req.dbUser;
 
     if (!user || !dbUser) {
-      res.status(401).json({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
-      return;
+      return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
     }
 
     const role = dbUser.role;
@@ -169,16 +150,13 @@ export function requireAllPermissions(permissions: Permission[]) {
     );
 
     if (missingPermissions.length > 0) {
-      res.status(403).json({
+      return reply.code(403).send({
         error: 'Permission denied',
         code: 'PERMISSION_DENIED',
         missingPermissions,
         userRole: role,
       });
-      return;
     }
-
-    next();
   };
 }
 
@@ -186,17 +164,16 @@ export function requireAllPermissions(permissions: Permission[]) {
 // Helper: Get user permissions endpoint
 // =============================================================================
 
-function getUserPermissions(req: AuthenticatedRequest, res: Response): void {
+function getUserPermissions(req: AuthenticatedRequest, reply: FastifyReply) {
   const dbUser = req.dbUser;
 
   if (!dbUser) {
-    res.status(401).json({ error: 'Authentication required' });
-    return;
+    return reply.code(401).send({ error: 'Authentication required' });
   }
 
   const permissions = ROLE_PERMISSIONS[dbUser.role] || [];
 
-  res.json({
+  return reply.send({
     success: true,
     role: dbUser.role,
     permissions,
@@ -204,159 +181,164 @@ function getUserPermissions(req: AuthenticatedRequest, res: Response): void {
 }
 
 // =============================================================================
-// Router Factory
+// Plugin Factory
 // =============================================================================
 
 /**
  * Create admin routes with Prisma client
  */
-export function createAdminRoutes(prisma: PrismaClient): Router {
-  const router = Router();
-  const controller = getAdminController(prisma);
+export function createAdminRoutes(prisma: PrismaClient): FastifyPluginAsync {
+  const routes: FastifyPluginAsync = async (fastify) => {
+    const controller = getAdminController(prisma);
 
-  // Apply basic admin/manager check to all routes
-  router.use(requireAdminOrManager);
+    // Apply basic admin/manager check to all routes
+    fastify.addHook('preHandler', requireAdminOrManager);
 
-  // ===========================================================================
-  // Permissions
-  // ===========================================================================
+    // ===========================================================================
+    // Permissions
+    // ===========================================================================
 
-  /**
-   * GET /admin/permissions
-   * Get current user's permissions
-   */
-  router.get('/permissions', getUserPermissions);
+    /**
+     * GET /admin/permissions
+     * Get current user's permissions
+     */
+    fastify.get('/permissions', async (req: FastifyRequest, reply: FastifyReply) =>
+      getUserPermissions(req as AuthenticatedRequest, reply)
+    );
 
-  // ===========================================================================
-  // Dashboard
-  // ===========================================================================
+    // ===========================================================================
+    // Dashboard
+    // ===========================================================================
 
-  /**
-   * GET /admin/stats
-   * Get dashboard statistics
-   * Required permission: stats:read
-   */
-  router.get('/stats', requirePermission('stats:read'), (req, res) =>
-    controller.getStats(req, res)
-  );
+    /**
+     * GET /admin/stats
+     * Get dashboard statistics
+     * Required permission: stats:read
+     */
+    fastify.get('/stats', { preHandler: [requirePermission('stats:read')] }, async (req, reply) =>
+      controller.getStats(req, reply)
+    );
 
-  /**
-   * GET /admin/activity
-   * Get recent activity
-   * Required permission: activity:read
-   */
-  router.get('/activity', requirePermission('activity:read'), (req, res) =>
-    controller.getRecentActivity(req, res)
-  );
+    /**
+     * GET /admin/activity
+     * Get recent activity
+     * Required permission: activity:read
+     */
+    fastify.get('/activity', { preHandler: [requirePermission('activity:read')] }, async (req, reply) =>
+      controller.getRecentActivity(req, reply)
+    );
 
-  // ===========================================================================
-  // User Management
-  // ===========================================================================
+    // ===========================================================================
+    // User Management
+    // ===========================================================================
 
-  /**
-   * GET /admin/users
-   * List users with pagination
-   * Required permission: users:read
-   */
-  router.get('/users', requirePermission('users:read'), (req, res) =>
-    controller.listUsers(req, res)
-  );
+    /**
+     * GET /admin/users
+     * List users with pagination
+     * Required permission: users:read
+     */
+    fastify.get('/users', { preHandler: [requirePermission('users:read')] }, async (req, reply) =>
+      controller.listUsers(req, reply)
+    );
 
-  /**
-   * GET /admin/users/:id
-   * Get single user
-   * Required permission: users:read
-   */
-  router.get('/users/:id', requirePermission('users:read'), (req, res) =>
-    controller.getUser(req, res)
-  );
+    /**
+     * GET /admin/users/:id
+     * Get single user
+     * Required permission: users:read
+     */
+    fastify.get('/users/:id', { preHandler: [requirePermission('users:read')] }, async (req, reply) =>
+      controller.getUser(req, reply)
+    );
 
-  /**
-   * PATCH /admin/users/:id
-   * Update user
-   * Required permission: users:update
-   * Note: Role changes require users:manage_roles permission
-   */
-  router.patch(
-    '/users/:id',
-    requirePermission('users:update'),
-    (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-      // Additional check: role changes require manage_roles permission
-      if (req.body.role !== undefined) {
-        const dbUser = req.dbUser;
-        if (!dbUser || !hasPermission(dbUser.role, 'users:manage_roles')) {
-          res.status(403).json({
-            error: 'Permission denied: cannot change user roles',
-            code: 'PERMISSION_DENIED',
-            requiredPermission: 'users:manage_roles',
-          });
-          return;
-        }
-      }
-      next();
-    },
-    (req, res) => controller.updateUser(req, res)
-  );
+    /**
+     * PATCH /admin/users/:id
+     * Update user
+     * Required permission: users:update
+     * Note: Role changes require users:manage_roles permission
+     */
+    fastify.patch(
+      '/users/:id',
+      {
+        preHandler: [
+          requirePermission('users:update'),
+          async (req: AuthenticatedRequest, reply: FastifyReply) => {
+            // Additional check: role changes require manage_roles permission
+            if ((req.body as Record<string, unknown>)?.role !== undefined) {
+              const dbUser = req.dbUser;
+              if (!dbUser || !hasPermission(dbUser.role, 'users:manage_roles')) {
+                return reply.code(403).send({
+                  error: 'Permission denied: cannot change user roles',
+                  code: 'PERMISSION_DENIED',
+                  requiredPermission: 'users:manage_roles',
+                });
+              }
+            }
+          },
+        ],
+      },
+      async (req, reply) => controller.updateUser(req, reply)
+    );
 
-  /**
-   * DELETE /admin/users/:id
-   * Delete user
-   * Required permission: users:delete (ADMIN only)
-   */
-  router.delete('/users/:id', requirePermission('users:delete'), (req, res) =>
-    controller.deleteUser(req, res)
-  );
+    /**
+     * DELETE /admin/users/:id
+     * Delete user
+     * Required permission: users:delete (ADMIN only)
+     */
+    fastify.delete('/users/:id', { preHandler: [requirePermission('users:delete')] }, async (req, reply) =>
+      controller.deleteUser(req, reply)
+    );
 
-  // ===========================================================================
-  // Settings
-  // ===========================================================================
+    // ===========================================================================
+    // Settings
+    // ===========================================================================
 
-  /**
-   * GET /admin/settings
-   * Get system settings
-   * Required permission: settings:read
-   */
-  router.get('/settings', requirePermission('settings:read'), (req, res) =>
-    controller.getSettings(req, res)
-  );
+    /**
+     * GET /admin/settings
+     * Get system settings
+     * Required permission: settings:read
+     */
+    fastify.get('/settings', { preHandler: [requirePermission('settings:read')] }, async (req, reply) =>
+      controller.getSettings(req, reply)
+    );
 
-  /**
-   * PUT /admin/settings
-   * Update system settings
-   * Required permission: settings:update (ADMIN only)
-   */
-  router.put('/settings', requirePermission('settings:update'), (req, res) =>
-    controller.updateSettings(req, res)
-  );
+    /**
+     * PUT /admin/settings
+     * Update system settings
+     * Required permission: settings:update (ADMIN only)
+     */
+    fastify.put('/settings', { preHandler: [requirePermission('settings:update')] }, async (req, reply) =>
+      controller.updateSettings(req, reply)
+    );
 
-  /**
-   * GET /admin/settings/:key
-   * Get a specific setting
-   * Required permission: settings:read
-   */
-  router.get('/settings/:key', requirePermission('settings:read'), (req, res) =>
-    controller.getSetting(req, res)
-  );
+    /**
+     * GET /admin/settings/:key
+     * Get a specific setting
+     * Required permission: settings:read
+     */
+    fastify.get('/settings/:key', { preHandler: [requirePermission('settings:read')] }, async (req, reply) =>
+      controller.getSetting(req, reply)
+    );
 
-  /**
-   * PUT /admin/settings/:key
-   * Update a specific setting
-   * Required permission: settings:update (ADMIN only)
-   */
-  router.put('/settings/:key', requirePermission('settings:update'), (req, res) =>
-    controller.updateSetting(req, res)
-  );
+    /**
+     * PUT /admin/settings/:key
+     * Update a specific setting
+     * Required permission: settings:update (ADMIN only)
+     */
+    fastify.put('/settings/:key', { preHandler: [requirePermission('settings:update')] }, async (req, reply) =>
+      controller.updateSetting(req, reply)
+    );
 
-  /**
-   * DELETE /admin/settings/:key
-   * Reset a setting to default
-   * Required permission: settings:update (ADMIN only)
-   */
-  router.delete('/settings/:key', requirePermission('settings:update'), (req, res) =>
-    controller.resetSetting(req, res)
-  );
+    /**
+     * DELETE /admin/settings/:key
+     * Reset a setting to default
+     * Required permission: settings:update (ADMIN only)
+     */
+    fastify.delete('/settings/:key', { preHandler: [requirePermission('settings:update')] }, async (req, reply) =>
+      controller.resetSetting(req, reply)
+    );
+  };
 
-  return router;
+  return routes;
 }
 
 export default createAdminRoutes;

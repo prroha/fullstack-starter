@@ -38,7 +38,7 @@ export default function InvoiceSummary({
       {discountAmount > 0 && (
         <div className="flex justify-between text-sm">
           <span className="text-muted-foreground">Discount</span>
-          <span className="text-green-600">-{formatPrice(discountAmount, currency)}</span>
+          <span className="text-success">-{formatPrice(discountAmount, currency)}</span>
         </div>
       )}
 
@@ -52,13 +52,13 @@ export default function InvoiceSummary({
       {amountPaid > 0 && (
         <div className="flex justify-between text-sm">
           <span className="text-muted-foreground">Paid</span>
-          <span className="text-green-600">{formatPrice(amountPaid, currency)}</span>
+          <span className="text-success">{formatPrice(amountPaid, currency)}</span>
         </div>
       )}
 
       <div className="flex justify-between font-semibold text-lg border-t border-border pt-2">
         <span className="text-foreground">Amount Due</span>
-        <span className={amountDue > 0 ? "text-destructive" : "text-green-600"}>
+        <span className={amountDue > 0 ? "text-destructive" : "text-success"}>
           {formatPrice(amountDue, currency)}
         </span>
       </div>

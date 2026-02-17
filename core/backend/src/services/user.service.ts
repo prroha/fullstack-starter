@@ -127,7 +127,7 @@ class UserService {
   /**
    * Upload user avatar
    */
-  async uploadAvatar(userId: string, file: Express.Multer.File): Promise<{ url: string }> {
+  async uploadAvatar(userId: string, file: { filename: string; filepath: string; mimetype: string; size: number }): Promise<{ url: string }> {
     // Check if user exists
     const existingUser = await db.user.findUnique({
       where: { id: userId },
@@ -136,7 +136,7 @@ class UserService {
 
     if (!existingUser) {
       // Delete the uploaded file if user doesn't exist
-      await deleteUploadedFile(file.path);
+      await deleteUploadedFile(file.filepath);
       throw ApiError.notFound("User not found", ErrorCodes.USER_NOT_FOUND);
     }
 

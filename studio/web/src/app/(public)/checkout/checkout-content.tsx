@@ -324,7 +324,7 @@ export function CheckoutContent() {
         </p>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-8">
+      <div className="grid lg:grid-cols-3 gap-6">
         {/* Left Column - Forms */}
         <div className="lg:col-span-2 space-y-6">
           {/* Submit Error Alert */}
@@ -431,10 +431,10 @@ export function CheckoutContent() {
             </CardHeader>
             <CardContent>
               {couponApplied && couponData ? (
-                <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900 rounded-lg">
+                <div className="flex items-center justify-between p-3 bg-success/10 border border-success/20 rounded-lg">
                   <div className="flex items-center gap-2">
-                    <Check className="h-5 w-5 text-green-600" aria-hidden="true" />
-                    <span className="font-medium text-green-700 dark:text-green-400">
+                    <Check className="h-5 w-5 text-success" aria-hidden="true" />
+                    <span className="font-medium text-success">
                       {couponData.code}
                     </span>
                     <Badge variant="success" size="sm">
@@ -604,7 +604,7 @@ export function CheckoutContent() {
                       pricing.bundleDiscounts.map((discount) => (
                         <div
                           key={discount.id}
-                          className="flex justify-between text-green-600"
+                          className="flex justify-between text-success"
                         >
                           <span className="flex items-center gap-1">
                             <Tag className="h-3 w-3" aria-hidden="true" />
@@ -616,7 +616,7 @@ export function CheckoutContent() {
 
                     {/* Coupon Discount */}
                     {couponApplied && couponData && (
-                      <div className="flex justify-between text-green-600">
+                      <div className="flex justify-between text-success">
                         <span className="flex items-center gap-1">
                           <Gift className="h-3 w-3" aria-hidden="true" />
                           Coupon: {couponData.code}
@@ -633,7 +633,7 @@ export function CheckoutContent() {
                     {(pricing.totalDiscount > 0 || (couponApplied && couponData)) && (
                       <>
                         <Divider className="my-2" />
-                        <div className="flex justify-between text-green-600 font-medium">
+                        <div className="flex justify-between text-success font-medium">
                           <span>You Save</span>
                           <span>
                             -{formatPrice(
@@ -712,23 +712,23 @@ export function CheckoutContent() {
               <CardContent>
                 <ul className="space-y-2 text-sm">
                   <li className="flex items-start gap-2">
-                    <Check className="h-4 w-4 text-green-600 mt-0.5 shrink-0" aria-hidden="true" />
+                    <Check className="h-4 w-4 text-success mt-0.5 shrink-0" aria-hidden="true" />
                     <span>Full source code access</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <Check className="h-4 w-4 text-green-600 mt-0.5 shrink-0" aria-hidden="true" />
+                    <Check className="h-4 w-4 text-success mt-0.5 shrink-0" aria-hidden="true" />
                     <span>Lifetime updates and improvements</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <Check className="h-4 w-4 text-green-600 mt-0.5 shrink-0" aria-hidden="true" />
+                    <Check className="h-4 w-4 text-success mt-0.5 shrink-0" aria-hidden="true" />
                     <span>Use for unlimited projects</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <Check className="h-4 w-4 text-green-600 mt-0.5 shrink-0" aria-hidden="true" />
+                    <Check className="h-4 w-4 text-success mt-0.5 shrink-0" aria-hidden="true" />
                     <span>Documentation and setup guides</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <Check className="h-4 w-4 text-green-600 mt-0.5 shrink-0" aria-hidden="true" />
+                    <Check className="h-4 w-4 text-success mt-0.5 shrink-0" aria-hidden="true" />
                     <span>Community support access</span>
                   </li>
                 </ul>

@@ -107,16 +107,8 @@ export function getRecurringStatusBadge(status: RecurringStatus): string {
   return recurringStatusBadgeMap[status] ?? 'pending';
 }
 
-/**
- * Format a date string to a locale display string.
- */
-export function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
-}
+import { formatDate } from '@/lib/utils';
+export { formatDate };
 
 /**
  * Format a due date with overdue indication.

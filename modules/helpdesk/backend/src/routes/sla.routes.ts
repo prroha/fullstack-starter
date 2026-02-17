@@ -1,91 +1,73 @@
-import { Router, Request, Response } from 'express';
-import { getSlaService } from '../services/sla.service';
-import { authMiddleware, AuthenticatedRequest } from '../middleware/auth';
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
+import { getSlaService } from '../services/sla.service.js';
+import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
 
 // =============================================================================
-// Router
+// Routes
 // =============================================================================
 
-const router = Router();
 const slaService = getSlaService();
 
 // =============================================================================
 // SLA Policy Endpoints (All Authenticated)
 // =============================================================================
 
-/**
- * GET /sla-policies/check-breaches
- * Check for SLA breaches across all active tickets
- * MUST be before /:id route to avoid matching "check-breaches" as an ID
- */
-router.get('/check-breaches', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+const routes: FastifyPluginAsync = async (fastify) => {
+  /**
+   * GET /sla-policies/check-breaches
+   * Check for SLA breaches across all active tickets
+   * MUST be before /:id route to avoid matching "check-breaches" as an ID
+   */
+  fastify.get('/check-breaches', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
 
     const breaches = await slaService.checkBreaches(authReq.user.userId);
-    res.json({ success: true, data: breaches });
-  } catch (error) {
-    console.error('[SlaRoutes] Check breaches error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to check SLA breaches' });
-  }
-});
+    return reply.send({ success: true, data: breaches });
+  });
 
-/**
- * GET /sla-policies
- * List all SLA policies
- */
-router.get('/', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * GET /sla-policies
+   * List all SLA policies
+   */
+  fastify.get('/', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-
-    const { search, priority, isActive, page, limit } = req.query;
+    const { search, priority, isActive, page, limit } = req.query as Record<string, string>;
 
     const policies = await slaService.list(authReq.user.userId, {
-      search: search as string,
-      priority: priority as string,
+      search,
+      priority,
       isActive: isActive !== undefined ? isActive === 'true' : undefined,
       page: page ? Number(page) : 1,
       limit: limit ? Number(limit) : 20,
     });
-    res.json({ success: true, data: policies });
-  } catch (error) {
-    console.error('[SlaRoutes] List error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to list SLA policies' });
-  }
-});
+    return reply.send({ success: true, data: policies });
+  });
 
-/**
- * GET /sla-policies/:id
- * Get SLA policy by ID
- */
-router.get('/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * GET /sla-policies/:id
+   * Get SLA policy by ID
+   */
+  fastify.get('/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
+    const { id } = req.params as { id: string };
 
-    const policy = await slaService.getById(req.params.id, authReq.user.userId);
+    const policy = await slaService.getById(id, authReq.user.userId);
     if (!policy) {
-      res.status(404).json({ error: 'SLA policy not found' });
-      return;
+      return reply.code(404).send({ error: 'SLA policy not found' });
     }
-    res.json({ success: true, data: policy });
-  } catch (error) {
-    console.error('[SlaRoutes] Get error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to get SLA policy' });
-  }
-});
+    return reply.send({ success: true, data: policy });
+  });
 
-/**
- * POST /sla-policies
- * Create a new SLA policy
- */
-router.post('/', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * POST /sla-policies
+   * Create a new SLA policy
+   */
+  fastify.post('/', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { name, description, priority, firstResponseMinutes, resolutionMinutes, escalationEmail, businessHoursOnly } = req.body;
+    const { name, description, priority, firstResponseMinutes, resolutionMinutes, escalationEmail, businessHoursOnly } = req.body as Record<string, unknown>;
 
     if (!name || !priority || !firstResponseMinutes || !resolutionMinutes) {
-      res.status(400).json({ error: 'name, priority, firstResponseMinutes, and resolutionMinutes are required' });
-      return;
+      return reply.code(400).send({ error: 'name, priority, firstResponseMinutes, and resolutionMinutes are required' });
     }
 
     const policy = await slaService.create({
@@ -99,25 +81,19 @@ router.post('/', authMiddleware, async (req: Request, res: Response): Promise<vo
       businessHoursOnly,
     });
 
-    res.status(201).json({ success: true, data: policy });
-  } catch (error) {
-    console.error('[SlaRoutes] Create error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to create SLA policy',
-    });
-  }
-});
+    return reply.code(201).send({ success: true, data: policy });
+  });
 
-/**
- * PATCH /sla-policies/:id
- * Update an SLA policy
- */
-router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * PATCH /sla-policies/:id
+   * Update an SLA policy
+   */
+  fastify.patch('/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { name, description, priority, firstResponseMinutes, resolutionMinutes, escalationEmail, businessHoursOnly } = req.body;
+    const { id } = req.params as { id: string };
+    const { name, description, priority, firstResponseMinutes, resolutionMinutes, escalationEmail, businessHoursOnly } = req.body as Record<string, unknown>;
 
-    const policy = await slaService.update(req.params.id, authReq.user.userId, {
+    const policy = await slaService.update(id, authReq.user.userId, {
       name,
       description,
       priority,
@@ -128,57 +104,38 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promis
     });
 
     if (!policy) {
-      res.status(404).json({ error: 'SLA policy not found' });
-      return;
+      return reply.code(404).send({ error: 'SLA policy not found' });
     }
 
-    res.json({ success: true, data: policy });
-  } catch (error) {
-    console.error('[SlaRoutes] Update error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to update SLA policy',
-    });
-  }
-});
+    return reply.send({ success: true, data: policy });
+  });
 
-/**
- * DELETE /sla-policies/:id
- * Delete an SLA policy
- */
-router.delete('/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * DELETE /sla-policies/:id
+   * Delete an SLA policy
+   */
+  fastify.delete('/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
+    const { id } = req.params as { id: string };
 
-    await slaService.delete(req.params.id, authReq.user.userId);
-    res.json({ success: true, message: 'SLA policy deleted' });
-  } catch (error) {
-    console.error('[SlaRoutes] Delete error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to delete SLA policy',
-    });
-  }
-});
+    await slaService.delete(id, authReq.user.userId);
+    return reply.send({ success: true, message: 'SLA policy deleted' });
+  });
 
-/**
- * POST /sla-policies/:id/toggle-active
- * Toggle SLA policy active status
- */
-router.post('/:id/toggle-active', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * POST /sla-policies/:id/toggle-active
+   * Toggle SLA policy active status
+   */
+  fastify.post('/:id/toggle-active', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
+    const { id } = req.params as { id: string };
 
-    const policy = await slaService.toggleActive(req.params.id, authReq.user.userId);
+    const policy = await slaService.toggleActive(id, authReq.user.userId);
     if (!policy) {
-      res.status(404).json({ error: 'SLA policy not found' });
-      return;
+      return reply.code(404).send({ error: 'SLA policy not found' });
     }
-    res.json({ success: true, data: policy });
-  } catch (error) {
-    console.error('[SlaRoutes] Toggle active error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to toggle SLA policy status',
-    });
-  }
-});
+    return reply.send({ success: true, data: policy });
+  });
+};
 
-export default router;
+export default routes;

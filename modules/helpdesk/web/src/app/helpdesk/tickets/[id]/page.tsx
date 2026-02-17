@@ -197,7 +197,7 @@ export default function TicketDetailPage({
         )}
 
         {/* Two-column layout */}
-        <div className="grid gap-8 lg:grid-cols-3">
+        <div className="grid gap-6 lg:grid-cols-3">
           {/* Main content (left) */}
           <div className="lg:col-span-2">
             <Tabs defaultIndex={0}>

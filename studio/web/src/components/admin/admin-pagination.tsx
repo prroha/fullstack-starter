@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 // ============================================================================
@@ -110,59 +111,45 @@ export function AdminPagination({
         role="navigation"
       >
         {/* Previous button */}
-        <button
+        <Button
+          variant="outline"
+          size="icon"
           onClick={() => onPageChange(currentPage - 1)}
           disabled={!canGoPrevious}
-          className={cn(
-            "p-2 border rounded-md transition-colors",
-            "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-            canGoPrevious
-              ? "hover:bg-muted"
-              : "opacity-50 cursor-not-allowed"
-          )}
           aria-label="Go to previous page"
           aria-disabled={!canGoPrevious}
         >
           <ChevronLeft className="h-4 w-4" aria-hidden="true" />
-        </button>
+        </Button>
 
         {/* Page number buttons */}
         <div className="flex items-center gap-1" role="group" aria-label="Page numbers">
           {pageNumbers.map((pageNum) => (
-            <button
+            <Button
               key={pageNum}
+              variant={currentPage === pageNum ? "default" : "ghost"}
+              size="sm"
               onClick={() => onPageChange(pageNum)}
-              className={cn(
-                "min-w-[2rem] h-8 px-2 rounded-md text-sm font-medium transition-colors",
-                "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-                currentPage === pageNum
-                  ? "bg-primary text-primary-foreground"
-                  : "hover:bg-muted"
-              )}
+              className="min-w-[2rem]"
               aria-label={`Go to page ${pageNum}`}
               aria-current={currentPage === pageNum ? "page" : undefined}
             >
               {pageNum}
-            </button>
+            </Button>
           ))}
         </div>
 
         {/* Next button */}
-        <button
+        <Button
+          variant="outline"
+          size="icon"
           onClick={() => onPageChange(currentPage + 1)}
           disabled={!canGoNext}
-          className={cn(
-            "p-2 border rounded-md transition-colors",
-            "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-            canGoNext
-              ? "hover:bg-muted"
-              : "opacity-50 cursor-not-allowed"
-          )}
           aria-label="Go to next page"
           aria-disabled={!canGoNext}
         >
           <ChevronRight className="h-4 w-4" aria-hidden="true" />
-        </button>
+        </Button>
       </nav>
     </div>
   );

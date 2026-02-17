@@ -176,17 +176,19 @@ function CopyCodeButton({ code }: { code: string }) {
   };
 
   return (
-    <button
+    <Button
+      variant="ghost"
+      size="icon"
       onClick={handleCopy}
-      className="p-1 hover:bg-accent rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+      className="h-6 w-6"
       aria-label={copied ? "Copied to clipboard" : `Copy code ${code}`}
     >
       {copied ? (
-        <Check className="h-3.5 w-3.5 text-green-500" aria-hidden="true" />
+        <Check className="h-3.5 w-3.5 text-success" aria-hidden="true" />
       ) : (
         <Copy className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
       )}
-    </button>
+    </Button>
   );
 }
 

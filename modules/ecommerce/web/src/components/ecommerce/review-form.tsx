@@ -84,9 +84,9 @@ export default function ReviewForm({
 
       {/* Error message */}
       {error && (
-        <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-md">
+        <div className="flex items-center gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-md">
           <svg
-            className="w-4 h-4 text-red-500 flex-shrink-0"
+            className="w-4 h-4 text-destructive flex-shrink-0"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -98,7 +98,7 @@ export default function ReviewForm({
               d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z"
             />
           </svg>
-          <p className="text-sm text-red-700">{error}</p>
+          <p className="text-sm text-destructive">{error}</p>
         </div>
       )}
 

@@ -466,7 +466,7 @@ function SectionCard({
                             </span>
                           )}
                           {lesson.isFree && (
-                            <span className="text-green-600 font-medium">Free</span>
+                            <span className="text-success font-medium">Free</span>
                           )}
                         </div>
                       </div>
@@ -704,7 +704,7 @@ export default function ManageLessonsPage({ params }: { params: Promise<{ id: st
           ))}
 
         {sections.length === 0 && !showAddSection && (
-          <div className="text-center py-16 bg-card rounded-lg border border-border">
+          <div className="text-center py-10 bg-card rounded-lg border border-border">
             <p className="text-muted-foreground text-lg">No sections yet.</p>
             <p className="text-muted-foreground/70 text-sm mt-1">
               Start by adding a section to organize your lessons.

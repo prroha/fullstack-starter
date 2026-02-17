@@ -71,24 +71,24 @@ const statusConfig: Record<
   { bgClass: string; borderClass: string; iconClass: string }
 > = {
   success: {
-    bgClass: "bg-green-100 dark:bg-green-900/30",
-    borderClass: "border-green-500",
-    iconClass: "text-green-600 dark:text-green-400",
+    bgClass: "bg-success/10",
+    borderClass: "border-success",
+    iconClass: "text-success",
   },
   warning: {
-    bgClass: "bg-yellow-100 dark:bg-yellow-900/30",
-    borderClass: "border-yellow-500",
-    iconClass: "text-yellow-600 dark:text-yellow-400",
+    bgClass: "bg-warning/10",
+    borderClass: "border-warning",
+    iconClass: "text-warning",
   },
   error: {
-    bgClass: "bg-red-100 dark:bg-red-900/30",
-    borderClass: "border-red-500",
-    iconClass: "text-red-600 dark:text-red-400",
+    bgClass: "bg-destructive/10",
+    borderClass: "border-destructive",
+    iconClass: "text-destructive",
   },
   info: {
-    bgClass: "bg-blue-100 dark:bg-blue-900/30",
-    borderClass: "border-blue-500",
-    iconClass: "text-blue-600 dark:text-blue-400",
+    bgClass: "bg-primary/10",
+    borderClass: "border-primary",
+    iconClass: "text-primary",
   },
   default: {
     bgClass: "bg-muted",
@@ -142,10 +142,10 @@ function DefaultIcon({ status, size }: { status: TimelineStatus; size: TimelineS
         className={cn(
           "rounded-full",
           size === "sm" ? "h-2 w-2" : size === "md" ? "h-2.5 w-2.5" : "h-3 w-3",
-          status === "success" && "bg-green-500",
-          status === "warning" && "bg-yellow-500",
-          status === "error" && "bg-red-500",
-          status === "info" && "bg-blue-500",
+          status === "success" && "bg-success",
+          status === "warning" && "bg-warning",
+          status === "error" && "bg-destructive",
+          status === "info" && "bg-primary",
           status === "default" && "bg-muted-foreground"
         )}
       />

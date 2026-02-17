@@ -1,4 +1,3 @@
-import { Request } from "express";
 import { User } from "@prisma/client";
 
 /**
@@ -13,55 +12,16 @@ export interface JwtPayload {
 }
 
 /**
- * User type for authenticated requests (subset of Prisma User)
+ * User type for authenticated requests (subset of Prisma User).
+ * Matches the `select` projection in auth middleware — never includes passwordHash.
  */
 export type AuthUser = Pick<
   User,
-  "id" | "email" | "name" | "role" | "isActive" | "createdAt" | "updatedAt"
+  "id" | "email" | "name" | "role" | "isActive" | "emailVerified" | "avatarUrl" | "createdAt" | "updatedAt"
 >;
 
-/**
- * Base application request interface extending Express Request
- * Used for type-safe request handling across middleware
- */
-export interface AppRequest extends Request {
-  /**
-   * Unique correlation ID for request tracing (set by request-id middleware)
-   */
-  id: string;
-  /**
-   * JWT payload (set by auth middleware after token verification)
-   */
-  user?: JwtPayload;
-  /**
-   * Full database user object (set by auth middleware after user lookup)
-   */
-  dbUser?: User;
-  /**
-   * CSRF token for this request (set by CSRF middleware)
-   */
-  csrfToken?: string;
-}
-
-/**
- * Authenticated request with guaranteed user info
- * Use this type after authMiddleware has run
- */
-export interface AuthenticatedRequest extends Request {
-  id: string;
-  user: JwtPayload;
-  dbUser: User;
-  csrfToken?: string;
-}
-
-// Extend Express Request type globally to include id property
-declare global {
-  namespace Express {
-    interface Request {
-      id: string;
-    }
-  }
-}
+// Re-export Fastify-based request/reply types
+export type { AppRequest, AuthenticatedRequest, AppReply } from "./fastify.js";
 
 /**
  * Pagination query parameters

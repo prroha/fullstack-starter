@@ -1,90 +1,73 @@
-import { Router, Request, Response } from 'express';
-import { getVenueService } from '../services/venue.service';
-import { authMiddleware, AuthenticatedRequest } from '../middleware/auth';
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
+import { getVenueService } from '../services/venue.service.js';
+import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
 
 // =============================================================================
-// Router
+// Routes
 // =============================================================================
 
-const router = Router();
 const venueService = getVenueService();
 
 // =============================================================================
 // Venue Endpoints (All Authenticated)
 // =============================================================================
 
-/**
- * GET /venues/stats
- * Get venue stats
- * MUST be before /:id route
- */
-router.get('/stats', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+const routes: FastifyPluginAsync = async (fastify) => {
+  /**
+   * GET /venues/stats
+   * Get venue stats
+   * MUST be before /:id route
+   */
+  fastify.get('/stats', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
 
     const stats = await venueService.getStats(authReq.user.userId);
-    res.json({ success: true, data: stats });
-  } catch (error) {
-    console.error('[VenueRoutes] Stats error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to get venue stats' });
-  }
-});
+    return reply.send({ success: true, data: stats });
+  });
 
-/**
- * GET /venues
- * List venues with filtering and pagination
- */
-router.get('/', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * GET /venues
+   * List venues with filtering and pagination
+   */
+  fastify.get('/', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { search, isVirtual, page, limit } = req.query;
+    const { search, isVirtual, page, limit } = req.query as Record<string, string>;
 
     const result = await venueService.list(authReq.user.userId, {
-      search: search as string,
+      search,
       isVirtual: isVirtual === 'true' ? true : isVirtual === 'false' ? false : undefined,
       page: page ? Number(page) : 1,
       limit: limit ? Number(limit) : 20,
     });
 
-    res.json({ success: true, data: result });
-  } catch (error) {
-    console.error('[VenueRoutes] List error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to list venues' });
-  }
-});
+    return reply.send({ success: true, data: result });
+  });
 
-/**
- * GET /venues/:id
- * Get venue by ID
- */
-router.get('/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * GET /venues/:id
+   * Get venue by ID
+   */
+  fastify.get('/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
+    const { id } = req.params as { id: string };
 
-    const venue = await venueService.getById(req.params.id, authReq.user.userId);
+    const venue = await venueService.getById(id, authReq.user.userId);
     if (!venue) {
-      res.status(404).json({ error: 'Venue not found' });
-      return;
+      return reply.code(404).send({ error: 'Venue not found' });
     }
-    res.json({ success: true, data: venue });
-  } catch (error) {
-    console.error('[VenueRoutes] Get error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to get venue' });
-  }
-});
+    return reply.send({ success: true, data: venue });
+  });
 
-/**
- * POST /venues
- * Create a new venue
- */
-router.post('/', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * POST /venues
+   * Create a new venue
+   */
+  fastify.post('/', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { name, address, city, state, country, capacity, isVirtual, meetingUrl } = req.body;
+    const { name, address, city, state, country, capacity, isVirtual, meetingUrl } = req.body as Record<string, unknown>;
 
     if (!name) {
-      res.status(400).json({ error: 'name is required' });
-      return;
+      return reply.code(400).send({ error: 'name is required' });
     }
 
     const venue = await venueService.create({
@@ -99,25 +82,19 @@ router.post('/', authMiddleware, async (req: Request, res: Response): Promise<vo
       meetingUrl,
     });
 
-    res.status(201).json({ success: true, data: venue });
-  } catch (error) {
-    console.error('[VenueRoutes] Create error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to create venue',
-    });
-  }
-});
+    return reply.code(201).send({ success: true, data: venue });
+  });
 
-/**
- * PATCH /venues/:id
- * Update a venue
- */
-router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * PATCH /venues/:id
+   * Update a venue
+   */
+  fastify.patch('/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { name, address, city, state, country, capacity, isVirtual, meetingUrl } = req.body;
+    const { id } = req.params as { id: string };
+    const { name, address, city, state, country, capacity, isVirtual, meetingUrl } = req.body as Record<string, unknown>;
 
-    const venue = await venueService.update(req.params.id, authReq.user.userId, {
+    const venue = await venueService.update(id, authReq.user.userId, {
       name,
       address,
       city,
@@ -129,35 +106,23 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promis
     });
 
     if (!venue) {
-      res.status(404).json({ error: 'Venue not found' });
-      return;
+      return reply.code(404).send({ error: 'Venue not found' });
     }
 
-    res.json({ success: true, data: venue });
-  } catch (error) {
-    console.error('[VenueRoutes] Update error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to update venue',
-    });
-  }
-});
+    return reply.send({ success: true, data: venue });
+  });
 
-/**
- * DELETE /venues/:id
- * Delete a venue
- */
-router.delete('/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * DELETE /venues/:id
+   * Delete a venue
+   */
+  fastify.delete('/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
+    const { id } = req.params as { id: string };
 
-    await venueService.delete(req.params.id, authReq.user.userId);
-    res.json({ success: true, message: 'Venue deleted' });
-  } catch (error) {
-    console.error('[VenueRoutes] Delete error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to delete venue',
-    });
-  }
-});
+    await venueService.delete(id, authReq.user.userId);
+    return reply.send({ success: true, message: 'Venue deleted' });
+  });
+};
 
-export default router;
+export default routes;

@@ -131,12 +131,12 @@ function generateSlug(name: string): string {
 
 function getCategoryColor(category: string): string {
   const colors: Record<string, string> = {
-    core: "bg-blue-500/10 text-blue-700 dark:text-blue-400",
-    payment: "bg-green-500/10 text-green-700 dark:text-green-400",
-    auth: "bg-purple-500/10 text-purple-700 dark:text-purple-400",
-    content: "bg-orange-500/10 text-orange-700 dark:text-orange-400",
-    communication: "bg-pink-500/10 text-pink-700 dark:text-pink-400",
-    analytics: "bg-cyan-500/10 text-cyan-700 dark:text-cyan-400",
+    core: "bg-primary/10 text-primary",
+    payment: "bg-success/10 text-success",
+    auth: "bg-primary/10 text-primary",
+    content: "bg-warning/10 text-warning",
+    communication: "bg-destructive/10 text-destructive",
+    analytics: "bg-primary/10 text-primary",
   };
   return colors[category] || "bg-muted text-muted-foreground";
 }

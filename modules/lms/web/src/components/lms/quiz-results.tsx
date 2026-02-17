@@ -41,8 +41,8 @@ export default function QuizResults({ attempt, questions }: QuizResultsProps) {
       <div
         className={`rounded-xl p-6 mb-6 text-center border-2 ${
           passed
-            ? 'bg-green-50 border-green-200'
-            : 'bg-red-50 border-red-200'
+            ? 'bg-success/10 border-success/20'
+            : 'bg-destructive/10 border-destructive/20'
         }`}
       >
         {/* Circular score indicator */}
@@ -53,7 +53,7 @@ export default function QuizResults({ attempt, questions }: QuizResultsProps) {
               cy="64"
               r="56"
               fill="none"
-              stroke={passed ? '#dcfce7' : '#fee2e2'}
+              stroke={passed ? 'hsl(var(--success) / 0.2)' : 'hsl(var(--destructive) / 0.2)'}
               strokeWidth="12"
             />
             <circle
@@ -61,7 +61,7 @@ export default function QuizResults({ attempt, questions }: QuizResultsProps) {
               cy="64"
               r="56"
               fill="none"
-              stroke={passed ? '#22c55e' : '#ef4444'}
+              stroke={passed ? 'hsl(var(--success))' : 'hsl(var(--destructive))'}
               strokeWidth="12"
               strokeDasharray={`${(scorePercent / 100) * 351.86} 351.86`}
               strokeLinecap="round"
@@ -70,7 +70,7 @@ export default function QuizResults({ attempt, questions }: QuizResultsProps) {
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <span
               className={`text-3xl font-bold ${
-                passed ? 'text-green-700' : 'text-red-700'
+                passed ? 'text-success' : 'text-destructive'
               }`}
             >
               {scorePercent}%
@@ -82,8 +82,8 @@ export default function QuizResults({ attempt, questions }: QuizResultsProps) {
         <span
           className={`inline-block px-4 py-1.5 rounded-full text-sm font-semibold ${
             passed
-              ? 'bg-green-100 text-green-800'
-              : 'bg-red-100 text-red-800'
+              ? 'bg-success/10 text-success'
+              : 'bg-destructive/10 text-destructive'
           }`}
         >
           {passed ? 'Passed' : 'Failed'}
@@ -117,7 +117,7 @@ export default function QuizResults({ attempt, questions }: QuizResultsProps) {
             <div
               key={question.id}
               className={`border rounded-lg overflow-hidden transition-colors ${
-                isCorrect ? 'border-green-200' : 'border-red-200'
+                isCorrect ? 'border-success/20' : 'border-destructive/20'
               }`}
             >
               {/* Question header */}
@@ -131,8 +131,8 @@ export default function QuizResults({ attempt, questions }: QuizResultsProps) {
                 <div
                   className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
                     isCorrect
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-red-100 text-red-700'
+                      ? 'bg-success/10 text-success'
+                      : 'bg-destructive/10 text-destructive'
                   }`}
                 >
                   {isCorrect ? (
@@ -217,10 +217,10 @@ export default function QuizResults({ attempt, questions }: QuizResultsProps) {
 
                         if (isCorrectOption) {
                           optionClasses +=
-                            ' bg-green-50 border-green-300 text-green-800';
+                            ' bg-success/10 border-success/30 text-success';
                         } else if (isUserAnswer && !isCorrectOption) {
                           optionClasses +=
-                            ' bg-red-50 border-red-300 text-red-800';
+                            ' bg-destructive/10 border-destructive/30 text-destructive';
                         } else {
                           optionClasses +=
                             ' bg-card border-border text-muted-foreground';
@@ -230,7 +230,7 @@ export default function QuizResults({ attempt, questions }: QuizResultsProps) {
                           <div key={option.value} className={optionClasses}>
                             {isCorrectOption && (
                               <svg
-                                className="w-4 h-4 text-green-600 flex-shrink-0"
+                                className="w-4 h-4 text-success flex-shrink-0"
                                 fill="none"
                                 viewBox="0 0 24 24"
                                 stroke="currentColor"
@@ -245,7 +245,7 @@ export default function QuizResults({ attempt, questions }: QuizResultsProps) {
                             )}
                             {isUserAnswer && !isCorrectOption && (
                               <svg
-                                className="w-4 h-4 text-red-600 flex-shrink-0"
+                                className="w-4 h-4 text-destructive flex-shrink-0"
                                 fill="none"
                                 viewBox="0 0 24 24"
                                 stroke="currentColor"
@@ -279,7 +279,7 @@ export default function QuizResults({ attempt, questions }: QuizResultsProps) {
                         </span>
                         <span
                           className={`text-sm ${
-                            isCorrect ? 'text-green-700' : 'text-red-700'
+                            isCorrect ? 'text-success' : 'text-destructive'
                           }`}
                         >
                           {answer?.answer ?? 'No answer'}
@@ -290,7 +290,7 @@ export default function QuizResults({ attempt, questions }: QuizResultsProps) {
                           <span className="text-xs font-medium text-muted-foreground mt-0.5 w-24 flex-shrink-0">
                             Correct answer:
                           </span>
-                          <span className="text-sm text-green-700">
+                          <span className="text-sm text-success">
                             {question.correctAnswer}
                           </span>
                         </div>
@@ -303,7 +303,7 @@ export default function QuizResults({ attempt, questions }: QuizResultsProps) {
                     !question.options &&
                     question.type !== 'SHORT_ANSWER' &&
                     question.correctAnswer && (
-                      <p className="text-sm text-green-700">
+                      <p className="text-sm text-success">
                         <span className="font-medium">Correct answer:</span>{' '}
                         {question.correctAnswer}
                       </p>
@@ -311,11 +311,11 @@ export default function QuizResults({ attempt, questions }: QuizResultsProps) {
 
                   {/* Explanation */}
                   {question.explanation && (
-                    <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
-                      <p className="text-xs font-semibold text-blue-700 mb-1">
+                    <div className="mt-2 p-3 bg-primary/10 border border-primary/20 rounded-md">
+                      <p className="text-xs font-semibold text-primary mb-1">
                         Explanation
                       </p>
-                      <p className="text-sm text-blue-800">
+                      <p className="text-sm text-primary">
                         {question.explanation}
                       </p>
                     </div>
@@ -332,7 +332,7 @@ export default function QuizResults({ attempt, questions }: QuizResultsProps) {
         <div className="flex items-center justify-between text-sm">
           <span className="text-muted-foreground">
             Correct:{' '}
-            <span className="font-semibold text-green-700">
+            <span className="font-semibold text-success">
               {attempt.answers?.filter((a) => a.isCorrect).length ?? 0}
             </span>{' '}
             / {questions.length}

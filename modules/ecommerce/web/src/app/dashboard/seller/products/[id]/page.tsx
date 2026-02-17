@@ -190,9 +190,9 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
   if (error && !product) {
     return (
       <div className="max-w-4xl mx-auto p-6">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <h2 className="text-red-800 font-semibold text-lg">Error</h2>
-          <p className="text-red-600 mt-1">{error}</p>
+        <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
+          <h2 className="text-destructive font-semibold text-lg">Error</h2>
+          <p className="text-destructive mt-1">{error}</p>
           <Button
             variant="secondary"
             onClick={() => router.push('/dashboard/seller/products')}
@@ -216,9 +216,9 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
               <span
                 className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                   product.status === 'ACTIVE'
-                    ? 'bg-green-100 text-green-700'
+                    ? 'bg-success/10 text-success'
                     : product.status === 'ARCHIVED'
-                    ? 'bg-yellow-100 text-yellow-700'
+                    ? 'bg-warning/10 text-warning'
                     : 'bg-muted text-foreground'
                 }`}
               >
@@ -253,13 +253,13 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
 
       {/* Messages */}
       {error && (
-        <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-red-600">{error}</p>
+        <div className="mb-6 bg-destructive/10 border border-destructive/20 rounded-lg p-4">
+          <p className="text-destructive">{error}</p>
         </div>
       )}
       {successMessage && (
-        <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
-          <p className="text-green-600">{successMessage}</p>
+        <div className="mb-6 bg-success/10 border border-success/20 rounded-lg p-4">
+          <p className="text-success">{successMessage}</p>
         </div>
       )}
 
@@ -391,7 +391,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                   key={category.id}
                   className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${
                     selectedCategoryIds.includes(category.id)
-                      ? 'bg-blue-50 border-blue-300'
+                      ? 'bg-primary/10 border-primary/30'
                       : 'bg-card border-border hover:bg-muted'
                   }`}
                 >
@@ -399,7 +399,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                     type="checkbox"
                     checked={selectedCategoryIds.includes(category.id)}
                     onChange={() => handleCategoryToggle(category.id)}
-                    className="rounded border-border text-blue-600 focus:ring-blue-500"
+                    className="rounded border-border text-primary focus:ring-primary"
                   />
                   <span className="text-sm text-foreground">{category.name}</span>
                 </label>

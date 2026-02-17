@@ -58,16 +58,16 @@ const circularSizeStyles: Record<ProgressSize, { size: number; strokeWidth: numb
 
 const colorStyles: Record<ProgressColor, string> = {
   default: "bg-primary",
-  success: "bg-green-500 dark:bg-green-400",
-  warning: "bg-yellow-500 dark:bg-yellow-400",
-  error: "bg-red-500 dark:bg-red-400",
+  success: "bg-success",
+  warning: "bg-warning",
+  error: "bg-destructive",
 };
 
 const circularColorStyles: Record<ProgressColor, string> = {
   default: "stroke-primary",
-  success: "stroke-green-500 dark:stroke-green-400",
-  warning: "stroke-yellow-500 dark:stroke-yellow-400",
-  error: "stroke-red-500 dark:stroke-red-400",
+  success: "stroke-success",
+  warning: "stroke-warning",
+  error: "stroke-destructive",
 };
 
 const labelSizeStyles: Record<ProgressSize, string> = {

@@ -1,17 +1,16 @@
-import { Router } from "express";
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from "fastify";
 import PDFDocument from "pdfkit";
 import { prisma } from "../../config/db.js";
 import { sendSuccess } from "../../utils/response.js";
 
-const router = Router();
-
-/**
- * GET /api/admin/analytics/revenue
- * Revenue analytics
- */
-router.get("/revenue", async (req, res, next) => {
-  try {
-    const { period = "30d" } = req.query;
+const routePlugin: FastifyPluginAsync = async (fastify) => {
+  /**
+   * GET /api/admin/analytics/revenue
+   * Revenue analytics
+   */
+  fastify.get("/revenue", async (req: FastifyRequest, reply: FastifyReply) => {
+    const query = req.query as Record<string, string>;
+    const { period = "30d" } = query;
     const days = period === "7d" ? 7 : period === "90d" ? 90 : period === "1y" ? 365 : 30;
 
     const startDate = new Date();
@@ -57,7 +56,7 @@ router.get("/revenue", async (req, res, next) => {
       ORDER BY date ASC
     ` as { date: Date; revenue: bigint; orders: bigint }[];
 
-    sendSuccess(res, {
+    return sendSuccess(reply, {
       byTier: revenueByTier.map(r => ({
         tier: r.tier,
         revenue: r._sum.total || 0,
@@ -70,17 +69,13 @@ router.get("/revenue", async (req, res, next) => {
         orders: Number(d.orders),
       })),
     });
-  } catch (error) {
-    next(error);
-  }
-});
+  });
 
-/**
- * GET /api/admin/analytics/features
- * Feature popularity analytics
- */
-router.get("/features", async (_req, res, next) => {
-  try {
+  /**
+   * GET /api/admin/analytics/features
+   * Feature popularity analytics
+   */
+  fastify.get("/features", async (_req: FastifyRequest, reply: FastifyReply) => {
     const orders = await prisma.order.findMany({
       where: { status: "COMPLETED" },
       select: { selectedFeatures: true },
@@ -114,19 +109,16 @@ router.get("/features", async (_req, res, next) => {
       })
       .sort((a, b) => b.purchaseCount - a.purchaseCount);
 
-    sendSuccess(res, popularFeatures);
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendSuccess(reply, popularFeatures);
+  });
 
-/**
- * GET /api/admin/analytics/funnel
- * Conversion funnel analytics
- */
-router.get("/funnel", async (req, res, next) => {
-  try {
-    const { period = "30d" } = req.query;
+  /**
+   * GET /api/admin/analytics/funnel
+   * Conversion funnel analytics
+   */
+  fastify.get("/funnel", async (req: FastifyRequest, reply: FastifyReply) => {
+    const query = req.query as Record<string, string>;
+    const { period = "30d" } = query;
     const days = period === "7d" ? 7 : period === "90d" ? 90 : 30;
 
     const startDate = new Date();
@@ -158,23 +150,19 @@ router.get("/funnel", async (req, res, next) => {
       { stage: "Purchased", count: purchases, percentage: pageViews > 0 ? Math.round((purchases / pageViews) * 100) : 0 },
     ];
 
-    sendSuccess(res, {
+    return sendSuccess(reply, {
       funnel,
       conversionRate: pageViews > 0 ? ((purchases / pageViews) * 100).toFixed(2) : "0",
       previewToCheckout: previews > 0 ? ((checkoutStarts / previews) * 100).toFixed(2) : "0",
       checkoutToPurchase: checkoutStarts > 0 ? ((purchases / checkoutStarts) * 100).toFixed(2) : "0",
     });
-  } catch (error) {
-    next(error);
-  }
-});
+  });
 
-/**
- * GET /api/admin/analytics/templates
- * Template performance analytics
- */
-router.get("/templates", async (_req, res, next) => {
-  try {
+  /**
+   * GET /api/admin/analytics/templates
+   * Template performance analytics
+   */
+  fastify.get("/templates", async (_req: FastifyRequest, reply: FastifyReply) => {
     const templates = await prisma.template.findMany({
       where: { isActive: true },
       select: { id: true, name: true, slug: true, price: true },
@@ -205,20 +193,17 @@ router.get("/templates", async (_req, res, next) => {
       })
     );
 
-    sendSuccess(res, templateStats.sort((a, b) => b.revenue - a.revenue));
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendSuccess(reply, templateStats.sort((a, b) => b.revenue - a.revenue));
+  });
 
-/**
- * GET /api/admin/analytics/geo
- * Geographic distribution analytics
- * Aggregates geographic data from analytics events that contain country info
- */
-router.get("/geo", async (req, res, next) => {
-  try {
-    const { period = "30d" } = req.query;
+  /**
+   * GET /api/admin/analytics/geo
+   * Geographic distribution analytics
+   * Aggregates geographic data from analytics events that contain country info
+   */
+  fastify.get("/geo", async (req: FastifyRequest, reply: FastifyReply) => {
+    const query = req.query as Record<string, string>;
+    const { period = "30d" } = query;
     const days = period === "7d" ? 7 : period === "90d" ? 90 : period === "1y" ? 365 : 30;
 
     const startDate = new Date();
@@ -275,7 +260,7 @@ router.get("/geo", async (req, res, next) => {
     const totalPurchases = countries.reduce((s, c) => s + c.purchases, 0);
     const totalRevenue = countries.reduce((s, c) => s + c.revenue, 0);
 
-    sendSuccess(res, {
+    return sendSuccess(reply, {
       countries,
       totalCountries: countries.length,
       totalVisits,
@@ -283,19 +268,16 @@ router.get("/geo", async (req, res, next) => {
       totalRevenue,
       hasData: countries.length > 0,
     });
-  } catch (error) {
-    next(error);
-  }
-});
+  });
 
-/**
- * GET /api/admin/analytics/export/pdf
- * Export analytics report as PDF
- * Query params: type (revenue|funnel|features|templates), period (7d|30d|90d|1y)
- */
-router.get("/export/pdf", async (req, res, next) => {
-  try {
-    const { type = "revenue", period = "30d" } = req.query;
+  /**
+   * GET /api/admin/analytics/export/pdf
+   * Export analytics report as PDF
+   * Query params: type (revenue|funnel|features|templates), period (7d|30d|90d|1y)
+   */
+  fastify.get("/export/pdf", async (req: FastifyRequest, reply: FastifyReply) => {
+    const query = req.query as Record<string, string>;
+    const { type = "revenue", period = "30d" } = query;
     const days = period === "7d" ? 7 : period === "90d" ? 90 : period === "1y" ? 365 : 30;
 
     const startDate = new Date();
@@ -312,11 +294,6 @@ router.get("/export/pdf", async (req, res, next) => {
 
     // Set response headers for PDF download
     const filename = `analytics-${type}-${period}-${new Date().toISOString().split("T")[0]}.pdf`;
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
-
-    // Pipe PDF to response
-    doc.pipe(res);
 
     // Helper function to format currency
     const formatCurrency = (cents: number) => `$${(cents / 100).toFixed(2)}`;
@@ -610,9 +587,13 @@ router.get("/export/pdf", async (req, res, next) => {
 
     // Finalize PDF
     doc.end();
-  } catch (error) {
-    next(error);
-  }
-});
 
-export { router as analyticsRoutes };
+    // Fastify handles streams natively
+    return reply
+      .header("Content-Type", "application/pdf")
+      .header("Content-Disposition", `attachment; filename="${filename}"`)
+      .send(doc);
+  });
+};
+
+export { routePlugin as analyticsRoutes };

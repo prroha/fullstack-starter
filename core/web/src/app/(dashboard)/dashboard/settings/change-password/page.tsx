@@ -101,7 +101,7 @@ export default function ChangePasswordPage() {
   };
 
   return (
-    <div className="max-w-md mx-auto space-y-8">
+    <div className="max-w-md mx-auto space-y-6">
       {/* Back link */}
       <Link
         href="/dashboard/settings"

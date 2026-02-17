@@ -78,8 +78,8 @@ function SuccessContent() {
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="max-w-md w-full bg-card rounded-xl shadow-lg p-8 text-center">
         {/* Success Icon */}
-        <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-500/10 mb-6">
-          <Check className="h-8 w-8 text-green-600" />
+        <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-success/10 mb-6">
+          <Check className="h-8 w-8 text-success" />
         </div>
 
         <h1 className="text-2xl font-bold text-foreground mb-2">
@@ -116,7 +116,7 @@ function SuccessContent() {
             )}
             <div className="flex justify-between py-2">
               <span className="text-muted-foreground">Status</span>
-              <span className="font-medium text-green-600 capitalize">
+              <span className="font-medium text-success capitalize">
                 {session.paymentStatus || 'Paid'}
               </span>
             </div>

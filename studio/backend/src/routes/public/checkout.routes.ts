@@ -1,27 +1,8 @@
-import { Router, raw } from "express";
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from "fastify";
 import { z } from "zod";
-import rateLimit from "express-rate-limit";
 import { stripeService } from "../../services/stripe.service.js";
 import { sendSuccess } from "../../utils/response.js";
 import { ApiError } from "../../utils/errors.js";
-
-const router = Router();
-
-const checkoutLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 20, // 20 per hour per IP
-  message: { success: false, error: { message: "Too many checkout attempts, please try again later", code: "RATE_LIMITED" } },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-const couponLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
-  max: 10, // 10 per minute per IP
-  message: { success: false, error: { message: "Too many coupon validation attempts, please try again later", code: "RATE_LIMITED" } },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
 
 // =====================================================
 // Validation Schemas
@@ -49,12 +30,12 @@ const sessionIdParamSchema = z.object({
 // Routes
 // =====================================================
 
-/**
- * POST /api/checkout/create-session
- * Create a Stripe Checkout Session
- */
-router.post("/create-session", checkoutLimiter, async (req, res, next) => {
-  try {
+const routePlugin: FastifyPluginAsync = async (fastify) => {
+  /**
+   * POST /api/checkout/create-session
+   * Create a Stripe Checkout Session
+   */
+  fastify.post("/create-session", async (req: FastifyRequest, reply: FastifyReply) => {
     // Check if Stripe is configured
     if (!stripeService.isConfigured()) {
       throw ApiError.internal("Payment processing is not configured");
@@ -68,18 +49,14 @@ router.post("/create-session", checkoutLimiter, async (req, res, next) => {
 
     const result = await stripeService.createCheckoutSession(parseResult.data);
 
-    sendSuccess(res, result, "Checkout session created", 201);
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendSuccess(reply, result, "Checkout session created", 201);
+  });
 
-/**
- * POST /api/checkout/validate-coupon
- * Validate a coupon code
- */
-router.post("/validate-coupon", couponLimiter, async (req, res, next) => {
-  try {
+  /**
+   * POST /api/checkout/validate-coupon
+   * Validate a coupon code
+   */
+  fastify.post("/validate-coupon", async (req: FastifyRequest, reply: FastifyReply) => {
     // Validate request body
     const parseResult = validateCouponSchema.safeParse(req.body);
     if (!parseResult.success) {
@@ -91,54 +68,61 @@ router.post("/validate-coupon", couponLimiter, async (req, res, next) => {
       parseResult.data.subtotal
     );
 
-    sendSuccess(res, result);
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendSuccess(reply, result);
+  });
 
-/**
- * POST /api/checkout/webhook
- * Handle Stripe webhooks
- *
- * NOTE: This endpoint needs raw body parsing, configured separately
- */
-router.post(
-  "/webhook",
-  raw({ type: "application/json" }),
-  async (req, res, next) => {
-    try {
-      const signature = req.headers["stripe-signature"];
-
-      if (!signature || typeof signature !== "string") {
-        throw ApiError.badRequest("Missing Stripe signature header");
+  /**
+   * POST /api/checkout/webhook
+   * Handle Stripe webhooks
+   *
+   * Registered in a sub-plugin with raw body parsing for Stripe signature verification.
+   */
+  await fastify.register(async (webhookScope) => {
+    webhookScope.removeAllContentTypeParsers();
+    webhookScope.addContentTypeParser(
+      "application/json",
+      { parseAs: "buffer" },
+      (_req: FastifyRequest, body: Buffer, done: (err: null, body: Buffer) => void) => {
+        done(null, body);
       }
+    );
 
-      const result = await stripeService.handleWebhook(req.body, signature);
+    webhookScope.post(
+      "/webhook",
+      async (req: FastifyRequest, reply: FastifyReply) => {
+        try {
+          const signature = req.headers["stripe-signature"];
 
-      // Always return 200 to Stripe to acknowledge receipt
-      res.status(200).json({ received: true, ...result });
-    } catch (error) {
-      // For webhooks, we should still return 200 in some cases
-      // to prevent Stripe from retrying failed events
-      if (error instanceof ApiError && error.statusCode === 400) {
-        // Signature verification failed - this is a real error
-        next(error);
-      } else {
-        // Return 500 for processing errors so Stripe retries
-        console.error("Webhook processing error:", error);
-        res.status(500).json({ received: false, error: "Processing error - will retry" });
+          if (!signature || typeof signature !== "string") {
+            throw ApiError.badRequest("Missing Stripe signature header");
+          }
+
+          const rawBody = req.body as Buffer;
+          const result = await stripeService.handleWebhook(rawBody, signature);
+
+          // Always return 200 to Stripe to acknowledge receipt
+          return reply.code(200).send({ received: true, ...result });
+        } catch (error) {
+          // For webhooks, we should still return 200 in some cases
+          // to prevent Stripe from retrying failed events
+          if (error instanceof ApiError && error.statusCode === 400) {
+            // Signature verification failed - this is a real error
+            throw error;
+          } else {
+            // Return 500 for processing errors so Stripe retries
+            console.error("Webhook processing error:", error);
+            return reply.code(500).send({ received: false, error: "Processing error - will retry" });
+          }
+        }
       }
-    }
-  }
-);
+    );
+  });
 
-/**
- * GET /api/checkout/session/:id
- * Get checkout session status
- */
-router.get("/session/:id", async (req, res, next) => {
-  try {
+  /**
+   * GET /api/checkout/session/:id
+   * Get checkout session status
+   */
+  fastify.get("/session/:id", async (req: FastifyRequest, reply: FastifyReply) => {
     // Check if Stripe is configured
     if (!stripeService.isConfigured()) {
       throw ApiError.internal("Payment processing is not configured");
@@ -152,10 +136,8 @@ router.get("/session/:id", async (req, res, next) => {
 
     const result = await stripeService.getSessionStatus(parseResult.data.id);
 
-    sendSuccess(res, result);
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendSuccess(reply, result);
+  });
+};
 
-export { router as checkoutRoutes };
+export { routePlugin as checkoutRoutes };

@@ -1,0 +1,259 @@
+/*
+ * Core Design Tokens
+ * ==================
+ * Single source of truth for the design system.
+ * Imported by all apps (core/web, studio/web, future apps).
+ *
+ * Contains:
+ * - Tailwind theme tokens (@theme inline): color mappings, radii, spacing
+ * - Color palette: light mode (:root) and dark mode (.dark)
+ * - Base layer styles
+ * - Theme transition system
+ * - Reduced motion preference
+ *
+ * Usage: Each app must import tailwindcss BEFORE this file.
+ *
+ * WCAG 2.1 AA Compliance:
+ * - Text contrast: 4.5:1 minimum (7:1 for enhanced)
+ * - UI component contrast: 3:1 minimum
+ * - All color pairs tested for accessibility
+ */
+
+/* =============================================================
+ * Tailwind Theme Tokens
+ * ============================================================= */
+
+@theme inline {
+  /* Color mappings (CSS variable → Tailwind utility) */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+
+  /* Border radii */
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+
+  /*
+   * Content-First Spacing Scale (4px base unit)
+   * ============================================
+   * Tighter spacing that maximizes screen real estate
+   * while maintaining readability and touch-friendliness.
+   * spacing-0 through spacing-6 match Tailwind defaults.
+   * spacing-8+ are compressed for denser layouts.
+   */
+  --spacing-0: 0px;
+  --spacing-0_5: 2px;
+  --spacing-1: 4px;
+  --spacing-1_5: 6px;
+  --spacing-2: 8px;
+  --spacing-3: 12px;
+  --spacing-4: 16px;
+  --spacing-5: 20px;
+  --spacing-6: 24px;
+  --spacing-8: 28px;
+  --spacing-10: 32px;
+  --spacing-12: 40px;
+  --spacing-14: 44px;
+  --spacing-16: 52px;
+  --spacing-20: 64px;
+  --spacing-24: 76px;
+}
+
+/* =============================================================
+ * Color Palette
+ * ============================================================= */
+
+:root {
+  --radius: 0.625rem;
+
+  /* Content-first spacing tokens (for non-Tailwind usage) */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 24px;
+  --spacing-2xl: 28px;
+
+  /*
+   * Light Mode - Calming, reduces eye strain
+   * Optimized for extended reading and focus work
+   */
+
+  /* Background: Off-white - reduces eye strain vs pure white */
+  --background: oklch(0.975 0.002 240);
+
+  /* Foreground: Dark charcoal - softer than pure black, warm undertone */
+  --foreground: oklch(0.22 0.025 280);
+
+  /* Card: Warm white with subtle depth */
+  --card: oklch(0.995 0.003 80);
+  --card-foreground: oklch(0.22 0.025 280);
+
+  /* Popover: Matches card for consistency */
+  --popover: oklch(0.995 0.003 80);
+  --popover-foreground: oklch(0.22 0.025 280);
+
+  /* Primary: Deep calming blue - trust, focus, calm */
+  --primary: oklch(0.35 0.08 240);
+  --primary-foreground: oklch(0.975 0.002 240);
+
+  /* Secondary: Soft sage - natural, restorative */
+  --secondary: oklch(0.935 0.012 140);
+  --secondary-foreground: oklch(0.3 0.03 140);
+
+  /* Muted: Warm gray - neutral, non-distracting */
+  --muted: oklch(0.92 0.008 250);
+  --muted-foreground: oklch(0.45 0.015 250);
+
+  /* Accent: Muted teal - balance, clarity, calm energy */
+  --accent: oklch(0.52 0.09 195);
+  --accent-foreground: oklch(0.98 0.005 195);
+
+  /* Destructive: Muted coral - attention without anxiety */
+  --destructive: oklch(0.62 0.14 35);
+  --destructive-foreground: oklch(0.98 0.005 35);
+
+  /* Success */
+  --success: oklch(59.6% 0.145 163.225);
+  --success-foreground: oklch(98.5% 0 0);
+
+  /* Warning */
+  --warning: oklch(79.5% 0.184 86.047);
+  --warning-foreground: oklch(14.5% 0 0);
+
+  /* Border: Soft gray - subtle definition without harsh lines */
+  --border: oklch(0.91 0.005 250);
+  --input: oklch(0.91 0.005 250);
+
+  /* Ring: Primary with transparency for focus indication */
+  --ring: oklch(0.35 0.08 240 / 0.5);
+}
+
+.dark {
+  /*
+   * Dark Mode - Easy on eyes, reduces blue light emission
+   * Optimized for low-light environments and evening use
+   */
+
+  /* Background: Deep charcoal - not pure black, easier on eyes */
+  --background: oklch(0.16 0.015 250);
+
+  /* Foreground: Warm off-white - reduces harsh contrast */
+  --foreground: oklch(0.92 0.008 80);
+
+  /* Card: Elevated surface */
+  --card: oklch(0.2 0.015 250);
+  --card-foreground: oklch(0.92 0.008 80);
+
+  /* Popover: Matches card */
+  --popover: oklch(0.2 0.015 250);
+  --popover-foreground: oklch(0.92 0.008 80);
+
+  /* Primary: Lighter calming blue - maintains calm, readable */
+  --primary: oklch(0.58 0.1 220);
+  --primary-foreground: oklch(0.16 0.015 250);
+
+  /* Secondary: Muted sage for dark mode */
+  --secondary: oklch(0.28 0.02 140);
+  --secondary-foreground: oklch(0.88 0.012 140);
+
+  /* Muted: Dark warm gray */
+  --muted: oklch(0.28 0.015 250);
+  --muted-foreground: oklch(0.65 0.01 80);
+
+  /* Accent: Lighter teal for dark mode visibility */
+  --accent: oklch(0.58 0.1 195);
+  --accent-foreground: oklch(0.16 0.015 250);
+
+  /* Destructive: Softer coral for dark mode */
+  --destructive: oklch(0.65 0.15 35);
+  --destructive-foreground: oklch(0.16 0.015 250);
+
+  /* Success */
+  --success: oklch(59.6% 0.145 163.225);
+  --success-foreground: oklch(98.5% 0 0);
+
+  /* Warning */
+  --warning: oklch(79.5% 0.184 86.047);
+  --warning-foreground: oklch(14.5% 0 0);
+
+  /* Border: Subtle warm gray */
+  --border: oklch(0.3 0.015 250);
+  --input: oklch(0.3 0.015 250);
+
+  /* Ring: Primary with transparency */
+  --ring: oklch(0.58 0.1 220 / 0.5);
+}
+
+/* =============================================================
+ * Base Layer
+ * ============================================================= */
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  :root {
+    color-scheme: light;
+  }
+
+  .dark {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* =============================================================
+ * Theme Transition System
+ * Transitions are ONLY active during theme changes to prevent
+ * "flash" effects on hover states.
+ * ============================================================= */
+
+.theme-transitioning,
+.theme-transitioning *,
+.theme-transitioning *::before,
+.theme-transitioning *::after {
+  transition-property:
+    color, background-color, border-color, box-shadow, fill, stroke !important;
+  transition-duration: 200ms !important;
+  transition-timing-function: ease-out !important;
+}
+
+/* =============================================================
+ * Reduced Motion Preference
+ * ============================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

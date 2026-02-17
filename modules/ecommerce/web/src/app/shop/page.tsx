@@ -182,7 +182,7 @@ export default function ShopPage() {
 
         {/* Loading State */}
         {loading && (
-          <div className="flex items-center justify-center py-20">
+          <div className="flex items-center justify-center py-12">
             <Spinner size="lg" />
           </div>
         )}
@@ -207,7 +207,7 @@ export default function ShopPage() {
 
         {/* Empty State */}
         {!loading && !error && products.length === 0 && (
-          <div className="py-20 text-center">
+          <div className="py-12 text-center">
             <p className="text-lg font-medium text-foreground">
               No products found
             </p>

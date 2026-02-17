@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { uploadService, formatFileSize, type UploadedFile } from '../lib/upload';
 
@@ -246,7 +247,7 @@ export function FileList({
     return (
       <div className={`p-8 text-center ${className}`}>
         <Spinner size="md" />
-        <p className="mt-2 text-sm text-gray-500">Loading files...</p>
+        <p className="mt-2 text-sm text-muted-foreground">Loading files...</p>
       </div>
     );
   }
@@ -255,14 +256,15 @@ export function FileList({
   if (error && files.length === 0) {
     return (
       <div className={`p-8 text-center ${className}`}>
-        <p className="text-red-500">{error}</p>
+        <p className="text-destructive">{error}</p>
         {autoFetch && (
-          <button
+          <Button
+            variant="link"
             onClick={() => fetchFiles()}
-            className="mt-2 text-sm text-blue-600 hover:text-blue-700"
+            className="mt-2 text-sm"
           >
             Try again
-          </button>
+          </Button>
         )}
       </div>
     );
@@ -273,7 +275,7 @@ export function FileList({
     return (
       <div className={`p-8 text-center ${className}`}>
         <svg
-          className="mx-auto h-12 w-12 text-gray-400"
+          className="mx-auto h-12 w-12 text-muted-foreground"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -285,7 +287,7 @@ export function FileList({
             d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z"
           />
         </svg>
-        <p className="mt-2 text-sm text-gray-500">{emptyMessage}</p>
+        <p className="mt-2 text-sm text-muted-foreground">{emptyMessage}</p>
       </div>
     );
   }
@@ -294,14 +296,15 @@ export function FileList({
     <div className={className}>
       {/* Error banner */}
       {error && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+        <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm">
           {error}
-          <button
+          <Button
+            variant="link"
             onClick={() => setError(null)}
-            className="ml-2 text-red-700 hover:text-red-800"
+            className="ml-2 text-destructive"
           >
             Dismiss
-          </button>
+          </Button>
         </div>
       )}
 
@@ -322,7 +325,7 @@ export function FileList({
           ))}
         </div>
       ) : (
-        <div className="divide-y divide-gray-200 border border-gray-200 rounded-lg overflow-hidden">
+        <div className="divide-y divide-border border border-border rounded-lg overflow-hidden">
           {files.map((file) => (
             <FileListItem
               key={file.key}
@@ -343,13 +346,13 @@ export function FileList({
       {/* Load more button */}
       {hasMore && (
         <div className="mt-4 text-center">
-          <button
+          <Button
+            variant="link"
             onClick={() => fetchFiles(true)}
             disabled={isLoading}
-            className="px-4 py-2 text-sm text-blue-600 hover:text-blue-700 disabled:opacity-50"
           >
             {isLoading ? 'Loading...' : 'Load more'}
-          </button>
+          </Button>
         </div>
       )}
 
@@ -395,7 +398,7 @@ function FileListItem({
 }: FileListItemProps) {
   return (
     <div
-      className={`flex items-center gap-3 p-3 hover:bg-gray-50 ${
+      className={`flex items-center gap-3 p-3 hover:bg-muted ${
         file.isDeleting ? 'opacity-50' : ''
       }`}
     >
@@ -417,8 +420,8 @@ function FileListItem({
 
       {/* File Info */}
       <div className="flex-1 min-w-0 cursor-pointer" onClick={onClick}>
-        <p className="text-sm font-medium text-gray-900 truncate">{fileName}</p>
-        <div className="flex gap-2 text-xs text-gray-500">
+        <p className="text-sm font-medium text-foreground truncate">{fileName}</p>
+        <div className="flex gap-2 text-xs text-muted-foreground">
           {showSize && <span>{formatFileSize(file.size)}</span>}
           {showDate && file.lastModified && (
             <span>{formatDate(file.lastModified)}</span>
@@ -428,13 +431,15 @@ function FileListItem({
 
       {/* Actions */}
       {allowDelete && (
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={(e) => {
             e.stopPropagation();
             onDelete();
           }}
           disabled={file.isDeleting}
-          className="flex-shrink-0 p-1 text-gray-400 hover:text-red-500 disabled:opacity-50"
+          className="flex-shrink-0 text-muted-foreground hover:text-destructive"
         >
           {file.isDeleting ? (
             <Spinner size="sm" />
@@ -448,7 +453,7 @@ function FileListItem({
               />
             </svg>
           )}
-        </button>
+        </Button>
       )}
     </div>
   );
@@ -479,14 +484,14 @@ function FileGridItem({
 }: FileGridItemProps) {
   return (
     <div
-      className={`relative group bg-white border border-gray-200 rounded-lg overflow-hidden ${
+      className={`relative group bg-card border border-border rounded-lg overflow-hidden ${
         file.isDeleting ? 'opacity-50' : ''
       }`}
     >
       {/* Thumbnail */}
       <div
         onClick={onClick}
-        className="aspect-square cursor-pointer flex items-center justify-center bg-gray-100"
+        className="aspect-square cursor-pointer flex items-center justify-center bg-muted"
       >
         {isImage && file.url ? (
           <img src={file.url} alt={fileName} className="w-full h-full object-cover" />
@@ -497,21 +502,23 @@ function FileGridItem({
 
       {/* File Info */}
       <div className="p-2">
-        <p className="text-xs font-medium text-gray-900 truncate">{fileName}</p>
+        <p className="text-xs font-medium text-foreground truncate">{fileName}</p>
         {showSize && (
-          <p className="text-xs text-gray-500">{formatFileSize(file.size)}</p>
+          <p className="text-xs text-muted-foreground">{formatFileSize(file.size)}</p>
         )}
       </div>
 
       {/* Delete Button */}
       {allowDelete && (
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={(e) => {
             e.stopPropagation();
             onDelete();
           }}
           disabled={file.isDeleting}
-          className="absolute top-2 right-2 p-1 bg-white rounded-full shadow opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-red-500 disabled:opacity-50"
+          className="absolute top-2 right-2 h-7 w-7 bg-card rounded-full shadow opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
         >
           {file.isDeleting ? (
             <Spinner size="xs" />
@@ -525,7 +532,7 @@ function FileGridItem({
               />
             </svg>
           )}
-        </button>
+        </Button>
       )}
     </div>
   );
@@ -540,7 +547,7 @@ function FileTypeIcon({ isImage, large = false }: { isImage: boolean; large?: bo
 
   if (isImage) {
     return (
-      <svg className={`${sizeClass} text-green-500`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <svg className={`${sizeClass} text-success`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -552,7 +559,7 @@ function FileTypeIcon({ isImage, large = false }: { isImage: boolean; large?: bo
   }
 
   return (
-    <svg className={`${sizeClass} text-gray-400`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <svg className={`${sizeClass} text-muted-foreground`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -592,13 +599,14 @@ function PreviewModal({ file, fileName, isImage, onClose }: PreviewModalProps) {
       <div className="absolute inset-0" onClick={onClose} />
 
       {/* Modal */}
-      <div className="relative bg-white rounded-lg max-w-4xl max-h-[90vh] overflow-hidden shadow-xl">
+      <div className="relative bg-card rounded-lg max-w-4xl max-h-[90vh] overflow-hidden shadow-xl">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b">
           <h3 className="text-lg font-medium truncate">{fileName}</h3>
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={onClose}
-            className="p-1 text-gray-400 hover:text-gray-600"
           >
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path
@@ -608,7 +616,7 @@ function PreviewModal({ file, fileName, isImage, onClose }: PreviewModalProps) {
                 d="M6 18L18 6M6 6l12 12"
               />
             </svg>
-          </button>
+          </Button>
         </div>
 
         {/* Content */}
@@ -618,32 +626,30 @@ function PreviewModal({ file, fileName, isImage, onClose }: PreviewModalProps) {
           ) : url ? (
             <div className="text-center">
               <FileTypeIcon isImage={false} large />
-              <p className="mt-4 text-gray-500">Preview not available</p>
+              <p className="mt-4 text-muted-foreground">Preview not available</p>
               <a
                 href={url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-2 inline-block text-blue-600 hover:text-blue-700"
+                className="mt-2 inline-block text-primary hover:text-primary/80"
               >
                 Open file
               </a>
             </div>
           ) : (
-            <p className="text-center text-gray-500">Loading...</p>
+            <p className="text-center text-muted-foreground">Loading...</p>
           )}
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between p-4 border-t bg-gray-50">
-          <p className="text-sm text-gray-500">{formatFileSize(file.size)}</p>
+        <div className="flex items-center justify-between p-4 border-t bg-muted">
+          <p className="text-sm text-muted-foreground">{formatFileSize(file.size)}</p>
           {url && (
-            <a
-              href={url}
-              download={fileName}
-              className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700"
-            >
-              Download
-            </a>
+            <Button asChild>
+              <a href={url} download={fileName}>
+                Download
+              </a>
+            </Button>
           )}
         </div>
       </div>

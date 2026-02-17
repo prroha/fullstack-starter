@@ -1,74 +1,63 @@
-import { Router, Request, Response } from 'express';
-import { getReviewService } from '../services/review.service';
-import { authMiddleware, AuthenticatedRequest } from '../middleware/auth';
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
+import { getReviewService } from '../services/review.service.js';
+import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
 
 // =============================================================================
-// Router
+// Routes
 // =============================================================================
 
-const router = Router();
 const reviewService = getReviewService();
 
 // =============================================================================
 // Public Endpoints
 // =============================================================================
 
-/**
- * GET /reviews/product/:productId
- * List reviews for a specific product
- */
-router.get('/product/:productId', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { page, limit } = req.query;
+const routes: FastifyPluginAsync = async (fastify) => {
+  /**
+   * GET /reviews/product/:productId
+   * List reviews for a specific product
+   */
+  fastify.get('/product/:productId', async (req: FastifyRequest, reply: FastifyReply) => {
+    const { productId } = req.params as { productId: string };
+    const { page, limit } = req.query as Record<string, string>;
 
     const result = await reviewService.listProductReviews(
-      req.params.productId,
+      productId,
       page ? Number(page) : 1,
       limit ? Number(limit) : 20,
     );
 
-    res.json({ success: true, data: result });
-  } catch (error) {
-    console.error('[ReviewRoutes] List product reviews error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to list reviews' });
-  }
-});
+    return reply.send({ success: true, data: result });
+  });
 
-/**
- * GET /reviews/product/:productId/stats
- * Get rating statistics for a product
- */
-router.get('/product/:productId/stats', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const stats = await reviewService.getProductRatingStats(req.params.productId);
-    res.json({ success: true, data: stats });
-  } catch (error) {
-    console.error('[ReviewRoutes] Rating stats error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to get rating stats' });
-  }
-});
+  /**
+   * GET /reviews/product/:productId/stats
+   * Get rating statistics for a product
+   */
+  fastify.get('/product/:productId/stats', async (req: FastifyRequest, reply: FastifyReply) => {
+    const { productId } = req.params as { productId: string };
+    const stats = await reviewService.getProductRatingStats(productId);
+    return reply.send({ success: true, data: stats });
+  });
 
-// =============================================================================
-// Authenticated Endpoints
-// =============================================================================
+  // =============================================================================
+  // Authenticated Endpoints
+  // =============================================================================
 
-/**
- * POST /reviews
- * Create a review for a product
- */
-router.post('/', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * POST /reviews
+   * Create a review for a product
+   */
+  fastify.post('/', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { productId, rating, comment } = req.body;
+    const { productId, rating, comment } = req.body as { productId: string; rating: number; comment?: string };
 
     if (!productId || !rating) {
-      res.status(400).json({ error: 'productId and rating are required' });
-      return;
+      return reply.code(400).send({ error: 'productId and rating are required' });
     }
 
     if (rating < 1 || rating > 5) {
-      res.status(400).json({ error: 'Rating must be between 1 and 5' });
-      return;
+      return reply.code(400).send({ error: 'Rating must be between 1 and 5' });
     }
 
     const review = await reviewService.createReview({
@@ -78,59 +67,42 @@ router.post('/', authMiddleware, async (req: Request, res: Response): Promise<vo
       comment,
     });
 
-    res.status(201).json({ success: true, data: review });
-  } catch (error) {
-    console.error('[ReviewRoutes] Create error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to create review',
-    });
-  }
-});
+    return reply.code(201).send({ success: true, data: review });
+  });
 
-/**
- * PATCH /reviews/:id
- * Update a review
- */
-router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { rating, comment } = req.body;
+  /**
+   * PATCH /reviews/:id
+   * Update a review
+   */
+  fastify.patch('/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as { id: string };
+    const { rating, comment } = req.body as { rating?: number; comment?: string };
 
     if (rating !== undefined && (rating < 1 || rating > 5)) {
-      res.status(400).json({ error: 'Rating must be between 1 and 5' });
-      return;
+      return reply.code(400).send({ error: 'Rating must be between 1 and 5' });
     }
 
-    const review = await reviewService.updateReview(req.params.id, {
+    const review = await reviewService.updateReview(id, {
       rating: rating ? Number(rating) : undefined,
       comment,
     });
 
     if (!review) {
-      res.status(404).json({ error: 'Review not found' });
-      return;
+      return reply.code(404).send({ error: 'Review not found' });
     }
 
-    res.json({ success: true, data: review });
-  } catch (error) {
-    console.error('[ReviewRoutes] Update error:', error instanceof Error ? error.message : error);
-    res.status(500).json({
-      error: error instanceof Error ? error.message : 'Failed to update review',
-    });
-  }
-});
+    return reply.send({ success: true, data: review });
+  });
 
-/**
- * DELETE /reviews/:id
- * Delete a review
- */
-router.delete('/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
-    await reviewService.deleteReview(req.params.id);
-    res.json({ success: true, message: 'Review deleted' });
-  } catch (error) {
-    console.error('[ReviewRoutes] Delete error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to delete review' });
-  }
-});
+  /**
+   * DELETE /reviews/:id
+   * Delete a review
+   */
+  fastify.delete('/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as { id: string };
+    await reviewService.deleteReview(id);
+    return reply.send({ success: true, message: 'Review deleted' });
+  });
+};
 
-export default router;
+export default routes;

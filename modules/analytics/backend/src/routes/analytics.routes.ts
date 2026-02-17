@@ -1,5 +1,5 @@
-import { Router, Request, Response, NextFunction } from 'express';
-import { getAnalyticsService, AggregationPeriod } from '../services/analytics.service';
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
+import { getAnalyticsService, AggregationPeriod } from '../services/analytics.service.js';
 
 // =============================================================================
 // Types
@@ -39,7 +39,7 @@ interface ExportRequest {
 }
 
 // Authenticated request type - import from your auth middleware or define here
-interface AuthenticatedRequest extends Request {
+interface AuthenticatedRequest extends FastifyRequest {
   user: {
     userId: string;
     email: string;
@@ -57,58 +57,50 @@ interface AuthenticatedRequest extends Request {
 
 // Import your auth middleware from the core backend
 // Adjust the import path based on your project structure
-// import { authMiddleware, adminMiddleware, optionalAuthMiddleware } from '../../../../../core/backend/src/middleware/auth.middleware';
+// import { authMiddleware, adminMiddleware, optionalAuthMiddleware } from '../../../../../core/backend/src/middleware/auth.middleware.js';
 
 // Placeholder auth middleware - replace with your actual imports
 const authMiddleware = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
+  req: FastifyRequest,
+  reply: FastifyReply
+) => {
   // This is a placeholder - replace with actual auth middleware import
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {
-    res.status(401).json({
+    return reply.code(401).send({
       success: false,
       error: {
         code: 'AUTH_REQUIRED',
         message: 'Authentication required',
       },
     });
-    return;
   }
   // Placeholder - actual middleware would verify token and load user
-  next();
 };
 
 const optionalAuthMiddleware = async (
-  req: Request,
-  _res: Response,
-  next: NextFunction
-): Promise<void> => {
+  _req: FastifyRequest,
+  _reply: FastifyReply
+) => {
   // This is a placeholder - replace with actual optional auth middleware import
   // Attempts to authenticate but doesn't fail if no token
-  next();
 };
 
 const adminMiddleware = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
+  req: FastifyRequest,
+  reply: FastifyReply
+) => {
   // This is a placeholder - replace with actual admin middleware import
   const authReq = req as AuthenticatedRequest;
   if (!authReq.dbUser || authReq.dbUser.role !== 'ADMIN') {
-    res.status(403).json({
+    return reply.code(403).send({
       success: false,
       error: {
         code: 'ADMIN_REQUIRED',
         message: 'Admin access required',
       },
     });
-    return;
   }
-  next();
 };
 
 // =============================================================================
@@ -150,53 +142,40 @@ function errorResponse(code: string, message: string, details?: unknown): ErrorR
 }
 
 // =============================================================================
-// Router Setup
+// Plugin Setup
 // =============================================================================
 
-const router = Router();
-const analytics = getAnalyticsService();
+const routes: FastifyPluginAsync = async (fastify) => {
+  const analytics = getAnalyticsService();
 
-// =============================================================================
-// Public Endpoints (with optional auth)
-// =============================================================================
+  // =============================================================================
+  // Public Endpoints (with optional auth)
+  // =============================================================================
 
-/**
- * POST /analytics/track
- * Track an analytics event
- *
- * Authentication: Optional (authenticated users get their userId attached)
- *
- * Request body:
- * {
- *   "event": "button_clicked",
- *   "properties": { "buttonId": "signup" },
- *   "sessionId": "sess_abc123",
- *   "timestamp": "2024-01-15T10:30:00Z"
- * }
- */
-router.post(
-  '/track',
-  optionalAuthMiddleware,
-  async (req: Request, res: Response): Promise<void> => {
-    try {
+  /**
+   * POST /analytics/track
+   * Track an analytics event
+   */
+  fastify.post(
+    '/track',
+    { preHandler: [optionalAuthMiddleware] },
+    async (req: FastifyRequest, reply: FastifyReply) => {
       const { event, properties, sessionId, timestamp } = req.body as TrackEventRequest;
 
       // Validate required fields
       if (!event || typeof event !== 'string') {
-        res.status(400).json(errorResponse(
+        return reply.code(400).send(errorResponse(
           'VALIDATION_ERROR',
           'Event name is required and must be a string'
         ));
-        return;
       }
 
       // Validate event name format
       if (event.length > 100) {
-        res.status(400).json(errorResponse(
+        return reply.code(400).send(errorResponse(
           'VALIDATION_ERROR',
           'Event name must be 100 characters or less'
         ));
-        return;
       }
 
       // Get user ID from authenticated request if available
@@ -208,11 +187,10 @@ router.post(
       if (timestamp) {
         eventTimestamp = new Date(timestamp);
         if (isNaN(eventTimestamp.getTime())) {
-          res.status(400).json(errorResponse(
+          return reply.code(400).send(errorResponse(
             'VALIDATION_ERROR',
             'Invalid timestamp format'
           ));
-          return;
         }
       }
 
@@ -223,72 +201,51 @@ router.post(
         event,
         properties,
         userAgent: req.headers['user-agent'],
-        ip: req.ip || req.socket.remoteAddress,
+        ip: req.ip,
         timestamp: eventTimestamp,
       });
 
       if (!trackedEvent) {
         // Analytics is disabled
-        res.status(200).json(successResponse(
+        return reply.code(200).send(successResponse(
           { tracked: false },
           'Analytics is disabled'
         ));
-        return;
       }
 
-      res.status(201).json(successResponse(
+      return reply.code(201).send(successResponse(
         {
           tracked: true,
           eventId: trackedEvent.id,
         },
         'Event tracked successfully'
       ));
-    } catch (error) {
-      console.error('[Analytics] Track error:', error instanceof Error ? error.message : error);
-      res.status(500).json(errorResponse(
-        'INTERNAL_ERROR',
-        'Failed to track event'
-      ));
     }
-  }
-);
+  );
 
-/**
- * POST /analytics/track/batch
- * Track multiple analytics events in a single request
- *
- * Authentication: Optional
- *
- * Request body:
- * {
- *   "events": [
- *     { "event": "page_view", "properties": { "page": "/home" } },
- *     { "event": "button_clicked", "properties": { "buttonId": "signup" } }
- *   ]
- * }
- */
-router.post(
-  '/track/batch',
-  optionalAuthMiddleware,
-  async (req: Request, res: Response): Promise<void> => {
-    try {
+  /**
+   * POST /analytics/track/batch
+   * Track multiple analytics events in a single request
+   */
+  fastify.post(
+    '/track/batch',
+    { preHandler: [optionalAuthMiddleware] },
+    async (req: FastifyRequest, reply: FastifyReply) => {
       const { events } = req.body as { events: TrackEventRequest[] };
 
       // Validate events array
       if (!Array.isArray(events) || events.length === 0) {
-        res.status(400).json(errorResponse(
+        return reply.code(400).send(errorResponse(
           'VALIDATION_ERROR',
           'Events must be a non-empty array'
         ));
-        return;
       }
 
       if (events.length > 100) {
-        res.status(400).json(errorResponse(
+        return reply.code(400).send(errorResponse(
           'VALIDATION_ERROR',
           'Maximum 100 events per batch'
         ));
-        return;
       }
 
       // Get user ID from authenticated request if available
@@ -302,54 +259,34 @@ router.post(
         event: e.event,
         properties: e.properties,
         userAgent: req.headers['user-agent'],
-        ip: req.ip || req.socket.remoteAddress,
+        ip: req.ip,
         timestamp: e.timestamp ? new Date(e.timestamp) : undefined,
       }));
 
       const count = await analytics.trackBatch(trackedEvents);
 
-      res.status(201).json(successResponse(
+      return reply.code(201).send(successResponse(
         {
           tracked: count,
           total: events.length,
         },
         `Tracked ${count} of ${events.length} events`
       ));
-    } catch (error) {
-      console.error('[Analytics] Batch track error:', error instanceof Error ? error.message : error);
-      res.status(500).json(errorResponse(
-        'INTERNAL_ERROR',
-        'Failed to track events'
-      ));
     }
-  }
-);
+  );
 
-// =============================================================================
-// Admin Endpoints
-// =============================================================================
+  // =============================================================================
+  // Admin Endpoints
+  // =============================================================================
 
-/**
- * GET /analytics/events
- * Query analytics events (admin only)
- *
- * Authentication: Required (Admin)
- *
- * Query parameters:
- * - userId: Filter by user ID
- * - sessionId: Filter by session ID
- * - event: Filter by event name
- * - startDate: Start date (ISO format)
- * - endDate: End date (ISO format)
- * - page: Page number (default: 1)
- * - limit: Items per page (default: 50, max: 1000)
- */
-router.get(
-  '/events',
-  authMiddleware,
-  adminMiddleware,
-  async (req: Request, res: Response): Promise<void> => {
-    try {
+  /**
+   * GET /analytics/events
+   * Query analytics events (admin only)
+   */
+  fastify.get(
+    '/events',
+    { preHandler: [authMiddleware, adminMiddleware] },
+    async (req: FastifyRequest, reply: FastifyReply) => {
       const {
         userId,
         sessionId,
@@ -371,18 +308,16 @@ router.get(
 
       // Validate dates
       if (parsedStartDate && isNaN(parsedStartDate.getTime())) {
-        res.status(400).json(errorResponse(
+        return reply.code(400).send(errorResponse(
           'VALIDATION_ERROR',
           'Invalid startDate format'
         ));
-        return;
       }
       if (parsedEndDate && isNaN(parsedEndDate.getTime())) {
-        res.status(400).json(errorResponse(
+        return reply.code(400).send(errorResponse(
           'VALIDATION_ERROR',
           'Invalid endDate format'
         ));
-        return;
       }
 
       const result = await analytics.queryEvents({
@@ -395,7 +330,7 @@ router.get(
         offset,
       });
 
-      res.json(successResponse({
+      return reply.send(successResponse({
         events: result.events,
         pagination: {
           page: result.page,
@@ -406,35 +341,17 @@ router.get(
           hasPrev: result.page > 1,
         },
       }));
-    } catch (error) {
-      console.error('[Analytics] Query events error:', error instanceof Error ? error.message : error);
-      res.status(500).json(errorResponse(
-        'INTERNAL_ERROR',
-        'Failed to query events'
-      ));
     }
-  }
-);
+  );
 
-/**
- * GET /analytics/stats
- * Get aggregated analytics statistics (admin only)
- *
- * Authentication: Required (Admin)
- *
- * Query parameters:
- * - period: Aggregation period ('hour', 'day', 'week', 'month') - default: 'day'
- * - startDate: Start date (ISO format)
- * - endDate: End date (ISO format)
- * - event: Filter by event name
- * - userId: Filter by user ID
- */
-router.get(
-  '/stats',
-  authMiddleware,
-  adminMiddleware,
-  async (req: Request, res: Response): Promise<void> => {
-    try {
+  /**
+   * GET /analytics/stats
+   * Get aggregated analytics statistics (admin only)
+   */
+  fastify.get(
+    '/stats',
+    { preHandler: [authMiddleware, adminMiddleware] },
+    async (req: FastifyRequest, reply: FastifyReply) => {
       const {
         period,
         startDate,
@@ -461,36 +378,21 @@ router.get(
         userId,
       });
 
-      res.json(successResponse({
+      return reply.send(successResponse({
         period: aggregationPeriod,
         stats,
       }));
-    } catch (error) {
-      console.error('[Analytics] Get stats error:', error instanceof Error ? error.message : error);
-      res.status(500).json(errorResponse(
-        'INTERNAL_ERROR',
-        'Failed to get statistics'
-      ));
     }
-  }
-);
+  );
 
-/**
- * GET /analytics/overview
- * Get overview statistics (admin only)
- *
- * Authentication: Required (Admin)
- *
- * Query parameters:
- * - startDate: Start date (ISO format)
- * - endDate: End date (ISO format)
- */
-router.get(
-  '/overview',
-  authMiddleware,
-  adminMiddleware,
-  async (req: Request, res: Response): Promise<void> => {
-    try {
+  /**
+   * GET /analytics/overview
+   * Get overview statistics (admin only)
+   */
+  fastify.get(
+    '/overview',
+    { preHandler: [authMiddleware, adminMiddleware] },
+    async (req: FastifyRequest, reply: FastifyReply) => {
       const { startDate, endDate } = req.query as {
         startDate?: string;
         endDate?: string;
@@ -502,63 +404,34 @@ router.get(
 
       const overview = await analytics.getOverview(parsedStartDate, parsedEndDate);
 
-      res.json(successResponse(overview));
-    } catch (error) {
-      console.error('[Analytics] Get overview error:', error instanceof Error ? error.message : error);
-      res.status(500).json(errorResponse(
-        'INTERNAL_ERROR',
-        'Failed to get overview'
-      ));
+      return reply.send(successResponse(overview));
     }
-  }
-);
+  );
 
-/**
- * GET /analytics/events/names
- * Get list of all distinct event names (admin only)
- *
- * Authentication: Required (Admin)
- */
-router.get(
-  '/events/names',
-  authMiddleware,
-  adminMiddleware,
-  async (_req: Request, res: Response): Promise<void> => {
-    try {
+  /**
+   * GET /analytics/events/names
+   * Get list of all distinct event names (admin only)
+   */
+  fastify.get(
+    '/events/names',
+    { preHandler: [authMiddleware, adminMiddleware] },
+    async (_req: FastifyRequest, reply: FastifyReply) => {
       const eventNames = await analytics.getEventNames();
 
-      res.json(successResponse({
+      return reply.send(successResponse({
         events: eventNames,
       }));
-    } catch (error) {
-      console.error('[Analytics] Get event names error:', error instanceof Error ? error.message : error);
-      res.status(500).json(errorResponse(
-        'INTERNAL_ERROR',
-        'Failed to get event names'
-      ));
     }
-  }
-);
+  );
 
-/**
- * GET /analytics/export
- * Export analytics events (admin only)
- *
- * Authentication: Required (Admin)
- *
- * Query parameters:
- * - format: Export format ('json' or 'csv') - default: 'json'
- * - startDate: Start date (ISO format)
- * - endDate: End date (ISO format)
- * - events: Filter by event names (comma-separated)
- * - userId: Filter by user ID
- */
-router.get(
-  '/export',
-  authMiddleware,
-  adminMiddleware,
-  async (req: Request, res: Response): Promise<void> => {
-    try {
+  /**
+   * GET /analytics/export
+   * Export analytics events (admin only)
+   */
+  fastify.get(
+    '/export',
+    { preHandler: [authMiddleware, adminMiddleware] },
+    async (req: FastifyRequest, reply: FastifyReply) => {
       const {
         format,
         startDate,
@@ -575,7 +448,7 @@ router.get(
       const parsedEndDate = endDate ? new Date(endDate) : undefined;
 
       // Parse events list
-      const eventsList = events ? events.split(',').map((e) => e.trim()) : undefined;
+      const eventsList = events ? (events as string).split(',').map((e: string) => e.trim()) : undefined;
 
       const exportData = await analytics.exportEvents({
         format: exportFormat,
@@ -589,69 +462,42 @@ router.get(
       const contentType = exportFormat === 'csv' ? 'text/csv' : 'application/json';
       const filename = `analytics-export-${new Date().toISOString().split('T')[0]}.${exportFormat}`;
 
-      res.setHeader('Content-Type', contentType);
-      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-      res.send(exportData);
-    } catch (error) {
-      console.error('[Analytics] Export error:', error instanceof Error ? error.message : error);
-      res.status(500).json(errorResponse(
-        'INTERNAL_ERROR',
-        'Failed to export events'
-      ));
+      return reply
+        .header('Content-Type', contentType)
+        .header('Content-Disposition', `attachment; filename="${filename}"`)
+        .send(exportData);
     }
-  }
-);
+  );
 
-/**
- * POST /analytics/cleanup
- * Clean up old events based on retention policy (admin only)
- *
- * Authentication: Required (Admin)
- */
-router.post(
-  '/cleanup',
-  authMiddleware,
-  adminMiddleware,
-  async (_req: Request, res: Response): Promise<void> => {
-    try {
+  /**
+   * POST /analytics/cleanup
+   * Clean up old events based on retention policy (admin only)
+   */
+  fastify.post(
+    '/cleanup',
+    { preHandler: [authMiddleware, adminMiddleware] },
+    async (_req: FastifyRequest, reply: FastifyReply) => {
       const deletedCount = await analytics.cleanupOldEvents();
 
-      res.json(successResponse(
+      return reply.send(successResponse(
         { deletedCount },
         `Cleaned up ${deletedCount} old events`
       ));
-    } catch (error) {
-      console.error('[Analytics] Cleanup error:', error instanceof Error ? error.message : error);
-      res.status(500).json(errorResponse(
-        'INTERNAL_ERROR',
-        'Failed to cleanup events'
-      ));
     }
-  }
-);
+  );
 
-// =============================================================================
-// User-specific endpoints (authenticated users)
-// =============================================================================
+  // =============================================================================
+  // User-specific endpoints (authenticated users)
+  // =============================================================================
 
-/**
- * GET /analytics/me/events
- * Get current user's analytics events
- *
- * Authentication: Required
- *
- * Query parameters:
- * - event: Filter by event name
- * - startDate: Start date (ISO format)
- * - endDate: End date (ISO format)
- * - page: Page number (default: 1)
- * - limit: Items per page (default: 50, max: 100)
- */
-router.get(
-  '/me/events',
-  authMiddleware,
-  async (req: Request, res: Response): Promise<void> => {
-    try {
+  /**
+   * GET /analytics/me/events
+   * Get current user's analytics events
+   */
+  fastify.get(
+    '/me/events',
+    { preHandler: [authMiddleware] },
+    async (req: FastifyRequest, reply: FastifyReply) => {
       const authReq = req as AuthenticatedRequest;
       const userId = authReq.user.userId;
 
@@ -681,7 +527,7 @@ router.get(
         offset,
       });
 
-      res.json(successResponse({
+      return reply.send(successResponse({
         events: result.events,
         pagination: {
           page: result.page,
@@ -692,14 +538,8 @@ router.get(
           hasPrev: result.page > 1,
         },
       }));
-    } catch (error) {
-      console.error('[Analytics] Get user events error:', error instanceof Error ? error.message : error);
-      res.status(500).json(errorResponse(
-        'INTERNAL_ERROR',
-        'Failed to get events'
-      ));
     }
-  }
-);
+  );
+};
 
-export default router;
+export default routes;

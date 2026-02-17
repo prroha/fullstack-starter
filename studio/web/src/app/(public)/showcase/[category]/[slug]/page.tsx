@@ -126,7 +126,7 @@ export default function ComponentDetailPage({ params }: ComponentDetailPageProps
         <TabPanels>
           {/* Examples Tab */}
           <TabPanel>
-            <div className="space-y-8">
+            <div className="space-y-6">
               {/* Import */}
               {examples && (
                 <div>

@@ -42,7 +42,7 @@ export default function EnrollmentCard({ enrollment }: EnrollmentCardProps) {
 
           {/* Status Badge */}
           {isCompleted && (
-            <div className="absolute right-2 top-2 rounded-full bg-green-600 px-2.5 py-1 text-xs font-medium text-white">
+            <div className="absolute right-2 top-2 rounded-full bg-success px-2.5 py-1 text-xs font-medium text-success-foreground">
               Completed
             </div>
           )}

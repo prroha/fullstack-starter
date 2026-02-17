@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useId } from "react";
-import { SearchInput, Select, Badge } from "@/components/ui";
+import { SearchInput, Select, Badge, Button } from "@/components/ui";
 import type { ComponentTier } from "@/lib/showcase";
 import { cn } from "@/lib/utils";
 
@@ -83,14 +83,13 @@ export function SearchFilter({
             Filter by:
           </span>
           {popularTags.map((tag) => (
-            <button
+            <Button
               key={tag}
               type="button"
+              variant="ghost"
+              size="sm"
               onClick={() => onTagSelect(selectedTag === tag ? null : tag)}
-              className={cn(
-                "min-h-[36px] flex items-center rounded-md",
-                "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              )}
+              className="min-h-[36px] h-auto p-0"
               aria-pressed={selectedTag === tag}
               aria-describedby={`${filterId}-tags-label`}
             >
@@ -100,20 +99,19 @@ export function SearchFilter({
               >
                 {tag}
               </Badge>
-            </button>
+            </Button>
           ))}
           {selectedTag && (
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="sm"
               onClick={() => onTagSelect(null)}
-              className={cn(
-                "text-sm text-muted-foreground hover:text-foreground ml-1 sm:ml-2 min-h-[36px] px-2 rounded-md",
-                "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              )}
+              className="text-muted-foreground hover:text-foreground ml-1 sm:ml-2 min-h-[36px]"
               aria-label={`Clear ${selectedTag} filter`}
             >
               Clear filter
-            </button>
+            </Button>
           )}
         </div>
       )}

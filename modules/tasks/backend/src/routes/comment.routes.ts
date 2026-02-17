@@ -1,12 +1,11 @@
-import { Router, Request, Response } from 'express';
-import { getCommentService } from '../services/comment.service';
-import { authMiddleware, AuthenticatedRequest } from '../middleware/auth';
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
+import { getCommentService } from '../services/comment.service.js';
+import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
 
 // =============================================================================
-// Router
+// Routes
 // =============================================================================
 
-const router = Router();
 const commentService = getCommentService();
 
 // =============================================================================
@@ -15,51 +14,39 @@ const commentService = getCommentService();
 // Note: Create and list are nested under /tasks/:id/comments in task.routes.ts.
 // This file handles update and delete by comment ID.
 
-/**
- * PATCH /comments/:id
- * Update a comment
- */
-router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+const routes: FastifyPluginAsync = async (fastify) => {
+  /**
+   * PATCH /comments/:id
+   * Update a comment
+   */
+  fastify.patch('/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { content } = req.body;
+    const { id } = req.params as { id: string };
+    const { content } = req.body as { content: string };
 
     if (!content) {
-      res.status(400).json({ error: 'content is required' });
-      return;
+      return reply.code(400).send({ error: 'content is required' });
     }
 
-    const comment = await commentService.update(req.params.id, authReq.user.userId, { content });
+    const comment = await commentService.update(id, authReq.user.userId, { content });
     if (!comment) {
-      res.status(404).json({ error: 'Comment not found' });
-      return;
+      return reply.code(404).send({ error: 'Comment not found' });
     }
 
-    res.json({ success: true, data: comment });
-  } catch (error) {
-    console.error('[CommentRoutes] Update error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to update comment',
-    });
-  }
-});
+    return reply.send({ success: true, data: comment });
+  });
 
-/**
- * DELETE /comments/:id
- * Delete a comment
- */
-router.delete('/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * DELETE /comments/:id
+   * Delete a comment
+   */
+  fastify.delete('/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
+    const { id } = req.params as { id: string };
 
-    await commentService.delete(req.params.id, authReq.user.userId);
-    res.json({ success: true, message: 'Comment deleted' });
-  } catch (error) {
-    console.error('[CommentRoutes] Delete error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to delete comment',
-    });
-  }
-});
+    await commentService.delete(id, authReq.user.userId);
+    return reply.send({ success: true, message: 'Comment deleted' });
+  });
+};
 
-export default router;
+export default routes;

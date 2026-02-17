@@ -1,31 +1,29 @@
-import { Router, Request, Response } from 'express';
-import { getInvoiceItemService } from '../services/invoice-item.service';
-import { authMiddleware, AuthenticatedRequest } from '../middleware/auth';
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
+import { getInvoiceItemService } from '../services/invoice-item.service.js';
+import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
 
 // =============================================================================
-// Router
+// Routes
 // =============================================================================
 
-const router = Router({ mergeParams: true });
 const invoiceItemService = getInvoiceItemService();
 
 // =============================================================================
 // Invoice Item Endpoints (All Authenticated)
 // =============================================================================
 
-/**
- * POST /invoices/:invoiceId/items
- * Add an item to an invoice
- */
-router.post('/', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+const routes: FastifyPluginAsync = async (fastify) => {
+  /**
+   * POST /invoices/:invoiceId/items
+   * Add an item to an invoice
+   */
+  fastify.post('/', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { invoiceId } = req.params;
-    const { description, quantity, unitPrice, taxRateId } = req.body;
+    const { invoiceId } = req.params as { invoiceId: string };
+    const { description, quantity, unitPrice, taxRateId } = req.body as Record<string, unknown>;
 
     if (!description || quantity === undefined || unitPrice === undefined) {
-      res.status(400).json({ error: 'description, quantity, and unitPrice are required' });
-      return;
+      return reply.code(400).send({ error: 'description, quantity, and unitPrice are required' });
     }
 
     const item = await invoiceItemService.add(invoiceId, authReq.user.userId, {
@@ -35,25 +33,19 @@ router.post('/', authMiddleware, async (req: Request, res: Response): Promise<vo
       taxRateId,
     });
 
-    res.status(201).json({ success: true, data: item });
-  } catch (error) {
-    console.error('[InvoiceItemRoutes] Add error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to add invoice item',
-    });
-  }
-});
+    return reply.code(201).send({ success: true, data: item });
+  });
 
-/**
- * PATCH /invoices/:invoiceId/items/:itemId
- * Update an invoice item
- */
-router.patch('/:itemId', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * PATCH /invoices/:invoiceId/items/:itemId
+   * Update an invoice item
+   */
+  fastify.patch('/:itemId', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { description, quantity, unitPrice, taxRateId } = req.body;
+    const { itemId } = req.params as { itemId: string };
+    const { description, quantity, unitPrice, taxRateId } = req.body as Record<string, unknown>;
 
-    const item = await invoiceItemService.update(req.params.itemId, authReq.user.userId, {
+    const item = await invoiceItemService.update(itemId, authReq.user.userId, {
       description,
       quantity: quantity !== undefined ? Number(quantity) : undefined,
       unitPrice: unitPrice !== undefined ? Number(unitPrice) : undefined,
@@ -61,60 +53,40 @@ router.patch('/:itemId', authMiddleware, async (req: Request, res: Response): Pr
     });
 
     if (!item) {
-      res.status(404).json({ error: 'Invoice item not found' });
-      return;
+      return reply.code(404).send({ error: 'Invoice item not found' });
     }
 
-    res.json({ success: true, data: item });
-  } catch (error) {
-    console.error('[InvoiceItemRoutes] Update error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to update invoice item',
-    });
-  }
-});
+    return reply.send({ success: true, data: item });
+  });
 
-/**
- * DELETE /invoices/:invoiceId/items/:itemId
- * Delete an invoice item
- */
-router.delete('/:itemId', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * DELETE /invoices/:invoiceId/items/:itemId
+   * Delete an invoice item
+   */
+  fastify.delete('/:itemId', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
+    const { itemId } = req.params as { itemId: string };
 
-    await invoiceItemService.delete(req.params.itemId, authReq.user.userId);
-    res.json({ success: true, message: 'Invoice item deleted' });
-  } catch (error) {
-    console.error('[InvoiceItemRoutes] Delete error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to delete invoice item',
-    });
-  }
-});
+    await invoiceItemService.delete(itemId, authReq.user.userId);
+    return reply.send({ success: true, message: 'Invoice item deleted' });
+  });
 
-/**
- * POST /invoices/:invoiceId/items/reorder
- * Reorder invoice items
- */
-router.post('/reorder', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * POST /invoices/:invoiceId/items/reorder
+   * Reorder invoice items
+   */
+  fastify.post('/reorder', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { invoiceId } = req.params;
-    const { itemIds } = req.body;
+    const { invoiceId } = req.params as { invoiceId: string };
+    const { itemIds } = req.body as { itemIds: unknown };
 
     if (!itemIds || !Array.isArray(itemIds)) {
-      res.status(400).json({ error: 'itemIds array is required' });
-      return;
+      return reply.code(400).send({ error: 'itemIds array is required' });
     }
 
     const items = await invoiceItemService.reorder(invoiceId, authReq.user.userId, itemIds);
-    res.json({ success: true, data: items });
-  } catch (error) {
-    console.error('[InvoiceItemRoutes] Reorder error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to reorder invoice items',
-    });
-  }
-});
+    return reply.send({ success: true, data: items });
+  });
+};
 
-export default router;
+export default routes;

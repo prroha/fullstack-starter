@@ -1,92 +1,75 @@
-import { Router, Request, Response } from 'express';
-import { getCannedResponseService } from '../services/canned-response.service';
-import { authMiddleware, AuthenticatedRequest } from '../middleware/auth';
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
+import { getCannedResponseService } from '../services/canned-response.service.js';
+import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
 
 // =============================================================================
-// Router
+// Routes
 // =============================================================================
 
-const router = Router();
 const cannedResponseService = getCannedResponseService();
 
 // =============================================================================
 // Canned Response Endpoints (All Authenticated)
 // =============================================================================
 
-/**
- * GET /canned-responses/mine
- * Get the current agent's canned responses
- * MUST be before /:id route to avoid matching "mine" as an ID
- */
-router.get('/mine', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+const routes: FastifyPluginAsync = async (fastify) => {
+  /**
+   * GET /canned-responses/mine
+   * Get the current agent's canned responses
+   * MUST be before /:id route to avoid matching "mine" as an ID
+   */
+  fastify.get('/mine', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
 
     const responses = await cannedResponseService.list(authReq.user.userId, {
       createdByAgentId: authReq.user.userId,
     });
-    res.json({ success: true, data: responses });
-  } catch (error) {
-    console.error('[CannedResponseRoutes] Get mine error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to get canned responses' });
-  }
-});
+    return reply.send({ success: true, data: responses });
+  });
 
-/**
- * GET /canned-responses
- * List canned responses with filtering and pagination
- */
-router.get('/', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * GET /canned-responses
+   * List canned responses with filtering and pagination
+   */
+  fastify.get('/', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { search, categoryId, page, limit } = req.query;
+    const { search, categoryId, page, limit } = req.query as Record<string, string>;
 
     const result = await cannedResponseService.list(authReq.user.userId, {
-      search: search as string,
-      categoryId: categoryId as string,
+      search,
+      categoryId,
       page: page ? Number(page) : 1,
       limit: limit ? Number(limit) : 20,
     });
 
-    res.json({ success: true, data: result });
-  } catch (error) {
-    console.error('[CannedResponseRoutes] List error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to list canned responses' });
-  }
-});
+    return reply.send({ success: true, data: result });
+  });
 
-/**
- * GET /canned-responses/:id
- * Get canned response by ID
- */
-router.get('/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * GET /canned-responses/:id
+   * Get canned response by ID
+   */
+  fastify.get('/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
+    const { id } = req.params as { id: string };
 
-    const response = await cannedResponseService.getById(req.params.id, authReq.user.userId);
+    const response = await cannedResponseService.getById(id, authReq.user.userId);
     if (!response) {
-      res.status(404).json({ error: 'Canned response not found' });
-      return;
+      return reply.code(404).send({ error: 'Canned response not found' });
     }
-    res.json({ success: true, data: response });
-  } catch (error) {
-    console.error('[CannedResponseRoutes] Get error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to get canned response' });
-  }
-});
+    return reply.send({ success: true, data: response });
+  });
 
-/**
- * POST /canned-responses
- * Create a new canned response
- */
-router.post('/', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * POST /canned-responses
+   * Create a new canned response
+   */
+  fastify.post('/', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { title, content, shortcut, categoryId, isShared } = req.body;
+    const { title, content, shortcut, categoryId, isShared } = req.body as Record<string, unknown>;
 
     if (!title || !content) {
-      res.status(400).json({ error: 'title and content are required' });
-      return;
+      return reply.code(400).send({ error: 'title and content are required' });
     }
 
     const response = await cannedResponseService.create({
@@ -98,25 +81,19 @@ router.post('/', authMiddleware, async (req: Request, res: Response): Promise<vo
       isShared,
     });
 
-    res.status(201).json({ success: true, data: response });
-  } catch (error) {
-    console.error('[CannedResponseRoutes] Create error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to create canned response',
-    });
-  }
-});
+    return reply.code(201).send({ success: true, data: response });
+  });
 
-/**
- * PATCH /canned-responses/:id
- * Update a canned response
- */
-router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * PATCH /canned-responses/:id
+   * Update a canned response
+   */
+  fastify.patch('/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { title, content, shortcut, categoryId, isShared } = req.body;
+    const { id } = req.params as { id: string };
+    const { title, content, shortcut, categoryId, isShared } = req.body as Record<string, unknown>;
 
-    const response = await cannedResponseService.update(req.params.id, authReq.user.userId, {
+    const response = await cannedResponseService.update(id, authReq.user.userId, {
       title,
       content,
       shortcut,
@@ -125,35 +102,23 @@ router.patch('/:id', authMiddleware, async (req: Request, res: Response): Promis
     });
 
     if (!response) {
-      res.status(404).json({ error: 'Canned response not found' });
-      return;
+      return reply.code(404).send({ error: 'Canned response not found' });
     }
 
-    res.json({ success: true, data: response });
-  } catch (error) {
-    console.error('[CannedResponseRoutes] Update error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to update canned response',
-    });
-  }
-});
+    return reply.send({ success: true, data: response });
+  });
 
-/**
- * DELETE /canned-responses/:id
- * Delete a canned response
- */
-router.delete('/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * DELETE /canned-responses/:id
+   * Delete a canned response
+   */
+  fastify.delete('/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
+    const { id } = req.params as { id: string };
 
-    await cannedResponseService.delete(req.params.id, authReq.user.userId);
-    res.json({ success: true, message: 'Canned response deleted' });
-  } catch (error) {
-    console.error('[CannedResponseRoutes] Delete error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to delete canned response',
-    });
-  }
-});
+    await cannedResponseService.delete(id, authReq.user.userId);
+    return reply.send({ success: true, message: 'Canned response deleted' });
+  });
+};
 
-export default router;
+export default routes;

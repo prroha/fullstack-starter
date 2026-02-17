@@ -1,42 +1,36 @@
-import { Router, Request, Response } from 'express';
-import { getSettingsService } from '../services/settings.service';
-import { authMiddleware, AuthenticatedRequest } from '../middleware/auth';
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
+import { getSettingsService } from '../services/settings.service.js';
+import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
 
 // =============================================================================
-// Router
+// Routes
 // =============================================================================
 
-const router = Router();
 const settingsService = getSettingsService();
 
 // =============================================================================
 // Settings Endpoints (All Authenticated)
 // =============================================================================
 
-/**
- * GET /settings
- * Get user event settings (creates defaults if none exist)
- */
-router.get('/', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+const routes: FastifyPluginAsync = async (fastify) => {
+  /**
+   * GET /settings
+   * Get user event settings (creates defaults if none exist)
+   */
+  fastify.get('/', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
 
     const settings = await settingsService.get(authReq.user.userId);
-    res.json({ success: true, data: settings });
-  } catch (error) {
-    console.error('[SettingsRoutes] Get error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to get settings' });
-  }
-});
+    return reply.send({ success: true, data: settings });
+  });
 
-/**
- * PATCH /settings
- * Update user event settings
- */
-router.patch('/', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * PATCH /settings
+   * Update user event settings
+   */
+  fastify.patch('/', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { defaultView, defaultCategoryId, currency, timezone } = req.body;
+    const { defaultView, defaultCategoryId, currency, timezone } = req.body as Record<string, unknown>;
 
     const settings = await settingsService.update(authReq.user.userId, {
       defaultView,
@@ -45,13 +39,8 @@ router.patch('/', authMiddleware, async (req: Request, res: Response): Promise<v
       timezone,
     });
 
-    res.json({ success: true, data: settings });
-  } catch (error) {
-    console.error('[SettingsRoutes] Update error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to update settings',
-    });
-  }
-});
+    return reply.send({ success: true, data: settings });
+  });
+};
 
-export default router;
+export default routes;

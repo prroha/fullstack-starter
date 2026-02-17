@@ -146,16 +146,16 @@ const Slider = React.forwardRef<HTMLDivElement, SliderProps>(
     const trackColors = {
       primary: "bg-primary",
       secondary: "bg-secondary",
-      success: "bg-green-500 dark:bg-green-400",
-      warning: "bg-yellow-500 dark:bg-yellow-400",
+      success: "bg-success",
+      warning: "bg-warning",
       destructive: "bg-destructive",
     };
 
     const thumbColors = {
       primary: "border-primary bg-background",
       secondary: "border-secondary bg-background",
-      success: "border-green-500 dark:border-green-400 bg-background",
-      warning: "border-yellow-500 dark:border-yellow-400 bg-background",
+      success: "border-success bg-background",
+      warning: "border-warning bg-background",
       destructive: "border-destructive bg-background",
     };
 

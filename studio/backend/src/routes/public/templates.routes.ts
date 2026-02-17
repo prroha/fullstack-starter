@@ -1,10 +1,8 @@
-import { Router } from "express";
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from "fastify";
 import { z } from "zod";
 import { prisma } from "../../config/db.js";
 import { sendSuccess, sendPaginated, parsePaginationParams, createPaginationInfo } from "../../utils/response.js";
 import { ApiError } from "../../utils/errors.js";
-
-const router = Router();
 
 // Query parameter validation schemas
 const listTemplatesQuerySchema = z.object({
@@ -17,12 +15,12 @@ const slugParamSchema = z.object({
   slug: z.string().min(1).max(100).regex(/^[a-z0-9-_.]+$/),
 });
 
-/**
- * GET /api/templates
- * List all active templates
- */
-router.get("/", async (req, res, next) => {
-  try {
+const routePlugin: FastifyPluginAsync = async (fastify) => {
+  /**
+   * GET /api/templates
+   * List all active templates
+   */
+  fastify.get("/", async (req: FastifyRequest, reply: FastifyReply) => {
     // Validate query parameters
     const queryResult = listTemplatesQuerySchema.safeParse(req.query);
     if (!queryResult.success) {
@@ -71,18 +69,14 @@ router.get("/", async (req, res, next) => {
       prisma.template.count({ where }),
     ]);
 
-    sendPaginated(res, templates, createPaginationInfo(page, limit, total));
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendPaginated(reply, templates, createPaginationInfo(page, limit, total));
+  });
 
-/**
- * GET /api/templates/:slug
- * Get single template by slug with full feature details
- */
-router.get("/:slug", async (req, res, next) => {
-  try {
+  /**
+   * GET /api/templates/:slug
+   * Get single template by slug with full feature details
+   */
+  fastify.get("/:slug", async (req: FastifyRequest, reply: FastifyReply) => {
     // Validate slug parameter
     const paramResult = slugParamSchema.safeParse(req.params);
     if (!paramResult.success) {
@@ -134,14 +128,12 @@ router.get("/:slug", async (req, res, next) => {
       },
     });
 
-    sendSuccess(res, {
+    return sendSuccess(reply, {
       ...template,
       features,
       tierInfo: baseTier,
     });
-  } catch (error) {
-    next(error);
-  }
-});
+  });
+};
 
-export { router as publicTemplatesRoutes };
+export { routePlugin as publicTemplatesRoutes };

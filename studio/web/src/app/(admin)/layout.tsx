@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { Toaster } from "sonner";
 import { cn } from "@/lib/utils";
-import { NavigationProgress } from "@/components/ui";
+import { Button, NavigationProgress } from "@/components/ui";
 import { useNavigationProgress } from "@/lib/hooks";
 import { AuthProvider, useAuth } from "@/contexts/auth-context";
 
@@ -152,13 +152,15 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
           <Link href="/admin" className="font-bold text-lg">
             Studio Admin
           </Link>
-          <button
-            className="md:hidden p-2 hover:bg-accent rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden"
             onClick={() => setSidebarOpen(false)}
             aria-label="Close navigation menu"
           >
             <X className="h-5 w-5" aria-hidden="true" />
-          </button>
+          </Button>
         </div>
 
         <nav className="p-4 space-y-1" role="navigation">
@@ -185,13 +187,15 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
         </nav>
 
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t space-y-2">
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={handleLogout}
-            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground w-full px-2 py-1.5 rounded-md hover:bg-accent focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            className="flex items-center gap-2 text-muted-foreground hover:text-foreground w-full justify-start"
           >
             <LogOut className="h-4 w-4" aria-hidden="true" />
             Sign Out
-          </button>
+          </Button>
           <Link
             href="/"
             onClick={() => handleLinkClick("/")}
@@ -207,15 +211,17 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
       <div className="md:pl-64">
         {/* Header */}
         <header className="sticky top-0 z-30 bg-background border-b h-16 flex items-center px-4 gap-4 relative" role="banner">
-          <button
-            className="md:hidden p-2 hover:bg-accent rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden"
             onClick={() => setSidebarOpen(true)}
             aria-label="Open navigation menu"
             aria-expanded={sidebarOpen}
             aria-controls="main-navigation"
           >
             <Menu className="h-5 w-5" aria-hidden="true" />
-          </button>
+          </Button>
           <div className="flex-1" />
           <div className="flex items-center gap-4">
             <span className="text-sm text-muted-foreground">

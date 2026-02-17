@@ -1,15 +1,13 @@
-import { Router } from "express";
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from "fastify";
 import { prisma } from "../../config/db.js";
 import { sendSuccess } from "../../utils/response.js";
 
-const router = Router();
-
-/**
- * GET /api/admin/dashboard/stats
- * Get dashboard statistics
- */
-router.get("/stats", async (_req, res, next) => {
-  try {
+const routePlugin: FastifyPluginAsync = async (fastify) => {
+  /**
+   * GET /api/admin/dashboard/stats
+   * Get dashboard statistics
+   */
+  fastify.get("/stats", async (_req: FastifyRequest, reply: FastifyReply) => {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -95,7 +93,7 @@ router.get("/stats", async (_req, res, next) => {
       ? ((currentMonthRev - lastMonthRev) / lastMonthRev) * 100
       : 0;
 
-    sendSuccess(res, {
+    return sendSuccess(reply, {
       revenue: {
         total: totalRevenue._sum.total || 0,
         today: todayRevenue._sum.total || 0,
@@ -122,18 +120,15 @@ router.get("/stats", async (_req, res, next) => {
       recentOrders,
       topTemplates,
     });
-  } catch (error) {
-    next(error);
-  }
-});
+  });
 
-/**
- * GET /api/admin/dashboard/revenue-chart
- * Get revenue data for chart (last 30 days)
- */
-router.get("/revenue-chart", async (req, res, next) => {
-  try {
-    const days = Math.min(365, Math.max(1, parseInt(req.query.days as string) || 30));
+  /**
+   * GET /api/admin/dashboard/revenue-chart
+   * Get revenue data for chart (last 30 days)
+   */
+  fastify.get("/revenue-chart", async (req: FastifyRequest, reply: FastifyReply) => {
+    const query = req.query as Record<string, string>;
+    const days = Math.min(365, Math.max(1, parseInt(query.days) || 30));
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
     startDate.setHours(0, 0, 0, 0);
@@ -175,18 +170,14 @@ router.get("/revenue-chart", async (req, res, next) => {
       revenue,
     }));
 
-    sendSuccess(res, chartData);
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendSuccess(reply, chartData);
+  });
 
-/**
- * GET /api/admin/dashboard/conversion-funnel
- * Get conversion funnel data
- */
-router.get("/conversion-funnel", async (_req, res, next) => {
-  try {
+  /**
+   * GET /api/admin/dashboard/conversion-funnel
+   * Get conversion funnel data
+   */
+  fastify.get("/conversion-funnel", async (_req: FastifyRequest, reply: FastifyReply) => {
     const [pageViews, configures, previews, purchases] = await Promise.all([
       prisma.studioAnalytics.count({ where: { event: "page_view" } }),
       prisma.studioAnalytics.count({ where: { event: "feature_toggle" } }),
@@ -194,7 +185,7 @@ router.get("/conversion-funnel", async (_req, res, next) => {
       prisma.order.count({ where: { status: "COMPLETED" } }),
     ]);
 
-    sendSuccess(res, {
+    return sendSuccess(reply, {
       funnel: [
         { stage: "Page Views", count: pageViews },
         { stage: "Configurations", count: configures },
@@ -203,9 +194,7 @@ router.get("/conversion-funnel", async (_req, res, next) => {
       ],
       conversionRate: pageViews > 0 ? ((purchases / pageViews) * 100).toFixed(2) : "0",
     });
-  } catch (error) {
-    next(error);
-  }
-});
+  });
+};
 
-export { router as dashboardRoutes };
+export { routePlugin as dashboardRoutes };

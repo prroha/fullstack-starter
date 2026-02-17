@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from "express";
+import { FastifyRequest, FastifyReply, FastifyError } from "fastify";
 import { ZodError } from "zod";
 import { config } from "../config/index.js";
 import { logger } from "../lib/logger.js";
@@ -45,13 +45,12 @@ export class ApiError extends Error {
 }
 
 /**
- * Error handling middleware
+ * Fastify error handler
  */
-export function errorMiddleware(
-  err: Error,
-  req: Request,
-  res: Response,
-  _next: NextFunction
+export function errorHandler(
+  err: FastifyError | Error,
+  req: FastifyRequest,
+  reply: FastifyReply
 ): void {
   const requestId = req.id;
 
@@ -69,7 +68,7 @@ export function errorMiddleware(
       details
     );
     (response.error as { requestId?: string }).requestId = requestId;
-    res.status(400).json(response);
+    reply.code(400).send(response);
     return;
   }
 
@@ -85,7 +84,7 @@ export function errorMiddleware(
     if (config.isDevelopment() && !err.isOperational) {
       (response.error as { stack?: string }).stack = err.stack;
     }
-    res.status(err.statusCode).json(response);
+    reply.code(err.statusCode).send(response);
     return;
   }
 
@@ -99,7 +98,18 @@ export function errorMiddleware(
       details
     );
     (response.error as { requestId?: string }).requestId = requestId;
-    res.status(400).json(response);
+    reply.code(400).send(response);
+    return;
+  }
+
+  // Handle Fastify validation errors (schema validation)
+  if ("validation" in err && (err as FastifyError).validation) {
+    const response = errorResponse(
+      ErrorCodes.VALIDATION_ERROR,
+      err.message
+    );
+    (response.error as { requestId?: string }).requestId = requestId;
+    reply.code(400).send(response);
     return;
   }
 
@@ -111,5 +121,5 @@ export function errorMiddleware(
   if (config.isDevelopment()) {
     (response.error as { stack?: string }).stack = err.stack;
   }
-  res.status(500).json(response);
+  reply.code(500).send(response);
 }

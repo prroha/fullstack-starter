@@ -182,7 +182,7 @@ export default function InvoicingSettingsPage() {
           Configure your business details and invoice defaults
         </p>
 
-        <div className="mt-8 space-y-8">
+        <div className="mt-8 space-y-6">
           {error && <Alert variant="error">{error}</Alert>}
           {success && <Alert variant="success">{success}</Alert>}
 

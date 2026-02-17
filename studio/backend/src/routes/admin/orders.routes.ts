@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from "fastify";
 import { z } from "zod";
 import { prisma } from "../../config/db.js";
 import { env } from "../../config/env.js";
@@ -7,16 +7,15 @@ import { ApiError } from "../../utils/errors.js";
 import { stripeService } from "../../services/stripe.service.js";
 import { emailService } from "../../services/email.service.js";
 
-const router = Router();
-
-/**
- * GET /api/admin/orders
- * List all orders with filtering and pagination
- */
-router.get("/", async (req, res, next) => {
-  try {
-    const { page, limit, skip } = parsePaginationParams(req.query as { page?: string; limit?: string });
-    const { status, tier, search, from, to, sortBy = "createdAt", sortOrder = "desc" } = req.query;
+const routePlugin: FastifyPluginAsync = async (fastify) => {
+  /**
+   * GET /api/admin/orders
+   * List all orders with filtering and pagination
+   */
+  fastify.get("/", async (req: FastifyRequest, reply: FastifyReply) => {
+    const query = req.query as Record<string, string>;
+    const { page, limit, skip } = parsePaginationParams(query as { page?: string; limit?: string });
+    const { status, tier, search, from, to, sortBy = "createdAt", sortOrder = "desc" } = query;
 
     const where: Record<string, unknown> = {};
 
@@ -24,21 +23,20 @@ router.get("/", async (req, res, next) => {
     if (tier) where.tier = tier;
     if (from || to) {
       where.createdAt = {
-        ...(from ? { gte: new Date(from as string) } : {}),
-        ...(to ? { lte: new Date(to as string) } : {}),
+        ...(from ? { gte: new Date(from) } : {}),
+        ...(to ? { lte: new Date(to) } : {}),
       };
     }
     if (search) {
       where.OR = [
-        { orderNumber: { contains: search as string, mode: "insensitive" } },
-        { customerEmail: { contains: search as string, mode: "insensitive" } },
-        { customerName: { contains: search as string, mode: "insensitive" } },
+        { orderNumber: { contains: search, mode: "insensitive" } },
+        { customerEmail: { contains: search, mode: "insensitive" } },
+        { customerName: { contains: search, mode: "insensitive" } },
       ];
     }
 
-
     const allowedSortColumns = ['createdAt', 'orderNumber', 'total', 'status', 'tier', 'customerEmail'];
-    const safeSortBy = allowedSortColumns.includes(sortBy as string) ? (sortBy as string) : 'createdAt';
+    const safeSortBy = allowedSortColumns.includes(sortBy) ? sortBy : 'createdAt';
     const [orders, total] = await Promise.all([
       prisma.order.findMany({
         where,
@@ -54,18 +52,14 @@ router.get("/", async (req, res, next) => {
       prisma.order.count({ where }),
     ]);
 
-    sendPaginated(res, orders, createPaginationInfo(page, limit, total));
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendPaginated(reply, orders, createPaginationInfo(page, limit, total));
+  });
 
-/**
- * GET /api/admin/orders/stats
- * Get order statistics
- */
-router.get("/stats", async (_req, res, next) => {
-  try {
+  /**
+   * GET /api/admin/orders/stats
+   * Get order statistics
+   */
+  fastify.get("/stats", async (_req: FastifyRequest, reply: FastifyReply) => {
     const [total, completed, pending, refunded, revenue, avgOrder] = await Promise.all([
       prisma.order.count(),
       prisma.order.count({ where: { status: "COMPLETED" } }),
@@ -75,7 +69,7 @@ router.get("/stats", async (_req, res, next) => {
       prisma.order.aggregate({ _avg: { total: true }, where: { status: "COMPLETED" } }),
     ]);
 
-    sendSuccess(res, {
+    return sendSuccess(reply, {
       total,
       completed,
       pending,
@@ -83,43 +77,40 @@ router.get("/stats", async (_req, res, next) => {
       revenue: revenue._sum.total || 0,
       averageOrderValue: Math.round(avgOrder._avg.total || 0),
     });
-  } catch (error) {
-    next(error);
-  }
-});
+  });
 
-/**
- * Sanitize CSV cell to prevent formula injection
- */
-function sanitizeCsvCell(value: string): string {
-  // Prefix sanitization: prevent formula injection
-  let sanitized = value;
-  if (/^[=+\-@\t\r]/.test(sanitized)) {
-    sanitized = `'${sanitized}`;
+  /**
+   * Sanitize CSV cell to prevent formula injection
+   */
+  function sanitizeCsvCell(value: string): string {
+    // Prefix sanitization: prevent formula injection
+    let sanitized = value;
+    if (/^[=+\-@\t\r]/.test(sanitized)) {
+      sanitized = `'${sanitized}`;
+    }
+    // Always quote-wrap values that contain special characters
+    if (sanitized.includes(",") || sanitized.includes("\n") || sanitized.includes('"') || sanitized.includes("'")) {
+      sanitized = `"${sanitized.replace(/"/g, '""')}"`;
+    }
+    return sanitized;
   }
-  // Always quote-wrap values that contain special characters
-  if (sanitized.includes(",") || sanitized.includes("\n") || sanitized.includes('"') || sanitized.includes("'")) {
-    sanitized = `"${sanitized.replace(/"/g, '""')}"`;
-  }
-  return sanitized;
-}
 
-/**
- * GET /api/admin/orders/export/csv
- * Export orders to CSV
- * NOTE: Must be defined BEFORE /:id route to avoid being matched as an id
- */
-router.get("/export/csv", async (req, res, next) => {
-  try {
-    const { status, tier, from, to } = req.query;
+  /**
+   * GET /api/admin/orders/export/csv
+   * Export orders to CSV
+   * NOTE: Must be defined BEFORE /:id route to avoid being matched as an id
+   */
+  fastify.get("/export/csv", async (req: FastifyRequest, reply: FastifyReply) => {
+    const query = req.query as Record<string, string>;
+    const { status, tier, from, to } = query;
 
     const where: Record<string, unknown> = {};
     if (status) where.status = status;
     if (tier) where.tier = tier;
     if (from || to) {
       where.createdAt = {
-        ...(from ? { gte: new Date(from as string) } : {}),
-        ...(to ? { lte: new Date(to as string) } : {}),
+        ...(from ? { gte: new Date(from) } : {}),
+        ...(to ? { lte: new Date(to) } : {}),
       };
     }
 
@@ -146,22 +137,20 @@ router.get("/export/csv", async (req, res, next) => {
 
     const csv = [headers, ...rows].map(row => row.join(",")).join("\n");
 
-    res.setHeader("Content-Type", "text/csv");
-    res.setHeader("Content-Disposition", `attachment; filename=orders-${new Date().toISOString().split("T")[0]}.csv`);
-    res.send(csv);
-  } catch (error) {
-    next(error);
-  }
-});
+    return reply
+      .header("Content-Type", "text/csv")
+      .header("Content-Disposition", `attachment; filename=orders-${new Date().toISOString().split("T")[0]}.csv`)
+      .send(csv);
+  });
 
-/**
- * GET /api/admin/orders/:id
- * Get single order details
- */
-router.get("/:id", async (req, res, next) => {
-  try {
+  /**
+   * GET /api/admin/orders/:id
+   * Get single order details
+   */
+  fastify.get("/:id", async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as Record<string, string>;
     const order = await prisma.order.findUnique({
-      where: { id: req.params.id },
+      where: { id },
       include: {
         user: { select: { id: true, email: true, name: true, createdAt: true } },
         template: true,
@@ -174,25 +163,22 @@ router.get("/:id", async (req, res, next) => {
       throw ApiError.notFound("Order");
     }
 
-    sendSuccess(res, order);
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendSuccess(reply, order);
+  });
 
-/**
- * PATCH /api/admin/orders/:id/status
- * Update order status
- */
-router.patch("/:id/status", async (req, res, next) => {
-  try {
+  /**
+   * PATCH /api/admin/orders/:id/status
+   * Update order status
+   */
+  fastify.patch("/:id/status", async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as Record<string, string>;
     const schema = z.object({
       status: z.enum(["PENDING", "PROCESSING", "COMPLETED", "FAILED", "REFUNDED", "CANCELLED"]),
     });
     const { status } = schema.parse(req.body);
 
     const order = await prisma.order.update({
-      where: { id: req.params.id },
+      where: { id },
       data: {
         status,
         ...(status === "COMPLETED" ? { paidAt: new Date() } : {}),
@@ -211,25 +197,22 @@ router.patch("/:id/status", async (req, res, next) => {
       },
     });
 
-    sendSuccess(res, order, "Order status updated");
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendSuccess(reply, order, "Order status updated");
+  });
 
-/**
- * POST /api/admin/orders/:id/refund
- * Process refund
- */
-router.post("/:id/refund", async (req, res, next) => {
-  try {
+  /**
+   * POST /api/admin/orders/:id/refund
+   * Process refund
+   */
+  fastify.post("/:id/refund", async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as Record<string, string>;
     const schema = z.object({
       reason: z.string().max(500).optional(),
     });
     const { reason } = schema.parse(req.body);
 
     const order = await prisma.order.findUnique({
-      where: { id: req.params.id },
+      where: { id },
       include: { license: true },
     });
 
@@ -256,7 +239,7 @@ router.post("/:id/refund", async (req, res, next) => {
     // Update order and revoke license
     const [updatedOrder] = await prisma.$transaction([
       prisma.order.update({
-        where: { id: req.params.id },
+        where: { id },
         data: {
           status: "REFUNDED",
           refundedAt: new Date(),
@@ -295,20 +278,17 @@ router.post("/:id/refund", async (req, res, next) => {
       // Don't throw - refund is already processed
     }
 
-    sendSuccess(res, updatedOrder, "Order refunded successfully");
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendSuccess(reply, updatedOrder, "Order refunded successfully");
+  });
 
-/**
- * POST /api/admin/orders/:id/regenerate-download
- * Regenerate download link for an order
- */
-router.post("/:id/regenerate-download", async (req, res, next) => {
-  try {
+  /**
+   * POST /api/admin/orders/:id/regenerate-download
+   * Regenerate download link for an order
+   */
+  fastify.post("/:id/regenerate-download", async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as Record<string, string>;
     const order = await prisma.order.findUnique({
-      where: { id: req.params.id },
+      where: { id },
       include: { license: true },
     });
 
@@ -370,25 +350,22 @@ router.post("/:id/regenerate-download", async (req, res, next) => {
       console.error("Failed to send download link email:", emailError);
     }
 
-    sendSuccess(res, { downloadToken: license.downloadToken }, "Download link regenerated");
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendSuccess(reply, { downloadToken: license.downloadToken }, "Download link regenerated");
+  });
 
-/**
- * POST /api/admin/orders/:id/resend-email
- * Resend order confirmation or download link email
- */
-router.post("/:id/resend-email", async (req, res, next) => {
-  try {
+  /**
+   * POST /api/admin/orders/:id/resend-email
+   * Resend order confirmation or download link email
+   */
+  fastify.post("/:id/resend-email", async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as Record<string, string>;
     const schema = z.object({
       type: z.enum(["confirmation", "download"]).default("download"),
     });
     const { type } = schema.parse(req.body);
 
     const order = await prisma.order.findUnique({
-      where: { id: req.params.id },
+      where: { id },
       include: { license: true },
     });
 
@@ -448,10 +425,8 @@ router.post("/:id/resend-email", async (req, res, next) => {
       },
     });
 
-    sendSuccess(res, { sent: true }, `${type === "confirmation" ? "Order confirmation" : "Download link"} email sent`);
-  } catch (error) {
-    next(error);
-  }
-});
+    return sendSuccess(reply, { sent: true }, `${type === "confirmation" ? "Order confirmation" : "Download link"} email sent`);
+  });
+};
 
-export { router as ordersRoutes };
+export { routePlugin as ordersRoutes };

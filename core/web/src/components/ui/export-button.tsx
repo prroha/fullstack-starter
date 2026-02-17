@@ -204,7 +204,7 @@ export function ExportButton({
       >
         {!isLoading && showIcon && (
           showSuccess ? (
-            <CheckIcon className="text-green-500" />
+            <CheckIcon className="text-success" />
           ) : (
             <DownloadIcon />
           )
@@ -230,7 +230,7 @@ export function ExportButton({
         >
           {!isLoading && showIcon && (
             showSuccess ? (
-              <CheckIcon className="text-green-500" />
+              <CheckIcon className="text-success" />
             ) : (
               <DownloadIcon />
             )

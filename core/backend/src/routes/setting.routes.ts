@@ -1,52 +1,53 @@
-import { Router, Request } from "express";
+import { FastifyPluginAsync } from "fastify";
 import { settingController } from "../controllers/setting.controller.js";
 import { authMiddleware, adminMiddleware } from "../middleware/auth.middleware.js";
-import { AuthenticatedRequest } from "../types/index.js";
 
-const router = Router();
+const routePlugin: FastifyPluginAsync = async (fastify) => {
+  // ============================================================================
+  // Public routes
+  // ============================================================================
 
-// ============================================================================
-// Public routes
-// ============================================================================
+  fastify.get("/public", (req, reply) =>
+    settingController.getPublic(req, reply)
+  );
 
-router.get("/public", (req, res, next) =>
-  settingController.getPublic(req as Request, res, next)
-);
+  // ============================================================================
+  // Admin routes (nested plugin for scoped middleware)
+  // ============================================================================
 
-// ============================================================================
-// Admin routes
-// ============================================================================
+  await fastify.register(async (admin) => {
+    admin.addHook("preHandler", authMiddleware);
+    admin.addHook("preHandler", adminMiddleware);
 
-router.use(authMiddleware);
-router.use(adminMiddleware);
+    admin.get("/", (req, reply) =>
+      settingController.getAll(req, reply)
+    );
 
-router.get("/", (req, res, next) =>
-  settingController.getAll(req as unknown as AuthenticatedRequest, res, next)
-);
+    // Export settings (must be before /:key to avoid matching "export" as key)
+    admin.get("/export", (req, reply) =>
+      settingController.exportSettings(req, reply)
+    );
 
-// Export settings (must be before /:key to avoid matching "export" as key)
-router.get("/export", (req, res, next) =>
-  settingController.exportSettings(req as unknown as AuthenticatedRequest, res, next)
-);
+    admin.get("/:key", (req, reply) =>
+      settingController.getByKey(req, reply)
+    );
 
-router.get("/:key", (req, res, next) =>
-  settingController.getByKey(req as unknown as AuthenticatedRequest, res, next)
-);
+    admin.post("/", (req, reply) =>
+      settingController.create(req, reply)
+    );
 
-router.post("/", (req, res, next) =>
-  settingController.create(req as unknown as AuthenticatedRequest, res, next)
-);
+    admin.patch("/:key", (req, reply) =>
+      settingController.update(req, reply)
+    );
 
-router.patch("/:key", (req, res, next) =>
-  settingController.update(req as unknown as AuthenticatedRequest, res, next)
-);
+    admin.post("/bulk", (req, reply) =>
+      settingController.bulkUpdate(req, reply)
+    );
 
-router.post("/bulk", (req, res, next) =>
-  settingController.bulkUpdate(req as unknown as AuthenticatedRequest, res, next)
-);
+    admin.delete("/:key", (req, reply) =>
+      settingController.delete(req, reply)
+    );
+  });
+};
 
-router.delete("/:key", (req, res, next) =>
-  settingController.delete(req as unknown as AuthenticatedRequest, res, next)
-);
-
-export default router;
+export default routePlugin;

@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from "express";
+import { FastifyRequest, FastifyReply } from "fastify";
 import jwt from "jsonwebtoken";
 import { prisma } from "../config/db.js";
 import { env } from "../config/env.js";
@@ -11,11 +11,9 @@ export interface AuthUser {
   role: "user" | "admin";
 }
 
-declare global {
-  namespace Express {
-    interface Request {
-      user?: AuthUser;
-    }
+declare module "fastify" {
+  interface FastifyRequest {
+    user?: AuthUser;
   }
 }
 
@@ -23,9 +21,8 @@ declare global {
  * Authenticate user from JWT token
  */
 export async function authenticate(
-  req: Request,
-  _res: Response,
-  next: NextFunction
+  req: FastifyRequest,
+  _reply: FastifyReply
 ): Promise<void> {
   try {
     // Check cookie first (set by login endpoint), then Authorization header
@@ -62,51 +59,44 @@ export async function authenticate(
       name: user.name,
       role: (payload.role as "user" | "admin") || "user",
     };
-
-    next();
   } catch (error) {
     if (error instanceof jwt.JsonWebTokenError) {
-      next(ApiError.unauthorized("Invalid token"));
+      throw ApiError.unauthorized("Invalid token");
     } else if (error instanceof jwt.TokenExpiredError) {
-      next(ApiError.unauthorized("Token expired"));
-    } else {
-      next(error);
+      throw ApiError.unauthorized("Token expired");
     }
+    throw error;
   }
 }
 
 /**
  * Require admin role
  */
-export function requireAdmin(
-  req: Request,
-  _res: Response,
-  next: NextFunction
-): void {
+export async function requireAdmin(
+  req: FastifyRequest,
+  _reply: FastifyReply
+): Promise<void> {
   if (!req.user) {
-    return next(ApiError.unauthorized("Not authenticated"));
+    throw ApiError.unauthorized("Not authenticated");
   }
 
   if (req.user.role !== "admin") {
-    return next(ApiError.forbidden("Admin access required"));
+    throw ApiError.forbidden("Admin access required");
   }
-
-  next();
 }
 
 /**
  * Optional authentication - doesn't fail if no token
  */
 export async function optionalAuth(
-  req: Request,
-  res: Response,
-  next: NextFunction
+  req: FastifyRequest,
+  _reply: FastifyReply
 ): Promise<void> {
   const cookieToken = req.cookies?.auth_token;
   const authHeader = req.headers.authorization;
   if (!cookieToken && !authHeader?.startsWith("Bearer ")) {
-    return next();
+    return;
   }
 
-  await authenticate(req, res, next);
+  await authenticate(req, _reply);
 }

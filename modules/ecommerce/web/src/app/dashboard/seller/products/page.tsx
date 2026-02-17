@@ -74,9 +74,9 @@ export default function SellerProductsPage() {
   if (error && products.length === 0) {
     return (
       <div className="max-w-4xl mx-auto p-6">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <h2 className="text-red-800 font-semibold text-lg">Error</h2>
-          <p className="text-red-600 mt-1">{error}</p>
+        <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
+          <h2 className="text-destructive font-semibold text-lg">Error</h2>
+          <p className="text-destructive mt-1">{error}</p>
           <Button
             variant="destructive"
             onClick={() => window.location.reload()}
@@ -101,7 +101,7 @@ export default function SellerProductsPage() {
         </div>
         <Link
           href="/dashboard/seller/products/new"
-          className="inline-flex items-center justify-center px-5 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+          className="inline-flex items-center justify-center px-5 py-2.5 bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90 transition-colors"
         >
           + Add Product
         </Link>
@@ -109,20 +109,20 @@ export default function SellerProductsPage() {
 
       {/* Error banner */}
       {error && (
-        <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-red-600">{error}</p>
+        <div className="mb-6 bg-destructive/10 border border-destructive/20 rounded-lg p-4">
+          <p className="text-destructive">{error}</p>
         </div>
       )}
 
       {/* Product List */}
       {products.length === 0 ? (
-        <div className="text-center py-16 bg-card rounded-lg border border-border">
+        <div className="text-center py-10 bg-card rounded-lg border border-border">
           <p className="text-muted-foreground text-lg">
             No products yet. Create your first product!
           </p>
           <Link
             href="/dashboard/seller/products/new"
-            className="inline-block mt-4 px-5 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+            className="inline-block mt-4 px-5 py-2.5 bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90 transition-colors"
           >
             Create Your First Product
           </Link>
@@ -180,17 +180,17 @@ export default function SellerProductsPage() {
                   <span
                     className={`text-sm ${
                       product.stock <= product.lowStockThreshold
-                        ? 'text-red-600 font-medium'
+                        ? 'text-destructive font-medium'
                         : 'text-foreground'
                     }`}
                   >
                     {product.stock}
                   </span>
                   {product.stock <= product.lowStockThreshold && product.stock > 0 && (
-                    <span className="ml-1 text-xs text-red-500">Low</span>
+                    <span className="ml-1 text-xs text-destructive">Low</span>
                   )}
                   {product.stock === 0 && (
-                    <span className="ml-1 text-xs text-red-600">Out of stock</span>
+                    <span className="ml-1 text-xs text-destructive">Out of stock</span>
                   )}
                 </TableCell>
                 <TableCell>
@@ -201,7 +201,7 @@ export default function SellerProductsPage() {
                 <TableCell className="text-right">
                   <Link
                     href={`/dashboard/seller/products/${product.id}`}
-                    className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                    className="text-sm text-primary hover:text-primary/80 font-medium"
                   >
                     Edit
                   </Link>

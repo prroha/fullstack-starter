@@ -53,7 +53,7 @@ export default function SellerDashboardPage() {
               <div key={i} className="h-28 bg-muted rounded-xl" />
             ))}
           </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="h-64 bg-muted rounded-lg" />
             <div className="h-64 bg-muted rounded-lg" />
           </div>
@@ -65,9 +65,9 @@ export default function SellerDashboardPage() {
   if (error) {
     return (
       <div className="max-w-4xl mx-auto p-6">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <h2 className="text-red-800 font-semibold text-lg">Error</h2>
-          <p className="text-red-600 mt-1">{error}</p>
+        <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
+          <h2 className="text-destructive font-semibold text-lg">Error</h2>
+          <p className="text-destructive mt-1">{error}</p>
           <Button
             variant="destructive"
             onClick={() => window.location.reload()}
@@ -93,7 +93,7 @@ export default function SellerDashboardPage() {
         <div className="flex items-center gap-3">
           <Link
             href="/dashboard/seller/products"
-            className="px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+            className="px-4 py-2 text-sm font-medium rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
           >
             Manage Products
           </Link>
@@ -110,14 +110,14 @@ export default function SellerDashboardPage() {
       {stats && <SellerStats stats={stats} />}
 
       {/* Content Grid */}
-      <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Orders */}
         <div className="bg-card rounded-lg shadow-sm border border-border">
           <div className="px-6 py-4 border-b border-border flex items-center justify-between">
             <h2 className="text-lg font-semibold text-foreground">Recent Orders</h2>
             <Link
               href="/dashboard/seller/orders"
-              className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+              className="text-sm text-primary hover:text-primary/80 font-medium"
             >
               View all
             </Link>

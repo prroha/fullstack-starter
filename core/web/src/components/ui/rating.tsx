@@ -113,7 +113,7 @@ const Rating = React.forwardRef<HTMLDivElement, RatingProps>(
       readOnly = false,
       disabled = false,
       size = "md",
-      filledColor = "text-yellow-400",
+      filledColor = "text-warning",
       emptyColor = "text-muted-foreground/30",
       filledIcon,
       emptyIcon,

@@ -1,13 +1,12 @@
-import { Router, Request, Response } from 'express';
-import { getSellerService } from '../services/seller.service';
-import { getProductService } from '../services/product.service';
-import { authMiddleware, AuthenticatedRequest } from '../middleware/auth';
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
+import { getSellerService } from '../services/seller.service.js';
+import { getProductService } from '../services/product.service.js';
+import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
 
 // =============================================================================
-// Router
+// Routes
 // =============================================================================
 
-const router = Router();
 const sellerService = getSellerService();
 const productService = getProductService();
 
@@ -15,29 +14,24 @@ const productService = getProductService();
 // Seller Dashboard Endpoints (All Authenticated)
 // =============================================================================
 
-/**
- * GET /seller/stats
- * Get seller dashboard statistics
- */
-router.get('/stats', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+const routes: FastifyPluginAsync = async (fastify) => {
+  /**
+   * GET /seller/stats
+   * Get seller dashboard statistics
+   */
+  fastify.get('/stats', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
     const stats = await sellerService.getDashboardStats(authReq.user.userId);
-    res.json({ success: true, data: stats });
-  } catch (error) {
-    console.error('[SellerRoutes] Stats error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to get seller stats' });
-  }
-});
+    return reply.send({ success: true, data: stats });
+  });
 
-/**
- * GET /seller/products
- * List seller's own products (all statuses) with pagination
- */
-router.get('/products', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * GET /seller/products
+   * List seller's own products (all statuses) with pagination
+   */
+  fastify.get('/products', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { page, limit } = req.query;
+    const { page, limit } = req.query as Record<string, string>;
 
     const result = await productService.listProducts({
       sellerId: authReq.user.userId,
@@ -45,36 +39,26 @@ router.get('/products', authMiddleware, async (req: Request, res: Response): Pro
       limit: limit ? Number(limit) : 20,
     });
 
-    res.json({ success: true, data: result });
-  } catch (error) {
-    console.error('[SellerRoutes] Products error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to get seller products' });
-  }
-});
+    return reply.send({ success: true, data: result });
+  });
 
-/**
- * GET /seller/products/analytics
- * Get per-product analytics for seller
- */
-router.get('/products/analytics', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * GET /seller/products/analytics
+   * Get per-product analytics for seller
+   */
+  fastify.get('/products/analytics', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
     const analytics = await sellerService.getProductAnalytics(authReq.user.userId);
-    res.json({ success: true, data: analytics });
-  } catch (error) {
-    console.error('[SellerRoutes] Product analytics error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to get product analytics' });
-  }
-});
+    return reply.send({ success: true, data: analytics });
+  });
 
-/**
- * GET /seller/orders
- * Get seller's orders with pagination
- */
-router.get('/orders', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * GET /seller/orders
+   * Get seller's orders with pagination
+   */
+  fastify.get('/orders', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { page, limit } = req.query;
+    const { page, limit } = req.query as Record<string, string>;
 
     const result = await sellerService.getOrders(
       authReq.user.userId,
@@ -82,62 +66,44 @@ router.get('/orders', authMiddleware, async (req: Request, res: Response): Promi
       limit ? Number(limit) : 20,
     );
 
-    res.json({ success: true, data: result });
-  } catch (error) {
-    console.error('[SellerRoutes] Orders error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to get seller orders' });
-  }
-});
+    return reply.send({ success: true, data: result });
+  });
 
-/**
- * GET /seller/orders/recent
- * Get 5 most recent orders for seller
- */
-router.get('/orders/recent', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * GET /seller/orders/recent
+   * Get 5 most recent orders for seller
+   */
+  fastify.get('/orders/recent', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
     const orders = await sellerService.getRecentOrders(authReq.user.userId, 5);
-    res.json({ success: true, data: orders });
-  } catch (error) {
-    console.error('[SellerRoutes] Recent orders error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to get recent orders' });
-  }
-});
+    return reply.send({ success: true, data: orders });
+  });
 
-/**
- * GET /seller/reviews/recent
- * Get 5 most recent reviews for seller's products
- */
-router.get('/reviews/recent', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * GET /seller/reviews/recent
+   * Get 5 most recent reviews for seller's products
+   */
+  fastify.get('/reviews/recent', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
     const reviews = await sellerService.getRecentReviews(authReq.user.userId, 5);
-    res.json({ success: true, data: reviews });
-  } catch (error) {
-    console.error('[SellerRoutes] Recent reviews error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to get recent reviews' });
-  }
-});
+    return reply.send({ success: true, data: reviews });
+  });
 
-/**
- * GET /seller/revenue
- * Get revenue data for seller (daily/weekly/monthly)
- */
-router.get('/revenue', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * GET /seller/revenue
+   * Get revenue data for seller (daily/weekly/monthly)
+   */
+  fastify.get('/revenue', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { period } = req.query;
+    const { period } = req.query as Record<string, string>;
 
     const revenue = await sellerService.getRevenue(
       authReq.user.userId,
       (period as 'daily' | 'weekly' | 'monthly') || 'monthly',
     );
 
-    res.json({ success: true, data: revenue });
-  } catch (error) {
-    console.error('[SellerRoutes] Revenue error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to get revenue data' });
-  }
-});
+    return reply.send({ success: true, data: revenue });
+  });
+};
 
-export default router;
+export default routes;

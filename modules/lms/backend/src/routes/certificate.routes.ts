@@ -1,63 +1,51 @@
-import { Router, Request, Response } from 'express';
-import { getCertificateService } from '../services/certificate.service';
-import { authMiddleware, AuthenticatedRequest } from '../middleware/auth';
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
+import { getCertificateService } from '../services/certificate.service.js';
+import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
 
 // =============================================================================
-// Router
+// Routes
 // =============================================================================
 
-const router = Router();
 const certificateService = getCertificateService();
 
 // =============================================================================
 // Certificate Endpoints
 // =============================================================================
 
-/**
- * GET /certificates
- * List current user's certificates
- */
-router.get('/', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+const routes: FastifyPluginAsync = async (fastify) => {
+  /**
+   * GET /certificates
+   * List current user's certificates
+   */
+  fastify.get('/', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
     const certificates = await certificateService.getUserCertificates(authReq.user.userId);
-    res.json({ success: true, data: certificates });
-  } catch (error) {
-    console.error('[CertificateRoutes] List error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to list certificates' });
-  }
-});
+    return reply.send({ success: true, data: certificates });
+  });
 
-/**
- * GET /certificates/:id
- * Get a specific certificate
- */
-router.get('/:id', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const certificate = await certificateService.getCertificate(req.params.id);
+  /**
+   * GET /certificates/:id
+   * Get a specific certificate
+   */
+  fastify.get('/:id', async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as { id: string };
+    const certificate = await certificateService.getCertificate(id);
     if (!certificate) {
-      res.status(404).json({ error: 'Certificate not found' });
-      return;
+      return reply.code(404).send({ error: 'Certificate not found' });
     }
-    res.json({ success: true, data: certificate });
-  } catch (error) {
-    console.error('[CertificateRoutes] Get error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to get certificate' });
-  }
-});
+    return reply.send({ success: true, data: certificate });
+  });
 
-/**
- * POST /certificates/generate
- * Generate a certificate for a completed enrollment
- */
-router.post('/generate', authMiddleware, async (req: Request, res: Response): Promise<void> => {
-  try {
+  /**
+   * POST /certificates/generate
+   * Generate a certificate for a completed enrollment
+   */
+  fastify.post('/generate', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { enrollmentId, courseTitle, studentName } = req.body;
+    const { enrollmentId, courseTitle, studentName } = req.body as { enrollmentId: string; courseTitle: string; studentName?: string };
 
     if (!enrollmentId || !courseTitle) {
-      res.status(400).json({ error: 'enrollmentId and courseTitle are required' });
-      return;
+      return reply.code(400).send({ error: 'enrollmentId and courseTitle are required' });
     }
 
     const certificate = await certificateService.generateCertificate({
@@ -67,66 +55,47 @@ router.post('/generate', authMiddleware, async (req: Request, res: Response): Pr
       studentName: studentName || authReq.user.name || 'Student',
     });
 
-    res.status(201).json({ success: true, data: certificate });
-  } catch (error) {
-    console.error('[CertificateRoutes] Generate error:', error instanceof Error ? error.message : error);
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Failed to generate certificate',
-    });
-  }
-});
+    return reply.code(201).send({ success: true, data: certificate });
+  });
 
-/**
- * GET /certificates/:id/download
- * Download certificate as PDF
- */
-router.get('/:id/download', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const pdfBuffer = await certificateService.generatePdf(req.params.id);
+  /**
+   * GET /certificates/:id/download
+   * Download certificate as PDF
+   */
+  fastify.get('/:id/download', async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as { id: string };
+    const pdfBuffer = await certificateService.generatePdf(id);
 
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename=certificate-${req.params.id}.pdf`);
-    res.send(pdfBuffer);
-  } catch (error) {
-    console.error('[CertificateRoutes] Download error:', error instanceof Error ? error.message : error);
-    res.status(500).json({
-      error: error instanceof Error ? error.message : 'Failed to generate PDF',
-    });
-  }
-});
+    return reply
+      .header('Content-Type', 'application/pdf')
+      .header('Content-Disposition', `attachment; filename=certificate-${id}.pdf`)
+      .send(pdfBuffer);
+  });
 
-/**
- * GET /certificates/:id/qr
- * Get QR code image for certificate verification
- */
-router.get('/:id/qr', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const certificate = await certificateService.getCertificate(req.params.id);
+  /**
+   * GET /certificates/:id/qr
+   * Get QR code image for certificate verification
+   */
+  fastify.get('/:id/qr', async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as { id: string };
+    const certificate = await certificateService.getCertificate(id);
     if (!certificate) {
-      res.status(404).json({ error: 'Certificate not found' });
-      return;
+      return reply.code(404).send({ error: 'Certificate not found' });
     }
 
     const qrDataUrl = await certificateService.generateQrCode(certificate.verificationCode);
-    res.json({ success: true, data: { qrCode: qrDataUrl } });
-  } catch (error) {
-    console.error('[CertificateRoutes] QR error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to generate QR code' });
-  }
-});
+    return reply.send({ success: true, data: { qrCode: qrDataUrl } });
+  });
 
-/**
- * GET /certificates/verify/:code
- * Verify a certificate by its verification code (public)
- */
-router.get('/verify/:code', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const result = await certificateService.verifyCertificate(req.params.code);
-    res.json({ success: true, data: result });
-  } catch (error) {
-    console.error('[CertificateRoutes] Verify error:', error instanceof Error ? error.message : error);
-    res.status(500).json({ error: 'Failed to verify certificate' });
-  }
-});
+  /**
+   * GET /certificates/verify/:code
+   * Verify a certificate by its verification code (public)
+   */
+  fastify.get('/verify/:code', async (req: FastifyRequest, reply: FastifyReply) => {
+    const { code } = req.params as { code: string };
+    const result = await certificateService.verifyCertificate(code);
+    return reply.send({ success: true, data: result });
+  });
+};
 
-export default router;
+export default routes;

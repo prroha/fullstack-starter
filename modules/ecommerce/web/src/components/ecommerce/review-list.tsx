@@ -25,7 +25,7 @@ function RatingBar({
     <div className="flex items-center gap-2 text-sm">
       <span className="w-3 text-muted-foreground text-right">{star}</span>
       <svg
-        className="w-3.5 h-3.5 text-yellow-400 flex-shrink-0"
+        className="w-3.5 h-3.5 text-warning flex-shrink-0"
         viewBox="0 0 24 24"
         fill="currentColor"
         aria-hidden="true"
@@ -34,7 +34,7 @@ function RatingBar({
       </svg>
       <div className="flex-1 bg-muted rounded-full h-2 overflow-hidden">
         <div
-          className="bg-yellow-400 h-2 rounded-full transition-all duration-300"
+          className="bg-warning h-2 rounded-full transition-all duration-300"
           style={{ width: `${percentage}%` }}
         />
       </div>

@@ -10,12 +10,9 @@
  * In production/downloaded apps:
  * - Uses no-op middleware (all features enabled)
  * - The _preview/ directory is excluded from downloads
- *
- * Note: The starter-config.json reading is handled at the route level,
- * not in middleware, for downloaded apps.
  */
 
-import { Request, Response, NextFunction } from "express";
+import { FastifyRequest, FastifyReply } from "fastify";
 import fs from "fs";
 import path from "path";
 import { logger } from "../lib/logger.js";
@@ -26,15 +23,6 @@ export interface PreviewConfig {
   sessionToken: string | null;
   enabledFeatures: string[];
   tier: string | null;
-}
-
-// Extend Express Request type
-declare global {
-  namespace Express {
-    interface Request {
-      previewConfig: PreviewConfig;
-    }
-  }
 }
 
 // Check if preview mode is enabled
@@ -53,32 +41,24 @@ const defaultConfig: PreviewConfig = {
 
 /**
  * No-op middleware for production/downloaded apps
- * Simply sets default config (all features enabled) and continues
  */
-function noopMiddleware(
-  req: Request,
-  _res: Response,
-  next: NextFunction
-): void {
+async function noopMiddleware(req: FastifyRequest): Promise<void> {
   req.previewConfig = defaultConfig;
-  next();
 }
 
 // Initialize with no-op middleware
 let _previewMiddleware: (
-  req: Request,
-  res: Response,
-  next: NextFunction
+  req: FastifyRequest,
+  reply: FastifyReply
 ) => void | Promise<void> = noopMiddleware;
 
 let _requireFeature = (_featureSlug: string) => {
-  return (_req: Request, _res: Response, next: NextFunction) => {
+  return async (_req: FastifyRequest, _reply: FastifyReply): Promise<void> => {
     // In non-preview mode, all features are enabled
-    return next();
   };
 };
 
-let _isFeatureEnabled = (_req: Request, _featureSlug: string): boolean => {
+let _isFeatureEnabled = (_req: FastifyRequest, _featureSlug: string): boolean => {
   // In non-preview mode, all features are enabled
   return true;
 };
@@ -104,7 +84,6 @@ export const isFeatureEnabled = _isFeatureEnabled;
 
 /**
  * Starter Configuration Interface
- * Represents the configuration generated when downloading a starter
  */
 export interface StarterConfig {
   tier: string;
@@ -118,17 +97,13 @@ let _starterConfig: StarterConfig | null | undefined = undefined;
 
 /**
  * Gets the starter configuration from starter-config.json
- * This file is generated when a user downloads a starter from the Studio
- * Returns null if the file doesn't exist (development mode)
  */
 export function getStarterConfig(): StarterConfig | null {
-  // Return cached value if already loaded
   if (_starterConfig !== undefined) {
     return _starterConfig;
   }
 
   try {
-    // Look for starter-config.json in the project root
     const configPath = path.join(process.cwd(), "starter-config.json");
 
     if (fs.existsSync(configPath)) {
@@ -141,7 +116,6 @@ export function getStarterConfig(): StarterConfig | null {
     logger.warn("Failed to load starter-config.json", { error: String(error) });
   }
 
-  // No config file - development mode
   _starterConfig = null;
   return null;
 }

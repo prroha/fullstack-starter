@@ -77,13 +77,13 @@ function calculatePosition(
 // =====================================================
 
 const variantClasses: Record<TooltipVariant, string> = {
-  dark: "bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900",
-  light: "bg-white text-gray-900 border border-border shadow-lg dark:bg-gray-800 dark:text-gray-100",
+  dark: "bg-foreground text-background dark:bg-foreground dark:text-background",
+  light: "bg-popover text-popover-foreground border border-border shadow-lg",
 };
 
 const arrowVariantClasses: Record<TooltipVariant, string> = {
-  dark: "border-gray-900 dark:border-gray-100",
-  light: "border-white dark:border-gray-800",
+  dark: "border-foreground dark:border-foreground",
+  light: "border-popover dark:border-popover",
 };
 
 const arrowPositionClasses: Record<TooltipPosition, string> = {
