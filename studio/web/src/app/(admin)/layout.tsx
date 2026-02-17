@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { Toaster } from "sonner";
 import { cn } from "@/lib/utils";
-import { Button, NavigationProgress } from "@/components/ui";
+import { Button, NavigationProgress, ThemeToggle } from "@/components/ui";
 import { useNavigationProgress } from "@/lib/hooks";
 import { AuthProvider, useAuth } from "@/contexts/auth-context";
 
@@ -48,7 +48,7 @@ const navItems = [
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { isAuthenticated, isLoading, user } = useAuth();
+  const { isAuthenticated, isLoading, isAdmin } = useAuth();
 
   // Check if on login page
   const isLoginPage = pathname === "/login";
@@ -59,9 +59,8 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
       if (!isAuthenticated && !isLoginPage) {
         router.replace("/login");
       }
-      // If authenticated and on login page, redirect to admin
       // If authenticated but not admin, redirect to home
-      if (isAuthenticated && !isLoginPage && user?.role !== 'admin') {
+      if (isAuthenticated && !isLoginPage && !isAdmin) {
         router.replace("/");
       }
 
@@ -69,7 +68,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
         router.replace("/admin");
       }
     }
-  }, [isAuthenticated, isLoading, isLoginPage, router]);
+  }, [isAuthenticated, isAdmin, isLoading, isLoginPage, router]);
 
   // Show loading state while checking auth
   if (isLoading) {
@@ -224,6 +223,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
           </Button>
           <div className="flex-1" />
           <div className="flex items-center gap-4">
+            <ThemeToggle size="sm" />
             <span className="text-sm text-muted-foreground">
               {user?.email || "Admin"}
             </span>

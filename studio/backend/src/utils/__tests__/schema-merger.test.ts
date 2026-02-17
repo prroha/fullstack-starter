@@ -8,7 +8,7 @@ import {
   generateBaseSchema,
   MergeResult,
   SchemaMappingConfig,
-} from "../schema-merger";
+} from "../schema-merger.js";
 
 // Mock fs/promises
 jest.mock("fs/promises");
@@ -512,7 +512,7 @@ model Post {
       expect(userModelCount).toBe(1);
 
       // User should appear only once in the models array
-      const userCount = result.models.filter((m) => m === "User").length;
+      const userCount = result.models.filter((m: string) => m === "User").length;
       expect(userCount).toBe(1);
     });
 
@@ -547,7 +547,7 @@ model User {
 
       // Base schema User should be kept (first occurrence wins)
       expect(result.schema).not.toContain("bio");
-      expect(result.models.filter((m) => m === "User")).toHaveLength(1);
+      expect(result.models.filter((m: string) => m === "User")).toHaveLength(1);
     });
 
     it("should not duplicate enums when same enum appears in multiple features", async () => {
@@ -584,7 +584,7 @@ model Feature {
       expect(roleEnumCount).toBe(1);
 
       // Role should appear only once in the enums array
-      const roleCount = result.enums.filter((e) => e === "Role").length;
+      const roleCount = result.enums.filter((e: string) => e === "Role").length;
       expect(roleCount).toBe(1);
     });
 

@@ -15,10 +15,11 @@ import {
   ProjectGenerator,
   OrderDetails,
   FeatureConfig,
-} from "../generator.service";
+  EnvVarConfig,
+} from "../generator.service.js";
 
 // Mock the prisma client
-jest.mock("../../config/db", () => ({
+jest.mock("../../config/db.js", () => ({
   prisma: {
     feature: {
       findMany: jest.fn(),
@@ -33,7 +34,7 @@ jest.mock("fs/promises", () => ({
   stat: jest.fn(),
 }));
 
-import { prisma } from "../../config/db";
+import { prisma } from "../../config/db.js";
 import fs from "fs/promises";
 
 // ============================================================================
@@ -653,8 +654,8 @@ describe("ProjectGenerator Integration Tests", () => {
       );
 
       // Both features should have npm packages
-      const stripeFeature = resolved.features.find((f) => f.slug === "payments.stripe");
-      const s3Feature = resolved.features.find((f) => f.slug === "file-upload.s3");
+      const stripeFeature = resolved.features.find((f: FeatureConfig) => f.slug === "payments.stripe");
+      const s3Feature = resolved.features.find((f: FeatureConfig) => f.slug === "file-upload.s3");
 
       expect(stripeFeature?.npmPackages).toContainEqual(
         expect.objectContaining({ name: "stripe" })
@@ -796,7 +797,7 @@ describe("ProjectGenerator Integration Tests", () => {
         []
       );
 
-      const allSchemaMappings = resolved.features.flatMap((f) => f.schemaMappings || []);
+      const allSchemaMappings = resolved.features.flatMap((f: FeatureConfig) => f.schemaMappings || []);
       expect(allSchemaMappings).toContainEqual(
         expect.objectContaining({ model: "Subscription" })
       );
@@ -864,7 +865,7 @@ describe("ProjectGenerator Integration Tests", () => {
       );
 
       // Check that Stripe env vars are in the resolved features
-      const stripeFeature = resolved.features.find((f) => f.slug === "payments.stripe");
+      const stripeFeature = resolved.features.find((f: FeatureConfig) => f.slug === "payments.stripe");
       expect(stripeFeature?.envVars).toContainEqual(
         expect.objectContaining({ key: "STRIPE_SECRET_KEY" })
       );
@@ -896,7 +897,7 @@ describe("ProjectGenerator Integration Tests", () => {
         []
       );
 
-      const s3Feature = resolved.features.find((f) => f.slug === "file-upload.s3");
+      const s3Feature = resolved.features.find((f: FeatureConfig) => f.slug === "file-upload.s3");
       expect(s3Feature?.envVars).toContainEqual(
         expect.objectContaining({ key: "AWS_ACCESS_KEY_ID" })
       );
@@ -921,9 +922,9 @@ describe("ProjectGenerator Integration Tests", () => {
         []
       );
 
-      const stripeFeature = resolved.features.find((f) => f.slug === "payments.stripe");
+      const stripeFeature = resolved.features.find((f: FeatureConfig) => f.slug === "payments.stripe");
       const stripeSecretKey = stripeFeature?.envVars?.find(
-        (e) => e.key === "STRIPE_SECRET_KEY"
+        (e: EnvVarConfig) => e.key === "STRIPE_SECRET_KEY"
       );
       expect(stripeSecretKey?.required).toBe(true);
     });
@@ -1001,8 +1002,8 @@ describe("ProjectGenerator Integration Tests", () => {
       );
 
       expect(resolved.features).toHaveLength(2);
-      expect(resolved.features.map((f) => f.name)).toContain("Basic Authentication");
-      expect(resolved.features.map((f) => f.name)).toContain("Stripe Payments");
+      expect(resolved.features.map((f: FeatureConfig) => f.name)).toContain("Basic Authentication");
+      expect(resolved.features.map((f: FeatureConfig) => f.name)).toContain("Stripe Payments");
     });
 
     it("should group features by category in README", async () => {
@@ -1040,7 +1041,7 @@ describe("ProjectGenerator Integration Tests", () => {
       );
 
       // Group features by module category
-      const categories = new Set(resolved.features.map((f) => f.module.category));
+      const categories = new Set(resolved.features.map((f: FeatureConfig) => f.module.category));
       expect(categories).toContain("core");
       expect(categories).toContain("monetization");
       expect(categories).toContain("storage");
@@ -1259,7 +1260,7 @@ describe("ProjectGenerator Integration Tests", () => {
 
       // Should only have one instance of auth.basic
       expect(resolved.features).toHaveLength(1);
-      expect(resolved.allFeatureSlugs.filter((s) => s === "auth.basic")).toHaveLength(1);
+      expect(resolved.allFeatureSlugs.filter((s: string) => s === "auth.basic")).toHaveLength(1);
     });
 
     it("should resolve transitive dependencies", async () => {

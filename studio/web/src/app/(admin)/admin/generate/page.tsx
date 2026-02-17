@@ -341,7 +341,7 @@ export default function GeneratePage() {
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Left: Customer Details + Tier Selection */}
-        <div className="space-y-6">
+        <div className="space-y-6 lg:sticky lg:top-[calc(4rem+1.5rem)] lg:self-start lg:max-h-[calc(100vh-4rem-3rem)] lg:overflow-y-auto">
           {/* Customer Details */}
           <Card>
             <CardHeader>
@@ -460,7 +460,7 @@ export default function GeneratePage() {
         </div>
 
         {/* Center: Feature Selection */}
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 lg:sticky lg:top-[calc(4rem+1.5rem)] lg:self-start lg:max-h-[calc(100vh-4rem-3rem)] lg:overflow-y-auto">
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">

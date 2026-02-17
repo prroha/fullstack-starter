@@ -210,11 +210,11 @@ function Dialog({
           tabIndex={-1}
           className={cn(
             "w-full bg-background rounded-xl shadow-2xl border border-border",
-            "overflow-hidden",
+            "overflow-hidden flex flex-col",
+            "max-h-[calc(100vh-2rem)]",
             "animate-in fade-in-0 zoom-in-95 duration-200",
             "focus:outline-none",
             sizeClasses[size],
-            size === "full" && "flex flex-col",
             className
           )}
         >

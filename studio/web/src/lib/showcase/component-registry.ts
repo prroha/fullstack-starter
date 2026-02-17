@@ -83,7 +83,7 @@ export const componentRegistry: ComponentMetadata[] = [
     description: "Multi-line text input with auto-resize support.",
     category: "atoms",
     tier: "basic",
-    iconName: "AlignJustify",
+    iconName: "TextAlignJustify",
     tags: ["form", "text", "multiline"],
     props: [
       { name: "rows", type: "number", required: false, default: "3", description: "Number of visible rows" },

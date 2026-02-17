@@ -110,6 +110,15 @@ class AdminController {
     }
 
     const data = updateUserSchema.parse(req.body);
+
+    // Prevent admin from deactivating themselves
+    const currentUserId = getUserIdFromToken(req);
+    if (currentUserId && id === currentUserId && data.isActive === false) {
+      return reply
+        .code(400)
+        .send(errorResponse("SELF_DEACTIVATION", "You cannot deactivate your own account"));
+    }
+
     const user = await adminService.updateUser(id, data);
 
     // Audit log: admin user update

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useAuth } from "@/lib/auth-context";
 import { api, ApiError, AdminUser } from "@/lib/api";
 import { Button, Input, Badge, Text, Select, Modal } from "@/components/ui";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
@@ -30,15 +31,19 @@ interface UserFilters {
 
 function UserRow({
   user,
+  currentUserId,
   onEdit,
   onToggleStatus,
   isUpdating,
 }: {
   user: AdminUser;
+  currentUserId?: string;
   onEdit: (user: AdminUser) => void;
   onToggleStatus: (user: AdminUser) => void;
   isUpdating: boolean;
 }) {
+  const isSelf = currentUserId === user.id;
+
   return (
     <TableRow className="border-b hover:bg-muted/50">
       <TableCell className="px-4 py-3">
@@ -47,7 +52,12 @@ function UserRow({
             {user.name?.charAt(0).toUpperCase() || user.email.charAt(0).toUpperCase()}
           </div>
           <div>
-            <Text as="p" className="font-medium">{user.name || "No name"}</Text>
+            <div className="flex items-center gap-2">
+              <Text as="p" className="font-medium">{user.name || "No name"}</Text>
+              {isSelf && (
+                <Badge variant="outline" className="text-xs">You</Badge>
+              )}
+            </div>
             <Text variant="caption" color="muted">{user.email}</Text>
           </div>
         </div>
@@ -85,19 +95,21 @@ function UserRow({
           >
             Edit
           </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onToggleStatus(user)}
-            disabled={isUpdating}
-            className={cn(
-              user.isActive
-                ? "text-destructive hover:text-destructive"
-                : "text-success hover:text-success"
-            )}
-          >
-            {user.isActive ? "Deactivate" : "Activate"}
-          </Button>
+          {!isSelf && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onToggleStatus(user)}
+              disabled={isUpdating}
+              className={cn(
+                user.isActive
+                  ? "text-destructive hover:text-destructive"
+                  : "text-success hover:text-success"
+              )}
+            >
+              {user.isActive ? "Deactivate" : "Activate"}
+            </Button>
+          )}
         </div>
       </TableCell>
     </TableRow>
@@ -181,6 +193,7 @@ function EditUserModal({
 // =====================================================
 
 export default function AdminUsersPage() {
+  const { user: currentUser } = useAuth();
   const [isUpdating, setIsUpdating] = useState(false);
   const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
 
@@ -364,6 +377,7 @@ export default function AdminUsersPage() {
                     <UserRow
                       key={user.id}
                       user={user}
+                      currentUserId={currentUser?.id}
                       onEdit={setEditingUser}
                       onToggleStatus={handleToggleStatus}
                       isUpdating={isUpdating}

@@ -155,6 +155,11 @@ const routePlugin: FastifyPluginAsync = async (fastify) => {
     });
     const { isBlocked, reason } = schema.parse(req.body);
 
+    // Prevent admin from blocking themselves
+    if (req.user?.id === id && isBlocked) {
+      throw ApiError.badRequest("You cannot block your own account");
+    }
+
     const customer = await prisma.studioUser.findUnique({ where: { id } });
     if (!customer) {
       throw ApiError.notFound("Customer");

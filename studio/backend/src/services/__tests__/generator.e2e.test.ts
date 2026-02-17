@@ -25,7 +25,7 @@ import path from "path";
 import os from "os";
 import { PrismaClient } from "@prisma/client";
 import AdmZip from "adm-zip";
-import { ProjectGenerator, OrderDetails } from "../generator.service";
+import { ProjectGenerator, OrderDetails } from "../generator.service.js";
 
 // ============================================================================
 // Test Database Setup
@@ -677,7 +677,7 @@ describe("Generator E2E Tests (Real Database & File System)", () => {
       );
 
       // Should only have one instance of auth.basic
-      const authBasicCount = resolved.allFeatureSlugs.filter((s) => s === "auth.basic").length;
+      const authBasicCount = resolved.allFeatureSlugs.filter((s: string) => s === "auth.basic").length;
       expect(authBasicCount).toBe(1);
     });
   });

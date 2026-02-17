@@ -27,9 +27,6 @@ export {
   CONTACT_MESSAGE_STATUS,
 } from "@core/lib/constants";
 
-// Re-export role helpers from types
-export { hasAdminAccess, isSuperAdmin } from "@core/types/api";
-
 // =====================================================
 // Studio-Specific Constants
 // =====================================================

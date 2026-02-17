@@ -16,7 +16,7 @@ import { logger } from "@/lib/logger";
 // =====================================================
 
 /** User role types for Studio admin */
-export type StudioUserRole = "USER" | "ADMIN" | "SUPER_ADMIN";
+export type StudioUserRole = "user" | "admin";
 
 /**
  * Authenticated user information for the Studio admin panel
@@ -44,10 +44,8 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   /** Whether auth state is being loaded */
   isLoading: boolean;
-  /** Whether user has admin access (ADMIN or SUPER_ADMIN) */
+  /** Whether user has admin access */
   isAdmin: boolean;
-  /** Whether user is a super admin */
-  isSuperAdmin: boolean;
   /** Login with email and password */
   login: (email: string, password: string) => Promise<void>;
   /** Logout and clear session */
@@ -149,9 +147,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     checkAuth();
   }, [checkAuth]);
 
-  // Compute admin status
-  const isAdmin = user?.role === "ADMIN" || user?.role === "SUPER_ADMIN";
-  const isSuperAdmin = user?.role === "SUPER_ADMIN";
+  // Compute admin status from role type
+  const isAdmin = user?.role === "admin";
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -159,12 +156,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
       isAuthenticated: !!user,
       isLoading,
       isAdmin,
-      isSuperAdmin,
       login,
       logout,
       checkAuth,
     }),
-    [user, isLoading, isAdmin, isSuperAdmin, login, logout, checkAuth]
+    [user, isLoading, isAdmin, login, logout, checkAuth]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

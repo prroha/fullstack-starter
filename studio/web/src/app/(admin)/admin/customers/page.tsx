@@ -19,7 +19,8 @@ import {
 } from "lucide-react";
 import { cn, formatCurrency, formatDate } from "@/lib/utils";
 import { showSuccess, showError } from "@/lib/toast";
-import { adminApi, ApiError, type Customer as ApiCustomer, type PaginationInfo } from "@/lib/api";
+import { adminApi, ApiError, type PaginationInfo } from "@/lib/api";
+import { useAuth } from "@/contexts/auth-context";
 import {
   Button,
   StatCard,
@@ -238,11 +239,13 @@ function CustomerDetailsDrawer({
   isOpen,
   onClose,
   onBlockToggle,
+  isSelf,
 }: {
   customer: CustomerWithOrders | null;
   isOpen: boolean;
   onClose: () => void;
   onBlockToggle: (customer: Customer) => void;
+  isSelf: boolean;
 }) {
   if (!isOpen || !customer) return null;
 
@@ -273,7 +276,15 @@ function CustomerDetailsDrawer({
           <div className="flex items-start gap-4">
             <Avatar name={customer.name || customer.email} src={customer.avatarUrl || undefined} size="xl" />
             <div className="flex-1 min-w-0">
-              <h3 className="text-xl font-semibold truncate">{customer.name || "—"}</h3>
+              <div className="flex items-center gap-2">
+                <h3 className="text-xl font-semibold truncate">{customer.name || "—"}</h3>
+                {isSelf && (
+                  <>
+                    <Badge variant="default" className="text-xs">Admin</Badge>
+                    <Badge variant="outline" className="text-xs">You</Badge>
+                  </>
+                )}
+              </div>
               <p className="text-muted-foreground truncate">{customer.email}</p>
               <div className="mt-2">
                 <CustomerStatusBadge isBlocked={customer.isBlocked} />
@@ -365,28 +376,30 @@ function CustomerDetailsDrawer({
           </div>
 
           {/* Actions */}
-          <div className="border-t pt-4">
-            <Button
-              variant={!customer.isBlocked ? "destructive" : "default"}
-              onClick={() => onBlockToggle(customer)}
-              className={cn(
-                "w-full",
-                customer.isBlocked && "bg-success text-success-foreground hover:bg-success/90"
-              )}
-            >
-              {!customer.isBlocked ? (
-                <>
-                  <Ban className="h-4 w-4 mr-2" />
-                  Block Customer
-                </>
-              ) : (
-                <>
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  Unblock Customer
-                </>
-              )}
-            </Button>
-          </div>
+          {!isSelf && (
+            <div className="border-t pt-4">
+              <Button
+                variant={!customer.isBlocked ? "destructive" : "default"}
+                onClick={() => onBlockToggle(customer)}
+                className={cn(
+                  "w-full",
+                  customer.isBlocked && "bg-success text-success-foreground hover:bg-success/90"
+                )}
+              >
+                {!customer.isBlocked ? (
+                  <>
+                    <Ban className="h-4 w-4 mr-2" />
+                    Block Customer
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Unblock Customer
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -413,6 +426,8 @@ function CustomersTableSkeleton() {
 // ============================================================================
 
 export default function CustomersPage() {
+  const { user: currentUser } = useAuth();
+
   // State
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -523,9 +538,14 @@ export default function CustomersPage() {
   }, []);
 
   const handleBlockToggle = useCallback((customer: Customer) => {
+    // Prevent admin from blocking themselves
+    if (currentUser?.id === customer.id && !customer.isBlocked) {
+      showError("You cannot block your own account");
+      return;
+    }
     setBlockDialogCustomer(customer);
     setIsBlockDialogOpen(true);
-  }, []);
+  }, [currentUser?.id]);
 
   const handleConfirmBlockToggle = useCallback(
     async (reason: string) => {
@@ -710,13 +730,23 @@ export default function CustomersPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sortedCustomers.map((customer) => (
+                {sortedCustomers.map((customer) => {
+                  const isSelf = currentUser?.id === customer.id;
+                  return (
                   <TableRow key={customer.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <Avatar name={customer.name || customer.email} src={customer.avatarUrl || undefined} />
                         <div className="min-w-0">
-                          <p className="font-medium truncate">{customer.name || "—"}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium truncate">{customer.name || "—"}</p>
+                            {isSelf && (
+                              <>
+                                <Badge variant="default" className="text-xs">Admin</Badge>
+                                <Badge variant="outline" className="text-xs">You</Badge>
+                              </>
+                            )}
+                          </div>
                           <p className="text-sm text-muted-foreground truncate">
                             {customer.email}
                           </p>
@@ -750,31 +780,34 @@ export default function CustomersPage() {
                         >
                           <Eye className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleBlockToggle(customer)}
-                          className={cn(
-                            !customer.isBlocked
-                              ? "hover:bg-destructive/10 text-destructive"
-                              : "hover:bg-success/10 text-success"
-                          )}
-                          aria-label={
-                            !customer.isBlocked
-                              ? `Block ${customer.name || customer.email}`
-                              : `Unblock ${customer.name || customer.email}`
-                          }
-                        >
-                          {!customer.isBlocked ? (
-                            <Ban className="h-4 w-4" aria-hidden="true" />
-                          ) : (
-                            <CheckCircle className="h-4 w-4" aria-hidden="true" />
-                          )}
-                        </Button>
+                        {!isSelf && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleBlockToggle(customer)}
+                            className={cn(
+                              !customer.isBlocked
+                                ? "hover:bg-destructive/10 text-destructive"
+                                : "hover:bg-success/10 text-success"
+                            )}
+                            aria-label={
+                              !customer.isBlocked
+                                ? `Block ${customer.name || customer.email}`
+                                : `Unblock ${customer.name || customer.email}`
+                            }
+                          >
+                            {!customer.isBlocked ? (
+                              <Ban className="h-4 w-4" aria-hidden="true" />
+                            ) : (
+                              <CheckCircle className="h-4 w-4" aria-hidden="true" />
+                            )}
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
@@ -800,6 +833,7 @@ export default function CustomersPage() {
           setSelectedCustomer(null);
         }}
         onBlockToggle={handleBlockToggle}
+        isSelf={currentUser?.id === selectedCustomer?.id}
       />
 
       {/* Block Confirmation Dialog */}

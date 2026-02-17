@@ -49,10 +49,10 @@ const routePlugin: FastifyPluginAsync = async (fastify) => {
 
     // Daily revenue trend
     const dailyRevenue = await prisma.$queryRaw`
-      SELECT DATE(paid_at) as date, SUM(total) as revenue, COUNT(*) as orders
+      SELECT DATE("paidAt") as date, SUM(total) as revenue, COUNT(*) as orders
       FROM orders
-      WHERE status = 'COMPLETED' AND paid_at >= ${startDate}
-      GROUP BY DATE(paid_at)
+      WHERE status = 'COMPLETED' AND "paidAt" >= ${startDate}
+      GROUP BY DATE("paidAt")
       ORDER BY date ASC
     ` as { date: Date; revenue: bigint; orders: bigint }[];
 

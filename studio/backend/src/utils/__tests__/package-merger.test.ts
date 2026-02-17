@@ -9,7 +9,7 @@ import {
   stringifyPackageJson,
   NpmPackageConfig,
   PackageJson,
-} from "../package-merger";
+} from "../package-merger.js";
 
 // Mock fs/promises
 jest.mock("fs/promises", () => ({
