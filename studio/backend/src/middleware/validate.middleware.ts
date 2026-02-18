@@ -1,16 +1,7 @@
-/**
- * Request Validation Middleware
- * Uses Zod schemas to validate request body, query, and params
- */
-
 import { FastifyRequest, FastifyReply } from "fastify";
 import { AnyZodObject, ZodError } from "zod";
 import { ApiError } from "../utils/errors.js";
 
-/**
- * Middleware factory for validating requests against Zod schemas
- * @param schema - Zod schema with optional body, query, and params properties
- */
 export function validateRequest<T extends AnyZodObject>(schema: T) {
   return async (req: FastifyRequest, _reply: FastifyReply) => {
     try {

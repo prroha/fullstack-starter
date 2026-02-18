@@ -20,7 +20,6 @@ export {
   ERROR_MESSAGES,
   SUCCESS_MESSAGES,
   ROUTES,
-  API_ENDPOINTS,
   USER_ROLES,
   NOTIFICATION_TYPES,
   AUDIT_ACTIONS,
@@ -126,6 +125,19 @@ export const PREVIEW_FEATURES = [
 ] as const;
 
 export type PreviewFeature = (typeof PREVIEW_FEATURES)[number];
+
+/**
+ * Live Preview Configuration
+ */
+export const PREVIEW_CONFIG = {
+  FRONTEND_URL:
+    process.env.NEXT_PUBLIC_PREVIEW_FRONTEND_URL || "http://localhost:3004",
+  BACKEND_URL:
+    process.env.NEXT_PUBLIC_PREVIEW_BACKEND_URL || "http://localhost:3003",
+  POLL_INTERVAL_MS: 1000,
+  POLL_TIMEOUT_MS: 30000,
+  HEARTBEAT_INTERVAL_MS: 5 * 60 * 1000,
+} as const;
 
 // =====================================================
 // Filter Options for Admin Pages

@@ -413,7 +413,14 @@ function createRateLimiterHook(options: {
         });
       }
     } catch (error) {
-      console.error(`[rate-limit] ${options.errorCode} error (allowing request):`, error);
+      console.error(`[rate-limit] ${options.errorCode} error (denying request):`, error);
+      return reply.code(503).send({
+        success: false,
+        error: {
+          code: "SERVICE_UNAVAILABLE",
+          message: "Rate limiting service unavailable, please try again shortly",
+        },
+      });
     }
   };
 }
@@ -515,7 +522,14 @@ export function createSlidingWindowLimiter(options: {
         });
       }
     } catch (error) {
-      console.error("[rate-limit] Sliding window error (allowing request):", error);
+      console.error("[rate-limit] Sliding window error (denying request):", error);
+      return reply.code(503).send({
+        success: false,
+        error: {
+          code: "SERVICE_UNAVAILABLE",
+          message: "Rate limiting service unavailable, please try again shortly",
+        },
+      });
     }
   };
 }
@@ -646,7 +660,14 @@ export function createCostBasedLimiter(
         });
       }
     } catch (error) {
-      console.error("[rate-limit] Cost-based limiter error (allowing request):", error);
+      console.error("[rate-limit] Cost-based limiter error (denying request):", error);
+      return reply.code(503).send({
+        success: false,
+        error: {
+          code: "SERVICE_UNAVAILABLE",
+          message: "Rate limiting service unavailable, please try again shortly",
+        },
+      });
     }
   };
 }

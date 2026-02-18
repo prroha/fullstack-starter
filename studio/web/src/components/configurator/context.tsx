@@ -14,11 +14,19 @@ import type { Feature, Module, PricingTier, PriceCalculation, Template } from "@
 import type { ResolvedSelection } from "@/lib/features";
 import { DependencyResolver } from "@/lib/features";
 import { PricingCalculator } from "@/lib/pricing";
-import { API_CONFIG } from "@/lib/constants";
+import { API_CONFIG, PREVIEW_CONFIG } from "@/lib/constants";
 
 // ============================================================================
 // Types
 // ============================================================================
+
+interface LivePreviewState {
+  status: "idle" | "provisioning" | "ready" | "error";
+  sessionToken: string | null;
+  previewUrl: string | null;
+  error: string | null;
+  expiresAt: Date | null;
+}
 
 interface ConfiguratorState {
   // Data
@@ -35,6 +43,9 @@ interface ConfiguratorState {
   // Resolved state
   resolvedFeatures: ResolvedSelection | null;
   pricing: PriceCalculation | null;
+
+  // Live preview
+  livePreview: LivePreviewState;
 
   // UI state
   loading: boolean;
@@ -53,6 +64,7 @@ type ConfiguratorAction =
   | { type: "SET_PRICING"; payload: PriceCalculation | null }
   | { type: "SET_LOADING"; payload: boolean }
   | { type: "SET_ERROR"; payload: string | null }
+  | { type: "SET_LIVE_PREVIEW"; payload: Partial<LivePreviewState> }
   | { type: "RESET" };
 
 interface ConfiguratorContextValue extends ConfiguratorState {
@@ -64,6 +76,8 @@ interface ConfiguratorContextValue extends ConfiguratorState {
   setFeatures: (featureSlugs: string[]) => void;
   setTemplate: (templateSlug: string | null) => void;
   reset: () => void;
+  launchLivePreview: () => void;
+  stopLivePreview: () => void;
 
   // Computed
   isFeatureSelected: (featureSlug: string) => boolean;
@@ -87,6 +101,14 @@ const ConfiguratorContext = createContext<ConfiguratorContextValue | null>(null)
 // Reducer
 // ============================================================================
 
+const initialLivePreview: LivePreviewState = {
+  status: "idle",
+  sessionToken: null,
+  previewUrl: null,
+  error: null,
+  expiresAt: null,
+};
+
 const initialState: ConfiguratorState = {
   features: [],
   modules: [],
@@ -97,6 +119,7 @@ const initialState: ConfiguratorState = {
   selectedTemplate: null,
   resolvedFeatures: null,
   pricing: null,
+  livePreview: initialLivePreview,
   loading: true,
   error: null,
 };
@@ -185,6 +208,12 @@ function configuratorReducer(
         error: action.payload,
       };
 
+    case "SET_LIVE_PREVIEW":
+      return {
+        ...state,
+        livePreview: { ...state.livePreview, ...action.payload },
+      };
+
     case "RESET":
       return {
         ...initialState,
@@ -192,6 +221,7 @@ function configuratorReducer(
         modules: state.modules,
         tiers: state.tiers,
         templates: state.templates,
+        livePreview: initialLivePreview,
         loading: false,
       };
 
@@ -350,6 +380,104 @@ export function ConfiguratorProvider({
     dispatch({ type: "RESET" });
   }, []);
 
+  const launchLivePreview = useCallback(async () => {
+    dispatch({
+      type: "SET_LIVE_PREVIEW",
+      payload: { status: "provisioning", error: null },
+    });
+
+    try {
+      // Create preview session with schema provisioning
+      const response = await fetch(`${API_CONFIG.BASE_URL}/preview/sessions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          selectedFeatures: state.resolvedFeatures?.selectedFeatures ?? state.selectedFeatures,
+          tier: state.selectedTier,
+          provisionSchema: true,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to create preview session");
+      }
+
+      const data = await response.json();
+      if (!data.success || !data.data?.sessionToken) {
+        throw new Error("Invalid response from preview service");
+      }
+
+      const { sessionToken } = data.data;
+
+      // Poll for readiness
+      const startTime = Date.now();
+      const poll = async (): Promise<void> => {
+        if (Date.now() - startTime > PREVIEW_CONFIG.POLL_TIMEOUT_MS) {
+          throw new Error("Preview setup timed out. Please try again.");
+        }
+
+        const statusRes = await fetch(
+          `${API_CONFIG.BASE_URL}/preview/sessions/${sessionToken}/status`
+        );
+        if (!statusRes.ok) {
+          throw new Error("Failed to check preview status");
+        }
+
+        const statusData = await statusRes.json();
+        const schemaStatus = statusData.data?.schemaStatus;
+
+        if (schemaStatus === "READY") {
+          const previewUrl = `${PREVIEW_CONFIG.FRONTEND_URL}?session=${sessionToken}`;
+          dispatch({
+            type: "SET_LIVE_PREVIEW",
+            payload: {
+              status: "ready",
+              sessionToken,
+              previewUrl,
+              expiresAt: statusData.data?.expiresAt
+                ? new Date(statusData.data.expiresAt)
+                : null,
+            },
+          });
+          return;
+        }
+
+        if (schemaStatus === "FAILED") {
+          throw new Error("Preview setup failed. Please try again.");
+        }
+
+        // Still provisioning — wait and poll again
+        await new Promise((r) => setTimeout(r, PREVIEW_CONFIG.POLL_INTERVAL_MS));
+        return poll();
+      };
+
+      await poll();
+    } catch (err) {
+      dispatch({
+        type: "SET_LIVE_PREVIEW",
+        payload: {
+          status: "error",
+          error: err instanceof Error ? err.message : "Failed to launch preview",
+        },
+      });
+    }
+  }, [state.selectedFeatures, state.selectedTier, state.resolvedFeatures]);
+
+  const stopLivePreview = useCallback(async () => {
+    const token = state.livePreview.sessionToken;
+    dispatch({ type: "SET_LIVE_PREVIEW", payload: initialLivePreview });
+
+    if (token) {
+      try {
+        await fetch(`${API_CONFIG.BASE_URL}/preview/sessions/${token}`, {
+          method: "DELETE",
+        });
+      } catch {
+        // Best-effort cleanup
+      }
+    }
+  }, [state.livePreview.sessionToken]);
+
   // ============================================================================
   // Computed
   // ============================================================================
@@ -422,6 +550,8 @@ export function ConfiguratorProvider({
     setFeatures,
     setTemplate,
     reset,
+    launchLivePreview,
+    stopLivePreview,
     isFeatureSelected,
     isFeatureIncludedInTier,
     isFeatureAutoSelected,

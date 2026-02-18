@@ -90,7 +90,7 @@ export async function authMiddleware(
 
     let payload: JwtPayload;
     try {
-      payload = verifyToken(token);
+      payload = verifyToken(token, "access");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Invalid token";
 
@@ -198,7 +198,7 @@ export async function optionalAuthMiddleware(
 
     let payload: JwtPayload;
     try {
-      payload = verifyToken(token);
+      payload = verifyToken(token, "access");
     } catch {
       return;
     }
@@ -218,7 +218,7 @@ export async function optionalAuthMiddleware(
       },
     });
 
-    if (!user) {
+    if (!user || !user.isActive) {
       return;
     }
 

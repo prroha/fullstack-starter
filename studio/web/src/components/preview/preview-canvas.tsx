@@ -6,12 +6,18 @@ import { FeatureFlagProvider, useFeatureFlags } from "@/lib/preview";
 import { cn } from "@/lib/utils";
 import type { DeviceType, DeviceSize, ThemeMode } from "@/lib/preview";
 
+interface LivePreview {
+  status: "idle" | "provisioning" | "ready" | "error";
+  previewUrl: string | null;
+}
+
 interface PreviewCanvasProps {
   device: DeviceType;
   size: DeviceSize;
   theme: ThemeMode;
   tier: string;
   features: string[];
+  livePreview?: LivePreview;
   className?: string;
 }
 
@@ -21,8 +27,11 @@ export function PreviewCanvas({
   theme,
   tier,
   features,
+  livePreview,
   className,
 }: PreviewCanvasProps) {
+  const showLivePreview = livePreview?.status === "ready" && livePreview.previewUrl;
+
   return (
     <div
       className={cn(
@@ -32,9 +41,18 @@ export function PreviewCanvas({
     >
       <div className="flex items-center justify-center min-h-full">
         <DeviceFrame device={device} size={size}>
-          <FeatureFlagProvider features={features} tier={tier}>
-            <PreviewContent theme={theme} />
-          </FeatureFlagProvider>
+          {showLivePreview ? (
+            <iframe
+              src={livePreview.previewUrl!}
+              className="w-full h-full border-0"
+              title="Live Preview"
+              sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+            />
+          ) : (
+            <FeatureFlagProvider features={features} tier={tier}>
+              <PreviewContent theme={theme} />
+            </FeatureFlagProvider>
+          )}
         </DeviceFrame>
       </div>
     </div>

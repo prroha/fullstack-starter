@@ -26,7 +26,8 @@
   },
   "workspaces": [
     "core/backend",
-    "core/web"
+    "core/web",
+    "shared/backend-utils"
   ],
   "devDependencies": {
     "husky": "^9.1.0",

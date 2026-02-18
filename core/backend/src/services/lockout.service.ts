@@ -88,15 +88,20 @@ class LockoutService {
    * Locks the account if threshold is reached
    */
   async recordFailedAttempt(userId: string, email: string): Promise<LockoutStatus> {
-    const user = await db.user.findUnique({
+    // Use atomic increment to avoid race condition with concurrent login attempts
+    const updatedUser = await db.user.update({
       where: { id: userId },
+      data: {
+        failedLoginAttempts: { increment: 1 },
+        lastFailedLogin: new Date(),
+      },
       select: {
         failedLoginAttempts: true,
         lockedUntil: true,
       },
-    });
+    }).catch(() => null);
 
-    if (!user) {
+    if (!updatedUser) {
       return {
         isLocked: false,
         lockedUntil: null,
@@ -105,29 +110,27 @@ class LockoutService {
       };
     }
 
-    const newFailedAttempts = user.failedLoginAttempts + 1;
+    const newFailedAttempts = updatedUser.failedLoginAttempts;
     const shouldLock = newFailedAttempts >= MAX_FAILED_ATTEMPTS;
 
-    const updateData: {
-      failedLoginAttempts: number;
-      lastFailedLogin: Date;
-      lockedUntil?: Date;
-    } = {
-      failedLoginAttempts: newFailedAttempts,
-      lastFailedLogin: new Date(),
-    };
-
     if (shouldLock) {
-      updateData.lockedUntil = new Date(
+      const lockedUntil = new Date(
         Date.now() + LOCKOUT_DURATION_MINUTES * 60 * 1000
       );
+
+      await db.user.update({
+        where: { id: userId },
+        data: { lockedUntil },
+      });
+
+      updatedUser.lockedUntil = lockedUntil;
 
       // Security log: Account locked
       logger.security("Account locked due to repeated failed login attempts", {
         userId,
         email,
         failedAttempts: newFailedAttempts,
-        lockedUntil: updateData.lockedUntil.toISOString(),
+        lockedUntil: lockedUntil.toISOString(),
         lockoutDurationMinutes: LOCKOUT_DURATION_MINUTES,
       });
     } else {
@@ -139,15 +142,6 @@ class LockoutService {
         remainingAttempts: MAX_FAILED_ATTEMPTS - newFailedAttempts,
       });
     }
-
-    const updatedUser = await db.user.update({
-      where: { id: userId },
-      data: updateData,
-      select: {
-        failedLoginAttempts: true,
-        lockedUntil: true,
-      },
-    });
 
     return this.getLockoutStatus(updatedUser);
   }

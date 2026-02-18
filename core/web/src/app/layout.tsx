@@ -21,7 +21,8 @@ const PreviewBanner = PREVIEW_MODE
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "My App",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
+  title: process.env.NEXT_PUBLIC_APP_NAME || "Fullstack Starter",
   description: "Built with Fullstack Starter Template",
 };
 

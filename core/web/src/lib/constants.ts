@@ -287,61 +287,6 @@ export const ROUTES = {
 } as const;
 
 // =====================================================
-// API Endpoints
-// =====================================================
-
-export const API_ENDPOINTS = {
-  // Auth
-  LOGIN: "/v1/auth/login",
-  REGISTER: "/v1/auth/register",
-  LOGOUT: "/v1/auth/logout",
-  ME: "/v1/auth/me",
-  REFRESH: "/v1/auth/refresh",
-  CHANGE_PASSWORD: "/v1/auth/change-password",
-  FORGOT_PASSWORD: "/v1/auth/forgot-password",
-  RESET_PASSWORD: "/v1/auth/reset-password",
-  VERIFY_RESET_TOKEN: (token: string) => `/v1/auth/verify-reset-token/${token}`,
-  VERIFY_EMAIL: (token: string) => `/v1/auth/verify-email/${token}`,
-  SEND_VERIFICATION: "/v1/auth/send-verification",
-
-  // Sessions
-  SESSIONS: "/v1/auth/sessions",
-  SESSION_BY_ID: (id: string) => `/v1/auth/sessions/${id}`,
-
-  // User Profile
-  PROFILE: "/v1/users/me",
-  AVATAR: "/v1/users/me/avatar",
-  USER_EXPORT: "/v1/users/me/export",
-
-  // Admin
-  ADMIN_STATS: "/v1/admin/stats",
-  ADMIN_USERS: "/v1/admin/users",
-  ADMIN_USER_BY_ID: (id: string) => `/v1/admin/users/${id}`,
-  ADMIN_USERS_EXPORT: "/v1/admin/users/export",
-  ADMIN_AUDIT_LOGS: "/v1/admin/audit-logs",
-  ADMIN_AUDIT_LOG_BY_ID: (id: string) => `/v1/admin/audit-logs/${id}`,
-  ADMIN_AUDIT_LOG_ENTITY_TYPES: "/v1/admin/audit-logs/entity-types",
-  ADMIN_AUDIT_LOG_ACTION_TYPES: "/v1/admin/audit-logs/action-types",
-  ADMIN_AUDIT_LOGS_EXPORT: "/v1/admin/audit-logs/export",
-  ADMIN_CONTACT_MESSAGES: "/v1/admin/contact-messages",
-  ADMIN_CONTACT_MESSAGE_BY_ID: (id: string) => `/v1/admin/contact-messages/${id}`,
-  ADMIN_CONTACT_UNREAD_COUNT: "/v1/admin/contact-messages/unread-count",
-
-  // Search
-  SEARCH: "/v1/search",
-
-  // Contact
-  CONTACT: "/v1/contact",
-
-  // Notifications
-  NOTIFICATIONS: "/v1/notifications",
-  NOTIFICATION_BY_ID: (id: string) => `/v1/notifications/${id}`,
-  NOTIFICATION_MARK_READ: (id: string) => `/v1/notifications/${id}/read`,
-  NOTIFICATIONS_UNREAD_COUNT: "/v1/notifications/unread-count",
-  NOTIFICATIONS_READ_ALL: "/v1/notifications/read-all",
-} as const;
-
-// =====================================================
 // User Roles - Derived from API types (single source of truth)
 // =====================================================
 

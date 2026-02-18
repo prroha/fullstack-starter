@@ -1,7 +1,7 @@
 import { FastifyPluginAsync } from "fastify";
 import { authController } from "../controllers/auth.controller.js";
 import { authMiddleware } from "../middleware/auth.middleware.js";
-import { authRateLimiter } from "../middleware/rate-limit.middleware.js";
+import { authRateLimiter, sensitiveRateLimiter } from "../middleware/rate-limit.middleware.js";
 
 const routePlugin: FastifyPluginAsync = async (fastify) => {
   /**
@@ -59,7 +59,7 @@ const routePlugin: FastifyPluginAsync = async (fastify) => {
    *       409:
    *         description: Email already registered
    */
-  fastify.post("/register", { preHandler: [authRateLimiter] }, (req, reply) => authController.register(req, reply));
+  fastify.post("/register", { preHandler: [authRateLimiter], bodyLimit: 16384 }, (req, reply) => authController.register(req, reply));
 
   /**
    * @swagger
@@ -114,7 +114,7 @@ const routePlugin: FastifyPluginAsync = async (fastify) => {
    *             schema:
    *               $ref: '#/components/schemas/Error'
    */
-  fastify.post("/login", { preHandler: [authRateLimiter] }, (req, reply) => authController.login(req, reply));
+  fastify.post("/login", { preHandler: [authRateLimiter], bodyLimit: 16384 }, (req, reply) => authController.login(req, reply));
 
   /**
    * @swagger
@@ -342,7 +342,7 @@ const routePlugin: FastifyPluginAsync = async (fastify) => {
    *       401:
    *         description: Unauthorized or incorrect current password
    */
-  fastify.post("/change-password", { preHandler: [authRateLimiter, authMiddleware] }, (req, reply) => authController.changePassword(req, reply));
+  fastify.post("/change-password", { preHandler: [sensitiveRateLimiter, authMiddleware] }, (req, reply) => authController.changePassword(req, reply));
 
   /**
    * @swagger

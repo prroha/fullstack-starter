@@ -315,7 +315,7 @@ function DashboardNavItem({
     <button
       type="button"
       className={baseClasses}
-      aria-current={active ? "true" : undefined}
+      aria-current={active ? "page" : undefined}
       {...tooltipProps}
       {...props}
     >

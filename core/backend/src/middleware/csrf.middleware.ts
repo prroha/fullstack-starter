@@ -145,21 +145,3 @@ export async function csrfProtection(
   req.csrfToken = cookieToken;
 }
 
-/**
- * Middleware to attach CSRF token to response
- */
-export async function attachCsrfToken(
-  req: FastifyRequest,
-  reply: FastifyReply
-): Promise<void> {
-  const token = getCsrfTokenFromCookie(req) || generateCsrfToken();
-
-  if (!req.cookies?.csrfToken) {
-    reply.setCookie("csrfToken", token, {
-      httpOnly: false,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 7 * 24 * 60 * 60,
-    });
-  }
-}

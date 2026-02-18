@@ -43,6 +43,10 @@ const envSchema = z.object({
   // Admin
   ADMIN_EMAIL: z.string().email(),
   ADMIN_PASSWORD: z.string().min(8),
+
+  // Preview
+  PREVIEW_BACKEND_URL: z.string().url().optional(),
+  INTERNAL_API_SECRET: z.string().min(16).optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

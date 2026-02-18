@@ -45,14 +45,14 @@ export default function LoginPage() {
     setError(null);
     try {
       await login(data.email, data.password);
-      logger.info("Auth", "User logged in successfully", { email: data.email });
+      logger.info("Auth", "User logged in successfully");
       toast.success("Welcome back!", {
         description: "You have been signed in successfully.",
       });
       router.push("/");
     } catch (err) {
       if (err instanceof ApiError) {
-        logger.warn("Auth", "Login failed", { email: data.email, code: err.code });
+        logger.warn("Auth", "Login failed", { code: err.code });
         setError(err.message);
         toast.error("Login failed", {
           description: err.message,

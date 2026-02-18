@@ -3,6 +3,9 @@ import crypto from "crypto";
 import { db } from "../lib/db.js";
 import { config } from "../config/index.js";
 import { generateTokenPair, verifyToken, JwtPayload } from "../utils/jwt.js";
+
+// Dummy hash for timing-oracle prevention on non-existent users
+const DUMMY_HASH = "$2a$12$000000000000000000000uGJLEcfNQJxMdOccoZYS.6Mq/pGDMK6";
 import { ApiError } from "../middleware/error.middleware.js";
 import { ErrorCodes } from "../utils/response.js";
 import { lockoutService, LockoutStatus } from "./lockout.service.js";
@@ -177,7 +180,9 @@ class AuthService {
     });
 
     if (!user) {
-      // Don't reveal whether user exists - use consistent error
+      // Timing oracle prevention: always run bcrypt.compare even for non-existent users
+      // so the response time is indistinguishable from a wrong-password attempt
+      await bcrypt.compare(password, DUMMY_HASH);
       throw ApiError.unauthorized("Invalid credentials", ErrorCodes.INVALID_CREDENTIALS);
     }
 
@@ -308,10 +313,10 @@ class AuthService {
   async refreshToken(input: RefreshInput): Promise<RefreshResult> {
     const { refreshToken, ipAddress: _ipAddress, userAgent: _userAgent } = input;
 
-    // Verify the refresh token
+    // Verify the refresh token — enforce "refresh" type
     let payload: JwtPayload;
     try {
-      payload = verifyToken(refreshToken);
+      payload = verifyToken(refreshToken, "refresh");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Invalid token";
       if (message.includes("expired")) {
@@ -323,6 +328,10 @@ class AuthService {
     // Check if session exists and is valid
     const session = await sessionService.findSessionByRefreshToken(refreshToken);
     if (!session) {
+      // If no session found, the refresh token may have been rotated already
+      // (replay attack). Revoke all sessions for this user as a safety measure.
+      await sessionService.deleteAllUserSessions(payload.userId);
+      logger.security("Refresh token reuse detected — all sessions revoked", { userId: payload.userId });
       throw ApiError.unauthorized("Session not found or expired", ErrorCodes.INVALID_TOKEN);
     }
 
@@ -340,15 +349,15 @@ class AuthService {
       throw ApiError.forbidden("Account is deactivated", ErrorCodes.FORBIDDEN);
     }
 
-    // Update session activity
-    await sessionService.updateSessionActivity(refreshToken);
-
     // Generate new token pair
     const tokens = generateTokenPair({
       userId: user.id,
       email: user.email,
       deviceId: payload.deviceId,
     });
+
+    // Rotate: update the session with the new refresh token hash
+    await sessionService.rotateRefreshToken(refreshToken, tokens.refreshToken);
 
     return {
       accessToken: tokens.accessToken,
@@ -438,20 +447,21 @@ class AuthService {
       },
     });
 
-    // Generate new token
+    // Generate new token and store its SHA-256 hash (not plaintext)
     const token = this.generateSecureToken();
+    const tokenHash = this.hashResetToken(token);
     const expiresAt = new Date(Date.now() + RESET_TOKEN_EXPIRY_MS);
 
-    // Save token to database
+    // Save hashed token to database
     await db.passwordResetToken.create({
       data: {
         userId: user.id,
-        token,
+        token: tokenHash,
         expiresAt,
       },
     });
 
-    // Send password reset email
+    // Send the raw token to the user via email (only they have the plaintext)
     await this.sendResetEmail(user.email, token, user.name, user.id);
 
     logger.info("Password reset token generated", { userId: user.id, email: user.email });
@@ -471,11 +481,19 @@ class AuthService {
   }
 
   /**
+   * Hash a password reset token for database lookup
+   */
+  private hashResetToken(token: string): string {
+    return crypto.createHash("sha256").update(token).digest("hex");
+  }
+
+  /**
    * Verify if a reset token is valid
    */
   async verifyResetToken(token: string): Promise<VerifyResetTokenResult> {
+    const tokenHash = this.hashResetToken(token);
     const resetToken = await db.passwordResetToken.findUnique({
-      where: { token },
+      where: { token: tokenHash },
       include: { user: true },
     });
 
@@ -505,9 +523,10 @@ class AuthService {
   async resetPassword(input: ResetPasswordInput): Promise<ResetPasswordResult> {
     const { token, password } = input;
 
-    // Find and validate token
+    // Find and validate token (hash before lookup)
+    const tokenHash = this.hashResetToken(token);
     const resetToken = await db.passwordResetToken.findUnique({
-      where: { token },
+      where: { token: tokenHash },
       include: { user: true },
     });
 

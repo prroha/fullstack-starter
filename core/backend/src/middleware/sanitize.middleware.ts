@@ -1,58 +1,20 @@
 import { FastifyRequest } from "fastify";
 
 /**
- * HTML entities to escape for XSS prevention
- */
-const HTML_ENTITIES: Record<string, string> = {
-  "&": "&amp;",
-  "<": "&lt;",
-  ">": "&gt;",
-  '"': "&quot;",
-  "'": "&#x27;",
-  "/": "&#x2F;",
-  "`": "&#x60;",
-  "=": "&#x3D;",
-};
-
-/**
- * Regex pattern to match dangerous characters
- */
-const DANGEROUS_CHARS_REGEX = /[&<>"'`=/]/g;
-
-/**
- * Escape HTML entities in a string
- */
-function escapeHtml(str: string): string {
-  return str.replace(DANGEROUS_CHARS_REGEX, (char) => HTML_ENTITIES[char] || char);
-}
-
-/**
- * Remove potentially dangerous script tags and event handlers
- */
-function stripDangerousPatterns(str: string): string {
-  let sanitized = str.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "");
-  sanitized = sanitized.replace(/\s*on\w+\s*=\s*["'][^"']*["']/gi, "");
-  sanitized = sanitized.replace(/javascript\s*:/gi, "");
-  sanitized = sanitized.replace(/data\s*:\s*text\/html/gi, "");
-  sanitized = sanitized.replace(/vbscript\s*:/gi, "");
-  return sanitized;
-}
-
-/**
  * Sanitize a single string value
+ *
+ * Only trims whitespace. HTML encoding was removed because Prisma prevents
+ * SQL injection and React auto-escapes output, so encoding here corrupted
+ * stored data (e.g. O'Brien → O&#x27;Brien).
  */
 export function sanitizeString(
   value: string,
   options: {
-    escapeHtml?: boolean;
-    stripDangerous?: boolean;
     trim?: boolean;
     maxLength?: number;
   } = {}
 ): string {
   const {
-    escapeHtml: shouldEscapeHtml = true,
-    stripDangerous = true,
     trim = true,
     maxLength,
   } = options;
@@ -61,14 +23,6 @@ export function sanitizeString(
 
   if (trim) {
     result = result.trim();
-  }
-
-  if (stripDangerous) {
-    result = stripDangerousPatterns(result);
-  }
-
-  if (shouldEscapeHtml) {
-    result = escapeHtml(result);
   }
 
   if (maxLength && result.length > maxLength) {
@@ -105,7 +59,7 @@ export function sanitizeObject<T>(obj: T, visited = new WeakSet<object>()): T {
 
   const sanitized: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(obj)) {
-    const sanitizedKey = sanitizeString(key, { escapeHtml: false, trim: false });
+    const sanitizedKey = sanitizeString(key, { trim: false });
     sanitized[sanitizedKey] = sanitizeObject(value, visited);
   }
 

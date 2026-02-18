@@ -18,6 +18,7 @@ export {
   useDevicePreview,
   useThemePreview,
   usePreviewSession,
+  useLivePreview,
   DEVICE_SIZES,
   type DeviceType,
   type ThemeMode,

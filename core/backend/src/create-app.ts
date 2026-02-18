@@ -107,8 +107,9 @@ export async function createApp(): Promise<FastifyInstance> {
   app.addHook("onRequest", requestIdHook);
 
   // Wrap all requests in AsyncLocalStorage for request-scoped logging
-  app.addHook("onRequest", async (req) => {
-    requestContext.enterWith({ requestId: req.id });
+  // Using .run() instead of .enterWith() to create a proper scope and prevent context leakage
+  app.addHook("onRequest", (req, _reply, done) => {
+    requestContext.run({ requestId: req.id }, done);
   });
 
   // Input sanitization (XSS prevention) - after body parsing
@@ -144,7 +145,8 @@ export async function createApp(): Promise<FastifyInstance> {
   // CSRF protection for state-changing requests
   app.addHook("onRequest", csrfProtection);
 
-  // Serve uploaded files (static)
+  // Serve uploaded files (static) — intentionally public (avatars, public assets).
+  // TODO: Add auth middleware for non-public uploads if private file storage is needed.
   await app.register(fastifyStatic, {
     root: path.join(process.cwd(), "uploads"),
     prefix: "/uploads/",

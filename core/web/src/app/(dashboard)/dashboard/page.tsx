@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/lib/auth-context";
+import { formatDate } from "@/lib/utils";
 import { Text } from "@/components/ui";
 import { AppLink } from "@/components/ui/link";
 import { Icon, IconName } from "@/components/ui/icon";
@@ -112,7 +113,7 @@ export default function DashboardPage() {
           </CardSection>
           <CardSection>
             <Text variant="caption" color="muted">Member Since</Text>
-            <p className="text-2xl font-bold mt-1">--</p>
+            <p className="text-2xl font-bold mt-1">{formatDate(user?.createdAt)}</p>
           </CardSection>
           <CardSection>
             <Text variant="caption" color="muted">Email Verified</Text>

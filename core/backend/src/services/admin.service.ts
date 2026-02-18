@@ -259,10 +259,10 @@ class AdminService {
 
     // Database-side grouping for efficiency
     const rows = await db.$queryRaw<Array<{ date: string; count: bigint }>>`
-      SELECT DATE(created_at) as date, COUNT(*) as count
+      SELECT DATE(created_at AT TIME ZONE 'UTC') as date, COUNT(*) as count
       FROM users
       WHERE created_at >= ${startDate}
-      GROUP BY DATE(created_at)
+      GROUP BY DATE(created_at AT TIME ZONE 'UTC')
     `;
 
     const dbCounts = new Map(rows.map(r => [r.date, Number(r.count)]));

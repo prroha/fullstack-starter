@@ -486,8 +486,9 @@ class ApiClient {
           correlationId
         );
 
-        // Retry on retryable errors
-        if (apiError.isRetryable && attempt < this.config.retries) {
+        // Retry on retryable errors (only for GET requests to avoid duplicate mutations)
+        const requestMethod = (options.method || "GET").toUpperCase();
+        if (apiError.isRetryable && attempt < this.config.retries && requestMethod === "GET") {
           const delay = calculateBackoff(
             attempt,
             this.config.retryDelay,
@@ -523,8 +524,9 @@ class ApiClient {
           correlationId
         );
 
-        // Retry on network errors
-        if (attempt < this.config.retries) {
+        // Retry on network errors (only for GET requests to avoid duplicate mutations)
+        const retryMethod = (options.method || "GET").toUpperCase();
+        if (attempt < this.config.retries && retryMethod === "GET") {
           const delay = calculateBackoff(
             attempt,
             this.config.retryDelay,
@@ -796,7 +798,7 @@ class ApiClient {
 
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
-      xhr.open("POST", `${this.config.baseUrl}/v1/users/me/avatar`);
+      xhr.open("POST", `${this.config.baseUrl}/users/me/avatar`);
       xhr.withCredentials = true;
       xhr.setRequestHeader("x-request-id", requestId);
 
@@ -838,14 +840,7 @@ class ApiClient {
   }
 
   private generateRequestId(): string {
-    if (typeof crypto !== "undefined" && crypto.randomUUID) {
-      return crypto.randomUUID();
-    }
-    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-      const r = (Math.random() * 16) | 0;
-      const v = c === "x" ? r : (r & 0x3) | 0x8;
-      return v.toString(16);
-    });
+    return generateRequestId();
   }
 
   /**
@@ -1054,7 +1049,7 @@ class ApiClient {
    * Note: Use downloadFile from lib/export.ts to download
    */
   getMyDataExportUrl(format: "json" | "csv" = "json"): string {
-    return `${this.config.baseUrl}/v1/users/me/export?format=${format}`;
+    return `${this.config.baseUrl}/users/me/export?format=${format}`;
   }
 
   /**
@@ -1062,7 +1057,7 @@ class ApiClient {
    * Note: Use downloadFile from lib/export.ts to download
    */
   getAdminUsersExportUrl(stream: boolean = false): string {
-    return `${this.config.baseUrl}/v1/admin/users/export${stream ? "?stream=true" : ""}`;
+    return `${this.config.baseUrl}/admin/users/export${stream ? "?stream=true" : ""}`;
   }
 
   /**
@@ -1082,7 +1077,7 @@ class ApiClient {
     if (params?.userId) searchParams.set("userId", params.userId);
 
     const query = searchParams.toString();
-    return `${this.config.baseUrl}/v1/admin/audit-logs/export${query ? `?${query}` : ""}`;
+    return `${this.config.baseUrl}/admin/audit-logs/export${query ? `?${query}` : ""}`;
   }
 
   // =====================================================

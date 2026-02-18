@@ -68,14 +68,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (response.data) {
           setUser(response.data.user);
         }
+        setIsLoading(false);
       } catch (error) {
         if (error instanceof ApiError && error.status === 401) {
+          // refreshAuth sets isLoading = false in its own finally block
           await refreshAuth();
         } else {
           setUser(null);
+          setIsLoading(false);
         }
-      } finally {
-        setIsLoading(false);
       }
     };
 

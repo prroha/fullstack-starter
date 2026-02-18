@@ -15,6 +15,7 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import fs from "fs";
 import path from "path";
+import { z } from "zod";
 import { logger } from "../lib/logger.js";
 
 // Types for the feature configuration system
@@ -83,20 +84,26 @@ export const requireFeature = _requireFeature;
 export const isFeatureEnabled = _isFeatureEnabled;
 
 /**
- * Starter Configuration Interface
+ * Zod schema for starter-config.json validation
  */
-export interface StarterConfig {
-  tier: string;
-  template: string | null;
-  features: string[];
-  generatedAt: string;
-}
+const starterConfigSchema = z.object({
+  tier: z.string(),
+  template: z.string().nullable(),
+  features: z.array(z.string()),
+  generatedAt: z.string(),
+});
+
+/**
+ * Starter Configuration Interface (derived from Zod schema)
+ */
+export type StarterConfig = z.infer<typeof starterConfigSchema>;
 
 // Cached starter config
 let _starterConfig: StarterConfig | null | undefined = undefined;
 
 /**
  * Gets the starter configuration from starter-config.json
+ * Validates the config with Zod to prevent type confusion from malformed files.
  */
 export function getStarterConfig(): StarterConfig | null {
   if (_starterConfig !== undefined) {
@@ -108,7 +115,8 @@ export function getStarterConfig(): StarterConfig | null {
 
     if (fs.existsSync(configPath)) {
       const configContent = fs.readFileSync(configPath, "utf-8");
-      _starterConfig = JSON.parse(configContent) as StarterConfig;
+      const parsed = JSON.parse(configContent);
+      _starterConfig = starterConfigSchema.parse(parsed);
       logger.info(`Loaded starter config: ${_starterConfig.tier} tier with ${_starterConfig.features.length} features`);
       return _starterConfig;
     }

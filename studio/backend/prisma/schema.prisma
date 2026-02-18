@@ -393,17 +393,32 @@ model StudioAnalytics {
 // =====================================================
 
 model PreviewSession {
-  id              String   @id @default(cuid())
-  sessionToken    String   @unique @default(cuid())
-  selectedFeatures String[]
-  tier            String
-  templateSlug    String?
-  createdAt       DateTime @default(now())
-  expiresAt       DateTime
+  id                String               @id @default(cuid())
+  sessionToken      String               @unique @default(cuid())
+  selectedFeatures  String[]
+  tier              String
+  templateSlug      String?
+
+  // Live preview fields
+  schemaName        String?              // e.g., "preview_clx123abc"
+  schemaStatus      PreviewSchemaStatus  @default(PENDING)
+  lastAccessedAt    DateTime             @default(now())
+
+  createdAt         DateTime             @default(now())
+  expiresAt         DateTime
 
   @@index([sessionToken])
   @@index([expiresAt])
+  @@index([schemaStatus])
   @@map("preview_sessions")
+}
+
+enum PreviewSchemaStatus {
+  PENDING
+  PROVISIONING
+  READY
+  FAILED
+  DROPPED
 }
 
 // =====================================================

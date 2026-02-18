@@ -1,0 +1,17 @@
+@import "tailwindcss";
+@import "../../../../core/web/src/styles/design-tokens.css";
+
+/*
+ * Preview Web — App-Specific Styles
+ * Shares the same design system as core/web via design-tokens.css.
+ */
+
+/* Skeleton shimmer animation */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}

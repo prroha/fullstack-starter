@@ -142,7 +142,7 @@ class Logger {
         appName: this.config.appName,
         appVersion: this.config.appVersion,
         userAgent: typeof window !== "undefined" ? window.navigator.userAgent : undefined,
-        url: typeof window !== "undefined" ? window.location.href : undefined,
+        url: typeof window !== "undefined" ? window.location.origin + window.location.pathname : undefined,
         userId: this.userId,
       },
     };

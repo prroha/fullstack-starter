@@ -9,11 +9,14 @@ import {
   DeviceToolbar,
   PreviewCanvas,
   FeaturePanel,
+  LivePreviewStatus,
+  PreviewActions,
 } from "@/components/preview";
 import {
   useDevicePreview,
   useThemePreview,
   usePreviewSession,
+  useLivePreview,
 } from "@/lib/preview";
 import { parseURLConfig } from "@/lib/config";
 import { PREVIEW_FEATURES } from "@/lib/constants";
@@ -44,6 +47,9 @@ function PreviewContent() {
     endSession,
     loadSessionFromToken
   } = usePreviewSession();
+
+  // Live preview management
+  const livePreview = useLivePreview();
 
   // Determine tier and features from either URL params or loaded session
   const tier = session?.tier || config.tier || "starter";
@@ -175,6 +181,22 @@ function PreviewContent() {
         </div>
       </div>
 
+      {/* Live Preview Status */}
+      {livePreview.status !== "idle" && (
+        <div className="flex items-center justify-between px-3 sm:px-4 py-1.5 border-b bg-muted/30">
+          <LivePreviewStatus status={livePreview.status} error={livePreview.error} />
+          {livePreview.status === "ready" && (
+            <PreviewActions
+              status={livePreview.status}
+              previewUrl={livePreview.previewUrl}
+              onLaunch={() => livePreview.launch(tier, features)}
+              onStop={livePreview.stop}
+              onRestart={() => livePreview.launch(tier, features)}
+            />
+          )}
+        </div>
+      )}
+
       {/* Device Toolbar */}
       <DeviceToolbar
         device={device}
@@ -183,6 +205,8 @@ function PreviewContent() {
         onThemeChange={setTheme}
         onReset={handleReset}
         onOpenExternal={handleOpenExternal}
+        onLaunchPreview={() => livePreview.launch(tier, features)}
+        livePreviewStatus={livePreview.status}
       />
 
       {/* Main Preview Area */}
@@ -194,6 +218,10 @@ function PreviewContent() {
           theme={resolvedTheme}
           tier={tier}
           features={features}
+          livePreview={{
+            status: livePreview.status,
+            previewUrl: livePreview.previewUrl,
+          }}
         />
 
         {/* Feature Panel - Hidden on mobile, visible on desktop */}

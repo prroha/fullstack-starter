@@ -4,16 +4,16 @@ dotenv.config();
 
 const isProduction = process.env.NODE_ENV === "production";
 const isTest = process.env.NODE_ENV === "test";
+const isDevelopment = process.env.NODE_ENV === "development" || !process.env.NODE_ENV;
 
 /**
  * Get required environment variable or throw error
- * In test/dev mode, returns fallback value
+ * Only falls back in development and test — staging and production must set all vars explicitly
  */
 function requireEnv(name: string, fallback?: string): string {
   const value = process.env[name];
   if (value) return value;
-  if (isTest && fallback) return fallback;
-  if (!isProduction && fallback) return fallback;
+  if ((isDevelopment || isTest) && fallback) return fallback;
   throw new Error(`Missing required environment variable: ${name}`);
 }
 
@@ -64,7 +64,7 @@ export const config = {
   // JWT
   jwt: {
     secret: requireEnv("JWT_SECRET", "dev-only-jwt-secret-min-32-characters-long"),
-    expiresIn: optionalEnv("JWT_EXPIRES_IN", "7d"),
+    expiresIn: optionalEnv("JWT_EXPIRES_IN", "15m"),
     refreshExpiresIn: optionalEnv("JWT_REFRESH_EXPIRES_IN", "30d"),
   },
 

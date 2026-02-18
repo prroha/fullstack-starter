@@ -136,6 +136,22 @@ class SessionService {
 
     logger.info("Session created", { userId, sessionId: session.id, deviceName: deviceInfo.deviceName });
 
+    // Enforce max 10 sessions per user — delete oldest if exceeded
+    const MAX_SESSIONS_PER_USER = 10;
+    const sessionCount = await db.session.count({ where: { userId } });
+    if (sessionCount > MAX_SESSIONS_PER_USER) {
+      const oldestSessions = await db.session.findMany({
+        where: { userId },
+        orderBy: { lastActiveAt: "asc" },
+        take: sessionCount - MAX_SESSIONS_PER_USER,
+        select: { id: true },
+      });
+      await db.session.deleteMany({
+        where: { id: { in: oldestSessions.map((s) => s.id) } },
+      });
+      logger.info("Deleted excess sessions", { userId, deleted: oldestSessions.length });
+    }
+
     return session.visibleId;
   }
 
@@ -148,6 +164,25 @@ class SessionService {
     await db.session.updateMany({
       where: { refreshTokenHash },
       data: { lastActiveAt: new Date() },
+    });
+  }
+
+  /**
+   * Rotate a refresh token: replace the old hash with the new token's hash.
+   * This invalidates the old refresh token, preventing replay attacks.
+   */
+  async rotateRefreshToken(oldRefreshToken: string, newRefreshToken: string): Promise<void> {
+    const oldHash = hashToken(oldRefreshToken);
+    const newHash = hashToken(newRefreshToken);
+    const newExpiresAt = new Date(Date.now() + REFRESH_TOKEN_EXPIRY_MS);
+
+    await db.session.updateMany({
+      where: { refreshTokenHash: oldHash },
+      data: {
+        refreshTokenHash: newHash,
+        lastActiveAt: new Date(),
+        expiresAt: newExpiresAt,
+      },
     });
   }
 

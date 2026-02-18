@@ -48,7 +48,8 @@ class SearchService {
     const { query, types, isAdmin, limit = this.DEFAULT_LIMIT } = options;
 
     // Sanitize and prepare query
-    const searchQuery = query.trim();
+    const MAX_QUERY_LENGTH = 200;
+    const searchQuery = query.trim().slice(0, MAX_QUERY_LENGTH);
 
     if (!searchQuery || searchQuery.length < 2) {
       return {

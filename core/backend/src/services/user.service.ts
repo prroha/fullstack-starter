@@ -69,12 +69,16 @@ class UserService {
       }
     }
 
+    // If email is changing, require re-verification
+    const isEmailChanging = email && email.toLowerCase() !== existingUser.email;
+
     // Update user
     const user = await db.user.update({
       where: { id: userId },
       data: {
         ...(name !== undefined && { name }),
         ...(email && { email: email.toLowerCase() }),
+        ...(isEmailChanging && { emailVerified: false }),
       },
       select: {
         id: true,

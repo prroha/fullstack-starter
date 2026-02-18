@@ -1,9 +1,13 @@
 import jwt, { SignOptions } from "jsonwebtoken";
+import crypto from "crypto";
 import { config } from "../config/index.js";
+
+export type TokenType = "access" | "refresh";
 
 export interface JwtPayload {
   userId: string;
   email: string;
+  type: TokenType;
   deviceId?: string;
   iat?: number;
   exp?: number;
@@ -16,29 +20,41 @@ export interface TokenPair {
 }
 
 /**
+ * Derive a separate signing secret for a given token type.
+ * Uses HMAC-SHA256 with the base secret and token type as key material,
+ * ensuring access and refresh tokens cannot be confused even if intercepted.
+ */
+function getSecret(type: TokenType): string {
+  return crypto
+    .createHmac("sha256", config.jwt.secret)
+    .update(type)
+    .digest("hex");
+}
+
+/**
  * Generate JWT access token
  */
-export function generateAccessToken(payload: Omit<JwtPayload, "iat" | "exp">): string {
+export function generateAccessToken(payload: Omit<JwtPayload, "iat" | "exp" | "type">): string {
   const options: SignOptions = {
     expiresIn: config.jwt.expiresIn as jwt.SignOptions["expiresIn"],
   };
-  return jwt.sign(payload, config.jwt.secret, options);
+  return jwt.sign({ ...payload, type: "access" as TokenType }, getSecret("access"), options);
 }
 
 /**
  * Generate JWT refresh token (longer expiry)
  */
-export function generateRefreshToken(payload: Omit<JwtPayload, "iat" | "exp">): string {
+export function generateRefreshToken(payload: Omit<JwtPayload, "iat" | "exp" | "type">): string {
   const options: SignOptions = {
     expiresIn: config.jwt.refreshExpiresIn as jwt.SignOptions["expiresIn"],
   };
-  return jwt.sign(payload, config.jwt.secret, options);
+  return jwt.sign({ ...payload, type: "refresh" as TokenType }, getSecret("refresh"), options);
 }
 
 /**
  * Generate both access and refresh tokens
  */
-export function generateTokenPair(payload: Omit<JwtPayload, "iat" | "exp">): TokenPair {
+export function generateTokenPair(payload: Omit<JwtPayload, "iat" | "exp" | "type">): TokenPair {
   const accessToken = generateAccessToken(payload);
   const refreshToken = generateRefreshToken(payload);
   const expiresIn = parseExpiry(config.jwt.expiresIn);
@@ -51,11 +67,17 @@ export function generateTokenPair(payload: Omit<JwtPayload, "iat" | "exp">): Tok
 }
 
 /**
- * Verify and decode JWT token
+ * Verify and decode JWT token, enforcing the expected token type.
  */
-export function verifyToken(token: string): JwtPayload {
+export function verifyToken(token: string, expectedType: TokenType = "access"): JwtPayload {
   try {
-    return jwt.verify(token, config.jwt.secret) as JwtPayload;
+    const payload = jwt.verify(token, getSecret(expectedType)) as JwtPayload;
+
+    if (payload.type !== expectedType) {
+      throw new Error("Invalid token type");
+    }
+
+    return payload;
   } catch (error) {
     if (error instanceof jwt.TokenExpiredError) {
       throw new Error("Token expired");
@@ -65,13 +87,6 @@ export function verifyToken(token: string): JwtPayload {
     }
     throw error;
   }
-}
-
-/**
- * Decode token without verification (for debugging)
- */
-export function decodeToken(token: string): JwtPayload | null {
-  return jwt.decode(token) as JwtPayload | null;
 }
 
 /**

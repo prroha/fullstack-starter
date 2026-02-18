@@ -7,7 +7,9 @@ import crypto from "crypto";
 import { FastifyPluginAsync, FastifyRequest, FastifyReply } from "fastify";
 import { z } from "zod";
 import { prisma } from "../../config/db.js";
+import { env } from "../../config/env.js";
 import { validateRequest } from "../../middleware/validate.middleware.js";
+import { provisionPreviewSchema } from "../../services/preview-orchestrator.service.js";
 
 // Token format validation middleware
 // Token must be at least 20 characters, alphanumeric with dashes
@@ -30,6 +32,7 @@ const createPreviewSessionSchema = z.object({
     selectedFeatures: z.array(z.string().max(100)).max(200),
     tier: z.string().max(50),
     templateSlug: z.string().max(100).optional(),
+    provisionSchema: z.boolean().optional(),
   }),
 });
 
@@ -39,10 +42,11 @@ const routePlugin: FastifyPluginAsync = async (fastify) => {
     "/sessions",
     { preHandler: [validateRequest(createPreviewSessionSchema)] },
     async (req: FastifyRequest, reply: FastifyReply) => {
-      const { selectedFeatures, tier, templateSlug } = req.body as {
+      const { selectedFeatures, tier, templateSlug, provisionSchema: shouldProvision } = req.body as {
         selectedFeatures: string[];
         tier: string;
         templateSlug?: string;
+        provisionSchema?: boolean;
       };
 
       // Session expires in 24 hours
@@ -65,6 +69,24 @@ const routePlugin: FastifyPluginAsync = async (fastify) => {
         "http://localhost:3002";
       const previewUrl = `${frontendOrigin}/preview?preview=${session.sessionToken}`;
 
+      let schemaStatus = session.schemaStatus;
+      let schemaName: string | null = null;
+
+      // Provision a live preview schema if requested and configured
+      if (shouldProvision && env.PREVIEW_BACKEND_URL && env.INTERNAL_API_SECRET) {
+        try {
+          const result = await provisionPreviewSchema(
+            session.sessionToken,
+            selectedFeatures,
+            tier,
+          );
+          schemaStatus = result.status as typeof schemaStatus;
+          schemaName = result.schemaName;
+        } catch {
+          schemaStatus = "FAILED";
+        }
+      }
+
       return reply.code(201).send({
         success: true,
         data: {
@@ -72,6 +94,8 @@ const routePlugin: FastifyPluginAsync = async (fastify) => {
           sessionToken: session.sessionToken,
           previewUrl,
           expiresAt: session.expiresAt,
+          schemaStatus,
+          schemaName,
         },
       });
     }
@@ -110,7 +134,53 @@ const routePlugin: FastifyPluginAsync = async (fastify) => {
           tier: session.tier,
           templateSlug: session.templateSlug,
           expiresAt: session.expiresAt,
+          schemaStatus: session.schemaStatus,
+          schemaName: session.schemaName,
+          lastAccessedAt: session.lastAccessedAt,
         },
+      });
+    }
+  );
+
+  // PATCH /api/preview/sessions/:token - Heartbeat (update lastAccessedAt)
+  fastify.patch(
+    "/sessions/:token",
+    { preHandler: [validateTokenFormat] },
+    async (req: FastifyRequest, reply: FastifyReply) => {
+      const { token } = req.params as Record<string, string>;
+      const session = await prisma.previewSession.findUnique({
+        where: { sessionToken: token },
+      });
+      if (!session) return reply.code(404).send({ success: false, error: "Session not found" });
+      if (new Date() > session.expiresAt) return reply.code(410).send({ success: false, error: "Session expired" });
+
+      await prisma.previewSession.update({
+        where: { sessionToken: token },
+        data: { lastAccessedAt: new Date() },
+      });
+      return reply.send({ success: true, data: { schemaStatus: session.schemaStatus } });
+    }
+  );
+
+  // GET /api/preview/sessions/:token/status - Lightweight polling for schema status
+  fastify.get(
+    "/sessions/:token/status",
+    { preHandler: [validateTokenFormat] },
+    async (req: FastifyRequest, reply: FastifyReply) => {
+      const { token } = req.params as Record<string, string>;
+      const session = await prisma.previewSession.findUnique({
+        where: { sessionToken: token },
+        select: { schemaStatus: true, schemaName: true, expiresAt: true },
+      });
+      if (!session) return reply.code(404).send({ success: false, error: "Session not found" });
+
+      const previewUrl = session.schemaStatus === "READY" && env.PREVIEW_BACKEND_URL
+        ? env.PREVIEW_BACKEND_URL.replace(/:\d+$/, ':3004') // Derive frontend URL
+        : null;
+
+      return reply.send({
+        success: true,
+        data: { schemaStatus: session.schemaStatus, previewUrl },
       });
     }
   );

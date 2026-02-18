@@ -81,9 +81,10 @@ export default function UserDashboardLayout({
   // Prevent body scroll when mobile menu is open
   useEffect(() => {
     if (isMobileMenuOpen) {
+      const original = document.body.style.overflow;
       document.body.style.overflow = "hidden";
       return () => {
-        document.body.style.overflow = "";
+        document.body.style.overflow = original;
       };
     }
   }, [isMobileMenuOpen]);
@@ -91,14 +92,6 @@ export default function UserDashboardLayout({
   const handleLogout = async () => {
     await logout();
     router.push("/login");
-  };
-
-  // Check if a nav item is active
-  const _isActive = (href: string) => {
-    if (href === "/dashboard") {
-      return pathname === "/dashboard";
-    }
-    return pathname.startsWith(href);
   };
 
   if (isLoading) {
@@ -136,7 +129,7 @@ export default function UserDashboardLayout({
           {/* Logo */}
           <AppLink href="/dashboard" underline="none" className="flex items-center gap-2">
             <Icon name="Layers" size="md" />
-            <span className="font-semibold hidden sm:inline">My App</span>
+            <span className="font-semibold hidden sm:inline">{process.env.NEXT_PUBLIC_APP_NAME || "Fullstack Starter"}</span>
           </AppLink>
 
           {/* Desktop Navigation */}
@@ -243,7 +236,7 @@ export default function UserDashboardLayout({
         <div className="container px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <Text size="sm" color="muted">
-              &copy; {new Date().getFullYear()} My App. All rights reserved.
+              &copy; {new Date().getFullYear()} {process.env.NEXT_PUBLIC_APP_NAME || "Fullstack Starter"}. All rights reserved.
             </Text>
             <div className="flex items-center gap-4">
               <AppLink href="/terms" variant="muted" size="sm">

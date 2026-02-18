@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import { API_CONFIG } from "@/lib/constants";
+import { API_CONFIG, PREVIEW_CONFIG } from "@/lib/constants";
 
 // ============================================================================
 // Device Types
@@ -236,4 +236,130 @@ export function usePreviewSession(): UsePreviewSessionReturn {
     endSession,
     loadSessionFromToken,
   };
+}
+
+// ============================================================================
+// useLivePreview - Launch and manage a live preview session
+// ============================================================================
+
+interface UseLivePreviewReturn {
+  status: "idle" | "provisioning" | "ready" | "error";
+  sessionToken: string | null;
+  previewUrl: string | null;
+  error: string | null;
+  launch: (tier: string, features: string[]) => void;
+  stop: () => void;
+}
+
+export function useLivePreview(): UseLivePreviewReturn {
+  const [status, setStatus] = useState<UseLivePreviewReturn["status"]>("idle");
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+
+  const launch = useCallback(async (tier: string, features: string[]) => {
+    // Abort any in-progress launch
+    abortRef.current?.abort();
+    const abort = new AbortController();
+    abortRef.current = abort;
+
+    setStatus("provisioning");
+    setError(null);
+
+    try {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/preview/sessions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          selectedFeatures: features,
+          tier,
+          provisionSchema: true,
+        }),
+        signal: abort.signal,
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to create preview session");
+      }
+
+      const data = await response.json();
+      if (!data.success || !data.data?.sessionToken) {
+        throw new Error("Invalid response from preview service");
+      }
+
+      const token = data.data.sessionToken;
+      setSessionToken(token);
+
+      // Poll for readiness
+      const startTime = Date.now();
+      const poll = async (): Promise<void> => {
+        if (abort.signal.aborted) return;
+
+        if (Date.now() - startTime > PREVIEW_CONFIG.POLL_TIMEOUT_MS) {
+          throw new Error("Preview setup timed out. Please try again.");
+        }
+
+        const statusRes = await fetch(
+          `${API_CONFIG.BASE_URL}/preview/sessions/${token}/status`,
+          { signal: abort.signal }
+        );
+
+        if (!statusRes.ok) {
+          throw new Error("Failed to check preview status");
+        }
+
+        const statusData = await statusRes.json();
+        const schemaStatus = statusData.data?.schemaStatus;
+
+        if (schemaStatus === "READY") {
+          const url = `${PREVIEW_CONFIG.FRONTEND_URL}?session=${token}`;
+          setPreviewUrl(url);
+          setStatus("ready");
+          return;
+        }
+
+        if (schemaStatus === "FAILED") {
+          throw new Error("Preview setup failed. Please try again.");
+        }
+
+        await new Promise((r) => setTimeout(r, PREVIEW_CONFIG.POLL_INTERVAL_MS));
+        return poll();
+      };
+
+      await poll();
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      setStatus("error");
+      setError(err instanceof Error ? err.message : "Failed to launch preview");
+    }
+  }, []);
+
+  const stop = useCallback(async () => {
+    abortRef.current?.abort();
+    const token = sessionToken;
+    setStatus("idle");
+    setSessionToken(null);
+    setPreviewUrl(null);
+    setError(null);
+
+    if (token) {
+      try {
+        await fetch(`${API_CONFIG.BASE_URL}/preview/sessions/${token}`, {
+          method: "DELETE",
+        });
+      } catch {
+        // Best-effort cleanup
+      }
+    }
+  }, [sessionToken]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort();
+    };
+  }, []);
+
+  return { status, sessionToken, previewUrl, error, launch, stop };
 }
