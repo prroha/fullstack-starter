@@ -1,23 +1,12 @@
-export { formatPrice } from '@/lib/utils';
-
-/**
- * Format a duration in minutes to a human-readable string.
- * Examples: "45m", "2h", "2h 30m"
- */
-export function formatDuration(totalMinutes: number): string {
-  if (totalMinutes < 60) return `${totalMinutes}m`;
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
-}
+export { formatPrice, formatDuration } from '@/lib/utils';
 
 /**
  * Get Tailwind CSS classes for a course level badge.
  */
 const levelColors: Record<string, string> = {
-  beginner: 'bg-green-100 text-green-800',
-  intermediate: 'bg-yellow-100 text-yellow-800',
-  advanced: 'bg-red-100 text-red-800',
+  beginner: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+  intermediate: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+  advanced: 'bg-destructive/10 text-destructive',
 };
 
 export function getLevelColor(level: string): string {

@@ -41,9 +41,12 @@ export async function provisionSchema(
 
   try {
     // Create schema
+    // Note: $executeRawUnsafe is required because PostgreSQL does not support
+    // parameterized DDL statements (CREATE SCHEMA, SET search_path, DROP SCHEMA).
+    // The schemaName is validated against SCHEMA_NAME_REGEX above to prevent injection.
     await admin.$executeRawUnsafe(`CREATE SCHEMA IF NOT EXISTS "${schemaName}"`);
 
-    // Run migrations within the schema
+    // Run migrations within the schema (DDL — parameterized queries not supported)
     await admin.$executeRawUnsafe(`SET search_path TO "${schemaName}"`);
     await admin.$executeRawUnsafe(sql);
     await admin.$executeRawUnsafe(`SET search_path TO "public"`);
@@ -54,8 +57,12 @@ export async function provisionSchema(
       const { seedPreviewSchema } = await import("../seed/index.js");
       await seedPreviewSchema(db, features);
     } catch (seedError) {
-      // Log but don't fail provisioning if seeding fails
       console.error(`Seeding failed for ${schemaName}:`, seedError);
+      // Clean up the schema since seeding failed
+      await admin.$executeRawUnsafe(`SET search_path TO "public"`).catch(() => {});
+      await admin.$executeRawUnsafe(`DROP SCHEMA IF EXISTS "${schemaName}" CASCADE`).catch(() => {});
+      await evictClient(schemaName);
+      throw new Error(`Seeding failed for schema ${schemaName}: ${seedError instanceof Error ? seedError.message : seedError}`);
     }
 
     return schemaName;
@@ -77,6 +84,7 @@ export async function dropSchema(schemaName: string): Promise<void> {
   }
 
   const admin = getAdminClient();
+  // DDL statement — parameterized queries not supported; schemaName validated by SCHEMA_NAME_REGEX above
   await admin.$executeRawUnsafe(`DROP SCHEMA IF EXISTS "${schemaName}" CASCADE`);
   await evictClient(schemaName);
 }

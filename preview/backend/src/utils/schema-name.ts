@@ -1,3 +1,5 @@
+import crypto from "node:crypto";
+
 const SCHEMA_PREFIX = "preview_";
 const VALID_CHARS = /^[a-z0-9]+$/;
 const MAX_LENGTH = 63; // PostgreSQL identifier limit
@@ -5,6 +7,9 @@ const MAX_LENGTH = 63; // PostgreSQL identifier limit
 /**
  * Convert a session token to a valid PostgreSQL schema name.
  * Format: preview_<sanitized_token>
+ *
+ * If the sanitized name exceeds MAX_LENGTH, a SHA-256 hash is used instead
+ * of simple truncation to avoid collisions between tokens that share the same prefix.
  */
 export function toSchemaName(sessionToken: string): string {
   const sanitized = sessionToken.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -13,8 +18,9 @@ export function toSchemaName(sessionToken: string): string {
   }
   const name = `${SCHEMA_PREFIX}${sanitized}`;
   if (name.length > MAX_LENGTH) {
-    // Truncate but keep prefix
-    return `${SCHEMA_PREFIX}${sanitized.slice(0, MAX_LENGTH - SCHEMA_PREFIX.length)}`;
+    // Use a hash to avoid collisions from truncation of different tokens
+    const hash = crypto.createHash("sha256").update(sanitized).digest("hex").slice(0, MAX_LENGTH - SCHEMA_PREFIX.length);
+    return `${SCHEMA_PREFIX}${hash}`;
   }
   return name;
 }

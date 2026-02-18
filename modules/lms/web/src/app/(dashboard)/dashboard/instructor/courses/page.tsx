@@ -113,8 +113,7 @@ export default function InstructorCoursesPage() {
         <div className="flex-1">
           <SearchInput
             placeholder="Search courses..."
-            value={searchQuery}
-            onChange={setSearchQuery}
+            onSearch={setSearchQuery}
           />
         </div>
         <Select

@@ -9,6 +9,18 @@ export const errorHandler = createErrorHandler({
   isDevelopment: env.NODE_ENV !== "production",
 });
 
+/** Prisma known request errors have a code and optional meta with target fields */
+interface PrismaErrorLike {
+  code?: string;
+  meta?: { target?: string[] };
+}
+
+/** Zod validation errors have an errors array and a flatten method */
+interface ZodErrorLike {
+  errors: Array<{ path: string[]; message: string }>;
+  flatten: () => unknown;
+}
+
 interface ErrorHandlerOptions {
   isDevelopment?: boolean;
   logger?: {
@@ -41,7 +53,7 @@ function createErrorHandler(options: ErrorHandlerOptions = {}) {
 
     // Handle Prisma errors
     if (err.name === "PrismaClientKnownRequestError") {
-      const prismaError = err as { code?: string; meta?: { target?: string[] } };
+      const prismaError = err as PrismaErrorLike;
       if (prismaError.code === "P2002") {
         const targets = prismaError.meta?.target || [];
         const fieldMap: Record<string, string> = { email: "email", slug: "slug", code: "code", orderNumber: "order number" };
@@ -57,7 +69,7 @@ function createErrorHandler(options: ErrorHandlerOptions = {}) {
 
     // Handle Zod validation errors
     if (err.name === "ZodError") {
-      const zodErr = err as unknown as { errors: Array<{ path: string[]; message: string }>; flatten: () => unknown };
+      const zodErr = err as unknown as ZodErrorLike;
       const details = zodErr.errors?.map(e => ({
         path: Array.isArray(e.path) ? e.path.join(".") : String(e.path),
         message: e.message,

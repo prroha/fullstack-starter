@@ -52,6 +52,10 @@ class UserService {
     // Check if user exists
     const existingUser = await db.user.findUnique({
       where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+      },
     });
 
     if (!existingUser) {
@@ -62,6 +66,7 @@ class UserService {
     if (email && email.toLowerCase() !== existingUser.email) {
       const emailExists = await db.user.findUnique({
         where: { email: email.toLowerCase() },
+        select: { id: true },
       });
 
       if (emailExists) {

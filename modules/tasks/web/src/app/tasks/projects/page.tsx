@@ -80,8 +80,7 @@ export default function ProjectsListPage() {
         {projects.length > 0 && (
           <div className="mb-6">
             <SearchInput
-              value={search}
-              onChange={setSearch}
+              onSearch={setSearch}
               placeholder="Search projects..."
             />
           </div>

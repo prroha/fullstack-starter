@@ -180,6 +180,8 @@ class AdminService {
       db.contentPage.count(),
       db.contentPage.count({ where: { isPublished: true } }),
       // Recent activity (last 10 audit logs)
+      // Note: Prisma's nested `select` on relations (e.g., `user: { select: { email: true } }`)
+      // is resolved via a SQL JOIN, NOT separate N+1 queries. This is safe and efficient.
       db.auditLog.findMany({
         take: 10,
         orderBy: { createdAt: "desc" },

@@ -7,6 +7,9 @@ const log = {
   error: (msg: string, err?: unknown) => console.error(`[Orphan Cleanup] ${msg}`, err),
 };
 
+// Mutual exclusion flag to prevent concurrent cleanup runs
+let isRunning = false;
+
 /**
  * Scan PostgreSQL for preview_* schemas that don't match any known session.
  * Called periodically to clean up orphaned schemas from crashes or failed drops.
@@ -15,9 +18,18 @@ export async function cleanupOrphanSchemas(
   studioApiUrl?: string,
   internalSecret?: string,
 ): Promise<number> {
+  if (isRunning) {
+    log.info("Skipping — cleanup already in progress");
+    return 0;
+  }
+
+  isRunning = true;
   const admin = getAdminClient();
 
   try {
+    // Set a statement timeout to prevent long-running queries from blocking
+    await admin.$executeRawUnsafe("SET statement_timeout = '30s'");
+
     // 1. Get all preview schemas from PostgreSQL
     const schemas = await admin.$queryRaw<Array<{ schema_name: string }>>`
       SELECT schema_name FROM information_schema.schemata
@@ -38,7 +50,8 @@ export async function cleanupOrphanSchemas(
       try {
         // Use the studio API to get active session schema names
         // For now, we'll skip this and clean up schemas older than 24 hours
-        // TODO: Implement studio API call when endpoint is available
+        // TODO: Future enhancement — call studio API (e.g. GET /api/internal/sessions/active)
+        // to retrieve active schema names and avoid dropping schemas still in use.
       } catch {
         log.error("Failed to fetch active sessions from studio");
       }
@@ -80,6 +93,10 @@ export async function cleanupOrphanSchemas(
   } catch (error) {
     log.error("Error in orphan cleanup:", error);
     throw error;
+  } finally {
+    // Reset statement timeout to default and release the mutual exclusion lock
+    await admin.$executeRawUnsafe("SET statement_timeout = '0'").catch(() => {});
+    isRunning = false;
   }
 }
 

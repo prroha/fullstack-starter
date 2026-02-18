@@ -203,7 +203,11 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
               </p>
             )}
 
-            {/* Action buttons */}
+            {/* Action buttons — raw HTML elements are intentional here.
+                This is the global error boundary, which must render even when
+                the component system, CSS framework, or module imports fail.
+                Using core Button/Link components would defeat the purpose of
+                this standalone fallback page. */}
             <div
               style={{
                 marginTop: "2rem",

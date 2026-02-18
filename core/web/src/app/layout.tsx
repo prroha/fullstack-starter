@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import dynamic from "next/dynamic";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
@@ -15,7 +16,11 @@ const PREVIEW_MODE = process.env.NEXT_PUBLIC_PREVIEW_MODE === "true";
 // Conditionally import preview banner (only in preview mode)
 // This component is in _preview/ directory and excluded from downloads
 const PreviewBanner = PREVIEW_MODE
-  ? require("@/components/_preview/preview-banner").PreviewBanner
+  ? dynamic(() =>
+      import("@/components/_preview/preview-banner").then((m) => ({
+        default: m.PreviewBanner,
+      }))
+    )
   : () => null;
 
 const inter = Inter({ subsets: ["latin"] });

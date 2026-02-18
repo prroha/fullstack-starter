@@ -116,8 +116,7 @@ export default function RegistrationsPage() {
         <div className="mb-6 flex flex-col gap-3 sm:flex-row">
           <div className="flex-1">
             <SearchInput
-              value={search}
-              onChange={handleSearch}
+              onSearch={handleSearch}
               placeholder="Search registrations..."
             />
           </div>

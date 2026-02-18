@@ -1,6 +1,24 @@
 import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
+import { z } from 'zod';
 import { getCourseService } from '../services/course.service.js';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
+
+// =============================================================================
+// Validation Schemas
+// =============================================================================
+
+const createCourseSchema = z.object({
+  title: z.string().min(1, 'Title is required').max(300),
+  description: z.string().min(1, 'Description is required').max(10000),
+  shortDescription: z.string().max(500).optional().nullable(),
+  thumbnailUrl: z.string().url().optional().nullable(),
+  price: z.number().int().nonnegative().optional(),
+  compareAtPrice: z.number().int().nonnegative().optional().nullable(),
+  level: z.string().max(50).optional().nullable(),
+  language: z.string().max(10).optional(),
+  maxStudents: z.number().int().positive().optional().nullable(),
+  categoryIds: z.array(z.string().uuid()).optional(),
+});
 
 // =============================================================================
 // Routes
@@ -66,11 +84,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
    */
   fastify.post('/', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { title, description, shortDescription, thumbnailUrl, price, compareAtPrice, level, language, maxStudents, categoryIds } = req.body as Record<string, unknown>;
-
-    if (!title || !description) {
-      return reply.code(400).send({ error: 'Title and description are required' });
-    }
+    const { title, description, shortDescription, thumbnailUrl, price, compareAtPrice, level, language, maxStudents, categoryIds } = createCourseSchema.parse(req.body);
 
     const course = await courseService.createCourse({
       title,

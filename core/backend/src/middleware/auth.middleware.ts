@@ -30,6 +30,17 @@ interface AuthErrorResponse {
   };
 }
 
+/**
+ * Send auth error directly via reply instead of throwing ApiError.
+ *
+ * Auth middleware intentionally bypasses the global error handler to:
+ * 1. Return structured auth-specific error codes (AUTH_REQUIRED, TOKEN_EXPIRED, etc.)
+ *    that clients rely on for token refresh and redirect logic.
+ * 2. Avoid the overhead of exception creation and stack trace capture on every
+ *    unauthenticated request, which is a hot path.
+ * 3. Keep auth error formatting self-contained and predictable regardless of
+ *    changes to the global error handler.
+ */
 function sendAuthError(
   reply: FastifyReply,
   status: number,

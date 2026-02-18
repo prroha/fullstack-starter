@@ -87,7 +87,7 @@ function TextContent({ html }: { html: string }) {
   return (
     <div className="overflow-y-auto rounded-lg border border-border bg-card p-6 shadow-sm">
       <div
-        className="prose prose-neutral max-w-none prose-headings:font-semibold prose-a:text-blue-600 prose-img:rounded-lg prose-pre:bg-neutral-900 prose-pre:text-neutral-100"
+        className="prose prose-neutral max-w-none prose-headings:font-semibold prose-a:text-primary prose-img:rounded-lg prose-pre:bg-muted prose-pre:text-muted-foreground"
         dangerouslySetInnerHTML={{ __html: html }}
       />
     </div>

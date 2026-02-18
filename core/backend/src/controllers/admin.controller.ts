@@ -22,6 +22,14 @@ import {
 } from "../utils/controller-helpers.js";
 
 // ============================================================================
+// Typed Request Params
+// ============================================================================
+
+interface IdParams {
+  id: string;
+}
+
+// ============================================================================
 // Validation Schemas
 // ============================================================================
 
@@ -34,7 +42,7 @@ const getUsersQuerySchema = paginationSchema.extend({
 });
 
 const updateUserSchema = z.object({
-  role: z.enum(["USER", "ADMIN"]).optional(),
+  role: z.enum(["USER", "ADMIN", "SUPER_ADMIN"]).optional(),
   isActive: z.boolean().optional(),
   name: nameSchema.optional(),
 });
@@ -84,7 +92,7 @@ class AdminController {
     req: FastifyRequest,
     reply: FastifyReply
   ): Promise<void> {
-    const id = (req.params as Record<string, string>).id;
+    const id = (req.params as IdParams).id;
 
     if (!ensureParam(id, reply, "User ID")) {
       return;
@@ -103,7 +111,7 @@ class AdminController {
     reply: FastifyReply
   ): Promise<void> {
     const authReq = req as AuthenticatedRequest;
-    const id = (req.params as Record<string, string>).id;
+    const id = (req.params as IdParams).id;
 
     if (!ensureParam(id, reply, "User ID")) {
       return;
@@ -117,6 +125,13 @@ class AdminController {
       return reply
         .code(400)
         .send(errorResponse("SELF_DEACTIVATION", "You cannot deactivate your own account"));
+    }
+
+    // Only SUPER_ADMIN can grant the SUPER_ADMIN role
+    if (data.role === "SUPER_ADMIN" && authReq.dbUser?.role !== "SUPER_ADMIN") {
+      return reply
+        .code(403)
+        .send(errorResponse("FORBIDDEN", "Only a SUPER_ADMIN can grant the SUPER_ADMIN role"));
     }
 
     const user = await adminService.updateUser(id, data);
@@ -143,7 +158,7 @@ class AdminController {
     req: FastifyRequest,
     reply: FastifyReply
   ): Promise<void> {
-    const id = (req.params as Record<string, string>).id;
+    const id = (req.params as IdParams).id;
     const currentUserId = getUserIdFromToken(req);
 
     if (!ensureParam(id, reply, "User ID")) {
@@ -181,7 +196,7 @@ class AdminController {
     req: FastifyRequest,
     reply: FastifyReply
   ): Promise<void> {
-    const useStream = (req.query as Record<string, string>).stream === "true";
+    const useStream = (req.query as { stream?: string }).stream === "true";
     const timestamp = new Date().toISOString().split("T")[0];
 
     reply.header("Content-Type", "text/csv; charset=utf-8");
@@ -218,8 +233,16 @@ class AdminController {
     req: FastifyRequest,
     reply: FastifyReply
   ): Promise<void> {
-    const { startDate, endDate, action, userId } = req.query as Record<string, string>;
     const timestamp = new Date().toISOString().split("T")[0];
+
+    const exportAuditLogsQuerySchema = z.object({
+      startDate: z.string().refine((val) => !isNaN(Date.parse(val)), { message: 'Invalid start date' }).optional(),
+      endDate: z.string().refine((val) => !isNaN(Date.parse(val)), { message: 'Invalid end date' }).optional(),
+      action: z.string().optional(),
+      userId: z.string().optional(),
+    });
+
+    const query = exportAuditLogsQuerySchema.parse(req.query);
 
     const options: {
       startDate?: Date;
@@ -228,17 +251,17 @@ class AdminController {
       userId?: string;
     } = {};
 
-    if (startDate && typeof startDate === "string") {
-      options.startDate = new Date(startDate);
+    if (query.startDate) {
+      options.startDate = new Date(query.startDate);
     }
-    if (endDate && typeof endDate === "string") {
-      options.endDate = new Date(endDate);
+    if (query.endDate) {
+      options.endDate = new Date(query.endDate);
     }
-    if (action && typeof action === "string") {
-      options.action = action;
+    if (query.action) {
+      options.action = query.action;
     }
-    if (userId && typeof userId === "string") {
-      options.userId = userId;
+    if (query.userId) {
+      options.userId = query.userId;
     }
 
     const csv = await exportService.exportAuditLogs(options);

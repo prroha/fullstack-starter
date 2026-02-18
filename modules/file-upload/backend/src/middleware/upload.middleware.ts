@@ -1,4 +1,5 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
+import type { MultipartFile } from '@fastify/multipart';
 import * as path from 'path';
 
 // =============================================================================
@@ -90,6 +91,19 @@ function validateMagicNumber(buffer: Buffer, declaredMime: string): boolean {
 }
 
 // =============================================================================
+// Fastify Multipart Request Interface
+// =============================================================================
+
+/**
+ * FastifyRequest augmented with @fastify/multipart methods.
+ * These methods are available after registering @fastify/multipart on the Fastify instance.
+ */
+interface MultipartRequest extends FastifyRequest {
+  file(options?: { limits?: { fileSize?: number } }): Promise<MultipartFile | undefined>;
+  files(options?: { limits?: { fileSize?: number; files?: number } }): AsyncIterableIterator<MultipartFile>;
+}
+
+// =============================================================================
 // Types
 // =============================================================================
 
@@ -152,7 +166,7 @@ export async function parseSingleFile(
   const maxFileSize = config.maxFileSize || DEFAULT_MAX_FILE_SIZE;
   const allowedTypes = config.allowedTypes || DEFAULT_ALLOWED_TYPES;
 
-  const file = await (req as any).file({ limits: { fileSize: maxFileSize } });
+  const file = await (req as MultipartRequest).file({ limits: { fileSize: maxFileSize } });
 
   if (!file) {
     throw Object.assign(new Error('No file uploaded'), { statusCode: 400 });
@@ -206,7 +220,7 @@ export async function parseMultipleFiles(
   const maxFiles = config.maxFiles || 10;
   const allowedTypes = config.allowedTypes || DEFAULT_ALLOWED_TYPES;
 
-  const parts = (req as any).files({ limits: { fileSize: maxFileSize, files: maxFiles } });
+  const parts = (req as MultipartRequest).files({ limits: { fileSize: maxFileSize, files: maxFiles } });
   const files: ParsedFile[] = [];
 
   for await (const part of parts) {

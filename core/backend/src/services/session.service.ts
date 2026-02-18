@@ -1,8 +1,11 @@
 import crypto from "crypto";
+import { PrismaClient } from "@prisma/client";
 import { db } from "../lib/db.js";
 import { ApiError } from "../middleware/error.middleware.js";
 import { ErrorCodes } from "../utils/response.js";
 import { logger } from "../lib/logger.js";
+
+type TransactionClient = Parameters<Parameters<PrismaClient["$transaction"]>[0]>[0];
 
 // ua-parser-js is MIT licensed - we'll use a simple implementation for now
 // to avoid adding a dependency. For production, consider using ua-parser-js.
@@ -114,14 +117,15 @@ class SessionService {
   /**
    * Create a new session for a user
    */
-  async createSession(input: CreateSessionInput): Promise<string> {
+  async createSession(input: CreateSessionInput, tx?: TransactionClient): Promise<string> {
+    const client = tx || db;
     const { userId, refreshToken, ipAddress, userAgent } = input;
 
     const refreshTokenHash = hashToken(refreshToken);
     const deviceInfo = parseUserAgent(userAgent);
     const expiresAt = new Date(Date.now() + REFRESH_TOKEN_EXPIRY_MS);
 
-    const session = await db.session.create({
+    const session = await client.session.create({
       data: {
         userId,
         refreshTokenHash,
@@ -137,19 +141,32 @@ class SessionService {
     logger.info("Session created", { userId, sessionId: session.id, deviceName: deviceInfo.deviceName });
 
     // Enforce max 10 sessions per user — delete oldest if exceeded
+    // Wrapped in transaction to prevent race condition between count + find + delete
     const MAX_SESSIONS_PER_USER = 10;
-    const sessionCount = await db.session.count({ where: { userId } });
-    if (sessionCount > MAX_SESSIONS_PER_USER) {
-      const oldestSessions = await db.session.findMany({
-        where: { userId },
-        orderBy: { lastActiveAt: "asc" },
-        take: sessionCount - MAX_SESSIONS_PER_USER,
-        select: { id: true },
+    const cleanup = async (tc: TransactionClient) => {
+      const sessionCount = await tc.session.count({ where: { userId } });
+      if (sessionCount > MAX_SESSIONS_PER_USER) {
+        const oldestSessions = await tc.session.findMany({
+          where: { userId },
+          orderBy: { lastActiveAt: "asc" },
+          take: sessionCount - MAX_SESSIONS_PER_USER,
+          select: { id: true },
+        });
+        await tc.session.deleteMany({
+          where: { id: { in: oldestSessions.map((s) => s.id) } },
+        });
+        logger.info("Deleted excess sessions", { userId, deleted: oldestSessions.length });
+      }
+    };
+
+    if (tx) {
+      // Already inside a transaction, use the existing client
+      await cleanup(tx);
+    } else {
+      // No parent transaction, create one for atomicity
+      await db.$transaction(async (tc) => {
+        await cleanup(tc);
       });
-      await db.session.deleteMany({
-        where: { id: { in: oldestSessions.map((s) => s.id) } },
-      });
-      logger.info("Deleted excess sessions", { userId, deleted: oldestSessions.length });
     }
 
     return session.visibleId;

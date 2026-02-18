@@ -239,8 +239,7 @@ export default function ProviderServicesPage() {
           <div className="space-y-4">
             <SearchInput
               placeholder="Search available services..."
-              value={linkSearch}
-              onChange={setLinkSearch}
+              onSearch={setLinkSearch}
               debounceDelay={300}
             />
 

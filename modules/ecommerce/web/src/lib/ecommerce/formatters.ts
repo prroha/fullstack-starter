@@ -23,13 +23,13 @@ export function formatOrderStatus(status: EcommerceOrderStatus): string {
  * Get Tailwind CSS color classes for an order status badge.
  */
 const statusColors: Record<EcommerceOrderStatus, string> = {
-  PENDING: 'bg-yellow-100 text-yellow-800',
-  CONFIRMED: 'bg-blue-100 text-blue-800',
-  PROCESSING: 'bg-indigo-100 text-indigo-800',
-  SHIPPED: 'bg-purple-100 text-purple-800',
-  DELIVERED: 'bg-green-100 text-green-800',
+  PENDING: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+  CONFIRMED: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
+  PROCESSING: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400',
+  SHIPPED: 'bg-purple-500/10 text-purple-600 dark:text-purple-400',
+  DELIVERED: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
   CANCELLED: 'bg-muted text-muted-foreground',
-  REFUNDED: 'bg-red-100 text-red-800',
+  REFUNDED: 'bg-destructive/10 text-destructive',
 };
 
 export function getOrderStatusColor(status: EcommerceOrderStatus): string {

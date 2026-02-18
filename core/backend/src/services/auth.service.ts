@@ -141,6 +141,8 @@ class AuthService {
     });
 
     // Send verification email
+    // Email failures are intentionally non-blocking. Registration/password-reset
+    // should succeed even if email delivery fails. Errors are logged for monitoring.
     try {
       await emailVerificationService.sendVerificationEmail({
         userId: user.id,
@@ -148,11 +150,10 @@ class AuthService {
         name: user.name,
       });
     } catch (error) {
-      // Log but don't fail registration if email sending fails
       logger.error("Failed to send verification email", { userId: user.id, error });
     }
 
-    // Send welcome email
+    // Send welcome email (intentionally non-blocking — see comment above)
     try {
       await emailService.sendWelcomeEmail({
         id: user.id,
@@ -160,7 +161,6 @@ class AuthService {
         name: user.name,
       });
     } catch (error) {
-      // Log but don't fail registration if welcome email fails
       logger.error("Failed to send welcome email", { userId: user.id, error });
     }
 
@@ -216,30 +216,36 @@ class AuthService {
       throw ApiError.unauthorized("Invalid credentials", ErrorCodes.INVALID_CREDENTIALS);
     }
 
-    // Successful login - reset failed attempts
-    await lockoutService.resetFailedAttempts(user.id);
-
-    // Update active device if provided
-    if (deviceId) {
-      await db.user.update({
-        where: { id: user.id },
-        data: { activeDeviceId: deviceId },
-      });
-    }
-
-    // Generate tokens
+    // Generate tokens (not a DB operation, stays outside transaction)
     const tokens = generateTokenPair({
       userId: user.id,
       email: user.email,
       deviceId,
     });
 
-    // Create session
-    const sessionId = await sessionService.createSession({
-      userId: user.id,
-      refreshToken: tokens.refreshToken,
-      ipAddress,
-      userAgent,
+    // Wrap DB operations in a transaction to ensure atomicity:
+    // lockout reset, device update, and session creation
+    const sessionId = await db.$transaction(async (tx) => {
+      // Reset failed attempts and update active device
+      await tx.user.update({
+        where: { id: user.id },
+        data: {
+          failedLoginAttempts: 0,
+          lockedUntil: null,
+          lastFailedLogin: null,
+          ...(deviceId ? { activeDeviceId: deviceId } : {}),
+        },
+      });
+
+      // Create session within the same transaction
+      const sid = await sessionService.createSession({
+        userId: user.id,
+        refreshToken: tokens.refreshToken,
+        ipAddress,
+        userAgent,
+      }, tx);
+
+      return sid;
     });
 
     return {
@@ -293,6 +299,8 @@ class AuthService {
     });
 
     // Send password changed notification email
+    // Email failures are intentionally non-blocking. Password change should
+    // succeed even if email delivery fails. Errors are logged for monitoring.
     try {
       await emailService.sendPasswordChangedEmail({
         id: user.id,
@@ -300,7 +308,6 @@ class AuthService {
         name: user.name,
       });
     } catch (error) {
-      // Log but don't fail if notification email fails
       logger.error("Failed to send password changed email", { userId: user.id, error });
     }
 
@@ -311,7 +318,7 @@ class AuthService {
    * Refresh access token using a valid refresh token
    */
   async refreshToken(input: RefreshInput): Promise<RefreshResult> {
-    const { refreshToken, ipAddress: _ipAddress, userAgent: _userAgent } = input;
+    const { refreshToken } = input;
 
     // Verify the refresh token — enforce "refresh" type
     let payload: JwtPayload;
@@ -566,6 +573,8 @@ class AuthService {
     await lockoutService.resetFailedAttempts(resetToken.userId);
 
     // Send password changed notification email
+    // Email failures are intentionally non-blocking. Password reset should
+    // succeed even if email delivery fails. Errors are logged for monitoring.
     try {
       await emailService.sendPasswordChangedEmail({
         id: resetToken.userId,
@@ -573,7 +582,6 @@ class AuthService {
         name: resetToken.user.name,
       });
     } catch (error) {
-      // Log but don't fail if notification email fails
       logger.error("Failed to send password changed email", { userId: resetToken.userId, error });
     }
 

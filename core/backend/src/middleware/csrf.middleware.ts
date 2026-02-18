@@ -1,7 +1,6 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import crypto from "crypto";
 import { logger } from "../lib/logger.js";
-import { config } from "../config/index.js";
 
 /**
  * CSRF Error Codes
@@ -86,12 +85,6 @@ export async function csrfProtection(
 
   // Skip CSRF check for exempt paths
   if (isExemptPath(req.url)) {
-    return;
-  }
-
-  // Skip CSRF check in development if configured
-  if (config.isDevelopment() && process.env.SKIP_CSRF === "true") {
-    logger.warn("CSRF protection skipped in development mode");
     return;
   }
 

@@ -1,14 +1,12 @@
 export { formatPrice } from '@/lib/utils';
+import { formatDuration as coreFormatDuration } from '@/lib/utils';
 
 /**
- * Format a duration in minutes to a human-readable string.
+ * Format a duration in minutes to a human-readable string (long style).
  * Examples: "30 min", "1 hr", "1 hr 30 min"
  */
 export function formatDuration(totalMinutes: number): string {
-  if (totalMinutes < 60) return `${totalMinutes} min`;
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  return minutes > 0 ? `${hours} hr ${minutes} min` : `${hours} hr`;
+  return coreFormatDuration(totalMinutes, 'long');
 }
 
 /**

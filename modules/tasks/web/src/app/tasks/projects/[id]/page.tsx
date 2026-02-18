@@ -213,8 +213,7 @@ export default function ProjectDetailPage({
         <div className="mb-6 flex flex-col gap-3 sm:flex-row">
           <div className="flex-1">
             <SearchInput
-              value={search}
-              onChange={setSearch}
+              onSearch={setSearch}
               placeholder="Search tasks in this project..."
             />
           </div>

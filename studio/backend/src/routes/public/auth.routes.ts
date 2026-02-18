@@ -1,5 +1,6 @@
 import { FastifyPluginAsync, FastifyRequest, FastifyReply } from "fastify";
-import jwt, { SignOptions } from "jsonwebtoken";
+import jwt from "jsonwebtoken";
+import { z } from "zod";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { prisma } from "../../config/db.js";
@@ -32,10 +33,17 @@ async function authenticateFromCookie(
   }
 
   try {
-    const payload = jwt.verify(token, env.JWT_SECRET, { algorithms: ['HS256'] }) as {
-      userId: string;
-      role?: string;
-    };
+    const jwtPayloadSchema = z.object({
+      userId: z.string(),
+      role: z.enum(["user", "admin"]).optional(),
+    });
+
+    const decoded = jwt.verify(token, env.JWT_SECRET, { algorithms: ['HS256'] });
+    const parseResult = jwtPayloadSchema.safeParse(decoded);
+    if (!parseResult.success) {
+      throw ApiError.unauthorized("Invalid token payload");
+    }
+    const payload = parseResult.data;
 
     const user = await prisma.studioUser.findUnique({
       where: { id: payload.userId },
@@ -136,7 +144,7 @@ const routePlugin: FastifyPluginAsync = async (fastify) => {
       }
 
       // Generate JWT token
-      const signOptions: SignOptions = {
+      const signOptions: jwt.SignOptions = {
         algorithm: 'HS256',
         expiresIn: "24h",
       };

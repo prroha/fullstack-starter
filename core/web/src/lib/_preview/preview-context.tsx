@@ -192,7 +192,7 @@ export function usePreview(): PreviewContextValue {
  */
 export function useFeatureFlag(featureSlug: string): boolean {
   const { isFeatureEnabled, isLoading } = usePreview();
-  // Return true while loading to avoid flash
-  if (isLoading) return true;
+  // Return false while loading — features remain hidden until confirmed enabled
+  if (isLoading) return false;
   return isFeatureEnabled(featureSlug);
 }

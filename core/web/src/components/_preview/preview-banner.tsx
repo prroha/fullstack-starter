@@ -19,7 +19,7 @@ export function PreviewBanner() {
   }
 
   return (
-    <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white py-2 px-4 text-center text-sm">
+    <div className="bg-primary text-primary-foreground py-2 px-4 text-center text-sm">
       <span className="font-medium">Preview Mode</span>
       <span className="mx-2">•</span>
       <span className="capitalize">{tier} Tier</span>

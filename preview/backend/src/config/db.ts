@@ -63,7 +63,9 @@ export function getClientForSchema(schemaName: string): PrismaClient {
     if (oldestKey) {
       const evicted = clientCache.get(oldestKey);
       clientCache.delete(oldestKey);
-      evicted?.client.$disconnect().catch(() => {}); // fire-and-forget
+      const cachedDurationMs = evicted ? Date.now() - evicted.lastAccessedAt : 0;
+      console.log(`[db] Evicting cached client for schema "${oldestKey}" (idle for ${Math.round(cachedDurationMs / 1000)}s)`);
+      evicted?.client.$disconnect().catch((err) => console.error("[db] Failed to disconnect evicted client:", err));
     }
   }
 

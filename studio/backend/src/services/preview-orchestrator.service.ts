@@ -30,11 +30,44 @@ export async function provisionPreviewSchema(
     throw new Error("Preview backend not configured");
   }
 
-  // Update status to PROVISIONING
-  await prisma.previewSession.update({
+  // Idempotency check: read current status before attempting to provision
+  const existing = await prisma.previewSession.findUnique({
     where: { sessionToken },
+    select: { schemaStatus: true, schemaName: true },
+  });
+
+  if (!existing) {
+    throw new Error("Preview session not found");
+  }
+
+  // If already provisioned, return the existing schema
+  if (existing.schemaStatus === "READY" && existing.schemaName) {
+    return { schemaName: existing.schemaName, status: "READY" };
+  }
+
+  // If already being provisioned by another request, signal conflict
+  if (existing.schemaStatus === "PROVISIONING") {
+    throw new Error("Provisioning already in progress for this session");
+  }
+
+  // Optimistic lock: only transition from PENDING to PROVISIONING.
+  // If another request already changed the status, updateMany returns count=0.
+  const updated = await prisma.previewSession.updateMany({
+    where: { sessionToken, schemaStatus: "PENDING" },
     data: { schemaStatus: "PROVISIONING" },
   });
+
+  if (updated.count === 0) {
+    // Another request already started provisioning — re-read and handle
+    const current = await prisma.previewSession.findUnique({
+      where: { sessionToken },
+      select: { schemaStatus: true, schemaName: true },
+    });
+    if (current?.schemaStatus === "READY" && current.schemaName) {
+      return { schemaName: current.schemaName, status: "READY" };
+    }
+    throw new Error("Provisioning already in progress for this session");
+  }
 
   const body = JSON.stringify({ sessionToken, features, tier });
   const path = "/internal/schemas/provision";
@@ -56,24 +89,28 @@ export async function provisionPreviewSchema(
     });
 
     if (!res.ok) {
-      const errorBody = await res.json().catch(() => ({ error: { message: "Unknown error" } })) as {
-        error?: { message?: string };
-      };
-      throw new Error(errorBody.error?.message || `Provisioning failed with status ${res.status}`);
+      const errorBody = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+      const errorObj = errorBody?.error as Record<string, unknown> | undefined;
+      const errorMessage = errorObj?.message;
+      throw new Error(typeof errorMessage === "string" ? errorMessage : `Provisioning failed with status ${res.status}`);
     }
 
-    const responseBody = await res.json() as { data: { schemaName: string } };
+    const responseBody = (await res.json()) as Record<string, unknown>;
+    const data = responseBody?.data as Record<string, unknown> | undefined;
+    if (!data || typeof data.schemaName !== "string") {
+      throw new Error("Invalid response from preview backend: missing schemaName");
+    }
 
     // Update session with schema info
     await prisma.previewSession.update({
       where: { sessionToken },
       data: {
-        schemaName: responseBody.data.schemaName,
+        schemaName: data.schemaName,
         schemaStatus: "READY",
       },
     });
 
-    return { schemaName: responseBody.data.schemaName, status: "READY" };
+    return { schemaName: data.schemaName, status: "READY" };
   } catch (error) {
     // Mark as failed
     await prisma.previewSession.update({
@@ -101,7 +138,9 @@ export async function dropPreviewSchema(schemaName: string): Promise<void> {
       "Content-Type": "application/json",
       ...headers,
     },
-  }).catch(() => {}); // Best effort
+  }).catch((err) => {
+    console.error("[preview-orchestrator] Failed to drop schema:", err instanceof Error ? err.message : err);
+  }); // Best effort
 }
 
 export async function invalidatePreviewSession(sessionToken: string): Promise<void> {
@@ -123,5 +162,7 @@ export async function invalidatePreviewSession(sessionToken: string): Promise<vo
       ...headers,
     },
     body,
-  }).catch(() => {}); // Best effort
+  }).catch((err) => {
+    console.error("[preview-orchestrator] Failed to invalidate session:", err instanceof Error ? err.message : err);
+  }); // Best effort
 }

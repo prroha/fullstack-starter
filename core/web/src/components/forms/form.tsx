@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import dynamic from "next/dynamic";
 import {
   useForm,
   UseFormReturn,
@@ -14,6 +15,12 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { cn } from "@/lib/utils";
+
+// Lazy-load Button to avoid circular dependency (Button may import form components)
+const Button = dynamic(
+  () => import("@/components/ui/button").then((mod) => ({ default: mod.Button })),
+  { ssr: false }
+);
 
 // =====================================================
 // Form Root Component
@@ -324,9 +331,6 @@ function FormActions({
       </div>
     );
   }
-
-  // Use dynamic import to avoid circular dependency
-  const Button = require("@/components/ui/button").Button;
 
   return (
     <div

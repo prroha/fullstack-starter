@@ -307,7 +307,7 @@ export function GitHubLoginButton({
       onClick={onClick}
       disabled={disabled}
       isLoading={loading}
-      className={cn('w-full justify-center gap-3 bg-gray-900 hover:bg-gray-800', className)}
+      className={cn('w-full justify-center gap-3 bg-foreground text-background hover:bg-foreground/90', className)}
     >
       {!loading && <GitHubIcon className="w-5 h-5" />}
       <span>{loading ? 'Connecting...' : 'Continue with GitHub'}</span>
@@ -331,7 +331,7 @@ export function AppleLoginButton({
       onClick={onClick}
       disabled={disabled}
       isLoading={loading}
-      className={cn('w-full justify-center gap-3 bg-black hover:bg-gray-900', className)}
+      className={cn('w-full justify-center gap-3 bg-foreground text-background hover:bg-foreground/90', className)}
     >
       {!loading && <AppleIcon className="w-5 h-5" />}
       <span>{loading ? 'Connecting...' : 'Continue with Apple'}</span>

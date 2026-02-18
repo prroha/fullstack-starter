@@ -1,6 +1,19 @@
 import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
+import { z } from 'zod';
 import { getBookingService } from '../services/booking.service.js';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
+
+// =============================================================================
+// Validation Schemas
+// =============================================================================
+
+const createBookingSchema = z.object({
+  serviceId: z.string().uuid('Invalid service ID'),
+  providerId: z.string().uuid('Invalid provider ID'),
+  date: z.string().min(1, 'Date is required'),
+  startTime: z.string().regex(/^\d{2}:\d{2}$/, 'Start time must be in HH:mm format'),
+  notes: z.string().max(2000).optional().nullable(),
+});
 
 // =============================================================================
 // Routes
@@ -19,11 +32,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
    */
   fastify.post('/', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { serviceId, providerId, date, startTime, notes } = req.body as Record<string, string>;
-
-    if (!serviceId || !providerId || !date || !startTime) {
-      return reply.code(400).send({ error: 'serviceId, providerId, date, and startTime are required' });
-    }
+    const { serviceId, providerId, date, startTime, notes } = createBookingSchema.parse(req.body);
 
     const booking = await bookingService.createBooking({
       userId: authReq.user.userId,

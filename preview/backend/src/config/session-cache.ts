@@ -9,7 +9,7 @@ export interface CachedSession {
 }
 
 const sessionCache = new Map<string, CachedSession>();
-const SESSION_CACHE_TTL_MS = 60_000; // 60 seconds
+const SESSION_CACHE_TTL_MS = 15_000; // 15 seconds — short TTL to limit window where deleted sessions remain accessible
 
 export function getCachedSession(token: string): CachedSession | null {
   const cached = sessionCache.get(token);

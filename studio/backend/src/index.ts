@@ -46,7 +46,10 @@ app.addHook("onRequest", async (req, reply) => {
   }
   const origin = req.headers.origin;
   const allowedOrigin = env.CORS_ORIGIN;
-  if (origin && origin !== allowedOrigin) {
+  if (!origin) {
+    return reply.code(403).send({ success: false, error: { message: 'Origin header required for state-changing requests', code: 'CSRF_REJECTED' } });
+  }
+  if (origin !== allowedOrigin) {
     return reply.code(403).send({ success: false, error: { message: 'Origin not allowed', code: 'CSRF_REJECTED' } });
   }
 });

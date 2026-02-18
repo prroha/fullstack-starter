@@ -1,6 +1,10 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import fastifyRateLimit from "@fastify/rate-limit";
 import { config } from "../config/index.js";
+import { logger } from "../lib/logger.js";
+
+// Maximum window duration for store cleanup (24 hours)
+const MAX_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 // ============================================================================
 // Types & Interfaces
@@ -164,10 +168,9 @@ class MemoryStore implements RateLimitStore {
 
   private cleanup(): void {
     const now = Date.now();
-    const maxWindowMs = 24 * 60 * 60 * 1000;
 
     for (const [key, entry] of this.store.entries()) {
-      if (entry.timestamps.length === 0 || entry.timestamps[entry.timestamps.length - 1] < now - maxWindowMs) {
+      if (entry.timestamps.length === 0 || entry.timestamps[entry.timestamps.length - 1] < now - MAX_WINDOW_MS) {
         this.store.delete(key);
       }
     }
@@ -215,28 +218,31 @@ class RedisStore implements RateLimitStore {
   private async initConnection(): Promise<void> {
     try {
       const redis = await import("redis");
-      this.client = redis.createClient({ url: this.redisUrl }) as unknown as RedisClientType;
+      // The redis package's createClient return type doesn't exactly match our
+      // RedisClientType interface (which declares only the subset of methods we use).
+      // A single assertion is acceptable here since the runtime API is compatible.
+      this.client = redis.createClient({ url: this.redisUrl }) as RedisClientType;
 
       this.client.on("error", (err: unknown) => {
         const message = err instanceof Error ? err.message : String(err);
-        console.error("[rate-limit] Redis client error:", message);
+        logger.error("[rate-limit] Redis client error", { error: message });
         this.isConnected = false;
       });
 
       this.client.on("connect", () => {
-        console.warn("[rate-limit] Redis connected");
+        logger.info("[rate-limit] Redis connected");
         this.isConnected = true;
       });
 
       this.client.on("disconnect", () => {
-        console.warn("[rate-limit] Redis disconnected");
+        logger.warn("[rate-limit] Redis disconnected");
         this.isConnected = false;
       });
 
       await this.client.connect();
       this.isConnected = true;
     } catch (error) {
-      console.error("[rate-limit] Failed to connect to Redis:", error);
+      logger.error("[rate-limit] Failed to connect to Redis", { error: error instanceof Error ? error.message : String(error) });
       this.isConnected = false;
       throw error;
     }
@@ -253,7 +259,7 @@ class RedisStore implements RateLimitStore {
       const points = data.reduce((sum: number, item: { value: string }) => sum + parseInt(item.value, 10), 0);
       return { timestamps, points };
     } catch (error) {
-      console.error("[rate-limit] Redis get error:", error);
+      logger.error("[rate-limit] Redis get error", { error: error instanceof Error ? error.message : String(error) });
       return null;
     }
   }
@@ -270,7 +276,7 @@ class RedisStore implements RateLimitStore {
       pipeline.expire(key, Math.ceil(windowMs / 1000) + 60);
       await pipeline.exec();
     } catch (error) {
-      console.error("[rate-limit] Redis set error:", error);
+      logger.error("[rate-limit] Redis set error", { error: error instanceof Error ? error.message : String(error) });
     }
   }
 
@@ -296,7 +302,7 @@ class RedisStore implements RateLimitStore {
       const totalPoints = rangeResult.reduce((sum, item) => sum + parseInt(item.value, 10), 0);
       return { timestamps, points: totalPoints };
     } catch (error) {
-      console.error("[rate-limit] Redis increment error:", error);
+      logger.error("[rate-limit] Redis increment error", { error: error instanceof Error ? error.message : String(error) });
       return { timestamps: [], points: 0 };
     }
   }
@@ -325,15 +331,15 @@ export async function getStore(): Promise<RateLimitStore> {
       const redisStore = new RedisStore(redisUrl);
       await redisStore.connect();
       sharedStore = redisStore;
-      console.warn("[rate-limit] Using Redis store");
+      logger.info("[rate-limit] Using Redis store");
       return sharedStore;
     } catch (error) {
-      console.warn("[rate-limit] Redis connection failed, falling back to memory store:", error);
+      logger.warn("[rate-limit] Redis connection failed, falling back to memory store", { error: error instanceof Error ? error.message : String(error) });
     }
   }
 
   sharedStore = new MemoryStore();
-  console.warn("[rate-limit] Using in-memory store");
+  logger.info("[rate-limit] Using in-memory store");
   return sharedStore;
 }
 
@@ -413,7 +419,7 @@ function createRateLimiterHook(options: {
         });
       }
     } catch (error) {
-      console.error(`[rate-limit] ${options.errorCode} error (denying request):`, error);
+      logger.error(`[rate-limit] ${options.errorCode} error (denying request)`, { error: error instanceof Error ? error.message : String(error) });
       return reply.code(503).send({
         success: false,
         error: {
@@ -522,7 +528,7 @@ export function createSlidingWindowLimiter(options: {
         });
       }
     } catch (error) {
-      console.error("[rate-limit] Sliding window error (denying request):", error);
+      logger.error("[rate-limit] Sliding window error (denying request)", { error: error instanceof Error ? error.message : String(error) });
       return reply.code(503).send({
         success: false,
         error: {
@@ -582,10 +588,9 @@ class CostBasedMemoryStore {
 
   private cleanup(): void {
     const now = Date.now();
-    const maxWindowMs = 24 * 60 * 60 * 1000;
 
     for (const [key, entry] of this.store.entries()) {
-      if (entry.requests.length === 0 || entry.requests[entry.requests.length - 1].timestamp < now - maxWindowMs) {
+      if (entry.requests.length === 0 || entry.requests[entry.requests.length - 1].timestamp < now - MAX_WINDOW_MS) {
         this.store.delete(key);
       }
     }
@@ -660,7 +665,7 @@ export function createCostBasedLimiter(
         });
       }
     } catch (error) {
-      console.error("[rate-limit] Cost-based limiter error (denying request):", error);
+      logger.error("[rate-limit] Cost-based limiter error (denying request)", { error: error instanceof Error ? error.message : String(error) });
       return reply.code(503).send({
         success: false,
         error: {
@@ -739,7 +744,7 @@ export function createPlanBasedLimiter(options?: {
         });
       }
     } catch (error) {
-      console.error("[rate-limit] Plan-based limiter error (allowing request):", error);
+      logger.error("[rate-limit] Plan-based limiter error (allowing request)", { error: error instanceof Error ? error.message : String(error) });
     }
   };
 }

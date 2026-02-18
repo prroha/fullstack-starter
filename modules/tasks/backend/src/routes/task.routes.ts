@@ -1,8 +1,23 @@
 import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
+import { z } from 'zod';
 import { getTaskService } from '../services/task.service.js';
 import { getCommentService } from '../services/comment.service.js';
 import { getLabelService } from '../services/label.service.js';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
+
+// =============================================================================
+// Validation Schemas
+// =============================================================================
+
+const createTaskSchema = z.object({
+  title: z.string().min(1, 'Title is required').max(500),
+  description: z.string().max(5000).optional().nullable(),
+  projectId: z.string().uuid().optional().nullable(),
+  assigneeId: z.string().uuid().optional().nullable(),
+  status: z.enum(['TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE', 'CANCELLED']).optional(),
+  priority: z.enum(['NONE', 'LOW', 'MEDIUM', 'HIGH', 'URGENT']).optional(),
+  dueDate: z.string().optional().nullable(),
+});
 
 // =============================================================================
 // Routes
@@ -92,11 +107,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
    */
   fastify.post('/', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { title, description, projectId, assigneeId, status, priority, dueDate } = req.body as Record<string, unknown>;
-
-    if (!title) {
-      return reply.code(400).send({ error: 'title is required' });
-    }
+    const { title, description, projectId, assigneeId, status, priority, dueDate } = createTaskSchema.parse(req.body);
 
     const task = await taskService.create({
       userId: authReq.user.userId,

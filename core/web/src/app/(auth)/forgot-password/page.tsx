@@ -93,16 +93,18 @@ export default function ForgotPasswordPage() {
         <div className="space-y-4 text-center">
           <Text as="p" size="sm" color="muted">
             Didn&apos;t receive the email? Check your spam folder or{" "}
-            <button
+            <Button
+              variant="link"
+              size="sm"
               type="button"
               onClick={() => {
                 setSubmitted(false);
                 form.reset();
               }}
-              className="text-foreground underline-offset-4 hover:underline font-medium"
+              className="p-0 h-auto font-medium"
             >
               try again
-            </button>
+            </Button>
           </Text>
         </div>
       </AuthLayout>

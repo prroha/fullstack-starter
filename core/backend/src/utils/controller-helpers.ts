@@ -69,12 +69,12 @@ export const paginationQuerySchema = z.object({
   limit: z.coerce.number().int().positive().max(100).optional().default(20),
 });
 
-export function createSortSchema<T extends readonly string[]>(
+export function createSortSchema<T extends readonly [string, ...string[]]>(
   sortByOptions: T,
   defaultSortBy: T[number] = "createdAt"
 ) {
   return z.object({
-    sortBy: z.enum(sortByOptions as unknown as [string, ...string[]]).optional().default(defaultSortBy),
+    sortBy: z.enum(sortByOptions).optional().default(defaultSortBy),
     sortOrder: z.enum(["asc", "desc"]).optional().default("desc"),
   });
 }

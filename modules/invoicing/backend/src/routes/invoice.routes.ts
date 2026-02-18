@@ -1,6 +1,30 @@
 import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
+import { z } from 'zod';
 import { getInvoiceService } from '../services/invoice.service.js';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
+
+// =============================================================================
+// Validation Schemas
+// =============================================================================
+
+const invoiceItemSchema = z.object({
+  description: z.string().min(1, 'Item description is required'),
+  quantity: z.number().positive('Quantity must be positive').default(1),
+  unitPrice: z.number().int().nonnegative('Unit price must be non-negative'),
+  taxRateId: z.string().uuid().optional().nullable(),
+  sortOrder: z.number().int().nonnegative().optional(),
+});
+
+const createInvoiceSchema = z.object({
+  clientId: z.string().uuid('Invalid client ID'),
+  issueDate: z.string().min(1, 'Issue date is required'),
+  dueDate: z.string().min(1, 'Due date is required'),
+  currency: z.string().min(1).max(10).optional(),
+  notes: z.string().max(2000).optional().nullable(),
+  terms: z.string().max(2000).optional().nullable(),
+  discountAmount: z.number().int().nonnegative().optional(),
+  items: z.array(invoiceItemSchema).optional(),
+});
 
 // =============================================================================
 // Routes
@@ -67,11 +91,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
    */
   fastify.post('/', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { clientId, issueDate, dueDate, currency, notes, terms, discountAmount, items } = req.body as Record<string, unknown>;
-
-    if (!clientId || !issueDate || !dueDate) {
-      return reply.code(400).send({ error: 'clientId, issueDate, and dueDate are required' });
-    }
+    const { clientId, issueDate, dueDate, currency, notes, terms, discountAmount, items } = createInvoiceSchema.parse(req.body);
 
     const invoice = await invoiceService.create({
       userId: authReq.user.userId,
