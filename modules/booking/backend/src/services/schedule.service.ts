@@ -55,24 +55,20 @@ interface ScheduleOverrideRecord {
 // =============================================================================
 // Database Operations (Placeholder)
 // =============================================================================
-// Replace with actual Prisma client:
+// TODO: Implement with Prisma when booking schema is provisioned.
+// Currently returns empty/mock data. Replace placeholder calls with actual
+// Prisma client queries (e.g., db.schedule.create({ data })).
 // import { db } from '../../../../core/backend/src/lib/db';
 
 const dbOperations = {
+  // TODO: Implement with Prisma — db.schedule.findMany({ where: { providerId }, orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }] })
   async findWeeklySchedule(providerId: string): Promise<ScheduleRecord[]> {
-    // Replace with: return db.schedule.findMany({ where: { providerId }, orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }] });
-    console.log('[DB] Finding weekly schedule for provider:', providerId);
+    void providerId;
     return [];
   },
 
+  // TODO: Implement with Prisma — db.schedule.upsert({ where: { providerId_dayOfWeek }, create, update })
   async upsertSchedule(providerId: string, data: ScheduleInput): Promise<ScheduleRecord> {
-    // Replace with:
-    // return db.schedule.upsert({
-    //   where: { providerId_dayOfWeek: { providerId, dayOfWeek: data.dayOfWeek } },
-    //   create: { providerId, ...data },
-    //   update: { startTime: data.startTime, endTime: data.endTime, isActive: data.isActive },
-    // });
-    console.log('[DB] Upserting schedule:', providerId, 'day:', data.dayOfWeek);
     return {
       id: 'schedule_' + Date.now(),
       providerId,
@@ -85,21 +81,18 @@ const dbOperations = {
     };
   },
 
+  // TODO: Implement with Prisma — db.schedule.deleteMany({ where: { providerId } })
   async deleteSchedulesForProvider(providerId: string): Promise<void> {
-    // Replace with: await db.schedule.deleteMany({ where: { providerId } });
-    console.log('[DB] Deleting all schedules for provider:', providerId);
+    void providerId;
   },
 
-  async findOverrides(providerId: string, filters: OverrideFilters): Promise<ScheduleOverrideRecord[]> {
-    // Replace with:
-    // const where: any = { providerId };
-    // if (filters.startDate) where.date = { ...where.date, gte: filters.startDate };
-    // if (filters.endDate) where.date = { ...where.date, lte: filters.endDate };
-    // return db.scheduleOverride.findMany({ where, orderBy: { date: 'asc' } });
-    console.log('[DB] Finding overrides for provider:', providerId, filters);
+  // TODO: Implement with Prisma — db.scheduleOverride.findMany with date range filters
+  async findOverrides(providerId: string, _filters: OverrideFilters): Promise<ScheduleOverrideRecord[]> {
+    void providerId;
     return [];
   },
 
+  // TODO: Implement with Prisma — db.scheduleOverride.create({ data })
   async createOverride(data: {
     providerId: string;
     date: string;
@@ -108,8 +101,6 @@ const dbOperations = {
     endTime: string | null;
     reason: string | null;
   }): Promise<ScheduleOverrideRecord> {
-    // Replace with: return db.scheduleOverride.create({ data });
-    console.log('[DB] Creating override for provider:', data.providerId, 'date:', data.date);
     return {
       id: 'override_' + Date.now(),
       ...data,
@@ -118,15 +109,15 @@ const dbOperations = {
     };
   },
 
+  // TODO: Implement with Prisma — db.scheduleOverride.findUnique({ where: { id } })
   async findOverrideById(id: string): Promise<ScheduleOverrideRecord | null> {
-    // Replace with: return db.scheduleOverride.findUnique({ where: { id } });
-    console.log('[DB] Finding override by ID:', id);
+    void id;
     return null;
   },
 
+  // TODO: Implement with Prisma — db.scheduleOverride.delete({ where: { id } })
   async deleteOverride(id: string): Promise<void> {
-    // Replace with: await db.scheduleOverride.delete({ where: { id } });
-    console.log('[DB] Deleting override:', id);
+    void id;
   },
 };
 

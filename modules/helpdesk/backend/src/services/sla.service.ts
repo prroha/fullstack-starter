@@ -77,10 +77,13 @@ interface TicketForSlaCheck {
 // =============================================================================
 // Database Operations (Placeholder)
 // =============================================================================
-// Replace with actual Prisma client:
+// TODO: Implement with Prisma when helpdesk schema is provisioned.
+// Currently returns empty/mock data. Replace placeholder calls with actual
+// Prisma client queries (e.g., db.helpdeskSlaPolicy.create({ data })).
 // import { db } from '../../../../core/backend/src/lib/db';
 
 const dbOperations = {
+  // TODO: Implement with Prisma — db.helpdeskSlaPolicy.create({ data })
   async createSla(data: {
     userId: string;
     name: string;
@@ -92,8 +95,6 @@ const dbOperations = {
     escalationEmail: string | null;
     isActive: boolean;
   }): Promise<SlaRecord> {
-    // Replace with: return db.helpdeskSlaPolicy.create({ data });
-    console.log('[DB] Creating SLA policy:', data.name, 'priority:', data.priority);
     return {
       id: 'sla_' + Date.now(),
       ...data,
@@ -102,94 +103,61 @@ const dbOperations = {
     };
   },
 
-  async updateSla(id: string, data: Partial<SlaRecord>): Promise<SlaRecord | null> {
-    // Replace with: return db.helpdeskSlaPolicy.update({ where: { id }, data: { ...data, updatedAt: new Date() } });
-    console.log('[DB] Updating SLA policy:', id);
+  // TODO: Implement with Prisma — db.helpdeskSlaPolicy.update({ where: { id }, data })
+  async updateSla(id: string, _data: Partial<SlaRecord>): Promise<SlaRecord | null> {
+    void id;
     return null;
   },
 
+  // TODO: Implement with Prisma — db.helpdeskSlaPolicy.delete({ where: { id } })
   async deleteSla(id: string): Promise<void> {
-    // Replace with: await db.helpdeskSlaPolicy.delete({ where: { id } });
-    console.log('[DB] Deleting SLA policy:', id);
+    void id;
   },
 
+  // TODO: Implement with Prisma — db.helpdeskSlaPolicy.findUnique({ where: { id } })
   async findSlaById(id: string): Promise<SlaRecord | null> {
-    // Replace with: return db.helpdeskSlaPolicy.findUnique({ where: { id } });
-    console.log('[DB] Finding SLA policy by ID:', id);
+    void id;
     return null;
   },
 
-  async findSlas(userId: string, filters: SlaFilters): Promise<{ items: SlaRecord[]; total: number }> {
-    // Replace with:
-    // const where = {
-    //   userId,
-    //   isActive: filters.isActive !== undefined ? filters.isActive : undefined,
-    //   priority: filters.priority || undefined,
-    //   OR: filters.search ? [
-    //     { name: { contains: filters.search, mode: 'insensitive' } },
-    //     { description: { contains: filters.search, mode: 'insensitive' } },
-    //   ] : undefined,
-    // };
-    // const [items, total] = await Promise.all([
-    //   db.helpdeskSlaPolicy.findMany({ where, skip: ((filters.page || 1) - 1) * (filters.limit || 20), take: filters.limit || 20, orderBy: [{ priority: 'asc' }, { name: 'asc' }] }),
-    //   db.helpdeskSlaPolicy.count({ where }),
-    // ]);
-    console.log('[DB] Finding SLA policies for user:', userId, filters);
+  // TODO: Implement with Prisma — db.helpdeskSlaPolicy.findMany with filters + count
+  async findSlas(userId: string, _filters: SlaFilters): Promise<{ items: SlaRecord[]; total: number }> {
+    void userId;
     return { items: [], total: 0 };
   },
 
+  // TODO: Implement with Prisma — db.helpdeskSlaPolicy.findFirst({ where: { userId, priority, isActive: true } })
   async findSlaForPriority(userId: string, priority: string): Promise<SlaRecord | null> {
-    // Replace with: return db.helpdeskSlaPolicy.findFirst({ where: { userId, priority, isActive: true }, orderBy: { createdAt: 'desc' } });
-    console.log('[DB] Finding SLA policy for priority:', priority, 'user:', userId);
+    void userId; void priority;
     return null;
   },
 
+  // TODO: Implement with Prisma — db.helpdeskSlaPolicy.findMany({ where: { userId, isActive: true } })
   async findAllActiveSlas(userId: string): Promise<SlaRecord[]> {
-    // Replace with: return db.helpdeskSlaPolicy.findMany({ where: { userId, isActive: true }, orderBy: [{ priority: 'asc' }, { name: 'asc' }] });
-    console.log('[DB] Finding all active SLA policies for user:', userId);
+    void userId;
     return [];
   },
 
+  // TODO: Implement with Prisma — db.helpdeskTicket.findMany({ where: { userId, status not RESOLVED/CLOSED, slaBreached: false } })
   async findOpenTicketsForSlaCheck(userId: string): Promise<TicketForSlaCheck[]> {
-    // Replace with:
-    // return db.helpdeskTicket.findMany({
-    //   where: {
-    //     userId,
-    //     status: { notIn: ['RESOLVED', 'CLOSED'] },
-    //     slaBreached: false,
-    //   },
-    //   select: {
-    //     id: true,
-    //     ticketNumber: true,
-    //     priority: true,
-    //     status: true,
-    //     slaBreached: true,
-    //     firstResponseAt: true,
-    //     resolvedAt: true,
-    //     createdAt: true,
-    //   },
-    // });
-    console.log('[DB] Finding open tickets for SLA check, user:', userId);
+    void userId;
     return [];
   },
 
+  // TODO: Implement with Prisma — db.helpdeskTicket.update({ where: { id: ticketId }, data: { slaBreached: true } })
   async markTicketSlaBreached(ticketId: string): Promise<void> {
-    // Replace with: await db.helpdeskTicket.update({ where: { id: ticketId }, data: { slaBreached: true, updatedAt: new Date() } });
-    console.log('[DB] Marking ticket as SLA breached:', ticketId);
+    void ticketId;
   },
 
+  // TODO: Implement with Prisma — db.helpdeskSlaPolicy.findFirst({ where: { id: slaId, userId } })
   async checkSlaBelongsToUser(slaId: string, userId: string): Promise<boolean> {
-    // Replace with: return !!(await db.helpdeskSlaPolicy.findFirst({ where: { id: slaId, userId } }));
-    console.log('[DB] Checking SLA policy ownership:', slaId, userId);
+    void slaId; void userId;
     return false;
   },
 
-  async checkPriorityPolicyExists(userId: string, priority: string, excludeId?: string): Promise<boolean> {
-    // Replace with:
-    // const where: any = { userId, priority, isActive: true };
-    // if (excludeId) where.id = { not: excludeId };
-    // return !!(await db.helpdeskSlaPolicy.findFirst({ where }));
-    console.log('[DB] Checking if active SLA policy exists for priority:', priority);
+  // TODO: Implement with Prisma — db.helpdeskSlaPolicy.findFirst({ where: { userId, priority, isActive: true } })
+  async checkPriorityPolicyExists(userId: string, priority: string, _excludeId?: string): Promise<boolean> {
+    void userId; void priority;
     return false;
   },
 };

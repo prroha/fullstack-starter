@@ -396,6 +396,6 @@
 - [x] **Phase 1**: Security fixes (7 items) — **DONE** (all 7 fixed)
 - [x] **Phase 2**: CLAUDE.md rule violations — raw HTML, hardcoded colors, missing validation (15 items) — **DONE** (all 15 fixed)
 - [x] **Phase 3**: Type safety — remove `as any`/`as unknown as`, unused imports (9 items) — **DONE** (all 7 fixed, 2 documented as acceptable)
-- [x] **Phase 4**: Architecture — transactions, circular deps, component splitting (5 items) — **DONE** (2 fixed, 2 documented as correct)
-- [x] **Phase 5**: Code quality — logger, dedup, consistency, magic numbers (8 items) — **DONE** (all 6 fixed)
+- [x] **Phase 4**: Architecture — transactions, circular deps, component splitting (5 items) — **DONE** (4 fixed, 1 documented as correct)
+- [x] **Phase 5**: Code quality — logger, dedup, consistency, magic numbers (8 items) — **DONE** (all 8 fixed)
 - [x] **Phase 6**: Preview mechanism — auth, error handling, race conditions, resource management (18 items) — **DONE** (16 fixed, 1 already fixed in Phase 2, 1 skipped as docs-only)

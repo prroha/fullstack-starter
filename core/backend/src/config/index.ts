@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -5,6 +6,18 @@ dotenv.config();
 const isProduction = process.env.NODE_ENV === "production";
 const isTest = process.env.NODE_ENV === "test";
 const isDevelopment = process.env.NODE_ENV === "development" || !process.env.NODE_ENV;
+
+/**
+ * Generate a random JWT secret for non-production environments.
+ * Sessions will NOT persist across server restarts.
+ */
+function generateDevJwtSecret(): string {
+  const secret = crypto.randomBytes(32).toString("hex");
+  console.warn(
+    "[config] JWT_SECRET not set — generated a random secret. Sessions will not persist across restarts."
+  );
+  return secret;
+}
 
 /**
  * Get required environment variable or throw error
@@ -35,8 +48,6 @@ function validateSecrets(): void {
   if (!process.env.JWT_SECRET) {
     if (isProduction) {
       errors.push("JWT_SECRET must be set in production");
-    } else if (!isTest) {
-      console.warn("[config] JWT_SECRET not set - using insecure default for development only");
     }
   }
 
@@ -63,7 +74,7 @@ export const config = {
 
   // JWT
   jwt: {
-    secret: requireEnv("JWT_SECRET", "dev-only-jwt-secret-min-32-characters-long"),
+    secret: process.env.JWT_SECRET || (isProduction ? requireEnv("JWT_SECRET") : generateDevJwtSecret()),
     expiresIn: optionalEnv("JWT_EXPIRES_IN", "15m"),
     refreshExpiresIn: optionalEnv("JWT_REFRESH_EXPIRES_IN", "30d"),
   },

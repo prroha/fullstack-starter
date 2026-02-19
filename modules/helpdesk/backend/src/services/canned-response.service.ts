@@ -55,10 +55,13 @@ interface CannedResponseRecord {
 // =============================================================================
 // Database Operations (Placeholder)
 // =============================================================================
-// Replace with actual Prisma client:
+// TODO: Implement with Prisma when helpdesk schema is provisioned.
+// Currently returns empty/mock data. Replace placeholder calls with actual
+// Prisma client queries (e.g., db.helpdeskCannedResponse.create({ data })).
 // import { db } from '../../../../core/backend/src/lib/db';
 
 const dbOperations = {
+  // TODO: Implement with Prisma — db.helpdeskCannedResponse.create({ data, include: { category: true, createdByAgent: true } })
   async createCannedResponse(data: {
     userId: string;
     title: string;
@@ -68,8 +71,6 @@ const dbOperations = {
     isShared: boolean;
     createdByAgentId: string | null;
   }): Promise<CannedResponseRecord> {
-    // Replace with: return db.helpdeskCannedResponse.create({ data, include: { category: true, createdByAgent: true } });
-    console.log('[DB] Creating canned response:', data.title);
     return {
       id: 'canned_' + Date.now(),
       ...data,
@@ -80,78 +81,49 @@ const dbOperations = {
     };
   },
 
-  async updateCannedResponse(id: string, data: Partial<CannedResponseRecord>): Promise<CannedResponseRecord | null> {
-    // Replace with: return db.helpdeskCannedResponse.update({ where: { id }, data: { ...data, updatedAt: new Date() }, include: { category: true, createdByAgent: true } });
-    console.log('[DB] Updating canned response:', id);
+  // TODO: Implement with Prisma — db.helpdeskCannedResponse.update({ where: { id }, data })
+  async updateCannedResponse(id: string, _data: Partial<CannedResponseRecord>): Promise<CannedResponseRecord | null> {
+    void id;
     return null;
   },
 
+  // TODO: Implement with Prisma — db.helpdeskCannedResponse.delete({ where: { id } })
   async deleteCannedResponse(id: string): Promise<void> {
-    // Replace with: await db.helpdeskCannedResponse.delete({ where: { id } });
-    console.log('[DB] Deleting canned response:', id);
+    void id;
   },
 
+  // TODO: Implement with Prisma — db.helpdeskCannedResponse.findUnique({ where: { id } })
   async findCannedResponseById(id: string): Promise<CannedResponseRecord | null> {
-    // Replace with: return db.helpdeskCannedResponse.findUnique({ where: { id }, include: { category: true, createdByAgent: true } });
-    console.log('[DB] Finding canned response by ID:', id);
+    void id;
     return null;
   },
 
-  async findCannedResponses(userId: string, filters: CannedResponseFilters): Promise<{ items: CannedResponseRecord[]; total: number }> {
-    // Replace with:
-    // const where = {
-    //   userId,
-    //   categoryId: filters.categoryId || undefined,
-    //   isShared: filters.isShared !== undefined ? filters.isShared : undefined,
-    //   createdByAgentId: filters.createdByAgentId || undefined,
-    //   OR: filters.search ? [
-    //     { title: { contains: filters.search, mode: 'insensitive' } },
-    //     { content: { contains: filters.search, mode: 'insensitive' } },
-    //     { shortcut: { contains: filters.search, mode: 'insensitive' } },
-    //   ] : undefined,
-    // };
-    // const [items, total] = await Promise.all([
-    //   db.helpdeskCannedResponse.findMany({ where, skip: ((filters.page || 1) - 1) * (filters.limit || 20), take: filters.limit || 20, include: { category: true }, orderBy: [{ usageCount: 'desc' }, { title: 'asc' }] }),
-    //   db.helpdeskCannedResponse.count({ where }),
-    // ]);
-    console.log('[DB] Finding canned responses for user:', userId, filters);
+  // TODO: Implement with Prisma — db.helpdeskCannedResponse.findMany with filters + count
+  async findCannedResponses(userId: string, _filters: CannedResponseFilters): Promise<{ items: CannedResponseRecord[]; total: number }> {
+    void userId;
     return { items: [], total: 0 };
   },
 
+  // TODO: Implement with Prisma — db.helpdeskCannedResponse.findMany({ where: { userId, OR: [{ isShared: true }, { createdByAgentId: agentId }] } })
   async findForAgent(userId: string, agentId: string): Promise<CannedResponseRecord[]> {
-    // Replace with:
-    // return db.helpdeskCannedResponse.findMany({
-    //   where: {
-    //     userId,
-    //     OR: [
-    //       { isShared: true },
-    //       { createdByAgentId: agentId },
-    //     ],
-    //   },
-    //   orderBy: [{ usageCount: 'desc' }, { title: 'asc' }],
-    //   include: { category: true },
-    // });
-    console.log('[DB] Finding canned responses for agent:', agentId, 'user:', userId);
+    void userId; void agentId;
     return [];
   },
 
+  // TODO: Implement with Prisma — db.helpdeskCannedResponse.update({ where: { id }, data: { usageCount: { increment: 1 }, lastUsedAt: new Date() } })
   async incrementUsageCount(id: string): Promise<void> {
-    // Replace with: await db.helpdeskCannedResponse.update({ where: { id }, data: { usageCount: { increment: 1 }, lastUsedAt: new Date() } });
-    console.log('[DB] Incrementing usage count for canned response:', id);
+    void id;
   },
 
-  async checkShortcutExists(userId: string, shortcut: string, excludeId?: string): Promise<boolean> {
-    // Replace with:
-    // const where: any = { userId, shortcut };
-    // if (excludeId) where.id = { not: excludeId };
-    // return !!(await db.helpdeskCannedResponse.findFirst({ where }));
-    console.log('[DB] Checking if shortcut exists:', shortcut);
+  // TODO: Implement with Prisma — db.helpdeskCannedResponse.findFirst({ where: { userId, shortcut } })
+  async checkShortcutExists(userId: string, shortcut: string, _excludeId?: string): Promise<boolean> {
+    void userId; void shortcut;
     return false;
   },
 
+  // TODO: Implement with Prisma — db.helpdeskCannedResponse.findFirst({ where: { id: cannedResponseId, userId } })
   async checkCannedResponseBelongsToUser(cannedResponseId: string, userId: string): Promise<boolean> {
-    // Replace with: return !!(await db.helpdeskCannedResponse.findFirst({ where: { id: cannedResponseId, userId } }));
-    console.log('[DB] Checking canned response ownership:', cannedResponseId, userId);
+    void cannedResponseId; void userId;
     return false;
   },
 };
