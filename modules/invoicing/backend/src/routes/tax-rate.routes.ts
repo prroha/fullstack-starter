@@ -1,12 +1,15 @@
 import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
-import { getTaxRateService } from '../services/tax-rate.service.js';
+import { TaxRateService } from '../services/tax-rate.service.js';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
+import type { PrismaClient } from '@prisma/client';
 
 // =============================================================================
-// Routes
+// Helpers
 // =============================================================================
 
-const taxRateService = getTaxRateService();
+function svc(req: FastifyRequest): TaxRateService {
+  return new TaxRateService((req as FastifyRequest & { db?: PrismaClient }).db!);
+}
 
 // =============================================================================
 // Tax Rate Endpoints (All Authenticated)
@@ -20,7 +23,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
 
-    const taxRates = await taxRateService.list(authReq.user.userId);
+    const taxRates = await svc(req).list(authReq.user.userId);
     return reply.send({ success: true, data: taxRates });
   });
 
@@ -36,7 +39,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'name and rate are required' });
     }
 
-    const taxRate = await taxRateService.create({
+    const taxRate = await svc(req).create({
       userId: authReq.user.userId,
       name,
       rate: Number(rate),
@@ -55,7 +58,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const { id } = req.params as { id: string };
     const { name, rate, isDefault } = req.body as Record<string, unknown>;
 
-    const taxRate = await taxRateService.update(id, authReq.user.userId, {
+    const taxRate = await svc(req).update(id, authReq.user.userId, {
       name,
       rate: rate !== undefined ? Number(rate) : undefined,
       isDefault,
@@ -76,7 +79,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { id } = req.params as { id: string };
 
-    await taxRateService.delete(id, authReq.user.userId);
+    await svc(req).delete(id, authReq.user.userId);
     return reply.send({ success: true, message: 'Tax rate deleted' });
   });
 
@@ -88,7 +91,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { id } = req.params as { id: string };
 
-    const taxRate = await taxRateService.setDefault(id, authReq.user.userId);
+    const taxRate = await svc(req).setDefault(id, authReq.user.userId);
     if (!taxRate) {
       return reply.code(404).send({ error: 'Tax rate not found' });
     }

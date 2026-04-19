@@ -1,12 +1,15 @@
 import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
-import { getCategoryService } from '../services/category.service.js';
+import { CategoryService } from '../services/category.service.js';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
+import type { PrismaClient } from '@prisma/client';
 
 // =============================================================================
-// Routes
+// Helper
 // =============================================================================
 
-const categoryService = getCategoryService();
+function svc(req: FastifyRequest): CategoryService {
+  return new CategoryService((req as FastifyRequest & { db?: PrismaClient }).db!);
+}
 
 // =============================================================================
 // Category Endpoints (All Authenticated)
@@ -27,7 +30,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     }
 
     const updates = ids.map((id: string, index: number) => ({ id, sortOrder: index + 1 }));
-    await categoryService.reorder(authReq.user.userId, updates);
+    await svc(req).reorder(authReq.user.userId, updates);
     return reply.send({ success: true, message: 'Categories reordered' });
   });
 
@@ -39,7 +42,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { search, isActive, parentId, page, limit } = req.query as Record<string, string>;
 
-    const categories = await categoryService.list(authReq.user.userId, {
+    const categories = await svc(req).list(authReq.user.userId, {
       search,
       isActive: isActive !== undefined ? isActive === 'true' : undefined,
       parentId,
@@ -57,7 +60,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { id } = req.params as { id: string };
 
-    const category = await categoryService.getById(id, authReq.user.userId);
+    const category = await svc(req).getById(id, authReq.user.userId);
     if (!category) {
       return reply.code(404).send({ error: 'Category not found' });
     }
@@ -76,7 +79,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'name is required' });
     }
 
-    const category = await categoryService.create({
+    const category = await svc(req).create({
       userId: authReq.user.userId,
       name,
       description,
@@ -96,7 +99,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const { id } = req.params as { id: string };
     const { name, description, color, parentId } = req.body as Record<string, unknown>;
 
-    const category = await categoryService.update(id, authReq.user.userId, {
+    const category = await svc(req).update(id, authReq.user.userId, {
       name,
       description,
       color,
@@ -118,7 +121,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { id } = req.params as { id: string };
 
-    await categoryService.delete(id, authReq.user.userId);
+    await svc(req).delete(id, authReq.user.userId);
     return reply.send({ success: true, message: 'Category deleted' });
   });
 
@@ -130,7 +133,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { id } = req.params as { id: string };
 
-    const category = await categoryService.toggleActive(id, authReq.user.userId);
+    const category = await svc(req).toggleActive(id, authReq.user.userId);
     if (!category) {
       return reply.code(404).send({ error: 'Category not found' });
     }

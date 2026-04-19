@@ -1,12 +1,15 @@
 import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
-import { getInvoiceItemService } from '../services/invoice-item.service.js';
+import { InvoiceItemService } from '../services/invoice-item.service.js';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
+import type { PrismaClient } from '@prisma/client';
 
 // =============================================================================
-// Routes
+// Helpers
 // =============================================================================
 
-const invoiceItemService = getInvoiceItemService();
+function svc(req: FastifyRequest): InvoiceItemService {
+  return new InvoiceItemService((req as FastifyRequest & { db?: PrismaClient }).db!);
+}
 
 // =============================================================================
 // Invoice Item Endpoints (All Authenticated)
@@ -26,7 +29,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'description, quantity, and unitPrice are required' });
     }
 
-    const item = await invoiceItemService.add(invoiceId, authReq.user.userId, {
+    const item = await svc(req).add(invoiceId, authReq.user.userId, {
       description,
       quantity: Number(quantity),
       unitPrice: Number(unitPrice),
@@ -45,7 +48,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const { itemId } = req.params as { itemId: string };
     const { description, quantity, unitPrice, taxRateId } = req.body as Record<string, unknown>;
 
-    const item = await invoiceItemService.update(itemId, authReq.user.userId, {
+    const item = await svc(req).update(itemId, authReq.user.userId, {
       description,
       quantity: quantity !== undefined ? Number(quantity) : undefined,
       unitPrice: unitPrice !== undefined ? Number(unitPrice) : undefined,
@@ -67,7 +70,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { itemId } = req.params as { itemId: string };
 
-    await invoiceItemService.delete(itemId, authReq.user.userId);
+    await svc(req).delete(itemId, authReq.user.userId);
     return reply.send({ success: true, message: 'Invoice item deleted' });
   });
 
@@ -84,7 +87,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'itemIds array is required' });
     }
 
-    const items = await invoiceItemService.reorder(invoiceId, authReq.user.userId, itemIds);
+    const items = await svc(req).reorder(invoiceId, authReq.user.userId, itemIds);
     return reply.send({ success: true, data: items });
   });
 };

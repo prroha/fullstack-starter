@@ -1,12 +1,15 @@
 import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
-import { getAgentService } from '../services/agent.service.js';
+import { AgentService } from '../services/agent.service.js';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
+import type { PrismaClient } from '@prisma/client';
 
 // =============================================================================
-// Routes
+// Helper
 // =============================================================================
 
-const agentService = getAgentService();
+function svc(req: FastifyRequest): AgentService {
+  return new AgentService((req as FastifyRequest & { db?: PrismaClient }).db!);
+}
 
 // =============================================================================
 // Agent Endpoints (All Authenticated)
@@ -21,7 +24,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/me', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
 
-    const agent = await agentService.getByUserId(authReq.user.userId, authReq.user.userId);
+    const agent = await svc(req).getByUserId(authReq.user.userId, authReq.user.userId);
     if (!agent) {
       return reply.code(404).send({ error: 'Agent profile not found' });
     }
@@ -36,7 +39,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/workload', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
 
-    const workload = await agentService.getAllWorkloads(authReq.user.userId);
+    const workload = await svc(req).getAllWorkloads(authReq.user.userId);
     return reply.send({ success: true, data: workload });
   });
 
@@ -48,7 +51,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { search, department, role, isActive, page, limit } = req.query as Record<string, string>;
 
-    const agents = await agentService.list(authReq.user.userId, {
+    const agents = await svc(req).list(authReq.user.userId, {
       search,
       department,
       role,
@@ -67,7 +70,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { id } = req.params as { id: string };
 
-    const agent = await agentService.getById(id, authReq.user.userId);
+    const agent = await svc(req).getById(id, authReq.user.userId);
     if (!agent) {
       return reply.code(404).send({ error: 'Agent not found' });
     }
@@ -86,7 +89,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'name and email are required' });
     }
 
-    const agent = await agentService.create({
+    const agent = await svc(req).create({
       userId: authReq.user.userId,
       name,
       email,
@@ -108,7 +111,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const { id } = req.params as { id: string };
     const { name, email, role, department, maxOpenTickets, specialties } = req.body as Record<string, unknown>;
 
-    const agent = await agentService.update(id, authReq.user.userId, {
+    const agent = await svc(req).update(id, authReq.user.userId, {
       name,
       email,
       role,
@@ -132,7 +135,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { id } = req.params as { id: string };
 
-    await agentService.delete(id, authReq.user.userId);
+    await svc(req).delete(id, authReq.user.userId);
     return reply.send({ success: true, message: 'Agent deleted' });
   });
 
@@ -144,7 +147,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { id } = req.params as { id: string };
 
-    const agent = await agentService.toggleActive(id, authReq.user.userId);
+    const agent = await svc(req).toggleActive(id, authReq.user.userId);
     if (!agent) {
       return reply.code(404).send({ error: 'Agent not found' });
     }

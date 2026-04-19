@@ -46,12 +46,12 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
   };
 
   if (loading) {
-    return (<div className="flex items-center justify-center min-h-screen"><Spinner size="lg" /></div>);
+    return (<div className="flex items-center justify-center py-20"><Spinner size="lg" /></div>);
   }
 
   if (error && !event) {
     return (
-      <div className="min-h-screen bg-background p-8">
+      <div className="bg-background p-6">
         <div className="mx-auto max-w-3xl">
           <Alert variant="destructive" title="Error loading event">
             <p className="mt-1">{error}</p>
@@ -68,13 +68,13 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
   if (!event) return null;
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="bg-background">
+      <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 lg:px-8">
         <Breadcrumb items={[{ label: "Events", href: "/events" }, { label: event.title, href: `/events/${id}` }, { label: "Edit" }]} />
-        <h1 className="mt-6 text-2xl font-bold text-foreground">Edit Event</h1>
-        <p className="mt-1 text-muted-foreground">Update event details</p>
+        <h1 className="mt-4 text-2xl font-bold text-foreground">Edit Event</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Update event details</p>
         {error && (<Alert variant="destructive" onDismiss={() => setError(null)} className="mt-4">{error}</Alert>)}
-        <div className="mt-8 rounded-lg border border-border bg-card p-6">
+        <div className="mt-6 rounded-lg border border-border bg-card p-6">
           <EventForm event={event} onSubmit={handleSubmit} onCancel={() => router.push(`/events/${id}`)} />
         </div>
       </div>

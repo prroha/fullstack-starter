@@ -1,15 +1,18 @@
 import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
-import { getEnrollmentService } from '../services/enrollment.service.js';
+import { EnrollmentService } from '../services/enrollment.service.js';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
+import type { PrismaClient } from '@prisma/client';
+
+// =============================================================================
+// Helper
+// =============================================================================
+
+function svc(req: FastifyRequest): EnrollmentService {
+  return new EnrollmentService((req as FastifyRequest & { db?: PrismaClient }).db!);
+}
 
 // =============================================================================
 // Routes
-// =============================================================================
-
-const enrollmentService = getEnrollmentService();
-
-// =============================================================================
-// Enrollment Endpoints
 // =============================================================================
 
 const routes: FastifyPluginAsync = async (fastify) => {
@@ -25,7 +28,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'courseId is required' });
     }
 
-    const enrollment = await enrollmentService.enroll({
+    const enrollment = await svc(req).enroll({
       userId: authReq.user.userId,
       courseId,
     });
@@ -39,7 +42,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
    */
   fastify.get('/', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const enrollments = await enrollmentService.getUserEnrollments(authReq.user.userId);
+    const enrollments = await svc(req).getUserEnrollments(authReq.user.userId);
     return reply.send({ success: true, data: enrollments });
   });
 
@@ -49,7 +52,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
    */
   fastify.get('/course/:courseId', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const { courseId } = req.params as { courseId: string };
-    const enrollments = await enrollmentService.getCourseEnrollments(courseId);
+    const enrollments = await svc(req).getCourseEnrollments(courseId);
     return reply.send({ success: true, data: enrollments });
   });
 
@@ -59,7 +62,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
    */
   fastify.get('/:enrollmentId/progress', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const { enrollmentId } = req.params as { enrollmentId: string };
-    const progress = await enrollmentService.getProgress(enrollmentId);
+    const progress = await svc(req).getProgress(enrollmentId);
     return reply.send({ success: true, data: progress });
   });
 
@@ -75,7 +78,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'lessonId is required' });
     }
 
-    const progress = await enrollmentService.updateProgress({
+    const progress = await svc(req).updateProgress({
       enrollmentId,
       lessonId,
       completed,
@@ -92,7 +95,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
    */
   fastify.post('/:enrollmentId/complete/:lessonId', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const { enrollmentId, lessonId } = req.params as { enrollmentId: string; lessonId: string };
-    const progress = await enrollmentService.completeLesson(enrollmentId, lessonId);
+    const progress = await svc(req).completeLesson(enrollmentId, lessonId);
     return reply.send({ success: true, data: progress });
   });
 
@@ -102,7 +105,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
    */
   fastify.post('/:enrollmentId/drop', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const { enrollmentId } = req.params as { enrollmentId: string };
-    const enrollment = await enrollmentService.dropEnrollment(enrollmentId);
+    const enrollment = await svc(req).dropEnrollment(enrollmentId);
     return reply.send({ success: true, data: enrollment });
   });
 };

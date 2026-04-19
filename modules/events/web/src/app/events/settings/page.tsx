@@ -61,7 +61,7 @@ export default function EventSettingsPage() {
   };
 
   if (loading) {
-    return (<div className="flex items-center justify-center min-h-screen"><Spinner size="lg" /></div>);
+    return (<div className="flex items-center justify-center py-20"><Spinner size="lg" /></div>);
   }
 
   const currencyOptions = [
@@ -73,18 +73,18 @@ export default function EventSettingsPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="bg-background">
+      <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 lg:px-8">
         <Breadcrumb items={[{ label: "Events", href: "/events" }, { label: "Settings" }]} />
-        <h1 className="mt-6 text-2xl font-bold text-foreground">Event Settings</h1>
-        <p className="mt-1 text-muted-foreground">Configure your event management preferences</p>
+        <h1 className="mt-4 text-2xl font-bold text-foreground">Event Settings</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Configure your event management preferences</p>
 
-        <div className="mt-8 space-y-6">
+        <div className="mt-6 space-y-6">
           {error && (<Alert variant="destructive" onDismiss={() => setError(null)}>{error}</Alert>)}
           {success && (<Alert variant="success" onDismiss={() => setSuccess(null)}>{success}</Alert>)}
 
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-foreground">Display Preferences</h2>
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Display Preferences</h2>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label>Default View</Label>
@@ -98,14 +98,16 @@ export default function EventSettingsPage() {
           </div>
 
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-foreground">Regional Settings</h2>
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Regional Settings</h2>
             <div className="space-y-2">
               <Label htmlFor="timezone">Timezone</Label>
               <Input id="timezone" value={timezone} onChange={(e) => setTimezone(e.target.value)} placeholder="e.g. America/New_York" />
             </div>
           </div>
 
-          <Button onClick={handleSave} isLoading={isSaving}>Save Settings</Button>
+          <div className="flex items-center gap-3 pt-6 border-t border-border">
+            <Button onClick={handleSave} isLoading={isSaving}>Save Settings</Button>
+          </div>
         </div>
       </div>
     </div>

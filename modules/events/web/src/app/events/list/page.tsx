@@ -62,20 +62,20 @@ export default function EventListPage() {
   const typeOptions = [{ value: "", label: "All Types" }, ...EVENT_TYPE_OPTIONS];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="bg-background">
       <div className="border-b bg-card">
-        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight text-foreground">All Events</h1>
-              <p className="mt-1 text-muted-foreground">View and manage all your events</p>
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">All Events</h1>
+              <p className="mt-1 text-sm text-muted-foreground">View and manage all your events</p>
             </div>
-            <Button onClick={() => router.push("/events/new")}>New Event</Button>
+            <Button size="sm" onClick={() => router.push("/events/new")}>New Event</Button>
           </div>
         </div>
       </div>
 
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <div className="mb-6 flex flex-col gap-3 sm:flex-row">
           <div className="flex-1">
             <SearchInput onSearch={handleSearch} placeholder="Search events..." />
@@ -109,7 +109,7 @@ export default function EventListPage() {
         )}
 
         {!loading && totalPages > 1 && (
-          <div className="mt-8">
+          <div className="mt-6">
             <Pagination page={page} totalPages={totalPages} onPageChange={setPage} totalItems={total} pageSize={PAGE_SIZE} showItemCount />
           </div>
         )}

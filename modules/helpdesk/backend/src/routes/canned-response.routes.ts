@@ -1,12 +1,15 @@
 import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
-import { getCannedResponseService } from '../services/canned-response.service.js';
+import { CannedResponseService } from '../services/canned-response.service.js';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
+import type { PrismaClient } from '@prisma/client';
 
 // =============================================================================
-// Routes
+// Helper
 // =============================================================================
 
-const cannedResponseService = getCannedResponseService();
+function svc(req: FastifyRequest): CannedResponseService {
+  return new CannedResponseService((req as FastifyRequest & { db?: PrismaClient }).db!);
+}
 
 // =============================================================================
 // Canned Response Endpoints (All Authenticated)
@@ -21,7 +24,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/mine', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
 
-    const responses = await cannedResponseService.list(authReq.user.userId, {
+    const responses = await svc(req).list(authReq.user.userId, {
       createdByAgentId: authReq.user.userId,
     });
     return reply.send({ success: true, data: responses });
@@ -35,7 +38,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { search, categoryId, page, limit } = req.query as Record<string, string>;
 
-    const result = await cannedResponseService.list(authReq.user.userId, {
+    const result = await svc(req).list(authReq.user.userId, {
       search,
       categoryId,
       page: page ? Number(page) : 1,
@@ -53,7 +56,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { id } = req.params as { id: string };
 
-    const response = await cannedResponseService.getById(id, authReq.user.userId);
+    const response = await svc(req).getById(id, authReq.user.userId);
     if (!response) {
       return reply.code(404).send({ error: 'Canned response not found' });
     }
@@ -72,7 +75,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'title and content are required' });
     }
 
-    const response = await cannedResponseService.create({
+    const response = await svc(req).create({
       userId: authReq.user.userId,
       title,
       content,
@@ -93,7 +96,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const { id } = req.params as { id: string };
     const { title, content, shortcut, categoryId, isShared } = req.body as Record<string, unknown>;
 
-    const response = await cannedResponseService.update(id, authReq.user.userId, {
+    const response = await svc(req).update(id, authReq.user.userId, {
       title,
       content,
       shortcut,
@@ -116,7 +119,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { id } = req.params as { id: string };
 
-    await cannedResponseService.delete(id, authReq.user.userId);
+    await svc(req).delete(id, authReq.user.userId);
     return reply.send({ success: true, message: 'Canned response deleted' });
   });
 };

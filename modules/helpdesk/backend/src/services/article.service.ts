@@ -3,7 +3,9 @@
 // =============================================================================
 // Business logic for knowledge base articles: CRUD, publishing workflow,
 // search, slug-based lookup, and customer feedback tracking.
-// Uses placeholder db operations - replace with actual Prisma client.
+// Uses dependency-injected PrismaClient for all database operations.
+
+import type { PrismaClient } from '@prisma/client';
 
 // =============================================================================
 // Types
@@ -49,183 +51,13 @@ export interface ArticleFeedbackInput {
   comment?: string;
 }
 
-interface ArticleRecord {
-  id: string;
-  userId: string;
-  categoryId: string | null;
-  title: string;
-  slug: string;
-  content: string;
-  excerpt: string | null;
-  status: ArticleStatus;
-  tags: string[];
-  metaTitle: string | null;
-  metaDescription: string | null;
-  viewCount: number;
-  helpfulCount: number;
-  notHelpfulCount: number;
-  publishedAt: Date | null;
-  archivedAt: Date | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-interface FeedbackRecord {
-  id: string;
-  articleId: string;
-  helpful: boolean;
-  comment: string | null;
-  createdAt: Date;
-}
-
-// =============================================================================
-// Database Operations (Placeholder)
-// =============================================================================
-// Replace with actual Prisma client:
-// import { db } from '../../../../core/backend/src/lib/db';
-
-const dbOperations = {
-  async createArticle(data: {
-    userId: string;
-    categoryId: string | null;
-    title: string;
-    slug: string;
-    content: string;
-    excerpt: string | null;
-    status: ArticleStatus;
-    tags: string[];
-    metaTitle: string | null;
-    metaDescription: string | null;
-  }): Promise<ArticleRecord> {
-    // Replace with: return db.helpdeskArticle.create({ data, include: { category: true } });
-    console.log('[DB] Creating article:', data.title, 'slug:', data.slug);
-    return {
-      id: 'article_' + Date.now(),
-      ...data,
-      viewCount: 0,
-      helpfulCount: 0,
-      notHelpfulCount: 0,
-      publishedAt: null,
-      archivedAt: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-  },
-
-  async updateArticle(id: string, data: Partial<ArticleRecord>): Promise<ArticleRecord | null> {
-    // Replace with: return db.helpdeskArticle.update({ where: { id }, data: { ...data, updatedAt: new Date() }, include: { category: true } });
-    console.log('[DB] Updating article:', id);
-    return null;
-  },
-
-  async deleteArticle(id: string): Promise<void> {
-    // Replace with: await db.helpdeskArticle.delete({ where: { id } });
-    console.log('[DB] Deleting article:', id);
-  },
-
-  async findArticleById(id: string): Promise<ArticleRecord | null> {
-    // Replace with: return db.helpdeskArticle.findUnique({ where: { id }, include: { category: true } });
-    console.log('[DB] Finding article by ID:', id);
-    return null;
-  },
-
-  async findArticleBySlug(userId: string, slug: string): Promise<ArticleRecord | null> {
-    // Replace with: return db.helpdeskArticle.findFirst({ where: { userId, slug }, include: { category: true } });
-    console.log('[DB] Finding article by slug:', slug, 'for user:', userId);
-    return null;
-  },
-
-  async findArticles(userId: string, filters: ArticleFilters): Promise<{ items: ArticleRecord[]; total: number }> {
-    // Replace with:
-    // const where = {
-    //   userId,
-    //   status: filters.status || undefined,
-    //   categoryId: filters.categoryId || undefined,
-    //   tags: filters.tag ? { has: filters.tag } : undefined,
-    //   OR: filters.search ? [
-    //     { title: { contains: filters.search, mode: 'insensitive' } },
-    //     { content: { contains: filters.search, mode: 'insensitive' } },
-    //     { excerpt: { contains: filters.search, mode: 'insensitive' } },
-    //   ] : undefined,
-    // };
-    // const [items, total] = await Promise.all([
-    //   db.helpdeskArticle.findMany({ where, skip: ((filters.page || 1) - 1) * (filters.limit || 20), take: filters.limit || 20, include: { category: true }, orderBy: { updatedAt: 'desc' } }),
-    //   db.helpdeskArticle.count({ where }),
-    // ]);
-    console.log('[DB] Finding articles for user:', userId, filters);
-    return { items: [], total: 0 };
-  },
-
-  async searchPublishedArticles(userId: string, query: string, limit: number): Promise<ArticleRecord[]> {
-    // Replace with:
-    // return db.helpdeskArticle.findMany({
-    //   where: {
-    //     userId,
-    //     status: 'PUBLISHED',
-    //     OR: [
-    //       { title: { contains: query, mode: 'insensitive' } },
-    //       { content: { contains: query, mode: 'insensitive' } },
-    //       { tags: { hasSome: [query] } },
-    //     ],
-    //   },
-    //   take: limit,
-    //   orderBy: [{ viewCount: 'desc' }, { helpfulCount: 'desc' }],
-    //   include: { category: true },
-    // });
-    console.log('[DB] Searching published articles for user:', userId, 'query:', query);
-    return [];
-  },
-
-  async incrementViewCount(id: string): Promise<void> {
-    // Replace with: await db.helpdeskArticle.update({ where: { id }, data: { viewCount: { increment: 1 } } });
-    console.log('[DB] Incrementing view count for article:', id);
-  },
-
-  async createFeedback(data: {
-    articleId: string;
-    helpful: boolean;
-    comment: string | null;
-  }): Promise<FeedbackRecord> {
-    // Replace with: return db.helpdeskArticleFeedback.create({ data });
-    console.log('[DB] Creating feedback for article:', data.articleId, 'helpful:', data.helpful);
-    return {
-      id: 'feedback_' + Date.now(),
-      ...data,
-      createdAt: new Date(),
-    };
-  },
-
-  async incrementHelpfulCount(articleId: string): Promise<void> {
-    // Replace with: await db.helpdeskArticle.update({ where: { id: articleId }, data: { helpfulCount: { increment: 1 } } });
-    console.log('[DB] Incrementing helpful count for article:', articleId);
-  },
-
-  async incrementNotHelpfulCount(articleId: string): Promise<void> {
-    // Replace with: await db.helpdeskArticle.update({ where: { id: articleId }, data: { notHelpfulCount: { increment: 1 } } });
-    console.log('[DB] Incrementing not-helpful count for article:', articleId);
-  },
-
-  async checkSlugExists(userId: string, slug: string, excludeId?: string): Promise<boolean> {
-    // Replace with:
-    // const where: any = { userId, slug };
-    // if (excludeId) where.id = { not: excludeId };
-    // return !!(await db.helpdeskArticle.findFirst({ where }));
-    console.log('[DB] Checking if slug exists:', slug);
-    return false;
-  },
-
-  async checkArticleBelongsToUser(articleId: string, userId: string): Promise<boolean> {
-    // Replace with: return !!(await db.helpdeskArticle.findFirst({ where: { id: articleId, userId } }));
-    console.log('[DB] Checking article ownership:', articleId, userId);
-    return false;
-  },
-};
-
 // =============================================================================
 // Article Service
 // =============================================================================
 
 export class ArticleService {
+  constructor(private db: PrismaClient) {}
+
   /**
    * Generate a URL-friendly slug from a title.
    * Appends a numeric suffix if the slug already exists.
@@ -236,7 +68,10 @@ export class ArticleService {
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-|-$/g, '');
 
-    const exists = await dbOperations.checkSlugExists(userId, slug, excludeId);
+    const whereClause: Record<string, unknown> = { userId, slug };
+    if (excludeId) whereClause.id = { not: excludeId };
+
+    const exists = await this.db.knowledgeBaseArticle.findFirst({ where: whereClause as never });
     if (exists) {
       slug = `${slug}-${Date.now().toString(36)}`;
     }
@@ -248,43 +83,50 @@ export class ArticleService {
    * Create a new knowledge base article. Starts as DRAFT.
    * Automatically generates a slug if not provided.
    */
-  async create(input: ArticleCreateInput): Promise<ArticleRecord> {
+  async create(input: ArticleCreateInput) {
     const slug = input.slug || await this.generateSlug(input.userId, input.title);
 
     // Validate slug uniqueness if explicitly provided
     if (input.slug) {
-      const slugExists = await dbOperations.checkSlugExists(input.userId, input.slug);
+      const slugExists = await this.db.knowledgeBaseArticle.findFirst({
+        where: { userId: input.userId, slug: input.slug },
+      });
       if (slugExists) {
         throw new Error('An article with this slug already exists');
       }
     }
 
-    return dbOperations.createArticle({
-      userId: input.userId,
-      categoryId: input.categoryId || null,
-      title: input.title,
-      slug,
-      content: input.content,
-      excerpt: input.excerpt || null,
-      status: 'DRAFT',
-      tags: input.tags || [],
-      metaTitle: input.metaTitle || null,
-      metaDescription: input.metaDescription || null,
+    return this.db.knowledgeBaseArticle.create({
+      data: {
+        userId: input.userId,
+        categoryId: input.categoryId || null,
+        title: input.title,
+        slug,
+        content: input.content,
+        excerpt: input.excerpt || null,
+        status: 'DRAFT',
+        tags: input.tags || [],
+        metaTitle: input.metaTitle || null,
+        metaDescription: input.metaDescription || null,
+      },
+      include: { category: true },
     });
   }
 
   /**
    * Update an existing article. Validates ownership and slug uniqueness.
    */
-  async update(id: string, userId: string, input: ArticleUpdateInput): Promise<ArticleRecord | null> {
-    const belongs = await dbOperations.checkArticleBelongsToUser(id, userId);
+  async update(id: string, userId: string, input: ArticleUpdateInput) {
+    const belongs = await this.db.knowledgeBaseArticle.findFirst({ where: { id, userId } });
     if (!belongs) {
       throw new Error('Article not found');
     }
 
     // Validate slug uniqueness if being changed
     if (input.slug) {
-      const slugExists = await dbOperations.checkSlugExists(userId, input.slug, id);
+      const slugExists = await this.db.knowledgeBaseArticle.findFirst({
+        where: { userId, slug: input.slug, id: { not: id } },
+      });
       if (slugExists) {
         throw new Error('An article with this slug already exists');
       }
@@ -295,35 +137,49 @@ export class ArticleService {
       input.slug = await this.generateSlug(userId, input.title, id);
     }
 
-    return dbOperations.updateArticle(id, input as Partial<ArticleRecord>);
+    return this.db.knowledgeBaseArticle.update({
+      where: { id },
+      data: {
+        ...(input.categoryId !== undefined && { categoryId: input.categoryId }),
+        ...(input.title !== undefined && { title: input.title }),
+        ...(input.slug !== undefined && { slug: input.slug }),
+        ...(input.content !== undefined && { content: input.content }),
+        ...(input.excerpt !== undefined && { excerpt: input.excerpt }),
+        ...(input.tags !== undefined && { tags: input.tags }),
+        ...(input.metaTitle !== undefined && { metaTitle: input.metaTitle }),
+        ...(input.metaDescription !== undefined && { metaDescription: input.metaDescription }),
+      },
+      include: { category: true },
+    });
   }
 
   /**
    * Delete an article. Validates ownership.
    */
   async delete(id: string, userId: string): Promise<void> {
-    const belongs = await dbOperations.checkArticleBelongsToUser(id, userId);
+    const belongs = await this.db.knowledgeBaseArticle.findFirst({ where: { id, userId } });
     if (!belongs) {
       throw new Error('Article not found');
     }
 
-    return dbOperations.deleteArticle(id);
+    await this.db.knowledgeBaseArticle.delete({ where: { id } });
   }
 
   /**
    * Get a single article by ID with ownership check.
    * Increments view count for published articles.
    */
-  async getById(id: string, userId: string): Promise<ArticleRecord | null> {
-    const belongs = await dbOperations.checkArticleBelongsToUser(id, userId);
-    if (!belongs) {
-      return null;
-    }
-
-    const article = await dbOperations.findArticleById(id);
+  async getById(id: string, userId: string) {
+    const article = await this.db.knowledgeBaseArticle.findFirst({
+      where: { id, userId },
+      include: { category: true },
+    });
 
     if (article && article.status === 'PUBLISHED') {
-      await dbOperations.incrementViewCount(id);
+      await this.db.knowledgeBaseArticle.update({
+        where: { id },
+        data: { viewCount: { increment: 1 } },
+      });
     }
 
     return article;
@@ -332,11 +188,17 @@ export class ArticleService {
   /**
    * Get a published article by its URL slug. Increments view count.
    */
-  async getBySlug(userId: string, slug: string): Promise<ArticleRecord | null> {
-    const article = await dbOperations.findArticleBySlug(userId, slug);
+  async getBySlug(userId: string, slug: string) {
+    const article = await this.db.knowledgeBaseArticle.findFirst({
+      where: { userId, slug },
+      include: { category: true },
+    });
 
     if (article && article.status === 'PUBLISHED') {
-      await dbOperations.incrementViewCount(article.id);
+      await this.db.knowledgeBaseArticle.update({
+        where: { id: article.id },
+        data: { viewCount: { increment: 1 } },
+      });
     }
 
     return article;
@@ -349,19 +211,38 @@ export class ArticleService {
     const page = filters.page || 1;
     const limit = filters.limit || 20;
 
-    const result = await dbOperations.findArticles(userId, {
-      ...filters,
-      page,
-      limit,
-    });
+    const where: Record<string, unknown> = { userId };
+
+    if (filters.status) where.status = filters.status;
+    if (filters.categoryId) where.categoryId = filters.categoryId;
+    if (filters.tag) where.tags = { has: filters.tag };
+
+    if (filters.search) {
+      where.OR = [
+        { title: { contains: filters.search, mode: 'insensitive' } },
+        { content: { contains: filters.search, mode: 'insensitive' } },
+        { excerpt: { contains: filters.search, mode: 'insensitive' } },
+      ];
+    }
+
+    const [items, total] = await Promise.all([
+      this.db.knowledgeBaseArticle.findMany({
+        where: where as never,
+        skip: (page - 1) * limit,
+        take: limit,
+        include: { category: true },
+        orderBy: { updatedAt: 'desc' },
+      }),
+      this.db.knowledgeBaseArticle.count({ where: where as never }),
+    ]);
 
     return {
-      items: result.items,
+      items,
       pagination: {
         page,
         limit,
-        total: result.total,
-        totalPages: Math.ceil(result.total / limit),
+        total,
+        totalPages: Math.ceil(total / limit),
       },
     };
   }
@@ -369,13 +250,8 @@ export class ArticleService {
   /**
    * Publish a draft article. Sets publishedAt timestamp and changes status to PUBLISHED.
    */
-  async publish(id: string, userId: string): Promise<ArticleRecord | null> {
-    const belongs = await dbOperations.checkArticleBelongsToUser(id, userId);
-    if (!belongs) {
-      throw new Error('Article not found');
-    }
-
-    const article = await dbOperations.findArticleById(id);
+  async publish(id: string, userId: string) {
+    const article = await this.db.knowledgeBaseArticle.findFirst({ where: { id, userId } });
     if (!article) {
       throw new Error('Article not found');
     }
@@ -384,23 +260,22 @@ export class ArticleService {
       throw new Error('Article is already published');
     }
 
-    return dbOperations.updateArticle(id, {
-      status: 'PUBLISHED',
-      publishedAt: new Date(),
-      archivedAt: null,
-    } as Partial<ArticleRecord>);
+    return this.db.knowledgeBaseArticle.update({
+      where: { id },
+      data: {
+        status: 'PUBLISHED',
+        publishedAt: new Date(),
+        archivedAt: null,
+      },
+      include: { category: true },
+    });
   }
 
   /**
    * Archive a published article. Sets archivedAt timestamp and hides from public view.
    */
-  async archive(id: string, userId: string): Promise<ArticleRecord | null> {
-    const belongs = await dbOperations.checkArticleBelongsToUser(id, userId);
-    if (!belongs) {
-      throw new Error('Article not found');
-    }
-
-    const article = await dbOperations.findArticleById(id);
+  async archive(id: string, userId: string) {
+    const article = await this.db.knowledgeBaseArticle.findFirst({ where: { id, userId } });
     if (!article) {
       throw new Error('Article not found');
     }
@@ -409,47 +284,73 @@ export class ArticleService {
       throw new Error('Article is already archived');
     }
 
-    return dbOperations.updateArticle(id, {
-      status: 'ARCHIVED',
-      archivedAt: new Date(),
-    } as Partial<ArticleRecord>);
+    return this.db.knowledgeBaseArticle.update({
+      where: { id },
+      data: {
+        status: 'ARCHIVED',
+        archivedAt: new Date(),
+      },
+      include: { category: true },
+    });
   }
 
   /**
    * Record reader feedback (helpful / not helpful) for an article.
    * Updates the article's aggregate feedback counts.
    */
-  async recordFeedback(userId: string, input: ArticleFeedbackInput): Promise<FeedbackRecord> {
-    const belongs = await dbOperations.checkArticleBelongsToUser(input.articleId, userId);
+  async recordFeedback(userId: string, input: ArticleFeedbackInput) {
+    const belongs = await this.db.knowledgeBaseArticle.findFirst({
+      where: { id: input.articleId, userId },
+    });
     if (!belongs) {
       throw new Error('Article not found');
     }
 
-    const feedback = await dbOperations.createFeedback({
+    // Update the article's aggregate counts
+    if (input.helpful) {
+      await this.db.knowledgeBaseArticle.update({
+        where: { id: input.articleId },
+        data: { helpfulCount: { increment: 1 } },
+      });
+    } else {
+      await this.db.knowledgeBaseArticle.update({
+        where: { id: input.articleId },
+        data: { notHelpfulCount: { increment: 1 } },
+      });
+    }
+
+    return {
+      id: `feedback_${Date.now()}`,
       articleId: input.articleId,
       helpful: input.helpful,
       comment: input.comment || null,
-    });
-
-    if (input.helpful) {
-      await dbOperations.incrementHelpfulCount(input.articleId);
-    } else {
-      await dbOperations.incrementNotHelpfulCount(input.articleId);
-    }
-
-    return feedback;
+      createdAt: new Date(),
+    };
   }
 
   /**
    * Search published articles by keyword. Returns results ranked by popularity.
    * Used for the customer-facing knowledge base search.
    */
-  async search(userId: string, query: string, limit: number = 10): Promise<ArticleRecord[]> {
+  async search(userId: string, query: string, limit: number = 10) {
     if (!query || query.trim().length < 2) {
       return [];
     }
 
-    return dbOperations.searchPublishedArticles(userId, query.trim(), limit);
+    return this.db.knowledgeBaseArticle.findMany({
+      where: {
+        userId,
+        status: 'PUBLISHED',
+        OR: [
+          { title: { contains: query.trim(), mode: 'insensitive' } },
+          { content: { contains: query.trim(), mode: 'insensitive' } },
+          { tags: { hasSome: [query.trim()] } },
+        ],
+      } as never,
+      take: limit,
+      orderBy: [{ viewCount: 'desc' }, { helpfulCount: 'desc' }],
+      include: { category: true },
+    });
   }
 }
 
@@ -457,13 +358,19 @@ export class ArticleService {
 // Factory
 // =============================================================================
 
-let articleServiceInstance: ArticleService | null = null;
+export function createArticleService(db: PrismaClient): ArticleService {
+  return new ArticleService(db);
+}
 
-export function getArticleService(): ArticleService {
-  if (!articleServiceInstance) {
-    articleServiceInstance = new ArticleService();
+let instance: ArticleService | null = null;
+
+export function getArticleService(db?: PrismaClient): ArticleService {
+  if (db) return createArticleService(db);
+  if (!instance) {
+    const { db: globalDb } = require('../../../../core/backend/src/lib/db.js');
+    instance = new ArticleService(globalDb);
   }
-  return articleServiceInstance;
+  return instance;
 }
 
 export default ArticleService;

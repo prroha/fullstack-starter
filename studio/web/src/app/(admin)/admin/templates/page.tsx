@@ -139,6 +139,31 @@ function TrashIcon({ className }: { className?: string }) {
   );
 }
 
+function EyeIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={1.5}
+      stroke="currentColor"
+      className={className}
+      aria-hidden="true"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"
+      />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
+      />
+    </svg>
+  );
+}
+
 function PackageIcon({ className }: { className?: string }) {
   return (
     <svg
@@ -810,6 +835,33 @@ export default function TemplatesPage() {
     }
   };
 
+  const [previewingId, setPreviewingId] = React.useState<string | null>(null);
+
+  const handlePreviewTemplate = async (template: Template) => {
+    setPreviewingId(template.id);
+    try {
+      const { sessionToken, ssoToken } = await adminApi.previewTemplate({
+        slug: template.slug,
+        tier: template.tier,
+        includedFeatures: template.includedFeatures,
+      });
+
+      // Build preview URL with session + SSO token for auto-login
+      const previewFrontendUrl =
+        process.env.NEXT_PUBLIC_PREVIEW_FRONTEND_URL || "http://localhost:3004";
+      let url = `${previewFrontendUrl}?session=${sessionToken}`;
+      if (ssoToken) {
+        url += `&sso=${encodeURIComponent(ssoToken)}`;
+      }
+      window.open(url, "_blank");
+    } catch (error) {
+      console.error("Failed to create preview session:", error);
+      showError("Failed to create preview session");
+    } finally {
+      setPreviewingId(null);
+    }
+  };
+
   const handleToggleActive = async (template: Template) => {
     // Optimistic update
     const previousState = template.isActive;
@@ -938,6 +990,15 @@ export default function TemplatesPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handlePreviewTemplate(template)}
+                          disabled={previewingId === template.id}
+                          aria-label={`Preview ${template.name}`}
+                        >
+                          <EyeIcon className="h-4 w-4" />
+                        </Button>
                         <Button
                           variant="ghost"
                           size="icon"

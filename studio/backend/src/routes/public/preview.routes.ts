@@ -4,6 +4,7 @@
  */
 
 import crypto from "crypto";
+import jwt from "jsonwebtoken";
 import { FastifyPluginAsync, FastifyRequest, FastifyReply } from "fastify";
 import { z } from "zod";
 import { prisma } from "../../config/db.js";
@@ -12,11 +13,11 @@ import { validateRequest } from "../../middleware/validate.middleware.js";
 import { provisionPreviewSchema } from "../../services/preview-orchestrator.service.js";
 
 // Token format validation middleware
-// Token must be at least 20 characters, alphanumeric with dashes
+// Token must be at least 20 characters, alphanumeric with dashes and underscores (base64url charset)
 // Note: Token lookup is performed via Prisma `findUnique({ where: { sessionToken } })`,
 // which is inherently timing-safe since the comparison happens in the database
 // engine via a WHERE clause, not via in-application string comparison.
-const TOKEN_REGEX = /^[a-zA-Z0-9-]{20,}$/;
+const TOKEN_REGEX = /^[a-zA-Z0-9_-]{20,}$/;
 
 const validateTokenFormat = async (req: FastifyRequest, reply: FastifyReply): Promise<void> => {
   const { token } = req.params as Record<string, string>;
@@ -24,7 +25,7 @@ const validateTokenFormat = async (req: FastifyRequest, reply: FastifyReply): Pr
   if (!token || !TOKEN_REGEX.test(token)) {
     return reply.code(400).send({
       success: false,
-      error: "Invalid token format. Token must be at least 20 characters and contain only alphanumeric characters and dashes.",
+      error: "Invalid token format. Token must be at least 20 characters and contain only alphanumeric characters, dashes, and underscores.",
     });
   }
 };
@@ -131,6 +132,20 @@ const routePlugin: FastifyPluginAsync = async (fastify) => {
         "http://localhost:3002";
       const previewUrl = `${frontendOrigin}/preview?preview=${session.sessionToken}`;
 
+      // Generate SSO JWT for seamless auto-login into preview app
+      let ssoToken: string | null = null;
+      if (env.JWT_SECRET) {
+        ssoToken = jwt.sign(
+          {
+            sessionToken: session.sessionToken,
+            tier,
+            audience: "preview-sso",
+          },
+          env.JWT_SECRET,
+          { expiresIn: "1h" },
+        );
+      }
+
       let schemaStatus = session.schemaStatus;
       let schemaName: string | null = null;
 
@@ -138,7 +153,9 @@ const routePlugin: FastifyPluginAsync = async (fastify) => {
       // Fire-and-forget: start provisioning in the background so the HTTP response
       // returns immediately. The client should poll GET /sessions/:token/status
       // to know when the schema is ready.
-      if (shouldProvision && env.PREVIEW_BACKEND_URL && env.INTERNAL_API_SECRET) {
+      const provisioningAvailable = !!(env.PREVIEW_BACKEND_URL && env.INTERNAL_API_SECRET);
+
+      if (shouldProvision && provisioningAvailable) {
         schemaStatus = "PROVISIONING";
         provisionPreviewSchema(
           session.sessionToken,
@@ -154,10 +171,12 @@ const routePlugin: FastifyPluginAsync = async (fastify) => {
         data: {
           sessionId: session.id,
           sessionToken: session.sessionToken,
+          ssoToken,
           previewUrl,
           expiresAt: session.expiresAt,
           schemaStatus,
           schemaName,
+          provisioningAvailable,
         },
       });
     }
@@ -200,6 +219,7 @@ const routePlugin: FastifyPluginAsync = async (fastify) => {
           schemaStatus: session.schemaStatus,
           schemaName: session.schemaName,
           lastAccessedAt: session.lastAccessedAt,
+          provisioningAvailable: !!(env.PREVIEW_BACKEND_URL && env.INTERNAL_API_SECRET),
         },
       });
     }

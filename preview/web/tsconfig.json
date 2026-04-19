@@ -16,9 +16,42 @@
     "plugins": [{ "name": "next" }],
     "paths": {
       "@/*": ["../../core/web/src/*"],
-      "@preview/*": ["./src/*"]
+      "@preview/*": ["./src/*"],
+
+      "@/lib/ecommerce/*": ["../../modules/ecommerce/web/src/lib/ecommerce/*"],
+      "@/lib/lms/*": ["../../modules/lms/web/src/lib/lms/*"],
+      "@/lib/booking/*": ["../../modules/booking/web/src/lib/booking/*"],
+      "@/lib/helpdesk/*": ["../../modules/helpdesk/web/src/lib/helpdesk/*"],
+      "@/lib/invoicing/*": ["../../modules/invoicing/web/src/lib/invoicing/*"],
+      "@/lib/events/*": ["../../modules/events/web/src/lib/events/*"],
+      "@/lib/tasks/*": ["../../modules/tasks/web/src/lib/tasks/*"],
+
+      "@/components/ecommerce/*": [
+        "../../modules/ecommerce/web/src/components/ecommerce/*"
+      ],
+      "@/components/lms/*": ["../../modules/lms/web/src/components/lms/*"],
+      "@/components/booking/*": [
+        "../../modules/booking/web/src/components/booking/*"
+      ],
+      "@/components/helpdesk/*": [
+        "../../modules/helpdesk/web/src/components/helpdesk/*"
+      ],
+      "@/components/invoicing/*": [
+        "../../modules/invoicing/web/src/components/invoicing/*"
+      ],
+      "@/components/events/*": [
+        "../../modules/events/web/src/components/events/*"
+      ],
+      "@/components/tasks/*": ["../../modules/tasks/web/src/components/tasks/*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    "../../modules/*/web/src/**/*.ts",
+    "../../modules/*/web/src/**/*.tsx"
+  ],
   "exclude": ["node_modules"]
 }

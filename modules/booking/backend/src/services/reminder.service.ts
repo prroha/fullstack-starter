@@ -2,7 +2,9 @@
 // Booking Reminder Service
 // =============================================================================
 // Business logic for scheduling, listing, and managing booking reminders.
-// Uses placeholder db operations - replace with actual Prisma client.
+// Uses dependency-injected PrismaClient.
+
+import type { PrismaClient } from '@prisma/client';
 
 // =============================================================================
 // Types
@@ -10,93 +12,13 @@
 
 export type ReminderType = 'EMAIL' | 'SMS' | 'PUSH';
 
-interface ReminderRecord {
-  id: string;
-  bookingId: string;
-  type: ReminderType;
-  scheduledAt: Date;
-  sentAt: Date | null;
-  status: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-// =============================================================================
-// Database Operations (Placeholder)
-// =============================================================================
-// Replace with actual Prisma client:
-// import { db } from '../../../../core/backend/src/lib/db';
-
-const dbOperations = {
-  async createReminder(data: {
-    bookingId: string;
-    type: ReminderType;
-    scheduledAt: Date;
-    status: string;
-  }): Promise<ReminderRecord> {
-    // Replace with: return db.reminder.create({ data });
-    console.log('[DB] Creating reminder for booking:', data.bookingId, 'type:', data.type);
-    return {
-      id: 'reminder_' + Date.now(),
-      bookingId: data.bookingId,
-      type: data.type,
-      scheduledAt: data.scheduledAt,
-      sentAt: null,
-      status: data.status,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-  },
-
-  async findPendingReminders(): Promise<ReminderRecord[]> {
-    // Replace with:
-    // return db.reminder.findMany({
-    //   where: {
-    //     status: 'PENDING',
-    //     scheduledAt: { lte: new Date() },
-    //   },
-    //   include: { booking: { include: { service: true, provider: { include: { user: true } }, user: true } } },
-    //   orderBy: { scheduledAt: 'asc' },
-    // });
-    console.log('[DB] Finding pending reminders due for sending');
-    return [];
-  },
-
-  async markAsSent(id: string): Promise<ReminderRecord | null> {
-    // Replace with: return db.reminder.update({ where: { id }, data: { status: 'SENT', sentAt: new Date(), updatedAt: new Date() } });
-    console.log('[DB] Marking reminder as sent:', id);
-    return null;
-  },
-
-  async findRemindersByBooking(bookingId: string): Promise<ReminderRecord[]> {
-    // Replace with: return db.reminder.findMany({ where: { bookingId }, orderBy: { scheduledAt: 'asc' } });
-    console.log('[DB] Finding reminders for booking:', bookingId);
-    return [];
-  },
-
-  async cancelRemindersByBooking(bookingId: string): Promise<number> {
-    // Replace with:
-    // const result = await db.reminder.updateMany({
-    //   where: { bookingId, status: 'PENDING' },
-    //   data: { status: 'CANCELLED', updatedAt: new Date() },
-    // });
-    // return result.count;
-    console.log('[DB] Cancelling reminders for booking:', bookingId);
-    return 0;
-  },
-
-  async findReminderById(id: string): Promise<ReminderRecord | null> {
-    // Replace with: return db.reminder.findUnique({ where: { id } });
-    console.log('[DB] Finding reminder by ID:', id);
-    return null;
-  },
-};
-
 // =============================================================================
 // Reminder Service
 // =============================================================================
 
 export class ReminderService {
+  constructor(private db: PrismaClient) {}
+
   /**
    * Schedule a reminder for a booking
    */
@@ -104,47 +26,78 @@ export class ReminderService {
     bookingId: string,
     type: ReminderType,
     scheduledAt: Date,
-  ): Promise<ReminderRecord> {
+  ) {
     if (scheduledAt <= new Date()) {
       throw new Error('Scheduled time must be in the future');
     }
 
-    return dbOperations.createReminder({
-      bookingId,
-      type,
-      scheduledAt,
-      status: 'PENDING',
+    return this.db.bookingReminder.create({
+      data: {
+        bookingId,
+        type,
+        scheduledAt,
+      },
     });
   }
 
   /**
    * List all pending reminders that are due for sending
    */
-  async listPendingReminders(): Promise<ReminderRecord[]> {
-    return dbOperations.findPendingReminders();
+  async listPendingReminders() {
+    return this.db.bookingReminder.findMany({
+      where: {
+        sentAt: null,
+        scheduledAt: { lte: new Date() },
+      },
+      include: {
+        booking: {
+          include: { service: true, provider: true },
+        },
+      },
+      orderBy: { scheduledAt: 'asc' },
+    });
   }
 
   /**
    * Mark a reminder as sent after successful delivery
    */
-  async markAsSent(id: string): Promise<ReminderRecord | null> {
-    const reminder = await dbOperations.findReminderById(id);
+  async markAsSent(id: string) {
+    const reminder = await this.db.bookingReminder.findUnique({ where: { id } });
     if (!reminder) {
       throw new Error('Reminder not found');
     }
 
-    if (reminder.status !== 'PENDING') {
-      throw new Error('Only pending reminders can be marked as sent');
+    if (reminder.sentAt) {
+      throw new Error('Reminder has already been sent');
     }
 
-    return dbOperations.markAsSent(id);
+    return this.db.bookingReminder.update({
+      where: { id },
+      data: { sentAt: new Date() },
+    });
   }
 
   /**
-   * Cancel all pending reminders for a booking (e.g., when booking is cancelled)
+   * Cancel all pending reminders for a booking (by deleting unsent ones)
    */
   async cancelReminders(bookingId: string): Promise<number> {
-    return dbOperations.cancelRemindersByBooking(bookingId);
+    const result = await this.db.bookingReminder.deleteMany({
+      where: {
+        bookingId,
+        sentAt: null,
+      },
+    });
+    return result.count;
+  }
+
+  /**
+   * List reminders for a specific booking
+   */
+  async listRemindersByBooking(bookingId: string) {
+    return this.db.bookingReminder.findMany({
+      where: { bookingId },
+      orderBy: { scheduledAt: 'asc' },
+    });
   }
 }
 
@@ -152,13 +105,18 @@ export class ReminderService {
 // Factory
 // =============================================================================
 
-let reminderServiceInstance: ReminderService | null = null;
+export function createReminderService(db: PrismaClient): ReminderService {
+  return new ReminderService(db);
+}
 
-export function getReminderService(): ReminderService {
-  if (!reminderServiceInstance) {
-    reminderServiceInstance = new ReminderService();
+let instance: ReminderService | null = null;
+export function getReminderService(db?: PrismaClient): ReminderService {
+  if (db) return createReminderService(db);
+  if (!instance) {
+    const { db: globalDb } = require('../../../../core/backend/src/lib/db.js');
+    instance = new ReminderService(globalDb);
   }
-  return reminderServiceInstance;
+  return instance;
 }
 
 export default ReminderService;

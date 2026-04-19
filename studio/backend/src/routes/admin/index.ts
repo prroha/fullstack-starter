@@ -13,6 +13,7 @@ import { analyticsRoutes } from "./analytics.routes.js";
 import { settingsRoutes } from "./settings.routes.js";
 import { uploadsRoutes } from "./uploads.routes.js";
 import { generationRoutes } from "./generation.routes.js";
+import { previewsRoutes } from "./previews.routes.js";
 
 const adminRoutesPlugin: FastifyPluginAsync = async (fastify) => {
   // All admin routes require authentication and admin role
@@ -33,6 +34,7 @@ const adminRoutesPlugin: FastifyPluginAsync = async (fastify) => {
   await fastify.register(settingsRoutes, { prefix: "/settings" });
   await fastify.register(uploadsRoutes, { prefix: "/uploads" });
   await fastify.register(generationRoutes, { prefix: "/generate" });
+  await fastify.register(previewsRoutes, { prefix: "/previews" });
 };
 
 export { adminRoutesPlugin as adminRoutes };

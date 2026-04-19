@@ -1,12 +1,15 @@
 import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
-import { getBookingService } from '../services/booking.service.js';
+import { BookingService } from '../services/booking.service.js';
 import { authMiddleware } from '../middleware/auth.js';
+import type { PrismaClient } from '@prisma/client';
 
 // =============================================================================
-// Routes
+// Helper
 // =============================================================================
 
-const bookingService = getBookingService();
+function svc(req: FastifyRequest): BookingService {
+  return new BookingService((req as FastifyRequest & { db?: PrismaClient }).db!);
+}
 
 // =============================================================================
 // Admin Booking Endpoints (All Authenticated — Admin Only)
@@ -20,7 +23,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const { status, search, providerId, serviceId, startDate, endDate, page, limit } = req.query as Record<string, string>;
 
-    const result = await bookingService.listAllBookings({
+    const result = await svc(req).listAllBookings({
       status,
       search,
       providerId,
@@ -38,8 +41,8 @@ const routes: FastifyPluginAsync = async (fastify) => {
    * GET /admin/bookings/stats
    * Get booking dashboard statistics
    */
-  fastify.get('/stats', { preHandler: [authMiddleware] }, async (_req: FastifyRequest, reply: FastifyReply) => {
-    const stats = await bookingService.getBookingStats();
+  fastify.get('/stats', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
+    const stats = await svc(req).getBookingStats();
     return reply.send({ success: true, data: stats });
   });
 
@@ -55,7 +58,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'status is required' });
     }
 
-    const booking = await bookingService.updateBookingStatus(id, status);
+    const booking = await svc(req).updateBookingStatus(id, status);
     if (!booking) {
       return reply.code(404).send({ error: 'Booking not found' });
     }
@@ -70,7 +73,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/export', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const { status, startDate, endDate } = req.query as Record<string, string>;
 
-    const csv = await bookingService.exportBookings({
+    const csv = await svc(req).exportBookings({
       status,
       startDate,
       endDate,

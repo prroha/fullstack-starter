@@ -1,12 +1,15 @@
 import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
-import { getProviderService } from '../services/provider.service.js';
+import { ProviderService } from '../services/provider.service.js';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
+import type { PrismaClient } from '@prisma/client';
 
 // =============================================================================
-// Routes
+// Helper
 // =============================================================================
 
-const providerService = getProviderService();
+function svc(req: FastifyRequest): ProviderService {
+  return new ProviderService((req as FastifyRequest & { db?: PrismaClient }).db!);
+}
 
 // =============================================================================
 // Public Endpoints
@@ -20,7 +23,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/', async (req: FastifyRequest, reply: FastifyReply) => {
     const { page, limit } = req.query as Record<string, string>;
 
-    const result = await providerService.listProviders({
+    const result = await svc(req).listProviders({
       page: page ? Number(page) : 1,
       limit: limit ? Number(limit) : 20,
     });
@@ -34,7 +37,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
    */
   fastify.get('/:id', async (req: FastifyRequest, reply: FastifyReply) => {
     const { id } = req.params as { id: string };
-    const provider = await providerService.getProviderById(id);
+    const provider = await svc(req).getProviderById(id);
     if (!provider) {
       return reply.code(404).send({ error: 'Provider not found' });
     }
@@ -53,7 +56,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'serviceId and date are required' });
     }
 
-    const slots = await providerService.getAvailability(id, serviceId, date);
+    const slots = await svc(req).getAvailability(id, serviceId, date);
 
     return reply.send({ success: true, data: slots });
   });
@@ -70,7 +73,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { bio, specialties, avatarUrl, phone, location } = req.body as Record<string, unknown>;
 
-    const provider = await providerService.createProvider({
+    const provider = await svc(req).createProvider({
       userId: authReq.user.userId,
       bio,
       specialties,
@@ -90,7 +93,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const { id } = req.params as { id: string };
     const { bio, specialties, avatarUrl, phone, location } = req.body as Record<string, unknown>;
 
-    const provider = await providerService.updateProvider(id, {
+    const provider = await svc(req).updateProvider(id, {
       bio,
       specialties,
       avatarUrl,
@@ -117,7 +120,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'serviceId is required' });
     }
 
-    const result = await providerService.linkService(id, serviceId);
+    const result = await svc(req).linkService(id, serviceId);
     return reply.code(201).send({ success: true, data: result });
   });
 
@@ -127,7 +130,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
    */
   fastify.delete('/:id/services/:serviceId', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const { id, serviceId } = req.params as { id: string; serviceId: string };
-    await providerService.unlinkService(id, serviceId);
+    await svc(req).unlinkService(id, serviceId);
     return reply.send({ success: true, message: 'Service unlinked from provider' });
   });
 };

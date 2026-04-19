@@ -40,35 +40,35 @@ export default function EventsDashboardPage() {
 
   if (loading && !stats) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center py-20">
         <Spinner size="lg" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="bg-background">
       <div className="border-b bg-card">
-        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight text-foreground">Events</h1>
-              <p className="mt-1 text-muted-foreground">Manage your events and registrations</p>
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">Events</h1>
+              <p className="mt-1 text-sm text-muted-foreground">Manage your events and registrations</p>
             </div>
             <div className="flex items-center gap-3">
-              <Button variant="outline" onClick={() => router.push("/events/calendar")}>Calendar View</Button>
-              <Button onClick={() => router.push("/events/new")}>New Event</Button>
+              <Button variant="outline" size="sm" onClick={() => router.push("/events/calendar")}>Calendar View</Button>
+              <Button size="sm" onClick={() => router.push("/events/new")}>New Event</Button>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        {error && (<Alert variant="destructive" className="mb-6">{error}</Alert>)}
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+        {error && (<Alert variant="destructive" className="mb-4">{error}</Alert>)}
 
-        {stats && (<div className="mb-8"><DashboardStats stats={stats} /></div>)}
+        {stats && (<div className="mb-6"><DashboardStats stats={stats} /></div>)}
 
-        <div className="mb-8 grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <div className="mb-6 grid gap-2 sm:grid-cols-3 lg:grid-cols-5">
           <Button variant="outline" className="justify-start" onClick={() => router.push("/events/list")}>All Events</Button>
           <Button variant="outline" className="justify-start" onClick={() => router.push("/events/calendar")}>Calendar</Button>
           <Button variant="outline" className="justify-start" onClick={() => router.push("/events/venues")}>Venues</Button>
@@ -89,7 +89,7 @@ export default function EventsDashboardPage() {
               ))}
             </div>
           ) : (
-            <p className="py-8 text-center text-muted-foreground">No events yet. Create your first event to get started.</p>
+            <p className="py-6 text-center text-muted-foreground">No events yet. Create your first event to get started.</p>
           )}
         </div>
       </div>

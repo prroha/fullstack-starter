@@ -1,12 +1,15 @@
 import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
-import { getCartService } from '../services/cart.service.js';
+import { CartService } from '../services/cart.service.js';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
+import type { PrismaClient } from '@prisma/client';
 
 // =============================================================================
-// Routes
+// DI Helper
 // =============================================================================
 
-const cartService = getCartService();
+function svc(req: FastifyRequest): CartService {
+  return new CartService((req as FastifyRequest & { db?: PrismaClient }).db!);
+}
 
 // =============================================================================
 // Helper: Extract cart identity (userId or sessionId)
@@ -38,7 +41,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'Authentication or sessionId is required' });
     }
 
-    const cart = await cartService.getCart(userId, sessionId);
+    const cart = await svc(req).getCart(userId, sessionId);
     return reply.send({ success: true, data: cart });
   });
 
@@ -58,8 +61,9 @@ const routes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'Authentication or sessionId is required' });
     }
 
-    const existingCart = await cartService.getCart(userId, sessionId);
-    const cart = await cartService.addItem(existingCart.id, {
+    const service = svc(req);
+    const existingCart = await service.getCart(userId, sessionId);
+    const cart = await service.addItem(existingCart.id, {
       productId,
       variantId,
       quantity: quantity ? Number(quantity) : 1,
@@ -80,7 +84,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'quantity is required' });
     }
 
-    const cart = await cartService.updateQuantity(itemId, Number(quantity));
+    const cart = await svc(req).updateQuantity(itemId, Number(quantity));
 
     if (!cart) {
       return reply.code(404).send({ error: 'Cart item not found' });
@@ -95,7 +99,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
    */
   fastify.delete('/items/:itemId', async (req: FastifyRequest, reply: FastifyReply) => {
     const { itemId } = req.params as { itemId: string };
-    await cartService.removeItem(itemId);
+    await svc(req).removeItem(itemId);
     return reply.send({ success: true, message: 'Item removed from cart' });
   });
 
@@ -110,8 +114,9 @@ const routes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'Authentication or sessionId is required' });
     }
 
-    const cart = await cartService.getCart(userId, sessionId);
-    await cartService.clearCart(cart.id);
+    const service = svc(req);
+    const cart = await service.getCart(userId, sessionId);
+    await service.clearCart(cart.id);
     return reply.send({ success: true, message: 'Cart cleared' });
   });
 
@@ -127,9 +132,10 @@ const routes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'sessionId is required' });
     }
 
-    await cartService.mergeGuestCart(sessionId, authReq.user.userId);
+    const service = svc(req);
+    await service.mergeGuestCart(sessionId, authReq.user.userId);
 
-    const cart = await cartService.getCart(authReq.user.userId, undefined);
+    const cart = await service.getCart(authReq.user.userId, undefined);
     return reply.send({ success: true, data: cart });
   });
 };

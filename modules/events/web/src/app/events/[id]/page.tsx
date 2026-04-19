@@ -142,7 +142,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
   if (loading && !event) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center py-20">
         <Spinner size="lg" />
       </div>
     );
@@ -150,13 +150,13 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
   if (error && !event) {
     return (
-      <div className="min-h-screen bg-background p-8">
+      <div className="bg-background p-6">
         <div className="mx-auto max-w-4xl">
           <Alert variant="destructive" title="Error loading event">
             <p className="mt-1">{error}</p>
             <div className="mt-3 flex items-center gap-3">
-              <Button onClick={fetchEvent}>Retry</Button>
-              <Button variant="outline" onClick={() => router.push("/events/list")}>
+              <Button size="sm" onClick={fetchEvent}>Retry</Button>
+              <Button variant="outline" size="sm" onClick={() => router.push("/events/list")}>
                 Back to Events
               </Button>
             </div>
@@ -169,28 +169,28 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   if (!event) return null;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="bg-background">
       <div className="border-b bg-card">
-        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
           <Breadcrumb
             items={[
               { label: "Events", href: "/events" },
               { label: "All Events", href: "/events/list" },
               { label: event.title },
             ]}
-            className="mb-4"
+            className="mb-3"
           />
 
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <div className="flex items-center gap-3">
-                <h1 className="text-3xl font-bold tracking-tight text-foreground">
+                <h1 className="text-2xl font-bold tracking-tight text-foreground">
                   {event.title}
                 </h1>
                 <EventStatusBadge status={event.status} />
                 <EventTypeBadge type={event.type} />
               </div>
-              <p className="mt-1 text-muted-foreground">
+              <p className="mt-1 text-sm text-muted-foreground">
                 {formatDateRange(event.startDate, event.endDate)}
               </p>
             </div>
@@ -254,7 +254,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         </div>
       </div>
 
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         {error && (
           <Alert variant="destructive" onDismiss={() => setError(null)} className="mb-6">
             {error}
@@ -265,7 +265,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
           <div className="lg:col-span-2 space-y-6">
             {event.description && (
               <div className="rounded-lg border border-border bg-card p-6">
-                <h3 className="text-lg font-semibold text-foreground mb-3">Description</h3>
+                <h3 className="text-base font-semibold text-foreground mb-3">Description</h3>
                 <p className="text-sm text-foreground whitespace-pre-wrap">
                   {event.description}
                 </p>
@@ -274,7 +274,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
             <div className="rounded-lg border border-border bg-card p-6">
               <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-foreground">
+                <h3 className="text-base font-semibold text-foreground">
                   Speakers ({speakers.length})
                 </h3>
                 <Button
@@ -307,7 +307,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
             </div>
 
             <div className="rounded-lg border border-border bg-card p-6">
-              <h3 className="text-lg font-semibold text-foreground mb-4">
+              <h3 className="text-base font-semibold text-foreground mb-4">
                 Registrations ({registrations.length})
               </h3>
               <RegistrationList

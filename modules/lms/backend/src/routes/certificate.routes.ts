@@ -1,15 +1,18 @@
 import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
-import { getCertificateService } from '../services/certificate.service.js';
+import { CertificateService } from '../services/certificate.service.js';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
+import type { PrismaClient } from '@prisma/client';
+
+// =============================================================================
+// Helper
+// =============================================================================
+
+function svc(req: FastifyRequest): CertificateService {
+  return new CertificateService((req as FastifyRequest & { db?: PrismaClient }).db!);
+}
 
 // =============================================================================
 // Routes
-// =============================================================================
-
-const certificateService = getCertificateService();
-
-// =============================================================================
-// Certificate Endpoints
 // =============================================================================
 
 const routes: FastifyPluginAsync = async (fastify) => {
@@ -19,7 +22,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
    */
   fastify.get('/', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const certificates = await certificateService.getUserCertificates(authReq.user.userId);
+    const certificates = await svc(req).getUserCertificates(authReq.user.userId);
     return reply.send({ success: true, data: certificates });
   });
 
@@ -29,7 +32,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
    */
   fastify.get('/:id', async (req: FastifyRequest, reply: FastifyReply) => {
     const { id } = req.params as { id: string };
-    const certificate = await certificateService.getCertificate(id);
+    const certificate = await svc(req).getCertificate(id);
     if (!certificate) {
       return reply.code(404).send({ error: 'Certificate not found' });
     }
@@ -48,7 +51,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'enrollmentId and courseTitle are required' });
     }
 
-    const certificate = await certificateService.generateCertificate({
+    const certificate = await svc(req).generateCertificate({
       enrollmentId,
       userId: authReq.user.userId,
       courseTitle,
@@ -64,7 +67,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
    */
   fastify.get('/:id/download', async (req: FastifyRequest, reply: FastifyReply) => {
     const { id } = req.params as { id: string };
-    const pdfBuffer = await certificateService.generatePdf(id);
+    const pdfBuffer = await svc(req).generatePdf(id);
 
     return reply
       .header('Content-Type', 'application/pdf')
@@ -78,12 +81,12 @@ const routes: FastifyPluginAsync = async (fastify) => {
    */
   fastify.get('/:id/qr', async (req: FastifyRequest, reply: FastifyReply) => {
     const { id } = req.params as { id: string };
-    const certificate = await certificateService.getCertificate(id);
+    const certificate = await svc(req).getCertificate(id);
     if (!certificate) {
       return reply.code(404).send({ error: 'Certificate not found' });
     }
 
-    const qrDataUrl = await certificateService.generateQrCode(certificate.verificationCode);
+    const qrDataUrl = await svc(req).generateQrCode(certificate.verificationCode);
     return reply.send({ success: true, data: { qrCode: qrDataUrl } });
   });
 
@@ -93,7 +96,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
    */
   fastify.get('/verify/:code', async (req: FastifyRequest, reply: FastifyReply) => {
     const { code } = req.params as { code: string };
-    const result = await certificateService.verifyCertificate(code);
+    const result = await svc(req).verifyCertificate(code);
     return reply.send({ success: true, data: result });
   });
 };

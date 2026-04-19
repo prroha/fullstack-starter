@@ -2,7 +2,9 @@
 // LMS Quiz Service
 // =============================================================================
 // Business logic for quiz management, scoring, attempt tracking, and retakes.
-// Uses placeholder db operations - replace with actual Prisma client.
+// Uses dependency injection for PrismaClient.
+
+import type { PrismaClient } from '@prisma/client';
 
 // =============================================================================
 // Types
@@ -52,19 +54,6 @@ export interface QuizSubmission {
   answers: Array<{ questionId: string; answer: string }>;
 }
 
-interface QuizRecord {
-  id: string;
-  lessonId: string;
-  title: string;
-  description: string | null;
-  passingScore: number;
-  maxAttempts: number;
-  timeLimitMins: number | null;
-  shuffleQuestions: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
 interface QuestionRecord {
   id: string;
   quizId: string;
@@ -78,188 +67,102 @@ interface QuestionRecord {
   createdAt: Date;
 }
 
-interface QuizAttemptRecord {
-  id: string;
-  quizId: string;
-  userId: string;
-  score: number;
-  passed: boolean;
-  answers: unknown;
-  startedAt: Date;
-  completedAt: Date | null;
-}
-
-// =============================================================================
-// Database Operations (Placeholder)
-// =============================================================================
-
-const dbOperations = {
-  async findQuizById(id: string): Promise<QuizRecord | null> {
-    // Replace with: return db.quiz.findUnique({ where: { id }, include: { questions: { orderBy: { sortOrder: 'asc' } } } });
-    console.log('[DB] Finding quiz:', id);
-    return null;
-  },
-
-  async findQuizzesByLesson(lessonId: string): Promise<QuizRecord[]> {
-    // Replace with: return db.quiz.findMany({ where: { lessonId }, include: { questions: true } });
-    console.log('[DB] Finding quizzes for lesson:', lessonId);
-    return [];
-  },
-
-  async createQuiz(data: QuizCreateInput): Promise<QuizRecord> {
-    // Replace with: return db.quiz.create({ data });
-    console.log('[DB] Creating quiz:', data.title);
-    return {
-      id: 'quiz_' + Date.now(),
-      lessonId: data.lessonId,
-      title: data.title,
-      description: data.description || null,
-      passingScore: data.passingScore || 70,
-      maxAttempts: data.maxAttempts || 3,
-      timeLimitMins: data.timeLimitMins || null,
-      shuffleQuestions: data.shuffleQuestions || false,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-  },
-
-  async updateQuiz(id: string, data: QuizUpdateInput): Promise<QuizRecord | null> {
-    // Replace with: return db.quiz.update({ where: { id }, data });
-    console.log('[DB] Updating quiz:', id);
-    return null;
-  },
-
-  async deleteQuiz(id: string): Promise<void> {
-    // Replace with: await db.quiz.delete({ where: { id } });
-    console.log('[DB] Deleting quiz:', id);
-  },
-
-  async findQuestionById(id: string): Promise<QuestionRecord | null> {
-    // Replace with: return db.question.findUnique({ where: { id } });
-    console.log('[DB] Finding question:', id);
-    return null;
-  },
-
-  async findQuestionsByQuiz(quizId: string): Promise<QuestionRecord[]> {
-    // Replace with: return db.question.findMany({ where: { quizId }, orderBy: { sortOrder: 'asc' } });
-    console.log('[DB] Finding questions for quiz:', quizId);
-    return [];
-  },
-
-  async createQuestion(data: QuestionCreateInput & { sortOrder: number }): Promise<QuestionRecord> {
-    // Replace with: return db.question.create({ data });
-    console.log('[DB] Creating question for quiz:', data.quizId);
-    return {
-      id: 'question_' + Date.now(),
-      quizId: data.quizId,
-      type: data.type || 'MULTIPLE_CHOICE',
-      text: data.text,
-      options: data.options || null,
-      correctAnswer: data.correctAnswer || null,
-      explanation: data.explanation || null,
-      points: data.points || 1,
-      sortOrder: data.sortOrder,
-      createdAt: new Date(),
-    };
-  },
-
-  async updateQuestion(id: string, data: QuestionUpdateInput): Promise<QuestionRecord | null> {
-    // Replace with: return db.question.update({ where: { id }, data });
-    console.log('[DB] Updating question:', id);
-    return null;
-  },
-
-  async deleteQuestion(id: string): Promise<void> {
-    // Replace with: await db.question.delete({ where: { id } });
-    console.log('[DB] Deleting question:', id);
-  },
-
-  async getMaxQuestionOrder(quizId: string): Promise<number> {
-    // Replace with aggregate
-    console.log('[DB] Getting max question order:', quizId);
-    return 0;
-  },
-
-  async createAttempt(data: {
-    quizId: string;
-    userId: string;
-    score: number;
-    passed: boolean;
-    answers: unknown;
-    completedAt: Date;
-  }): Promise<QuizAttemptRecord> {
-    // Replace with: return db.quizAttempt.create({ data });
-    console.log('[DB] Creating quiz attempt:', data.quizId, data.userId);
-    return {
-      id: 'attempt_' + Date.now(),
-      ...data,
-      startedAt: new Date(),
-    };
-  },
-
-  async getAttemptCount(quizId: string, userId: string): Promise<number> {
-    // Replace with: return db.quizAttempt.count({ where: { quizId, userId } });
-    console.log('[DB] Getting attempt count:', quizId, userId);
-    return 0;
-  },
-
-  async getAttempts(quizId: string, userId: string): Promise<QuizAttemptRecord[]> {
-    // Replace with: return db.quizAttempt.findMany({ where: { quizId, userId }, orderBy: { startedAt: 'desc' } });
-    console.log('[DB] Getting attempts:', quizId, userId);
-    return [];
-  },
-
-  async getBestAttempt(quizId: string, userId: string): Promise<QuizAttemptRecord | null> {
-    // Replace with: return db.quizAttempt.findFirst({ where: { quizId, userId }, orderBy: { score: 'desc' } });
-    console.log('[DB] Getting best attempt:', quizId, userId);
-    return null;
-  },
-};
-
 // =============================================================================
 // Quiz Service
 // =============================================================================
 
 export class QuizService {
+  constructor(private db: PrismaClient) {}
+
   // --- Quiz CRUD ---
 
   async getQuiz(id: string) {
-    return dbOperations.findQuizById(id);
+    return this.db.quiz.findUnique({
+      where: { id },
+      include: {
+        questions: { orderBy: { sortOrder: 'asc' } },
+      },
+    });
   }
 
   async getQuizzesByLesson(lessonId: string) {
-    return dbOperations.findQuizzesByLesson(lessonId);
+    return this.db.quiz.findMany({
+      where: { lessonId },
+      include: { questions: true },
+    });
   }
 
   async createQuiz(input: QuizCreateInput) {
-    return dbOperations.createQuiz(input);
+    return this.db.quiz.create({
+      data: {
+        lessonId: input.lessonId,
+        title: input.title,
+        description: input.description,
+        passingScore: input.passingScore ?? 70,
+        maxAttempts: input.maxAttempts ?? 3,
+        timeLimitMins: input.timeLimitMins,
+        shuffleQuestions: input.shuffleQuestions ?? false,
+      },
+    });
   }
 
   async updateQuiz(id: string, input: QuizUpdateInput) {
-    return dbOperations.updateQuiz(id, input);
+    return this.db.quiz.update({
+      where: { id },
+      data: input,
+    });
   }
 
   async deleteQuiz(id: string) {
-    return dbOperations.deleteQuiz(id);
+    await this.db.quiz.delete({ where: { id } });
   }
 
   // --- Question CRUD ---
 
   async getQuestions(quizId: string) {
-    return dbOperations.findQuestionsByQuiz(quizId);
+    return this.db.question.findMany({
+      where: { quizId },
+      orderBy: { sortOrder: 'asc' },
+    });
   }
 
   async createQuestion(input: QuestionCreateInput) {
-    const maxOrder = await dbOperations.getMaxQuestionOrder(input.quizId);
-    return dbOperations.createQuestion({ ...input, sortOrder: maxOrder + 1 });
+    const maxResult = await this.db.question.aggregate({
+      where: { quizId: input.quizId },
+      _max: { sortOrder: true },
+    });
+    const maxOrder = maxResult._max.sortOrder || 0;
+
+    return this.db.question.create({
+      data: {
+        quizId: input.quizId,
+        type: input.type || 'MULTIPLE_CHOICE',
+        text: input.text,
+        options: input.options as unknown as undefined,
+        correctAnswer: input.correctAnswer,
+        explanation: input.explanation,
+        points: input.points ?? 1,
+        sortOrder: maxOrder + 1,
+      },
+    });
   }
 
   async updateQuestion(id: string, input: QuestionUpdateInput) {
-    return dbOperations.updateQuestion(id, input);
+    return this.db.question.update({
+      where: { id },
+      data: {
+        type: input.type,
+        text: input.text,
+        options: input.options as unknown as undefined,
+        correctAnswer: input.correctAnswer,
+        explanation: input.explanation,
+        points: input.points,
+      },
+    });
   }
 
   async deleteQuestion(id: string) {
-    return dbOperations.deleteQuestion(id);
+    await this.db.question.delete({ where: { id } });
   }
 
   // --- Quiz Attempts ---
@@ -267,36 +170,46 @@ export class QuizService {
   /**
    * Submit a quiz attempt, score it, and return results
    */
-  async submitAttempt(submission: QuizSubmission): Promise<QuizAttemptRecord> {
-    const quiz = await dbOperations.findQuizById(submission.quizId);
+  async submitAttempt(submission: QuizSubmission) {
+    const quiz = await this.db.quiz.findUnique({
+      where: { id: submission.quizId },
+    });
     if (!quiz) {
       throw new Error('Quiz not found');
     }
 
     // Check max attempts
     if (quiz.maxAttempts > 0) {
-      const attemptCount = await dbOperations.getAttemptCount(submission.quizId, submission.userId);
+      const attemptCount = await this.db.quizAttempt.count({
+        where: { quizId: submission.quizId, userId: submission.userId },
+      });
       if (attemptCount >= quiz.maxAttempts) {
         throw new Error(`Maximum attempts (${quiz.maxAttempts}) reached`);
       }
     }
 
     // Get questions and score
-    const questions = await dbOperations.findQuestionsByQuiz(submission.quizId);
-    const { score, gradedAnswers, totalPoints, earnedPoints } = this.gradeSubmission(
-      questions,
+    const questions = await this.db.question.findMany({
+      where: { quizId: submission.quizId },
+      orderBy: { sortOrder: 'asc' },
+    });
+
+    const { score, gradedAnswers } = this.gradeSubmission(
+      questions as QuestionRecord[],
       submission.answers,
     );
 
     const passed = score >= quiz.passingScore;
 
-    return dbOperations.createAttempt({
-      quizId: submission.quizId,
-      userId: submission.userId,
-      score,
-      passed,
-      answers: gradedAnswers,
-      completedAt: new Date(),
+    return this.db.quizAttempt.create({
+      data: {
+        quizId: submission.quizId,
+        userId: submission.userId,
+        score,
+        passed,
+        answers: gradedAnswers as unknown as undefined,
+        completedAt: new Date(),
+      },
     });
   }
 
@@ -304,14 +217,20 @@ export class QuizService {
    * Get all attempts for a user on a quiz
    */
   async getAttempts(quizId: string, userId: string) {
-    return dbOperations.getAttempts(quizId, userId);
+    return this.db.quizAttempt.findMany({
+      where: { quizId, userId },
+      orderBy: { startedAt: 'desc' },
+    });
   }
 
   /**
    * Get the best attempt for a user on a quiz
    */
   async getBestAttempt(quizId: string, userId: string) {
-    return dbOperations.getBestAttempt(quizId, userId);
+    return this.db.quizAttempt.findFirst({
+      where: { quizId, userId },
+      orderBy: { score: 'desc' },
+    });
   }
 
   /**
@@ -373,13 +292,19 @@ export class QuizService {
 // Factory
 // =============================================================================
 
-let quizServiceInstance: QuizService | null = null;
+export function createQuizService(db: PrismaClient): QuizService {
+  return new QuizService(db);
+}
 
-export function getQuizService(): QuizService {
-  if (!quizServiceInstance) {
-    quizServiceInstance = new QuizService();
+let instance: QuizService | null = null;
+
+export function getQuizService(db?: PrismaClient): QuizService {
+  if (db) return createQuizService(db);
+  if (!instance) {
+    const { db: globalDb } = require('../../../../core/backend/src/lib/db.js');
+    instance = new QuizService(globalDb);
   }
-  return quizServiceInstance;
+  return instance;
 }
 
 export default QuizService;

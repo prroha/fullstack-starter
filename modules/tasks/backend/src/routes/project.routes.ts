@@ -1,12 +1,15 @@
 import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
-import { getProjectService } from '../services/project.service.js';
+import { ProjectService } from '../services/project.service.js';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
+import type { PrismaClient } from '@prisma/client';
 
 // =============================================================================
-// Routes
+// Helpers
 // =============================================================================
 
-const projectService = getProjectService();
+function svc(req: FastifyRequest): ProjectService {
+  return new ProjectService((req as FastifyRequest & { db?: PrismaClient }).db!);
+}
 
 // =============================================================================
 // Project Endpoints (All Authenticated)
@@ -21,7 +24,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { includeArchived } = req.query as Record<string, string>;
 
-    const projects = await projectService.list(authReq.user.userId, includeArchived === 'true');
+    const projects = await svc(req).list(authReq.user.userId, includeArchived === 'true');
     return reply.send({ success: true, data: projects });
   });
 
@@ -38,7 +41,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'ids array is required' });
     }
 
-    await projectService.reorder(authReq.user.userId, ids);
+    await svc(req).reorder(authReq.user.userId, ids);
     return reply.send({ success: true, message: 'Projects reordered' });
   });
 
@@ -50,7 +53,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { id } = req.params as { id: string };
 
-    const project = await projectService.getById(id, authReq.user.userId);
+    const project = await svc(req).getById(id, authReq.user.userId);
     if (!project) {
       return reply.code(404).send({ error: 'Project not found' });
     }
@@ -65,7 +68,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { id } = req.params as { id: string };
 
-    const stats = await projectService.getStats(id, authReq.user.userId);
+    const stats = await svc(req).getStats(id, authReq.user.userId);
     return reply.send({ success: true, data: stats });
   });
 
@@ -81,7 +84,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'name is required' });
     }
 
-    const project = await projectService.create({
+    const project = await svc(req).create({
       userId: authReq.user.userId,
       name,
       description,
@@ -101,7 +104,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const { id } = req.params as { id: string };
     const { name, description, color, icon } = req.body as Record<string, unknown>;
 
-    const project = await projectService.update(id, authReq.user.userId, {
+    const project = await svc(req).update(id, authReq.user.userId, {
       name,
       description,
       color,
@@ -123,7 +126,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { id } = req.params as { id: string };
 
-    await projectService.delete(id, authReq.user.userId);
+    await svc(req).delete(id, authReq.user.userId);
     return reply.send({ success: true, message: 'Project deleted' });
   });
 
@@ -135,7 +138,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { id } = req.params as { id: string };
 
-    const project = await projectService.archive(id, authReq.user.userId);
+    const project = await svc(req).archive(id, authReq.user.userId);
     if (!project) {
       return reply.code(404).send({ error: 'Project not found' });
     }
@@ -150,7 +153,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { id } = req.params as { id: string };
 
-    const project = await projectService.unarchive(id, authReq.user.userId);
+    const project = await svc(req).unarchive(id, authReq.user.userId);
     if (!project) {
       return reply.code(404).send({ error: 'Project not found' });
     }

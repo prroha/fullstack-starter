@@ -1,12 +1,15 @@
 import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
-import { getPaymentService } from '../services/payment.service.js';
+import { PaymentService } from '../services/payment.service.js';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
+import type { PrismaClient } from '@prisma/client';
 
 // =============================================================================
-// Routes
+// Helpers
 // =============================================================================
 
-const paymentService = getPaymentService();
+function svc(req: FastifyRequest): PaymentService {
+  return new PaymentService((req as FastifyRequest & { db?: PrismaClient }).db!);
+}
 
 // =============================================================================
 // Payment Endpoints (All Authenticated)
@@ -21,7 +24,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { invoiceId } = req.params as { invoiceId: string };
 
-    const payments = await paymentService.list(invoiceId, authReq.user.userId);
+    const payments = await svc(req).list(invoiceId, authReq.user.userId);
     return reply.send({ success: true, data: payments });
   });
 
@@ -38,7 +41,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'amount, method, and paidAt are required' });
     }
 
-    const payment = await paymentService.record(authReq.user.userId, {
+    const payment = await svc(req).record(authReq.user.userId, {
       invoiceId,
       amount: Number(amount),
       method,
@@ -57,7 +60,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { paymentId } = req.params as { paymentId: string };
 
-    await paymentService.delete(paymentId, authReq.user.userId);
+    await svc(req).delete(paymentId, authReq.user.userId);
     return reply.send({ success: true, message: 'Payment deleted' });
   });
 };

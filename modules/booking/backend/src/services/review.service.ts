@@ -2,7 +2,9 @@
 // Booking Review Service
 // =============================================================================
 // Business logic for review CRUD, rating aggregation, and uniqueness validation.
-// Uses placeholder db operations - replace with actual Prisma client.
+// Uses dependency-injected PrismaClient.
+
+import type { PrismaClient } from '@prisma/client';
 
 // =============================================================================
 // Types
@@ -12,7 +14,7 @@ export interface ReviewCreateInput {
   serviceId: string;
   providerId: string;
   userId: string;
-  userName: string;
+  userName?: string;
   rating: number;
   comment?: string;
 }
@@ -39,130 +41,34 @@ export interface RatingStats {
   };
 }
 
-interface ReviewRecord {
-  id: string;
-  serviceId: string;
-  providerId: string;
-  userId: string;
-  userName: string;
-  rating: number;
-  comment: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-// =============================================================================
-// Database Operations (Placeholder)
-// =============================================================================
-// Replace with actual Prisma client:
-// import { db } from '../../../../core/backend/src/lib/db';
-
-const dbOperations = {
-  async findServiceReviews(serviceId: string, filters: ReviewFilters): Promise<{ items: ReviewRecord[]; total: number }> {
-    // Replace with:
-    // const [items, total] = await Promise.all([
-    //   db.review.findMany({ where: { serviceId }, skip: ((filters.page || 1) - 1) * (filters.limit || 20), take: filters.limit || 20, orderBy: { createdAt: 'desc' } }),
-    //   db.review.count({ where: { serviceId } }),
-    // ]);
-    console.log('[DB] Finding reviews for service:', serviceId, filters);
-    return { items: [], total: 0 };
-  },
-
-  async findProviderReviews(providerId: string, filters: ReviewFilters): Promise<{ items: ReviewRecord[]; total: number }> {
-    // Replace with:
-    // const [items, total] = await Promise.all([
-    //   db.review.findMany({ where: { providerId }, skip: ((filters.page || 1) - 1) * (filters.limit || 20), take: filters.limit || 20, orderBy: { createdAt: 'desc' } }),
-    //   db.review.count({ where: { providerId } }),
-    // ]);
-    console.log('[DB] Finding reviews for provider:', providerId, filters);
-    return { items: [], total: 0 };
-  },
-
-  async findReviewById(id: string): Promise<ReviewRecord | null> {
-    // Replace with: return db.review.findUnique({ where: { id } });
-    console.log('[DB] Finding review by ID:', id);
-    return null;
-  },
-
-  async findExistingReview(serviceId: string, userId: string): Promise<ReviewRecord | null> {
-    // Replace with: return db.review.findUnique({ where: { serviceId_userId: { serviceId, userId } } });
-    console.log('[DB] Checking existing review:', serviceId, userId);
-    return null;
-  },
-
-  async createReview(data: {
-    serviceId: string;
-    providerId: string;
-    userId: string;
-    userName: string;
-    rating: number;
-    comment: string | null;
-  }): Promise<ReviewRecord> {
-    // Replace with: return db.review.create({ data });
-    console.log('[DB] Creating review for service:', data.serviceId);
-    return {
-      id: 'review_' + Date.now(),
-      ...data,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-  },
-
-  async updateReview(id: string, data: ReviewUpdateInput): Promise<ReviewRecord | null> {
-    // Replace with: return db.review.update({ where: { id }, data: { ...data, updatedAt: new Date() } });
-    console.log('[DB] Updating review:', id);
-    return null;
-  },
-
-  async deleteReview(id: string): Promise<void> {
-    // Replace with: await db.review.delete({ where: { id } });
-    console.log('[DB] Deleting review:', id);
-  },
-
-  async getServiceRatingStats(serviceId: string): Promise<RatingStats> {
-    // Replace with:
-    // const [avgResult, totalReviews, dist1, dist2, dist3, dist4, dist5] = await Promise.all([
-    //   db.review.aggregate({ where: { serviceId }, _avg: { rating: true } }),
-    //   db.review.count({ where: { serviceId } }),
-    //   db.review.count({ where: { serviceId, rating: 1 } }),
-    //   db.review.count({ where: { serviceId, rating: 2 } }),
-    //   db.review.count({ where: { serviceId, rating: 3 } }),
-    //   db.review.count({ where: { serviceId, rating: 4 } }),
-    //   db.review.count({ where: { serviceId, rating: 5 } }),
-    // ]);
-    console.log('[DB] Getting rating stats for service:', serviceId);
-    return {
-      avgRating: 0,
-      totalReviews: 0,
-      distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
-    };
-  },
-};
-
 // =============================================================================
 // Review Service
 // =============================================================================
 
 export class ReviewService {
+  constructor(private db: PrismaClient) {}
+
   /**
    * List reviews for a service with pagination
    */
-  async listServiceReviews(serviceId: string, filters: ReviewFilters) {
-    const page = filters.page || 1;
-    const limit = filters.limit || 20;
-
-    const result = await dbOperations.findServiceReviews(serviceId, {
-      page,
-      limit,
-    });
+  async listServiceReviews(serviceId: string, page: number = 1, limit: number = 20) {
+    const [items, total] = await Promise.all([
+      this.db.bookingReview.findMany({
+        where: { serviceId },
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.db.bookingReview.count({ where: { serviceId } }),
+    ]);
 
     return {
-      items: result.items,
+      items,
       pagination: {
         page,
         limit,
-        total: result.total,
-        totalPages: Math.ceil(result.total / limit),
+        total,
+        totalPages: Math.ceil(total / limit),
       },
     };
   }
@@ -170,22 +76,24 @@ export class ReviewService {
   /**
    * List reviews for a provider with pagination
    */
-  async listProviderReviews(providerId: string, filters: ReviewFilters) {
-    const page = filters.page || 1;
-    const limit = filters.limit || 20;
-
-    const result = await dbOperations.findProviderReviews(providerId, {
-      page,
-      limit,
-    });
+  async listProviderReviews(providerId: string, page: number = 1, limit: number = 20) {
+    const [items, total] = await Promise.all([
+      this.db.bookingReview.findMany({
+        where: { providerId },
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.db.bookingReview.count({ where: { providerId } }),
+    ]);
 
     return {
-      items: result.items,
+      items,
       pagination: {
         page,
         limit,
-        total: result.total,
-        totalPages: Math.ceil(result.total / limit),
+        total,
+        totalPages: Math.ceil(total / limit),
       },
     };
   }
@@ -193,25 +101,29 @@ export class ReviewService {
   /**
    * Create a new review. Validates uniqueness per service + user.
    */
-  async createReview(input: ReviewCreateInput): Promise<ReviewRecord> {
+  async createReview(input: ReviewCreateInput) {
     // Validate rating
     if (input.rating < 1 || input.rating > 5) {
       throw new Error('Rating must be between 1 and 5');
     }
 
     // Check for existing review (one per user per service)
-    const existing = await dbOperations.findExistingReview(input.serviceId, input.userId);
+    const existing = await this.db.bookingReview.findUnique({
+      where: { serviceId_userId: { serviceId: input.serviceId, userId: input.userId } },
+    });
     if (existing) {
       throw new Error('You have already reviewed this service');
     }
 
-    return dbOperations.createReview({
-      serviceId: input.serviceId,
-      providerId: input.providerId,
-      userId: input.userId,
-      userName: input.userName,
-      rating: input.rating,
-      comment: input.comment || null,
+    return this.db.bookingReview.create({
+      data: {
+        serviceId: input.serviceId,
+        providerId: input.providerId,
+        userId: input.userId,
+        userName: input.userName || null,
+        rating: input.rating,
+        comment: input.comment || null,
+      },
     });
   }
 
@@ -223,31 +135,51 @@ export class ReviewService {
       throw new Error('Rating must be between 1 and 5');
     }
 
-    const review = await dbOperations.findReviewById(id);
+    const review = await this.db.bookingReview.findUnique({ where: { id } });
     if (!review) {
       throw new Error('Review not found');
     }
 
-    return dbOperations.updateReview(id, input);
+    return this.db.bookingReview.update({
+      where: { id },
+      data: {
+        ...(input.rating !== undefined ? { rating: input.rating } : {}),
+        ...(input.comment !== undefined ? { comment: input.comment } : {}),
+      },
+    });
   }
 
   /**
    * Delete a review
    */
   async deleteReview(id: string) {
-    const review = await dbOperations.findReviewById(id);
+    const review = await this.db.bookingReview.findUnique({ where: { id } });
     if (!review) {
       throw new Error('Review not found');
     }
 
-    return dbOperations.deleteReview(id);
+    await this.db.bookingReview.delete({ where: { id } });
   }
 
   /**
    * Get rating statistics for a service (average, total, distribution)
    */
   async getServiceRatingStats(serviceId: string): Promise<RatingStats> {
-    return dbOperations.getServiceRatingStats(serviceId);
+    const [avgResult, totalReviews, dist1, dist2, dist3, dist4, dist5] = await Promise.all([
+      this.db.bookingReview.aggregate({ where: { serviceId }, _avg: { rating: true } }),
+      this.db.bookingReview.count({ where: { serviceId } }),
+      this.db.bookingReview.count({ where: { serviceId, rating: 1 } }),
+      this.db.bookingReview.count({ where: { serviceId, rating: 2 } }),
+      this.db.bookingReview.count({ where: { serviceId, rating: 3 } }),
+      this.db.bookingReview.count({ where: { serviceId, rating: 4 } }),
+      this.db.bookingReview.count({ where: { serviceId, rating: 5 } }),
+    ]);
+
+    return {
+      avgRating: Math.round((avgResult._avg.rating || 0) * 10) / 10,
+      totalReviews,
+      distribution: { 1: dist1, 2: dist2, 3: dist3, 4: dist4, 5: dist5 },
+    };
   }
 }
 
@@ -255,13 +187,18 @@ export class ReviewService {
 // Factory
 // =============================================================================
 
-let reviewServiceInstance: ReviewService | null = null;
+export function createReviewService(db: PrismaClient): ReviewService {
+  return new ReviewService(db);
+}
 
-export function getReviewService(): ReviewService {
-  if (!reviewServiceInstance) {
-    reviewServiceInstance = new ReviewService();
+let instance: ReviewService | null = null;
+export function getReviewService(db?: PrismaClient): ReviewService {
+  if (db) return createReviewService(db);
+  if (!instance) {
+    const { db: globalDb } = require('../../../../core/backend/src/lib/db.js');
+    instance = new ReviewService(globalDb);
   }
-  return reviewServiceInstance;
+  return instance;
 }
 
 export default ReviewService;

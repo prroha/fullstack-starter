@@ -104,6 +104,7 @@ interface PreviewSession {
   features: string[];
   startedAt: Date;
   expiresAt?: Date;
+  provisioningAvailable?: boolean;
 }
 
 interface UsePreviewSessionReturn {
@@ -213,6 +214,7 @@ export function usePreviewSession(): UsePreviewSessionReturn {
           features: data.data.selectedFeatures,
           startedAt: new Date(),
           expiresAt: new Date(data.data.expiresAt),
+          provisioningAvailable: data.data.provisioningAvailable ?? false,
         };
         setSession(loadedSession);
         return loadedSession;
@@ -257,6 +259,7 @@ export function useLivePreview(): UseLivePreviewReturn {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const ssoTokenRef = useRef<string | null>(null);
 
   const launch = useCallback(async (tier: string, features: string[]) => {
     // Abort any in-progress launch
@@ -290,6 +293,12 @@ export function useLivePreview(): UseLivePreviewReturn {
 
       const token = data.data.sessionToken;
       setSessionToken(token);
+      ssoTokenRef.current = data.data.ssoToken ?? null;
+
+      // If live provisioning is not available on the server, fail fast
+      if (!data.data.provisioningAvailable) {
+        throw new Error("Live preview is not configured on this server. Contact the administrator to set up PREVIEW_BACKEND_URL.");
+      }
 
       // Poll for readiness
       const startTime = Date.now();
@@ -313,7 +322,11 @@ export function useLivePreview(): UseLivePreviewReturn {
         const schemaStatus = statusData.data?.schemaStatus;
 
         if (schemaStatus === "READY") {
-          const url = `${PREVIEW_CONFIG.FRONTEND_URL}?session=${token}`;
+          let url = `${PREVIEW_CONFIG.FRONTEND_URL}?session=${token}`;
+          // Append SSO token if available for auto-login
+          if (ssoTokenRef.current) {
+            url += `&sso=${encodeURIComponent(ssoTokenRef.current)}`;
+          }
           setPreviewUrl(url);
           setStatus("ready");
           return;

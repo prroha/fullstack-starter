@@ -1,25 +1,32 @@
 import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
-import { getLessonService } from '../services/lesson.service.js';
+import { LessonService } from '../services/lesson.service.js';
 import { authMiddleware } from '../middleware/auth.js';
+import type { PrismaClient } from '@prisma/client';
+
+// =============================================================================
+// Helper
+// =============================================================================
+
+function svc(req: FastifyRequest): LessonService {
+  return new LessonService((req as FastifyRequest & { db?: PrismaClient }).db!);
+}
 
 // =============================================================================
 // Routes
 // =============================================================================
 
-const lessonService = getLessonService();
-
-// =============================================================================
-// Section Endpoints
-// =============================================================================
-
 const routes: FastifyPluginAsync = async (fastify) => {
+  // =============================================================================
+  // Section Endpoints
+  // =============================================================================
+
   /**
    * GET /lessons/sections/:courseId
    * List all sections for a course (with lessons)
    */
   fastify.get('/sections/:courseId', async (req: FastifyRequest, reply: FastifyReply) => {
     const { courseId } = req.params as { courseId: string };
-    const sections = await lessonService.listSections(courseId);
+    const sections = await svc(req).listSections(courseId);
     return reply.send({ success: true, data: sections });
   });
 
@@ -34,7 +41,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'courseId and title are required' });
     }
 
-    const section = await lessonService.createSection({ courseId, title, description });
+    const section = await svc(req).createSection({ courseId, title, description });
     return reply.code(201).send({ success: true, data: section });
   });
 
@@ -45,7 +52,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
   fastify.patch('/sections/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const { id } = req.params as { id: string };
     const { title, description } = req.body as { title?: string; description?: string };
-    const section = await lessonService.updateSection(id, { title, description });
+    const section = await svc(req).updateSection(id, { title, description });
 
     if (!section) {
       return reply.code(404).send({ error: 'Section not found' });
@@ -60,7 +67,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
    */
   fastify.delete('/sections/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const { id } = req.params as { id: string };
-    await lessonService.deleteSection(id);
+    await svc(req).deleteSection(id);
     return reply.send({ success: true, message: 'Section deleted' });
   });
 
@@ -76,7 +83,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'orderedIds array is required' });
     }
 
-    await lessonService.reorderSections(courseId, orderedIds);
+    await svc(req).reorderSections(courseId, orderedIds);
     return reply.send({ success: true, message: 'Sections reordered' });
   });
 
@@ -90,7 +97,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
    */
   fastify.get('/:id', async (req: FastifyRequest, reply: FastifyReply) => {
     const { id } = req.params as { id: string };
-    const lesson = await lessonService.getLesson(id);
+    const lesson = await svc(req).getLesson(id);
     if (!lesson) {
       return reply.code(404).send({ error: 'Lesson not found' });
     }
@@ -108,7 +115,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'sectionId and title are required' });
     }
 
-    const lesson = await lessonService.createLesson({
+    const lesson = await svc(req).createLesson({
       sectionId,
       title,
       description,
@@ -130,7 +137,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const { id } = req.params as { id: string };
     const { title, description, type, contentUrl, contentText, duration, isFree } = req.body as Record<string, unknown>;
 
-    const lesson = await lessonService.updateLesson(id, {
+    const lesson = await svc(req).updateLesson(id, {
       title,
       description,
       type,
@@ -153,7 +160,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
    */
   fastify.delete('/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const { id } = req.params as { id: string };
-    await lessonService.deleteLesson(id);
+    await svc(req).deleteLesson(id);
     return reply.send({ success: true, message: 'Lesson deleted' });
   });
 
@@ -169,7 +176,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'orderedIds array is required' });
     }
 
-    await lessonService.reorderLessons(sectionId, orderedIds);
+    await svc(req).reorderLessons(sectionId, orderedIds);
     return reply.send({ success: true, message: 'Lessons reordered' });
   });
 };

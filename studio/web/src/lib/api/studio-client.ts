@@ -575,7 +575,11 @@ class StudioPublicApi {
   async createPreviewSession(
     request: CreatePreviewSessionRequest
   ): Promise<CreatePreviewSessionResponse> {
-    return this.post<CreatePreviewSessionResponse>("/preview/session", request);
+    return this.post<CreatePreviewSessionResponse>("/preview/sessions", {
+      selectedFeatures: request.features,
+      tier: request.tier,
+      templateSlug: request.templateId,
+    });
   }
 
   /**
@@ -586,7 +590,7 @@ class StudioPublicApi {
     request: UpdatePreviewSessionRequest
   ): Promise<UpdatePreviewSessionResponse> {
     return this.patch<UpdatePreviewSessionResponse>(
-      `/preview/session/${id}`,
+      `/preview/sessions/${id}`,
       request
     );
   }

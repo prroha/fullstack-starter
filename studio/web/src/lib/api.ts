@@ -977,6 +977,15 @@ class StudioAdminApi {
     return this.put<void>("/admin/templates/reorder", { orders });
   }
 
+  async previewTemplate(template: { slug: string; tier: string; includedFeatures: string[] }): Promise<{ previewUrl: string; sessionToken: string; ssoToken: string | null }> {
+    return this.post<{ previewUrl: string; sessionToken: string; ssoToken: string | null }>("/preview/sessions", {
+      selectedFeatures: template.includedFeatures,
+      tier: template.tier.toLowerCase(),
+      templateSlug: template.slug,
+      provisionSchema: true,
+    });
+  }
+
   // =====================================================
   // Modules API
   // =====================================================

@@ -4,7 +4,9 @@
 // Business logic for managing pre-written response templates that agents can
 // quickly insert when replying to tickets. Supports categorization, variable
 // placeholders, and per-agent shortcuts.
-// Uses placeholder db operations - replace with actual Prisma client.
+// Uses dependency-injected PrismaClient for all database operations.
+
+import type { PrismaClient } from '@prisma/client';
 
 // =============================================================================
 // Types
@@ -37,171 +39,100 @@ export interface CannedResponseFilters {
   limit?: number;
 }
 
-interface CannedResponseRecord {
-  id: string;
-  userId: string;
-  title: string;
-  content: string;
-  shortcut: string | null;
-  categoryId: string | null;
-  isShared: boolean;
-  createdByAgentId: string | null;
-  usageCount: number;
-  lastUsedAt: Date | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-// =============================================================================
-// Database Operations (Placeholder)
-// =============================================================================
-// TODO: Implement with Prisma when helpdesk schema is provisioned.
-// Currently returns empty/mock data. Replace placeholder calls with actual
-// Prisma client queries (e.g., db.helpdeskCannedResponse.create({ data })).
-// import { db } from '../../../../core/backend/src/lib/db';
-
-const dbOperations = {
-  // TODO: Implement with Prisma — db.helpdeskCannedResponse.create({ data, include: { category: true, createdByAgent: true } })
-  async createCannedResponse(data: {
-    userId: string;
-    title: string;
-    content: string;
-    shortcut: string | null;
-    categoryId: string | null;
-    isShared: boolean;
-    createdByAgentId: string | null;
-  }): Promise<CannedResponseRecord> {
-    return {
-      id: 'canned_' + Date.now(),
-      ...data,
-      usageCount: 0,
-      lastUsedAt: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-  },
-
-  // TODO: Implement with Prisma — db.helpdeskCannedResponse.update({ where: { id }, data })
-  async updateCannedResponse(id: string, _data: Partial<CannedResponseRecord>): Promise<CannedResponseRecord | null> {
-    void id;
-    return null;
-  },
-
-  // TODO: Implement with Prisma — db.helpdeskCannedResponse.delete({ where: { id } })
-  async deleteCannedResponse(id: string): Promise<void> {
-    void id;
-  },
-
-  // TODO: Implement with Prisma — db.helpdeskCannedResponse.findUnique({ where: { id } })
-  async findCannedResponseById(id: string): Promise<CannedResponseRecord | null> {
-    void id;
-    return null;
-  },
-
-  // TODO: Implement with Prisma — db.helpdeskCannedResponse.findMany with filters + count
-  async findCannedResponses(userId: string, _filters: CannedResponseFilters): Promise<{ items: CannedResponseRecord[]; total: number }> {
-    void userId;
-    return { items: [], total: 0 };
-  },
-
-  // TODO: Implement with Prisma — db.helpdeskCannedResponse.findMany({ where: { userId, OR: [{ isShared: true }, { createdByAgentId: agentId }] } })
-  async findForAgent(userId: string, agentId: string): Promise<CannedResponseRecord[]> {
-    void userId; void agentId;
-    return [];
-  },
-
-  // TODO: Implement with Prisma — db.helpdeskCannedResponse.update({ where: { id }, data: { usageCount: { increment: 1 }, lastUsedAt: new Date() } })
-  async incrementUsageCount(id: string): Promise<void> {
-    void id;
-  },
-
-  // TODO: Implement with Prisma — db.helpdeskCannedResponse.findFirst({ where: { userId, shortcut } })
-  async checkShortcutExists(userId: string, shortcut: string, _excludeId?: string): Promise<boolean> {
-    void userId; void shortcut;
-    return false;
-  },
-
-  // TODO: Implement with Prisma — db.helpdeskCannedResponse.findFirst({ where: { id: cannedResponseId, userId } })
-  async checkCannedResponseBelongsToUser(cannedResponseId: string, userId: string): Promise<boolean> {
-    void cannedResponseId; void userId;
-    return false;
-  },
-};
-
 // =============================================================================
 // Canned Response Service
 // =============================================================================
 
 export class CannedResponseService {
+  constructor(private db: PrismaClient) {}
+
   /**
    * Create a new canned response template.
    * Validates shortcut uniqueness if provided.
    */
-  async create(input: CannedResponseCreateInput): Promise<CannedResponseRecord> {
+  async create(input: CannedResponseCreateInput) {
     if (input.shortcut) {
-      const shortcutExists = await dbOperations.checkShortcutExists(input.userId, input.shortcut);
+      const shortcutExists = await this.db.cannedResponse.findFirst({
+        where: { userId: input.userId, shortcut: input.shortcut },
+      });
       if (shortcutExists) {
         throw new Error('A canned response with this shortcut already exists');
       }
     }
 
-    return dbOperations.createCannedResponse({
-      userId: input.userId,
-      title: input.title,
-      content: input.content,
-      shortcut: input.shortcut || null,
-      categoryId: input.categoryId || null,
-      isShared: input.isShared ?? true,
-      createdByAgentId: input.createdByAgentId || null,
+    return this.db.cannedResponse.create({
+      data: {
+        userId: input.userId,
+        title: input.title,
+        content: input.content,
+        shortcut: input.shortcut || null,
+        categoryId: input.categoryId || null,
+        isShared: input.isShared ?? true,
+        createdByAgentId: input.createdByAgentId || null,
+      },
+      include: { category: true, createdByAgent: true },
     });
   }
 
   /**
    * Update an existing canned response. Validates ownership and shortcut uniqueness.
    */
-  async update(id: string, userId: string, input: CannedResponseUpdateInput): Promise<CannedResponseRecord | null> {
-    const belongs = await dbOperations.checkCannedResponseBelongsToUser(id, userId);
+  async update(id: string, userId: string, input: CannedResponseUpdateInput) {
+    const belongs = await this.db.cannedResponse.findFirst({ where: { id, userId } });
     if (!belongs) {
       throw new Error('Canned response not found');
     }
 
     if (input.shortcut) {
-      const shortcutExists = await dbOperations.checkShortcutExists(userId, input.shortcut, id);
+      const shortcutExists = await this.db.cannedResponse.findFirst({
+        where: { userId, shortcut: input.shortcut, id: { not: id } },
+      });
       if (shortcutExists) {
         throw new Error('A canned response with this shortcut already exists');
       }
     }
 
-    return dbOperations.updateCannedResponse(id, input as Partial<CannedResponseRecord>);
+    return this.db.cannedResponse.update({
+      where: { id },
+      data: {
+        ...(input.title !== undefined && { title: input.title }),
+        ...(input.content !== undefined && { content: input.content }),
+        ...(input.shortcut !== undefined && { shortcut: input.shortcut }),
+        ...(input.categoryId !== undefined && { categoryId: input.categoryId }),
+        ...(input.isShared !== undefined && { isShared: input.isShared }),
+      },
+      include: { category: true, createdByAgent: true },
+    });
   }
 
   /**
    * Delete a canned response. Validates ownership.
    */
   async delete(id: string, userId: string): Promise<void> {
-    const belongs = await dbOperations.checkCannedResponseBelongsToUser(id, userId);
+    const belongs = await this.db.cannedResponse.findFirst({ where: { id, userId } });
     if (!belongs) {
       throw new Error('Canned response not found');
     }
 
-    return dbOperations.deleteCannedResponse(id);
+    await this.db.cannedResponse.delete({ where: { id } });
   }
 
   /**
    * Get a single canned response by ID with ownership check.
    * Increments usage count (for tracking popular templates).
    */
-  async getById(id: string, userId: string): Promise<CannedResponseRecord | null> {
-    const belongs = await dbOperations.checkCannedResponseBelongsToUser(id, userId);
-    if (!belongs) {
-      return null;
-    }
-
-    const response = await dbOperations.findCannedResponseById(id);
+  async getById(id: string, userId: string) {
+    const response = await this.db.cannedResponse.findFirst({
+      where: { id, userId },
+      include: { category: true, createdByAgent: true },
+    });
 
     // Track usage when an agent opens a canned response (likely to use it)
     if (response) {
-      await dbOperations.incrementUsageCount(id);
+      await this.db.cannedResponse.update({
+        where: { id },
+        data: { usageCount: { increment: 1 }, lastUsedAt: new Date() },
+      });
     }
 
     return response;
@@ -215,19 +146,38 @@ export class CannedResponseService {
     const page = filters.page || 1;
     const limit = filters.limit || 20;
 
-    const result = await dbOperations.findCannedResponses(userId, {
-      ...filters,
-      page,
-      limit,
-    });
+    const where: Record<string, unknown> = { userId };
+
+    if (filters.categoryId) where.categoryId = filters.categoryId;
+    if (filters.isShared !== undefined) where.isShared = filters.isShared;
+    if (filters.createdByAgentId) where.createdByAgentId = filters.createdByAgentId;
+
+    if (filters.search) {
+      where.OR = [
+        { title: { contains: filters.search, mode: 'insensitive' } },
+        { content: { contains: filters.search, mode: 'insensitive' } },
+        { shortcut: { contains: filters.search, mode: 'insensitive' } },
+      ];
+    }
+
+    const [items, total] = await Promise.all([
+      this.db.cannedResponse.findMany({
+        where: where as never,
+        skip: (page - 1) * limit,
+        take: limit,
+        include: { category: true, createdByAgent: true },
+        orderBy: { usageCount: 'desc' },
+      }),
+      this.db.cannedResponse.count({ where: where as never }),
+    ]);
 
     return {
-      items: result.items,
+      items,
       pagination: {
         page,
         limit,
-        total: result.total,
-        totalPages: Math.ceil(result.total / limit),
+        total,
+        totalPages: Math.ceil(total / limit),
       },
     };
   }
@@ -235,10 +185,20 @@ export class CannedResponseService {
   /**
    * Get all canned responses available to a specific agent.
    * Returns shared responses plus the agent's own private responses.
-   * No pagination — designed for agent quick-select dropdowns.
+   * No pagination -- designed for agent quick-select dropdowns.
    */
-  async getForAgent(userId: string, agentId: string): Promise<CannedResponseRecord[]> {
-    return dbOperations.findForAgent(userId, agentId);
+  async getForAgent(userId: string, agentId: string) {
+    return this.db.cannedResponse.findMany({
+      where: {
+        userId,
+        OR: [
+          { isShared: true },
+          { createdByAgentId: agentId },
+        ],
+      },
+      include: { category: true },
+      orderBy: { usageCount: 'desc' },
+    });
   }
 
   /**
@@ -258,13 +218,19 @@ export class CannedResponseService {
 // Factory
 // =============================================================================
 
-let cannedResponseServiceInstance: CannedResponseService | null = null;
+export function createCannedResponseService(db: PrismaClient): CannedResponseService {
+  return new CannedResponseService(db);
+}
 
-export function getCannedResponseService(): CannedResponseService {
-  if (!cannedResponseServiceInstance) {
-    cannedResponseServiceInstance = new CannedResponseService();
+let instance: CannedResponseService | null = null;
+
+export function getCannedResponseService(db?: PrismaClient): CannedResponseService {
+  if (db) return createCannedResponseService(db);
+  if (!instance) {
+    const { db: globalDb } = require('../../../../core/backend/src/lib/db.js');
+    instance = new CannedResponseService(globalDb);
   }
-  return cannedResponseServiceInstance;
+  return instance;
 }
 
 export default CannedResponseService;

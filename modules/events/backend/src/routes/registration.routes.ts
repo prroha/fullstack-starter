@@ -1,12 +1,15 @@
 import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
-import { getRegistrationService } from '../services/registration.service.js';
+import { RegistrationService } from '../services/registration.service.js';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
+import type { PrismaClient } from '@prisma/client';
 
 // =============================================================================
-// Routes
+// Helpers
 // =============================================================================
 
-const registrationService = getRegistrationService();
+function svc(req: FastifyRequest): RegistrationService {
+  return new RegistrationService((req as FastifyRequest & { db?: PrismaClient }).db!);
+}
 
 // =============================================================================
 // Registration Endpoints (All Authenticated)
@@ -21,7 +24,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { search, status, eventId, page, limit } = req.query as Record<string, string>;
 
-    const result = await registrationService.listAll(authReq.user.userId, {
+    const result = await svc(req).listAll(authReq.user.userId, {
       search,
       status,
       eventId,
@@ -40,7 +43,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { id } = req.params as { id: string };
 
-    const registration = await registrationService.confirm(id, authReq.user.userId);
+    const registration = await svc(req).confirm(id, authReq.user.userId);
     if (!registration) {
       return reply.code(404).send({ error: 'Registration not found' });
     }
@@ -55,7 +58,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { id } = req.params as { id: string };
 
-    const registration = await registrationService.checkIn(id, authReq.user.userId);
+    const registration = await svc(req).checkIn(id, authReq.user.userId);
     if (!registration) {
       return reply.code(404).send({ error: 'Registration not found' });
     }
@@ -70,7 +73,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { id } = req.params as { id: string };
 
-    const registration = await registrationService.cancel(id, authReq.user.userId);
+    const registration = await svc(req).cancel(id, authReq.user.userId);
     if (!registration) {
       return reply.code(404).send({ error: 'Registration not found' });
     }

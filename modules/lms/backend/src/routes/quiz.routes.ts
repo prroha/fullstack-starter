@@ -1,25 +1,32 @@
 import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
-import { getQuizService } from '../services/quiz.service.js';
+import { QuizService } from '../services/quiz.service.js';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
+import type { PrismaClient } from '@prisma/client';
+
+// =============================================================================
+// Helper
+// =============================================================================
+
+function svc(req: FastifyRequest): QuizService {
+  return new QuizService((req as FastifyRequest & { db?: PrismaClient }).db!);
+}
 
 // =============================================================================
 // Routes
 // =============================================================================
 
-const quizService = getQuizService();
-
-// =============================================================================
-// Quiz CRUD
-// =============================================================================
-
 const routes: FastifyPluginAsync = async (fastify) => {
+  // =============================================================================
+  // Quiz CRUD
+  // =============================================================================
+
   /**
    * GET /quizzes/lesson/:lessonId
    * Get all quizzes for a lesson
    */
   fastify.get('/lesson/:lessonId', async (req: FastifyRequest, reply: FastifyReply) => {
     const { lessonId } = req.params as { lessonId: string };
-    const quizzes = await quizService.getQuizzesByLesson(lessonId);
+    const quizzes = await svc(req).getQuizzesByLesson(lessonId);
     return reply.send({ success: true, data: quizzes });
   });
 
@@ -29,7 +36,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
    */
   fastify.get('/:id', async (req: FastifyRequest, reply: FastifyReply) => {
     const { id } = req.params as { id: string };
-    const quiz = await quizService.getQuiz(id);
+    const quiz = await svc(req).getQuiz(id);
     if (!quiz) {
       return reply.code(404).send({ error: 'Quiz not found' });
     }
@@ -47,7 +54,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'lessonId and title are required' });
     }
 
-    const quiz = await quizService.createQuiz({
+    const quiz = await svc(req).createQuiz({
       lessonId,
       title,
       description,
@@ -68,7 +75,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const { id } = req.params as { id: string };
     const { title, description, passingScore, maxAttempts, timeLimitMins, shuffleQuestions } = req.body as Record<string, unknown>;
 
-    const quiz = await quizService.updateQuiz(id, {
+    const quiz = await svc(req).updateQuiz(id, {
       title,
       description,
       passingScore,
@@ -90,7 +97,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
    */
   fastify.delete('/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const { id } = req.params as { id: string };
-    await quizService.deleteQuiz(id);
+    await svc(req).deleteQuiz(id);
     return reply.send({ success: true, message: 'Quiz deleted' });
   });
 
@@ -104,7 +111,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
    */
   fastify.get('/:quizId/questions', async (req: FastifyRequest, reply: FastifyReply) => {
     const { quizId } = req.params as { quizId: string };
-    const questions = await quizService.getQuestions(quizId);
+    const questions = await svc(req).getQuestions(quizId);
     return reply.send({ success: true, data: questions });
   });
 
@@ -120,7 +127,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'Question text is required' });
     }
 
-    const question = await quizService.createQuestion({
+    const question = await svc(req).createQuestion({
       quizId,
       type,
       text,
@@ -141,7 +148,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const { id } = req.params as { id: string };
     const { type, text, options, correctAnswer, explanation, points } = req.body as Record<string, unknown>;
 
-    const question = await quizService.updateQuestion(id, {
+    const question = await svc(req).updateQuestion(id, {
       type,
       text,
       options,
@@ -163,7 +170,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
    */
   fastify.delete('/questions/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const { id } = req.params as { id: string };
-    await quizService.deleteQuestion(id);
+    await svc(req).deleteQuestion(id);
     return reply.send({ success: true, message: 'Question deleted' });
   });
 
@@ -184,7 +191,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'answers array is required' });
     }
 
-    const attempt = await quizService.submitAttempt({
+    const attempt = await svc(req).submitAttempt({
       quizId,
       userId: authReq.user.userId,
       answers,
@@ -200,7 +207,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/:quizId/attempts', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
     const { quizId } = req.params as { quizId: string };
-    const attempts = await quizService.getAttempts(quizId, authReq.user.userId);
+    const attempts = await svc(req).getAttempts(quizId, authReq.user.userId);
     return reply.send({ success: true, data: attempts });
   });
 
@@ -211,7 +218,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/:quizId/best', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
     const { quizId } = req.params as { quizId: string };
-    const attempt = await quizService.getBestAttempt(quizId, authReq.user.userId);
+    const attempt = await svc(req).getBestAttempt(quizId, authReq.user.userId);
     return reply.send({ success: true, data: attempt });
   });
 };

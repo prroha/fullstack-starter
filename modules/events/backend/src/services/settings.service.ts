@@ -2,7 +2,9 @@
 // Settings Service
 // =============================================================================
 // Business logic for per-user event settings.
-// Uses placeholder db operations - replace with actual Prisma client.
+// Uses dependency-injected PrismaClient for all database operations.
+
+import type { PrismaClient } from '@prisma/client';
 
 // =============================================================================
 // Types
@@ -15,66 +17,45 @@ export interface SettingsUpdateInput {
   timezone?: string;
 }
 
-interface SettingsRecord {
-  id: string;
-  userId: string;
-  defaultView: string;
-  defaultCategoryId: string | null;
-  currency: string;
-  timezone: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-// =============================================================================
-// Database Operations (Placeholder)
-// =============================================================================
-
-const dbOperations = {
-  async getSettings(userId: string): Promise<SettingsRecord | null> {
-    console.log('[DB] Getting event settings for user:', userId);
-    return null;
-  },
-
-  async upsertSettings(userId: string, data: Partial<SettingsRecord>): Promise<SettingsRecord> {
-    console.log('[DB] Upserting event settings for user:', userId);
-    return {
-      id: 'settings_' + Date.now(),
-      userId,
-      defaultView: data.defaultView ?? 'LIST',
-      defaultCategoryId: data.defaultCategoryId ?? null,
-      currency: data.currency ?? 'USD',
-      timezone: data.timezone ?? 'UTC',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-  },
-};
-
 // =============================================================================
 // Settings Service
 // =============================================================================
 
 export class SettingsService {
-  async get(userId: string): Promise<SettingsRecord> {
-    const settings = await dbOperations.getSettings(userId);
+  constructor(private db: PrismaClient) {}
+
+  async get(userId: string) {
+    const settings = await this.db.eventSettings.findUnique({ where: { userId } });
     if (settings) return settings;
 
-    return dbOperations.upsertSettings(userId, {
-      defaultView: 'LIST',
-      currency: 'USD',
-      timezone: 'UTC',
+    return this.db.eventSettings.create({
+      data: {
+        userId,
+        defaultView: 'LIST',
+        currency: 'USD',
+        timezone: 'UTC',
+      },
     });
   }
 
-  async update(userId: string, input: SettingsUpdateInput): Promise<SettingsRecord> {
-    const updateData: Partial<SettingsRecord> = {};
-    if (input.defaultView !== undefined) updateData.defaultView = input.defaultView;
-    if (input.defaultCategoryId !== undefined) updateData.defaultCategoryId = input.defaultCategoryId ?? null;
-    if (input.currency !== undefined) updateData.currency = input.currency;
-    if (input.timezone !== undefined) updateData.timezone = input.timezone;
+  async update(userId: string, input: SettingsUpdateInput) {
+    const data: Record<string, unknown> = {};
+    if (input.defaultView !== undefined) data.defaultView = input.defaultView;
+    if (input.defaultCategoryId !== undefined) data.defaultCategoryId = input.defaultCategoryId ?? null;
+    if (input.currency !== undefined) data.currency = input.currency;
+    if (input.timezone !== undefined) data.timezone = input.timezone;
 
-    return dbOperations.upsertSettings(userId, updateData);
+    return this.db.eventSettings.upsert({
+      where: { userId },
+      create: {
+        userId,
+        defaultView: input.defaultView ?? 'LIST',
+        defaultCategoryId: input.defaultCategoryId ?? null,
+        currency: input.currency ?? 'USD',
+        timezone: input.timezone ?? 'UTC',
+      },
+      update: data,
+    });
   }
 }
 
@@ -82,10 +63,18 @@ export class SettingsService {
 // Factory
 // =============================================================================
 
+export function createSettingsService(db: PrismaClient): SettingsService {
+  return new SettingsService(db);
+}
+
 let instance: SettingsService | null = null;
 
-export function getSettingsService(): SettingsService {
-  if (!instance) instance = new SettingsService();
+export function getSettingsService(db?: PrismaClient): SettingsService {
+  if (db) return createSettingsService(db);
+  if (!instance) {
+    const { db: globalDb } = require('../../../../core/backend/src/lib/db.js');
+    instance = new SettingsService(globalDb);
+  }
   return instance;
 }
 

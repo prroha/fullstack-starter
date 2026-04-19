@@ -1,26 +1,24 @@
 import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
-import { getProductService } from '../services/product.service.js';
+import { ProductService } from '../services/product.service.js';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
+import type { PrismaClient } from '@prisma/client';
+
+function svc(req: FastifyRequest): ProductService {
+  return new ProductService((req as FastifyRequest & { db?: PrismaClient }).db!);
+}
 
 // =============================================================================
 // Routes
 // =============================================================================
 
-const productService = getProductService();
-
-// =============================================================================
-// Public Endpoints
-// =============================================================================
-
 const routes: FastifyPluginAsync = async (fastify) => {
   /**
    * GET /products
-   * List published products with filtering and pagination
    */
   fastify.get('/', async (req: FastifyRequest, reply: FastifyReply) => {
     const { search, category, minPrice, maxPrice, sort, page, limit } = req.query as Record<string, string>;
 
-    const result = await productService.listProducts({
+    const result = await svc(req).listProducts({
       status: 'ACTIVE',
       search,
       categorySlug: category,
@@ -36,20 +34,18 @@ const routes: FastifyPluginAsync = async (fastify) => {
 
   /**
    * GET /products/categories
-   * List all product categories
    */
-  fastify.get('/categories', async (_req: FastifyRequest, reply: FastifyReply) => {
-    const categories = await productService.listCategories();
+  fastify.get('/categories', async (req: FastifyRequest, reply: FastifyReply) => {
+    const categories = await svc(req).listCategories();
     return reply.send({ success: true, data: categories });
   });
 
   /**
    * GET /products/:slug
-   * Get product details by slug (public)
    */
   fastify.get('/:slug', async (req: FastifyRequest, reply: FastifyReply) => {
     const { slug } = req.params as { slug: string };
-    const product = await productService.getProductBySlug(slug);
+    const product = await svc(req).getProductBySlug(slug);
     if (!product) {
       return reply.code(404).send({ error: 'Product not found' });
     }
@@ -62,27 +58,25 @@ const routes: FastifyPluginAsync = async (fastify) => {
 
   /**
    * POST /products
-   * Create a new product (seller)
    */
   fastify.post('/', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const { title, description, shortDescription, price, compareAtPrice, sku, images, categoryIds, variants } = req.body as Record<string, unknown>;
+    const { title, description, shortDescription, price, compareAtPrice, sku, images, categoryIds } = req.body as Record<string, unknown>;
 
     if (!title || !description) {
       return reply.code(400).send({ error: 'Title and description are required' });
     }
 
-    const product = await productService.createProduct({
-      title,
-      description,
-      shortDescription,
-      price,
-      compareAtPrice,
-      sku,
-      images,
+    const product = await svc(req).createProduct({
+      title: title as string,
+      description: description as string,
+      shortDescription: shortDescription as string | undefined,
+      price: price as number | undefined,
+      compareAtPrice: compareAtPrice as number | undefined,
+      sku: sku as string | undefined,
+      images: images as string[] | undefined,
       sellerId: authReq.user.userId,
-      categoryIds,
-      variants,
+      categoryIds: categoryIds as string[] | undefined,
     });
 
     return reply.code(201).send({ success: true, data: product });
@@ -90,22 +84,20 @@ const routes: FastifyPluginAsync = async (fastify) => {
 
   /**
    * PATCH /products/:id
-   * Update a product (seller)
    */
   fastify.patch('/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const { id } = req.params as { id: string };
-    const { title, description, shortDescription, price, compareAtPrice, sku, images, categoryIds, variants } = req.body as Record<string, unknown>;
+    const { title, description, shortDescription, price, compareAtPrice, sku, images, categoryIds } = req.body as Record<string, unknown>;
 
-    const product = await productService.updateProduct(id, {
-      title,
-      description,
-      shortDescription,
-      price,
-      compareAtPrice,
-      sku,
-      images,
-      categoryIds,
-      variants,
+    const product = await svc(req).updateProduct(id, {
+      title: title as string | undefined,
+      description: description as string | undefined,
+      shortDescription: shortDescription as string | undefined,
+      price: price as number | undefined,
+      compareAtPrice: compareAtPrice as number | undefined,
+      sku: sku as string | undefined,
+      images: images as string[] | undefined,
+      categoryIds: categoryIds as string[] | undefined,
     });
 
     if (!product) {
@@ -117,21 +109,19 @@ const routes: FastifyPluginAsync = async (fastify) => {
 
   /**
    * DELETE /products/:id
-   * Delete a product (seller)
    */
   fastify.delete('/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const { id } = req.params as { id: string };
-    await productService.deleteProduct(id);
+    await svc(req).deleteProduct(id);
     return reply.send({ success: true, message: 'Product deleted' });
   });
 
   /**
    * POST /products/:id/publish
-   * Publish a product
    */
   fastify.post('/:id/publish', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const { id } = req.params as { id: string };
-    const product = await productService.publishProduct(id);
+    const product = await svc(req).publishProduct(id);
     if (!product) {
       return reply.code(404).send({ error: 'Product not found' });
     }
@@ -140,11 +130,10 @@ const routes: FastifyPluginAsync = async (fastify) => {
 
   /**
    * POST /products/:id/unpublish
-   * Unpublish a product
    */
   fastify.post('/:id/unpublish', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const { id } = req.params as { id: string };
-    const product = await productService.unpublishProduct(id);
+    const product = await svc(req).unpublishProduct(id);
     if (!product) {
       return reply.code(404).send({ error: 'Product not found' });
     }
@@ -157,7 +146,6 @@ const routes: FastifyPluginAsync = async (fastify) => {
 
   /**
    * POST /products/categories
-   * Create a new category
    */
   fastify.post('/categories', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const { name, description, imageUrl } = req.body as { name: string; description?: string; imageUrl?: string };
@@ -166,7 +154,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'Category name is required' });
     }
 
-    const category = await productService.createCategory({ name, description, imageUrl });
+    const category = await svc(req).createCategory({ name, description, imageUrl });
     return reply.code(201).send({ success: true, data: category });
   });
 };

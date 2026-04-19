@@ -1,12 +1,15 @@
 import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
-import { getSlaService } from '../services/sla.service.js';
+import { SlaService } from '../services/sla.service.js';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
+import type { PrismaClient } from '@prisma/client';
 
 // =============================================================================
-// Routes
+// Helper
 // =============================================================================
 
-const slaService = getSlaService();
+function svc(req: FastifyRequest): SlaService {
+  return new SlaService((req as FastifyRequest & { db?: PrismaClient }).db!);
+}
 
 // =============================================================================
 // SLA Policy Endpoints (All Authenticated)
@@ -21,7 +24,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/check-breaches', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
 
-    const breaches = await slaService.checkBreaches(authReq.user.userId);
+    const breaches = await svc(req).checkBreaches(authReq.user.userId);
     return reply.send({ success: true, data: breaches });
   });
 
@@ -33,7 +36,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { search, priority, isActive, page, limit } = req.query as Record<string, string>;
 
-    const policies = await slaService.list(authReq.user.userId, {
+    const policies = await svc(req).list(authReq.user.userId, {
       search,
       priority,
       isActive: isActive !== undefined ? isActive === 'true' : undefined,
@@ -51,7 +54,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { id } = req.params as { id: string };
 
-    const policy = await slaService.getById(id, authReq.user.userId);
+    const policy = await svc(req).getById(id, authReq.user.userId);
     if (!policy) {
       return reply.code(404).send({ error: 'SLA policy not found' });
     }
@@ -70,7 +73,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'name, priority, firstResponseMinutes, and resolutionMinutes are required' });
     }
 
-    const policy = await slaService.create({
+    const policy = await svc(req).create({
       userId: authReq.user.userId,
       name,
       description,
@@ -93,7 +96,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const { id } = req.params as { id: string };
     const { name, description, priority, firstResponseMinutes, resolutionMinutes, escalationEmail, businessHoursOnly } = req.body as Record<string, unknown>;
 
-    const policy = await slaService.update(id, authReq.user.userId, {
+    const policy = await svc(req).update(id, authReq.user.userId, {
       name,
       description,
       priority,
@@ -118,7 +121,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { id } = req.params as { id: string };
 
-    await slaService.delete(id, authReq.user.userId);
+    await svc(req).delete(id, authReq.user.userId);
     return reply.send({ success: true, message: 'SLA policy deleted' });
   });
 
@@ -130,7 +133,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { id } = req.params as { id: string };
 
-    const policy = await slaService.toggleActive(id, authReq.user.userId);
+    const policy = await svc(req).toggleActive(id, authReq.user.userId);
     if (!policy) {
       return reply.code(404).send({ error: 'SLA policy not found' });
     }

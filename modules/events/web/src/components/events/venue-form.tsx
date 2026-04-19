@@ -162,7 +162,7 @@ export default function VenueForm({ venue, onSubmit, onCancel }: VenueFormProps)
         </Button>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 pt-6 border-t border-border">
         <Button type="submit" isLoading={isSaving}>
           {venue ? "Update Venue" : "Create Venue"}
         </Button>

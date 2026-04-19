@@ -2,7 +2,9 @@
 // Booking Service Service
 // =============================================================================
 // Business logic for service management, slug generation, and category handling.
-// Uses placeholder db operations - replace with actual Prisma client.
+// Uses dependency-injected PrismaClient.
+
+import type { PrismaClient, Prisma } from '@prisma/client';
 
 // =============================================================================
 // Types
@@ -13,12 +15,13 @@ export interface ServiceCreateInput {
   description: string;
   shortDescription?: string;
   thumbnailUrl?: string;
-  price: number;
+  price?: number;
   compareAtPrice?: number;
   duration: number;
   bufferTime?: number;
   capacity?: number;
   categoryIds?: string[];
+  [key: string]: unknown;
 }
 
 export interface ServiceUpdateInput {
@@ -32,6 +35,7 @@ export interface ServiceUpdateInput {
   bufferTime?: number;
   capacity?: number;
   categoryIds?: string[];
+  [key: string]: unknown;
 }
 
 export interface ServiceFilters {
@@ -46,165 +50,13 @@ export interface ServiceFilters {
   limit?: number;
 }
 
-interface ServiceRecord {
-  id: string;
-  name: string;
-  slug: string;
-  description: string;
-  shortDescription: string | null;
-  thumbnailUrl: string | null;
-  price: number;
-  compareAtPrice: number | null;
-  duration: number;
-  bufferTime: number;
-  capacity: number;
-  status: string;
-  publishedAt: Date | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-interface CategoryRecord {
-  id: string;
-  name: string;
-  slug: string;
-  description: string | null;
-  iconName: string | null;
-  displayOrder: number;
-}
-
-// =============================================================================
-// Database Operations (Placeholder)
-// =============================================================================
-// Replace with actual Prisma client:
-// import { db } from '../../../../core/backend/src/lib/db';
-
-const dbOperations = {
-  async findServices(filters: ServiceFilters): Promise<{ items: ServiceRecord[]; total: number }> {
-    // Replace with:
-    // const where = {
-    //   status: filters.status,
-    //   price: { gte: filters.minPrice, lte: filters.maxPrice },
-    //   duration: { gte: filters.minDuration, lte: filters.maxDuration },
-    //   categories: filters.categorySlug ? { some: { category: { slug: filters.categorySlug } } } : undefined,
-    //   OR: filters.search ? [
-    //     { name: { contains: filters.search, mode: 'insensitive' } },
-    //     { description: { contains: filters.search, mode: 'insensitive' } },
-    //   ] : undefined,
-    // };
-    // const [items, total] = await Promise.all([
-    //   db.service.findMany({ where, skip: ((filters.page || 1) - 1) * (filters.limit || 20), take: filters.limit || 20, include: { categories: { include: { category: true } }, providers: true } }),
-    //   db.service.count({ where }),
-    // ]);
-    console.log('[DB] Finding services with filters:', filters);
-    return { items: [], total: 0 };
-  },
-
-  async findServiceById(id: string): Promise<ServiceRecord | null> {
-    // Replace with: return db.service.findUnique({ where: { id }, include: { categories: { include: { category: true } }, providers: true } });
-    console.log('[DB] Finding service by ID:', id);
-    return null;
-  },
-
-  async findServiceBySlug(slug: string): Promise<ServiceRecord | null> {
-    // Replace with: return db.service.findUnique({ where: { slug }, include: { categories: { include: { category: true } }, providers: { include: { provider: true } }, reviews: true } });
-    console.log('[DB] Finding service by slug:', slug);
-    return null;
-  },
-
-  async createService(data: ServiceCreateInput & { slug: string }): Promise<ServiceRecord> {
-    // Replace with:
-    // return db.service.create({
-    //   data: {
-    //     ...data,
-    //     categories: { create: data.categoryIds?.map(id => ({ categoryId: id })) },
-    //   },
-    //   include: { categories: true },
-    // });
-    console.log('[DB] Creating service:', data.name);
-    return {
-      id: 'service_' + Date.now(),
-      name: data.name,
-      slug: data.slug,
-      description: data.description,
-      shortDescription: data.shortDescription || null,
-      thumbnailUrl: data.thumbnailUrl || null,
-      price: data.price,
-      compareAtPrice: data.compareAtPrice || null,
-      duration: data.duration,
-      bufferTime: data.bufferTime || 0,
-      capacity: data.capacity || 1,
-      status: 'DRAFT',
-      publishedAt: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-  },
-
-  async updateService(id: string, data: ServiceUpdateInput): Promise<ServiceRecord | null> {
-    // Replace with: return db.service.update({ where: { id }, data: { ...data, categories: data.categoryIds ? { deleteMany: {}, create: data.categoryIds.map(cid => ({ categoryId: cid })) } : undefined } });
-    console.log('[DB] Updating service:', id);
-    return null;
-  },
-
-  async deleteService(id: string): Promise<void> {
-    // Replace with: await db.service.delete({ where: { id } });
-    console.log('[DB] Deleting service:', id);
-  },
-
-  async publishService(id: string): Promise<ServiceRecord | null> {
-    // Replace with: return db.service.update({ where: { id }, data: { status: 'ACTIVE', publishedAt: new Date() } });
-    console.log('[DB] Publishing service:', id);
-    return null;
-  },
-
-  async unpublishService(id: string): Promise<ServiceRecord | null> {
-    // Replace with: return db.service.update({ where: { id }, data: { status: 'DRAFT', publishedAt: null } });
-    console.log('[DB] Unpublishing service:', id);
-    return null;
-  },
-
-  async findCategories(): Promise<CategoryRecord[]> {
-    // Replace with: return db.serviceCategory.findMany({ orderBy: { displayOrder: 'asc' } });
-    console.log('[DB] Finding categories');
-    return [];
-  },
-
-  async createCategory(data: { name: string; slug: string; description?: string; iconName?: string }): Promise<CategoryRecord> {
-    // Replace with: return db.serviceCategory.create({ data });
-    console.log('[DB] Creating category:', data.name);
-    return {
-      id: 'cat_' + Date.now(),
-      ...data,
-      description: data.description || null,
-      iconName: data.iconName || null,
-      displayOrder: 0,
-    };
-  },
-
-  async slugExists(slug: string): Promise<boolean> {
-    // Replace with: return !!(await db.service.findUnique({ where: { slug } }));
-    console.log('[DB] Checking slug existence:', slug);
-    return false;
-  },
-
-  async getServiceStats(serviceId: string): Promise<{ providerCount: number; avgRating: number; totalBookings: number }> {
-    // Replace with:
-    // const [providerCount, ratingResult, totalBookings] = await Promise.all([
-    //   db.providerService.count({ where: { serviceId } }),
-    //   db.review.aggregate({ where: { serviceId }, _avg: { rating: true } }),
-    //   db.booking.count({ where: { serviceId } }),
-    // ]);
-    console.log('[DB] Getting service stats:', serviceId);
-    return { providerCount: 0, avgRating: 0, totalBookings: 0 };
-  },
-};
-
 // =============================================================================
 // Service Service
 // =============================================================================
 
 export class ServiceService {
+  constructor(private db: PrismaClient) {}
+
   /**
    * Generate a unique URL slug from the service name
    */
@@ -217,7 +69,7 @@ export class ServiceService {
     let slug = base;
     let counter = 1;
 
-    while (await dbOperations.slugExists(slug)) {
+    while (await this.db.bookingService.findUnique({ where: { slug } })) {
       slug = `${base}-${counter}`;
       counter++;
     }
@@ -232,19 +84,58 @@ export class ServiceService {
     const page = filters.page || 1;
     const limit = filters.limit || 20;
 
-    const result = await dbOperations.findServices({
-      ...filters,
-      page,
-      limit,
-    });
+    const where: Prisma.BookingServiceWhereInput = {
+      ...(filters.status ? { status: filters.status as Prisma.EnumServiceStatusFilter } : {}),
+      ...(filters.minPrice !== undefined || filters.maxPrice !== undefined
+        ? {
+            price: {
+              ...(filters.minPrice !== undefined ? { gte: filters.minPrice } : {}),
+              ...(filters.maxPrice !== undefined ? { lte: filters.maxPrice } : {}),
+            },
+          }
+        : {}),
+      ...(filters.minDuration !== undefined || filters.maxDuration !== undefined
+        ? {
+            duration: {
+              ...(filters.minDuration !== undefined ? { gte: filters.minDuration } : {}),
+              ...(filters.maxDuration !== undefined ? { lte: filters.maxDuration } : {}),
+            },
+          }
+        : {}),
+      ...(filters.categorySlug
+        ? { categories: { some: { category: { slug: filters.categorySlug } } } }
+        : {}),
+      ...(filters.search
+        ? {
+            OR: [
+              { name: { contains: filters.search, mode: 'insensitive' as const } },
+              { description: { contains: filters.search, mode: 'insensitive' as const } },
+            ],
+          }
+        : {}),
+    };
+
+    const [items, total] = await Promise.all([
+      this.db.bookingService.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        include: {
+          categories: { include: { category: true } },
+          providers: true,
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.db.bookingService.count({ where }),
+    ]);
 
     return {
-      items: result.items,
+      items,
       pagination: {
         page,
         limit,
-        total: result.total,
-        totalPages: Math.ceil(result.total / limit),
+        total,
+        totalPages: Math.ceil(total / limit),
       },
     };
   }
@@ -253,18 +144,41 @@ export class ServiceService {
    * Get a single service by slug (public-facing)
    */
   async getServiceBySlug(slug: string) {
-    const service = await dbOperations.findServiceBySlug(slug);
+    const service = await this.db.bookingService.findUnique({
+      where: { slug },
+      include: {
+        categories: { include: { category: true } },
+        providers: { include: { provider: true } },
+        reviews: true,
+      },
+    });
     if (!service) return null;
 
-    const stats = await dbOperations.getServiceStats(service.id);
-    return { ...service, ...stats };
+    const [providerCount, ratingResult, totalBookings] = await Promise.all([
+      this.db.providerService.count({ where: { serviceId: service.id } }),
+      this.db.bookingReview.aggregate({ where: { serviceId: service.id }, _avg: { rating: true } }),
+      this.db.booking.count({ where: { serviceId: service.id } }),
+    ]);
+
+    return {
+      ...service,
+      providerCount,
+      avgRating: Math.round((ratingResult._avg.rating || 0) * 10) / 10,
+      totalBookings,
+    };
   }
 
   /**
    * Get a single service by ID
    */
   async getServiceById(id: string) {
-    return dbOperations.findServiceById(id);
+    return this.db.bookingService.findUnique({
+      where: { id },
+      include: {
+        categories: { include: { category: true } },
+        providers: true,
+      },
+    });
   }
 
   /**
@@ -272,42 +186,112 @@ export class ServiceService {
    */
   async createService(input: ServiceCreateInput) {
     const slug = await this.generateSlug(input.name);
-    return dbOperations.createService({ ...input, slug });
+
+    return this.db.bookingService.create({
+      data: {
+        name: input.name,
+        slug,
+        description: input.description,
+        shortDescription: input.shortDescription || null,
+        thumbnailUrl: input.thumbnailUrl || null,
+        price: input.price || 0,
+        compareAtPrice: input.compareAtPrice || null,
+        duration: input.duration,
+        bufferTime: input.bufferTime || 15,
+        capacity: input.capacity || 1,
+        ...(input.categoryIds && input.categoryIds.length > 0
+          ? {
+              categories: {
+                create: input.categoryIds.map((categoryId) => ({ categoryId })),
+              },
+            }
+          : {}),
+      },
+      include: {
+        categories: { include: { category: true } },
+      },
+    });
   }
 
   /**
    * Update an existing service
    */
   async updateService(id: string, input: ServiceUpdateInput) {
-    return dbOperations.updateService(id, input);
+    const existing = await this.db.bookingService.findUnique({ where: { id } });
+    if (!existing) return null;
+
+    // Build the update data, only including defined fields
+    const data: Prisma.BookingServiceUpdateInput = {};
+    if (input.name !== undefined) data.name = input.name;
+    if (input.description !== undefined) data.description = input.description;
+    if (input.shortDescription !== undefined) data.shortDescription = input.shortDescription;
+    if (input.thumbnailUrl !== undefined) data.thumbnailUrl = input.thumbnailUrl;
+    if (input.price !== undefined) data.price = input.price;
+    if (input.compareAtPrice !== undefined) data.compareAtPrice = input.compareAtPrice;
+    if (input.duration !== undefined) data.duration = input.duration;
+    if (input.bufferTime !== undefined) data.bufferTime = input.bufferTime;
+    if (input.capacity !== undefined) data.capacity = input.capacity;
+
+    // Handle category updates
+    if (input.categoryIds) {
+      data.categories = {
+        deleteMany: {},
+        create: input.categoryIds.map((categoryId) => ({ categoryId })),
+      };
+    }
+
+    return this.db.bookingService.update({
+      where: { id },
+      data,
+      include: {
+        categories: { include: { category: true } },
+        providers: true,
+      },
+    });
   }
 
   /**
    * Delete a service
    */
   async deleteService(id: string) {
-    return dbOperations.deleteService(id);
+    await this.db.bookingService.delete({ where: { id } });
   }
 
   /**
    * Publish a service (make it bookable)
    */
   async publishService(id: string) {
-    return dbOperations.publishService(id);
+    const existing = await this.db.bookingService.findUnique({ where: { id } });
+    if (!existing) return null;
+
+    return this.db.bookingService.update({
+      where: { id },
+      data: { status: 'ACTIVE', publishedAt: new Date() },
+      include: { categories: { include: { category: true } } },
+    });
   }
 
   /**
    * Unpublish a service (hide from booking)
    */
   async unpublishService(id: string) {
-    return dbOperations.unpublishService(id);
+    const existing = await this.db.bookingService.findUnique({ where: { id } });
+    if (!existing) return null;
+
+    return this.db.bookingService.update({
+      where: { id },
+      data: { status: 'DRAFT', publishedAt: null },
+      include: { categories: { include: { category: true } } },
+    });
   }
 
   /**
    * List all categories
    */
   async listCategories() {
-    return dbOperations.findCategories();
+    return this.db.serviceCategory.findMany({
+      orderBy: { displayOrder: 'asc' },
+    });
   }
 
   /**
@@ -319,7 +303,14 @@ export class ServiceService {
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-|-$/g, '');
 
-    return dbOperations.createCategory({ ...data, slug });
+    return this.db.serviceCategory.create({
+      data: {
+        name: data.name,
+        slug,
+        description: data.description || null,
+        iconName: data.iconName || null,
+      },
+    });
   }
 }
 
@@ -327,13 +318,18 @@ export class ServiceService {
 // Factory
 // =============================================================================
 
-let serviceServiceInstance: ServiceService | null = null;
+export function createServiceService(db: PrismaClient): ServiceService {
+  return new ServiceService(db);
+}
 
-export function getServiceService(): ServiceService {
-  if (!serviceServiceInstance) {
-    serviceServiceInstance = new ServiceService();
+let instance: ServiceService | null = null;
+export function getServiceService(db?: PrismaClient): ServiceService {
+  if (db) return createServiceService(db);
+  if (!instance) {
+    const { db: globalDb } = require('../../../../core/backend/src/lib/db.js');
+    instance = new ServiceService(globalDb);
   }
-  return serviceServiceInstance;
+  return instance;
 }
 
 export default ServiceService;

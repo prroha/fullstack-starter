@@ -26,6 +26,8 @@ export function usePreviewContext(): PreviewContextValue {
   return ctx;
 }
 
+const STUDIO_URL = process.env.NEXT_PUBLIC_STUDIO_URL || "http://localhost:3001";
+
 export function PreviewProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<PreviewSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -33,24 +35,35 @@ export function PreviewProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     async function loadSession() {
-      const token = getSessionToken();
+      const params = new URLSearchParams(window.location.search);
+
+      const token = getSessionToken() || params.get("session");
       if (!token) {
-        // Check URL params
-        const urlToken = new URLSearchParams(window.location.search).get("session");
-        if (urlToken) {
-          setSessionToken(urlToken);
-          return loadSessionData(urlToken);
-        }
         setIsLoading(false);
         return;
       }
+
+      // Store session token for future requests
+      setSessionToken(token);
+
+      // Load session data from studio
       await loadSessionData(token);
+
+      // Handle SSO auto-login if sso param is present
+      const ssoToken = params.get("sso");
+      if (ssoToken) {
+        await handleSsoLogin(token, ssoToken);
+
+        // Clean up URL params after SSO
+        const url = new URL(window.location.href);
+        url.searchParams.delete("sso");
+        window.history.replaceState({}, "", url.toString());
+      }
     }
 
     async function loadSessionData(token: string) {
       try {
-        const studioUrl = process.env.NEXT_PUBLIC_STUDIO_URL || "http://localhost:3001";
-        const res = await fetch(`${studioUrl}/api/preview/sessions/${token}`);
+        const res = await fetch(`${STUDIO_URL}/api/preview/sessions/${token}`);
         if (!res.ok) {
           setError("Preview session not found or expired");
           setIsLoading(false);
@@ -70,15 +83,38 @@ export function PreviewProvider({ children }: { children: ReactNode }) {
       }
     }
 
+    async function handleSsoLogin(sessionToken: string, ssoToken: string) {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3003/api/v1";
+        const res = await fetch(`${apiUrl}/auth/sso`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Preview-Session": sessionToken,
+          },
+          credentials: "include",
+          body: JSON.stringify({ ssoToken }),
+        });
+
+        if (!res.ok) {
+          console.warn("[preview] SSO auto-login failed:", res.status);
+          return;
+        }
+
+        // SSO httpOnly cookie is now set by the backend — user is automatically logged in
+      } catch (err) {
+        console.warn("[preview] SSO auto-login error:", err instanceof Error ? err.message : err);
+      }
+    }
+
     loadSession();
   }, []);
 
   // Heartbeat: send PATCH every 5 minutes to keep session alive
   useEffect(() => {
     if (!session) return;
-    const studioUrl = process.env.NEXT_PUBLIC_STUDIO_URL || "http://localhost:3001";
     const interval = setInterval(() => {
-      fetch(`${studioUrl}/api/preview/sessions/${session.token}`, {
+      fetch(`${STUDIO_URL}/api/preview/sessions/${session.token}`, {
         method: "PATCH",
       }).catch(() => {});
     }, 5 * 60 * 1000);
@@ -86,7 +122,7 @@ export function PreviewProvider({ children }: { children: ReactNode }) {
   }, [session]);
 
   const hasFeature = (feature: string) =>
-    session?.features.some((f) => f === feature) ?? false;
+    session?.features.includes(feature) ?? false;
 
   const hasModule = (module: string) =>
     session?.features.some((f) => f.startsWith(module)) ?? false;

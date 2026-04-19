@@ -1,12 +1,15 @@
 import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
-import { getCommentService } from '../services/comment.service.js';
+import { CommentService } from '../services/comment.service.js';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
+import type { PrismaClient } from '@prisma/client';
 
 // =============================================================================
-// Routes
+// Helpers
 // =============================================================================
 
-const commentService = getCommentService();
+function svc(req: FastifyRequest): CommentService {
+  return new CommentService((req as FastifyRequest & { db?: PrismaClient }).db!);
+}
 
 // =============================================================================
 // Comment Endpoints (All Authenticated)
@@ -28,7 +31,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'content is required' });
     }
 
-    const comment = await commentService.update(id, authReq.user.userId, { content });
+    const comment = await svc(req).update(id, authReq.user.userId, { content });
     if (!comment) {
       return reply.code(404).send({ error: 'Comment not found' });
     }
@@ -44,7 +47,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { id } = req.params as { id: string };
 
-    await commentService.delete(id, authReq.user.userId);
+    await svc(req).delete(id, authReq.user.userId);
     return reply.send({ success: true, message: 'Comment deleted' });
   });
 };

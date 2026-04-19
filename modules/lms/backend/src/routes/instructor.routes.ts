@@ -1,15 +1,18 @@
 import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
-import { getInstructorService } from '../services/instructor.service.js';
+import { InstructorService } from '../services/instructor.service.js';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
+import type { PrismaClient } from '@prisma/client';
+
+// =============================================================================
+// Helper
+// =============================================================================
+
+function svc(req: FastifyRequest): InstructorService {
+  return new InstructorService((req as FastifyRequest & { db?: PrismaClient }).db!);
+}
 
 // =============================================================================
 // Routes
-// =============================================================================
-
-const instructorService = getInstructorService();
-
-// =============================================================================
-// Instructor Dashboard Endpoints
 // =============================================================================
 
 const routes: FastifyPluginAsync = async (fastify) => {
@@ -19,7 +22,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
    */
   fastify.get('/stats', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const stats = await instructorService.getDashboardStats(authReq.user.userId);
+    const stats = await svc(req).getDashboardStats(authReq.user.userId);
     return reply.send({ success: true, data: stats });
   });
 
@@ -29,7 +32,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
    */
   fastify.get('/courses/analytics', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const analytics = await instructorService.getCourseAnalytics(authReq.user.userId);
+    const analytics = await svc(req).getCourseAnalytics(authReq.user.userId);
     return reply.send({ success: true, data: analytics });
   });
 
@@ -41,7 +44,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { period, startDate, endDate } = req.query as Record<string, string>;
 
-    const earnings = await instructorService.getEarnings(
+    const earnings = await svc(req).getEarnings(
       authReq.user.userId,
       (period as 'daily' | 'weekly' | 'monthly') || 'monthly',
       startDate ? new Date(startDate) : undefined,
@@ -59,7 +62,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { limit } = req.query as Record<string, string>;
 
-    const enrollments = await instructorService.getRecentEnrollments(authReq.user.userId, limit ? Number(limit) : 10);
+    const enrollments = await svc(req).getRecentEnrollments(authReq.user.userId, limit ? Number(limit) : 10);
     return reply.send({ success: true, data: enrollments });
   });
 
@@ -71,7 +74,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { limit } = req.query as Record<string, string>;
 
-    const reviews = await instructorService.getRecentReviews(authReq.user.userId, limit ? Number(limit) : 10);
+    const reviews = await svc(req).getRecentReviews(authReq.user.userId, limit ? Number(limit) : 10);
     return reply.send({ success: true, data: reviews });
   });
 };

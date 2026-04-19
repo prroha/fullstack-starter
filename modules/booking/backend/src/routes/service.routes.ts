@@ -1,12 +1,15 @@
 import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
-import { getServiceService } from '../services/service.service.js';
+import { ServiceService } from '../services/service.service.js';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
+import type { PrismaClient } from '@prisma/client';
 
 // =============================================================================
-// Routes
+// Helper
 // =============================================================================
 
-const serviceService = getServiceService();
+function svc(req: FastifyRequest): ServiceService {
+  return new ServiceService((req as FastifyRequest & { db?: PrismaClient }).db!);
+}
 
 // =============================================================================
 // Public Endpoints
@@ -20,7 +23,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/', async (req: FastifyRequest, reply: FastifyReply) => {
     const { search, category, minPrice, maxPrice, minDuration, maxDuration, page, limit } = req.query as Record<string, string>;
 
-    const result = await serviceService.listServices({
+    const result = await svc(req).listServices({
       search,
       categorySlug: category,
       minPrice: minPrice ? Number(minPrice) : undefined,
@@ -38,8 +41,8 @@ const routes: FastifyPluginAsync = async (fastify) => {
    * GET /services/categories
    * List all service categories
    */
-  fastify.get('/categories', async (_req: FastifyRequest, reply: FastifyReply) => {
-    const categories = await serviceService.listCategories();
+  fastify.get('/categories', async (req: FastifyRequest, reply: FastifyReply) => {
+    const categories = await svc(req).listCategories();
     return reply.send({ success: true, data: categories });
   });
 
@@ -49,7 +52,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
    */
   fastify.get('/:slug', async (req: FastifyRequest, reply: FastifyReply) => {
     const { slug } = req.params as { slug: string };
-    const service = await serviceService.getServiceBySlug(slug);
+    const service = await svc(req).getServiceBySlug(slug);
     if (!service) {
       return reply.code(404).send({ error: 'Service not found' });
     }
@@ -72,7 +75,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'Name, description, and duration are required' });
     }
 
-    const service = await serviceService.createService({
+    const service = await svc(req).createService({
       name,
       description,
       shortDescription,
@@ -94,7 +97,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const { id } = req.params as { id: string };
     const { name, description, shortDescription, thumbnailUrl, price, duration, categoryIds } = req.body as Record<string, unknown>;
 
-    const service = await serviceService.updateService(id, {
+    const service = await svc(req).updateService(id, {
       name,
       description,
       shortDescription,
@@ -117,7 +120,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
    */
   fastify.delete('/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const { id } = req.params as { id: string };
-    await serviceService.deleteService(id);
+    await svc(req).deleteService(id);
     return reply.send({ success: true, message: 'Service deleted' });
   });
 
@@ -127,7 +130,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
    */
   fastify.post('/:id/publish', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const { id } = req.params as { id: string };
-    const service = await serviceService.publishService(id);
+    const service = await svc(req).publishService(id);
     if (!service) {
       return reply.code(404).send({ error: 'Service not found' });
     }
@@ -140,7 +143,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
    */
   fastify.post('/:id/unpublish', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const { id } = req.params as { id: string };
-    const service = await serviceService.unpublishService(id);
+    const service = await svc(req).unpublishService(id);
     if (!service) {
       return reply.code(404).send({ error: 'Service not found' });
     }
@@ -162,7 +165,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'Category name is required' });
     }
 
-    const category = await serviceService.createCategory({ name, description, iconName });
+    const category = await svc(req).createCategory({ name, description, iconName });
     return reply.code(201).send({ success: true, data: category });
   });
 };

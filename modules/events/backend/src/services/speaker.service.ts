@@ -2,7 +2,9 @@
 // Speaker Service
 // =============================================================================
 // Business logic for event speakers: CRUD and reordering.
-// Uses placeholder db operations - replace with actual Prisma client.
+// Uses dependency-injected PrismaClient for all database operations.
+
+import type { PrismaClient } from '@prisma/client';
 
 // =============================================================================
 // Types
@@ -28,115 +30,71 @@ export interface SpeakerUpdateInput {
   company?: string;
 }
 
-interface SpeakerRecord {
-  id: string;
-  eventId: string;
-  userId: string;
-  name: string;
-  email: string | null;
-  bio: string | null;
-  avatarUrl: string | null;
-  title: string | null;
-  company: string | null;
-  sortOrder: number;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-// =============================================================================
-// Database Operations (Placeholder)
-// =============================================================================
-
-const dbOperations = {
-  async createSpeaker(data: Omit<SpeakerRecord, 'id' | 'createdAt' | 'updatedAt'>): Promise<SpeakerRecord> {
-    console.log('[DB] Creating speaker:', data.name);
-    return {
-      id: 'speaker_' + Date.now(),
-      ...data,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-  },
-
-  async findSpeakersByEvent(eventId: string): Promise<SpeakerRecord[]> {
-    console.log('[DB] Finding speakers for event:', eventId);
-    return [];
-  },
-
-  async updateSpeaker(id: string, data: Partial<SpeakerRecord>): Promise<SpeakerRecord | null> {
-    console.log('[DB] Updating speaker:', id);
-    return null;
-  },
-
-  async deleteSpeaker(id: string): Promise<void> {
-    console.log('[DB] Deleting speaker:', id);
-  },
-
-  async checkSpeakerBelongsToUser(id: string, userId: string): Promise<boolean> {
-    console.log('[DB] Checking speaker ownership:', id, userId);
-    return false;
-  },
-
-  async getSpeakerCountForEvent(eventId: string): Promise<number> {
-    console.log('[DB] Getting speaker count for event:', eventId);
-    return 0;
-  },
-};
-
 // =============================================================================
 // Speaker Service
 // =============================================================================
 
 export class SpeakerService {
-  async create(input: SpeakerCreateInput): Promise<SpeakerRecord> {
-    const count = await dbOperations.getSpeakerCountForEvent(input.eventId);
+  constructor(private db: PrismaClient) {}
 
-    return dbOperations.createSpeaker({
-      eventId: input.eventId,
-      userId: input.userId,
-      name: input.name,
-      email: input.email || null,
-      bio: input.bio || null,
-      avatarUrl: input.avatarUrl || null,
-      title: input.title || null,
-      company: input.company || null,
-      sortOrder: count,
+  async create(input: SpeakerCreateInput) {
+    const count = await this.db.eventSpeaker.count({ where: { eventId: input.eventId } });
+
+    return this.db.eventSpeaker.create({
+      data: {
+        eventId: input.eventId,
+        userId: input.userId,
+        name: input.name,
+        email: input.email || null,
+        bio: input.bio || null,
+        avatarUrl: input.avatarUrl || null,
+        title: input.title || null,
+        company: input.company || null,
+        sortOrder: count,
+      },
     });
   }
 
-  async update(id: string, userId: string, input: SpeakerUpdateInput): Promise<SpeakerRecord | null> {
-    const belongs = await dbOperations.checkSpeakerBelongsToUser(id, userId);
-    if (!belongs) throw new Error('Speaker not found');
+  async update(id: string, userId: string, input: SpeakerUpdateInput) {
+    const speaker = await this.db.eventSpeaker.findFirst({ where: { id, userId } });
+    if (!speaker) throw new Error('Speaker not found');
 
-    const updateData: Partial<SpeakerRecord> = {};
-    if (input.name !== undefined) updateData.name = input.name;
-    if (input.email !== undefined) updateData.email = input.email ?? null;
-    if (input.bio !== undefined) updateData.bio = input.bio ?? null;
-    if (input.avatarUrl !== undefined) updateData.avatarUrl = input.avatarUrl ?? null;
-    if (input.title !== undefined) updateData.title = input.title ?? null;
-    if (input.company !== undefined) updateData.company = input.company ?? null;
+    const data: Record<string, unknown> = {};
+    if (input.name !== undefined) data.name = input.name;
+    if (input.email !== undefined) data.email = input.email ?? null;
+    if (input.bio !== undefined) data.bio = input.bio ?? null;
+    if (input.avatarUrl !== undefined) data.avatarUrl = input.avatarUrl ?? null;
+    if (input.title !== undefined) data.title = input.title ?? null;
+    if (input.company !== undefined) data.company = input.company ?? null;
 
-    return dbOperations.updateSpeaker(id, updateData);
+    return this.db.eventSpeaker.update({
+      where: { id },
+      data,
+    });
   }
 
   async delete(id: string, userId: string): Promise<void> {
-    const belongs = await dbOperations.checkSpeakerBelongsToUser(id, userId);
-    if (!belongs) throw new Error('Speaker not found');
+    const speaker = await this.db.eventSpeaker.findFirst({ where: { id, userId } });
+    if (!speaker) throw new Error('Speaker not found');
 
-    return dbOperations.deleteSpeaker(id);
+    await this.db.eventSpeaker.delete({ where: { id } });
   }
 
-  async listByEvent(eventId: string): Promise<SpeakerRecord[]> {
-    return dbOperations.findSpeakersByEvent(eventId);
+  async listByEvent(eventId: string) {
+    return this.db.eventSpeaker.findMany({
+      where: { eventId },
+      orderBy: { sortOrder: 'asc' },
+    });
   }
 
   async reorder(userId: string, speakerIds: string[]): Promise<void> {
-    for (let i = 0; i < speakerIds.length; i++) {
-      const belongs = await dbOperations.checkSpeakerBelongsToUser(speakerIds[i], userId);
-      if (belongs) {
-        await dbOperations.updateSpeaker(speakerIds[i], { sortOrder: i } as Partial<SpeakerRecord>);
-      }
-    }
+    const updates = speakerIds.map((id, index) =>
+      this.db.eventSpeaker.updateMany({
+        where: { id, userId },
+        data: { sortOrder: index },
+      })
+    );
+    await Promise.all(updates);
   }
 }
 
@@ -144,10 +102,18 @@ export class SpeakerService {
 // Factory
 // =============================================================================
 
+export function createSpeakerService(db: PrismaClient): SpeakerService {
+  return new SpeakerService(db);
+}
+
 let instance: SpeakerService | null = null;
 
-export function getSpeakerService(): SpeakerService {
-  if (!instance) instance = new SpeakerService();
+export function getSpeakerService(db?: PrismaClient): SpeakerService {
+  if (db) return createSpeakerService(db);
+  if (!instance) {
+    const { db: globalDb } = require('../../../../core/backend/src/lib/db.js');
+    instance = new SpeakerService(globalDb);
+  }
   return instance;
 }
 

@@ -1,12 +1,15 @@
 import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
-import { getClientService } from '../services/client.service.js';
+import { ClientService } from '../services/client.service.js';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
+import type { PrismaClient } from '@prisma/client';
 
 // =============================================================================
-// Routes
+// Helpers
 // =============================================================================
 
-const clientService = getClientService();
+function svc(req: FastifyRequest): ClientService {
+  return new ClientService((req as FastifyRequest & { db?: PrismaClient }).db!);
+}
 
 // =============================================================================
 // Client Endpoints (All Authenticated)
@@ -21,7 +24,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { search, page, limit } = req.query as Record<string, string>;
 
-    const result = await clientService.list(authReq.user.userId, {
+    const result = await svc(req).list(authReq.user.userId, {
       search,
       page: page ? Number(page) : 1,
       limit: limit ? Number(limit) : 20,
@@ -38,7 +41,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { id } = req.params as { id: string };
 
-    const client = await clientService.getById(id, authReq.user.userId);
+    const client = await svc(req).getById(id, authReq.user.userId);
     if (!client) {
       return reply.code(404).send({ error: 'Client not found' });
     }
@@ -53,7 +56,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { id } = req.params as { id: string };
 
-    const stats = await clientService.getStats(id, authReq.user.userId);
+    const stats = await svc(req).getStats(id, authReq.user.userId);
     if (!stats) {
       return reply.code(404).send({ error: 'Client not found' });
     }
@@ -72,7 +75,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'name is required' });
     }
 
-    const client = await clientService.create({
+    const client = await svc(req).create({
       userId: authReq.user.userId,
       name,
       email,
@@ -95,7 +98,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const { id } = req.params as { id: string };
     const { name, email, phone, companyName, taxId, billingAddress, notes } = req.body as Record<string, unknown>;
 
-    const client = await clientService.update(id, authReq.user.userId, {
+    const client = await svc(req).update(id, authReq.user.userId, {
       name,
       email,
       phone,
@@ -120,7 +123,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { id } = req.params as { id: string };
 
-    await clientService.delete(id, authReq.user.userId);
+    await svc(req).delete(id, authReq.user.userId);
     return reply.send({ success: true, message: 'Client deleted' });
   });
 };

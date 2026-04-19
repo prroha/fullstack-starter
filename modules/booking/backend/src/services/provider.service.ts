@@ -2,7 +2,9 @@
 // Booking Provider Service
 // =============================================================================
 // Business logic for provider management, service linking, and availability.
-// Uses placeholder db operations - replace with actual Prisma client.
+// Uses dependency-injected PrismaClient.
+
+import type { PrismaClient, Prisma } from '@prisma/client';
 
 // =============================================================================
 // Types
@@ -13,12 +15,14 @@ export interface ProviderCreateInput {
   bio?: string;
   avatarUrl?: string;
   specialties?: string[];
+  [key: string]: unknown;
 }
 
 export interface ProviderUpdateInput {
   bio?: string;
   avatarUrl?: string;
   specialties?: string[];
+  [key: string]: unknown;
 }
 
 export interface ProviderFilters {
@@ -28,171 +32,19 @@ export interface ProviderFilters {
   limit?: number;
 }
 
-interface ProviderRecord {
-  id: string;
-  userId: string;
-  bio: string | null;
-  avatarUrl: string | null;
-  specialties: string[];
-  isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-interface ProviderServiceLinkRecord {
-  id: string;
-  providerId: string;
-  serviceId: string;
-  createdAt: Date;
-}
-
 interface TimeSlot {
   startTime: string;
   endTime: string;
   available: boolean;
 }
 
-interface ScheduleRecord {
-  id: string;
-  providerId: string;
-  dayOfWeek: number;
-  startTime: string;
-  endTime: string;
-  isActive: boolean;
-}
-
-interface ScheduleOverrideRecord {
-  id: string;
-  providerId: string;
-  date: string;
-  isBlocked: boolean;
-  startTime: string | null;
-  endTime: string | null;
-  reason: string | null;
-}
-
-interface BookingSlotRecord {
-  startTime: string;
-  endTime: string;
-}
-
-// =============================================================================
-// Database Operations (Placeholder)
-// =============================================================================
-// Replace with actual Prisma client:
-// import { db } from '../../../../core/backend/src/lib/db';
-
-const dbOperations = {
-  async findProviders(filters: ProviderFilters): Promise<{ items: ProviderRecord[]; total: number }> {
-    // Replace with:
-    // const where = {
-    //   isActive: true,
-    //   services: filters.serviceId ? { some: { serviceId: filters.serviceId } } : undefined,
-    //   OR: filters.search ? [
-    //     { user: { name: { contains: filters.search, mode: 'insensitive' } } },
-    //     { bio: { contains: filters.search, mode: 'insensitive' } },
-    //   ] : undefined,
-    // };
-    // const [items, total] = await Promise.all([
-    //   db.provider.findMany({ where, skip: ((filters.page || 1) - 1) * (filters.limit || 20), take: filters.limit || 20, include: { user: true, services: { include: { service: true } } } }),
-    //   db.provider.count({ where }),
-    // ]);
-    console.log('[DB] Finding providers with filters:', filters);
-    return { items: [], total: 0 };
-  },
-
-  async findProviderById(id: string): Promise<ProviderRecord | null> {
-    // Replace with: return db.provider.findUnique({ where: { id }, include: { user: true, services: { include: { service: true } }, reviews: true } });
-    console.log('[DB] Finding provider by ID:', id);
-    return null;
-  },
-
-  async findProviderByUserId(userId: string): Promise<ProviderRecord | null> {
-    // Replace with: return db.provider.findUnique({ where: { userId }, include: { user: true, services: { include: { service: true } } } });
-    console.log('[DB] Finding provider by user ID:', userId);
-    return null;
-  },
-
-  async createProvider(data: ProviderCreateInput): Promise<ProviderRecord> {
-    // Replace with: return db.provider.create({ data: { userId: data.userId, bio: data.bio, avatarUrl: data.avatarUrl, specialties: data.specialties || [] }, include: { user: true } });
-    console.log('[DB] Creating provider for user:', data.userId);
-    return {
-      id: 'provider_' + Date.now(),
-      userId: data.userId,
-      bio: data.bio || null,
-      avatarUrl: data.avatarUrl || null,
-      specialties: data.specialties || [],
-      isActive: true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-  },
-
-  async updateProvider(id: string, data: ProviderUpdateInput): Promise<ProviderRecord | null> {
-    // Replace with: return db.provider.update({ where: { id }, data });
-    console.log('[DB] Updating provider:', id);
-    return null;
-  },
-
-  async linkService(providerId: string, serviceId: string): Promise<ProviderServiceLinkRecord> {
-    // Replace with: return db.providerService.create({ data: { providerId, serviceId } });
-    console.log('[DB] Linking provider to service:', providerId, serviceId);
-    return {
-      id: 'link_' + Date.now(),
-      providerId,
-      serviceId,
-      createdAt: new Date(),
-    };
-  },
-
-  async unlinkService(providerId: string, serviceId: string): Promise<void> {
-    // Replace with: await db.providerService.delete({ where: { providerId_serviceId: { providerId, serviceId } } });
-    console.log('[DB] Unlinking provider from service:', providerId, serviceId);
-  },
-
-  async getProviderAvgRating(providerId: string): Promise<number> {
-    // Replace with:
-    // const result = await db.review.aggregate({ where: { providerId }, _avg: { rating: true } });
-    // return result._avg.rating || 0;
-    console.log('[DB] Getting average rating for provider:', providerId);
-    return 0;
-  },
-
-  async getProviderScheduleForDay(providerId: string, dayOfWeek: number): Promise<ScheduleRecord[]> {
-    // Replace with: return db.schedule.findMany({ where: { providerId, dayOfWeek, isActive: true }, orderBy: { startTime: 'asc' } });
-    console.log('[DB] Getting schedule for provider:', providerId, 'day:', dayOfWeek);
-    return [];
-  },
-
-  async getProviderOverridesForDate(providerId: string, date: string): Promise<ScheduleOverrideRecord[]> {
-    // Replace with: return db.scheduleOverride.findMany({ where: { providerId, date } });
-    console.log('[DB] Getting overrides for provider:', providerId, 'date:', date);
-    return [];
-  },
-
-  async getExistingBookingsForDate(providerId: string, serviceId: string, date: string): Promise<BookingSlotRecord[]> {
-    // Replace with:
-    // return db.booking.findMany({
-    //   where: { providerId, serviceId, date, status: { in: ['PENDING', 'CONFIRMED'] } },
-    //   select: { startTime: true, endTime: true },
-    //   orderBy: { startTime: 'asc' },
-    // });
-    console.log('[DB] Getting existing bookings for date:', providerId, serviceId, date);
-    return [];
-  },
-
-  async getServiceDuration(serviceId: string): Promise<{ duration: number; bufferTime: number } | null> {
-    // Replace with: return db.service.findUnique({ where: { id: serviceId }, select: { duration: true, bufferTime: true } });
-    console.log('[DB] Getting service duration:', serviceId);
-    return null;
-  },
-};
-
 // =============================================================================
 // Provider Service
 // =============================================================================
 
 export class ProviderService {
+  constructor(private db: PrismaClient) {}
+
   /**
    * List providers with filtering and pagination
    */
@@ -200,19 +52,37 @@ export class ProviderService {
     const page = filters.page || 1;
     const limit = filters.limit || 20;
 
-    const result = await dbOperations.findProviders({
-      ...filters,
-      page,
-      limit,
-    });
+    const where: Prisma.ProviderWhereInput = {
+      isActive: true,
+      ...(filters.serviceId
+        ? { services: { some: { serviceId: filters.serviceId } } }
+        : {}),
+      ...(filters.search
+        ? {
+            OR: [
+              { bio: { contains: filters.search, mode: 'insensitive' as const } },
+            ],
+          }
+        : {}),
+    };
+
+    const [items, total] = await Promise.all([
+      this.db.provider.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        include: { services: { include: { service: true } } },
+      }),
+      this.db.provider.count({ where }),
+    ]);
 
     return {
-      items: result.items,
+      items,
       pagination: {
         page,
         limit,
-        total: result.total,
-        totalPages: Math.ceil(result.total / limit),
+        total,
+        totalPages: Math.ceil(total / limit),
       },
     };
   }
@@ -221,10 +91,21 @@ export class ProviderService {
    * Get a single provider by ID with services and avg rating
    */
   async getProviderById(id: string) {
-    const provider = await dbOperations.findProviderById(id);
+    const provider = await this.db.provider.findUnique({
+      where: { id },
+      include: {
+        services: { include: { service: true } },
+        reviews: true,
+      },
+    });
     if (!provider) return null;
 
-    const avgRating = await dbOperations.getProviderAvgRating(id);
+    const ratingResult = await this.db.bookingReview.aggregate({
+      where: { providerId: id },
+      _avg: { rating: true },
+    });
+
+    const avgRating = ratingResult._avg.rating || 0;
     return { ...provider, avgRating: Math.round(avgRating * 10) / 10 };
   }
 
@@ -232,35 +113,61 @@ export class ProviderService {
    * Get a provider by user ID
    */
   async getProviderByUserId(userId: string) {
-    return dbOperations.findProviderByUserId(userId);
+    return this.db.provider.findUnique({
+      where: { userId },
+      include: { services: { include: { service: true } } },
+    });
   }
 
   /**
    * Create a new provider profile
    */
   async createProvider(input: ProviderCreateInput) {
-    return dbOperations.createProvider(input);
+    return this.db.provider.create({
+      data: {
+        userId: input.userId,
+        bio: input.bio || null,
+        avatarUrl: input.avatarUrl || null,
+        specialties: input.specialties || [],
+      },
+      include: { services: { include: { service: true } } },
+    });
   }
 
   /**
    * Update a provider profile
    */
   async updateProvider(id: string, input: ProviderUpdateInput) {
-    return dbOperations.updateProvider(id, input);
+    const existing = await this.db.provider.findUnique({ where: { id } });
+    if (!existing) return null;
+
+    return this.db.provider.update({
+      where: { id },
+      data: {
+        ...(input.bio !== undefined ? { bio: input.bio } : {}),
+        ...(input.avatarUrl !== undefined ? { avatarUrl: input.avatarUrl } : {}),
+        ...(input.specialties !== undefined ? { specialties: input.specialties } : {}),
+      },
+      include: { services: { include: { service: true } } },
+    });
   }
 
   /**
    * Link a provider to a service they can perform
    */
   async linkService(providerId: string, serviceId: string) {
-    return dbOperations.linkService(providerId, serviceId);
+    return this.db.providerService.create({
+      data: { providerId, serviceId },
+    });
   }
 
   /**
    * Unlink a provider from a service
    */
   async unlinkService(providerId: string, serviceId: string) {
-    return dbOperations.unlinkService(providerId, serviceId);
+    await this.db.providerService.delete({
+      where: { providerId_serviceId: { providerId, serviceId } },
+    });
   }
 
   /**
@@ -268,9 +175,12 @@ export class ProviderService {
    * Merges weekly schedule + overrides, generates slots based on service
    * duration + buffer, and subtracts existing bookings.
    */
-  async getProviderAvailability(providerId: string, serviceId: string, date: string): Promise<TimeSlot[]> {
+  async getAvailability(providerId: string, serviceId: string, date: string): Promise<TimeSlot[]> {
     // Get service duration info
-    const serviceInfo = await dbOperations.getServiceDuration(serviceId);
+    const serviceInfo = await this.db.bookingService.findUnique({
+      where: { id: serviceId },
+      select: { duration: true, bufferTime: true },
+    });
     if (!serviceInfo) {
       throw new Error('Service not found');
     }
@@ -282,10 +192,20 @@ export class ProviderService {
     const dayOfWeek = dateObj.getDay();
 
     // Get weekly schedule for this day
-    const schedules = await dbOperations.getProviderScheduleForDay(providerId, dayOfWeek);
+    const schedules = await this.db.schedule.findMany({
+      where: { providerId, dayOfWeek, isActive: true },
+      orderBy: { startTime: 'asc' },
+    });
 
     // Get overrides for this specific date
-    const overrides = await dbOperations.getProviderOverridesForDate(providerId, date);
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const overrides = await this.db.scheduleOverride.findMany({
+      where: { providerId, date: { gte: startOfDay, lte: endOfDay } },
+    });
 
     // Check if the entire day is blocked
     const dayBlocked = overrides.some((o) => o.isBlocked && !o.startTime);
@@ -315,7 +235,15 @@ export class ProviderService {
     const blockedRanges = overrides.filter((o) => o.isBlocked && o.startTime && o.endTime);
 
     // Get existing bookings
-    const existingBookings = await dbOperations.getExistingBookingsForDate(providerId, serviceId, date);
+    const existingBookings = await this.db.booking.findMany({
+      where: {
+        providerId,
+        date: { gte: startOfDay, lte: endOfDay },
+        status: { in: ['PENDING', 'CONFIRMED'] },
+      },
+      select: { startTime: true, endTime: true },
+      orderBy: { startTime: 'asc' },
+    });
 
     // Generate time slots from available windows
     const slots: TimeSlot[] = [];
@@ -381,13 +309,18 @@ export class ProviderService {
 // Factory
 // =============================================================================
 
-let providerServiceInstance: ProviderService | null = null;
+export function createProviderService(db: PrismaClient): ProviderService {
+  return new ProviderService(db);
+}
 
-export function getProviderService(): ProviderService {
-  if (!providerServiceInstance) {
-    providerServiceInstance = new ProviderService();
+let instance: ProviderService | null = null;
+export function getProviderService(db?: PrismaClient): ProviderService {
+  if (db) return createProviderService(db);
+  if (!instance) {
+    const { db: globalDb } = require('../../../../core/backend/src/lib/db.js');
+    instance = new ProviderService(globalDb);
   }
-  return providerServiceInstance;
+  return instance;
 }
 
 export default ProviderService;

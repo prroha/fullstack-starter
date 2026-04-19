@@ -205,7 +205,7 @@ function PreviewContent() {
         onThemeChange={setTheme}
         onReset={handleReset}
         onOpenExternal={handleOpenExternal}
-        onLaunchPreview={() => livePreview.launch(tier, features)}
+        onLaunchPreview={session?.provisioningAvailable ? () => livePreview.launch(tier, features) : undefined}
         livePreviewStatus={livePreview.status}
       />
 

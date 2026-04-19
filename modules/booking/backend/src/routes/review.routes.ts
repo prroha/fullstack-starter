@@ -1,12 +1,15 @@
 import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
-import { getReviewService } from '../services/review.service.js';
+import { ReviewService } from '../services/review.service.js';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
+import type { PrismaClient } from '@prisma/client';
 
 // =============================================================================
-// Routes
+// Helper
 // =============================================================================
 
-const reviewService = getReviewService();
+function svc(req: FastifyRequest): ReviewService {
+  return new ReviewService((req as FastifyRequest & { db?: PrismaClient }).db!);
+}
 
 // =============================================================================
 // Public Endpoints
@@ -21,7 +24,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const { serviceId } = req.params as { serviceId: string };
     const { page, limit } = req.query as Record<string, string>;
 
-    const result = await reviewService.listServiceReviews(
+    const result = await svc(req).listServiceReviews(
       serviceId,
       page ? Number(page) : 1,
       limit ? Number(limit) : 20,
@@ -38,7 +41,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const { providerId } = req.params as { providerId: string };
     const { page, limit } = req.query as Record<string, string>;
 
-    const result = await reviewService.listProviderReviews(
+    const result = await svc(req).listProviderReviews(
       providerId,
       page ? Number(page) : 1,
       limit ? Number(limit) : 20,
@@ -67,7 +70,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'Rating must be between 1 and 5' });
     }
 
-    const review = await reviewService.createReview({
+    const review = await svc(req).createReview({
       userId: authReq.user.userId,
       serviceId,
       providerId,
@@ -90,7 +93,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'Rating must be between 1 and 5' });
     }
 
-    const review = await reviewService.updateReview(id, {
+    const review = await svc(req).updateReview(id, {
       rating: rating ? Number(rating) : undefined,
       comment,
     });
@@ -108,7 +111,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
    */
   fastify.delete('/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const { id } = req.params as { id: string };
-    await reviewService.deleteReview(id);
+    await svc(req).deleteReview(id);
     return reply.send({ success: true, message: 'Review deleted' });
   });
 };

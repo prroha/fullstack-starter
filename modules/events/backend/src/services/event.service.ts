@@ -3,7 +3,9 @@
 // =============================================================================
 // Business logic for event management: CRUD, filtering, status changes,
 // publishing, and dashboard stats.
-// Uses placeholder db operations - replace with actual Prisma client.
+// Uses dependency-injected PrismaClient for all database operations.
+
+import type { PrismaClient } from '@prisma/client';
 
 // =============================================================================
 // Types
@@ -65,29 +67,8 @@ export interface DashboardStats {
   totalRevenue: number;
 }
 
-interface EventRecord {
-  id: string;
-  userId: string;
-  categoryId: string | null;
-  venueId: string | null;
-  title: string;
-  slug: string;
-  description: string | null;
-  type: string;
-  status: string;
-  startDate: Date;
-  endDate: Date;
-  capacity: number | null;
-  price: number;
-  currency: string;
-  imageUrl: string | null;
-  isFeatured: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
 // =============================================================================
-// Database Operations (Placeholder)
+// Helpers
 // =============================================================================
 
 function generateSlug(title: string): string {
@@ -97,171 +78,192 @@ function generateSlug(title: string): string {
     .replace(/(^-|-$)/g, '') + '-' + Date.now().toString(36);
 }
 
-const dbOperations = {
-  async createEvent(data: {
-    userId: string;
-    categoryId: string | null;
-    venueId: string | null;
-    title: string;
-    slug: string;
-    description: string | null;
-    type: string;
-    status: string;
-    startDate: Date;
-    endDate: Date;
-    capacity: number | null;
-    price: number;
-    currency: string;
-    imageUrl: string | null;
-    isFeatured: boolean;
-  }): Promise<EventRecord> {
-    console.log('[DB] Creating event:', data.title);
-    return {
-      id: 'event_' + Date.now(),
-      ...data,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-  },
-
-  async findEventById(id: string): Promise<EventRecord | null> {
-    console.log('[DB] Finding event by ID:', id);
-    return null;
-  },
-
-  async findEvents(userId: string, filters: EventFilters): Promise<{ items: EventRecord[]; total: number }> {
-    console.log('[DB] Finding events for user:', userId, filters);
-    return { items: [], total: 0 };
-  },
-
-  async updateEvent(id: string, data: Partial<EventRecord>): Promise<EventRecord | null> {
-    console.log('[DB] Updating event:', id);
-    return null;
-  },
-
-  async deleteEvent(id: string): Promise<void> {
-    console.log('[DB] Deleting event:', id);
-  },
-
-  async checkEventBelongsToUser(id: string, userId: string): Promise<boolean> {
-    console.log('[DB] Checking event ownership:', id, userId);
-    return false;
-  },
-
-  async getDashboardStats(userId: string): Promise<DashboardStats> {
-    console.log('[DB] Getting dashboard stats for user:', userId);
-    return {
-      totalEvents: 0,
-      publishedEvents: 0,
-      draftEvents: 0,
-      upcomingEvents: 0,
-      totalRegistrations: 0,
-      confirmedRegistrations: 0,
-      totalVenues: 0,
-      totalRevenue: 0,
-    };
-  },
-};
-
 // =============================================================================
 // Event Service
 // =============================================================================
 
 export class EventService {
-  async create(input: EventCreateInput): Promise<EventRecord> {
-    return dbOperations.createEvent({
-      userId: input.userId,
-      categoryId: input.categoryId || null,
-      venueId: input.venueId || null,
-      title: input.title,
-      slug: generateSlug(input.title),
-      description: input.description || null,
-      type: input.type || 'IN_PERSON',
-      status: input.status || 'DRAFT',
-      startDate: new Date(input.startDate),
-      endDate: new Date(input.endDate),
-      capacity: input.capacity ?? null,
-      price: input.price ?? 0,
-      currency: input.currency || 'USD',
-      imageUrl: input.imageUrl || null,
-      isFeatured: input.isFeatured ?? false,
+  constructor(private db: PrismaClient) {}
+
+  async create(input: EventCreateInput) {
+    return this.db.event.create({
+      data: {
+        userId: input.userId,
+        categoryId: input.categoryId || null,
+        venueId: input.venueId || null,
+        title: input.title,
+        slug: generateSlug(input.title),
+        description: input.description || null,
+        type: (input.type as 'IN_PERSON' | 'VIRTUAL' | 'HYBRID') || 'IN_PERSON',
+        status: (input.status as 'DRAFT' | 'PUBLISHED' | 'CANCELLED' | 'COMPLETED' | 'ARCHIVED') || 'DRAFT',
+        startDate: new Date(input.startDate),
+        endDate: new Date(input.endDate),
+        capacity: input.capacity ?? null,
+        price: input.price ?? 0,
+        currency: input.currency || 'USD',
+        imageUrl: input.imageUrl || null,
+        isFeatured: input.isFeatured ?? false,
+      },
+      include: { category: true, venue: true },
     });
   }
 
-  async update(id: string, userId: string, input: EventUpdateInput): Promise<EventRecord | null> {
-    const belongs = await dbOperations.checkEventBelongsToUser(id, userId);
-    if (!belongs) throw new Error('Event not found');
+  async update(id: string, userId: string, input: EventUpdateInput) {
+    const event = await this.db.event.findFirst({ where: { id, userId } });
+    if (!event) throw new Error('Event not found');
 
-    const updateData: Partial<EventRecord> = {};
-    if (input.categoryId !== undefined) updateData.categoryId = input.categoryId ?? null;
-    if (input.venueId !== undefined) updateData.venueId = input.venueId ?? null;
-    if (input.title !== undefined) updateData.title = input.title;
-    if (input.description !== undefined) updateData.description = input.description ?? null;
-    if (input.type !== undefined) updateData.type = input.type;
-    if (input.status !== undefined) updateData.status = input.status;
-    if (input.startDate !== undefined) updateData.startDate = new Date(input.startDate);
-    if (input.endDate !== undefined) updateData.endDate = new Date(input.endDate);
-    if (input.capacity !== undefined) updateData.capacity = input.capacity ?? null;
-    if (input.price !== undefined) updateData.price = input.price;
-    if (input.currency !== undefined) updateData.currency = input.currency;
-    if (input.imageUrl !== undefined) updateData.imageUrl = input.imageUrl ?? null;
-    if (input.isFeatured !== undefined) updateData.isFeatured = input.isFeatured;
+    const data: Record<string, unknown> = {};
+    if (input.categoryId !== undefined) data.categoryId = input.categoryId ?? null;
+    if (input.venueId !== undefined) data.venueId = input.venueId ?? null;
+    if (input.title !== undefined) data.title = input.title;
+    if (input.description !== undefined) data.description = input.description ?? null;
+    if (input.type !== undefined) data.type = input.type;
+    if (input.status !== undefined) data.status = input.status;
+    if (input.startDate !== undefined) data.startDate = new Date(input.startDate);
+    if (input.endDate !== undefined) data.endDate = new Date(input.endDate);
+    if (input.capacity !== undefined) data.capacity = input.capacity ?? null;
+    if (input.price !== undefined) data.price = input.price;
+    if (input.currency !== undefined) data.currency = input.currency;
+    if (input.imageUrl !== undefined) data.imageUrl = input.imageUrl ?? null;
+    if (input.isFeatured !== undefined) data.isFeatured = input.isFeatured;
 
-    return dbOperations.updateEvent(id, updateData);
+    return this.db.event.update({
+      where: { id },
+      data,
+      include: { category: true, venue: true },
+    });
   }
 
   async delete(id: string, userId: string): Promise<void> {
-    const belongs = await dbOperations.checkEventBelongsToUser(id, userId);
-    if (!belongs) throw new Error('Event not found');
+    const event = await this.db.event.findFirst({ where: { id, userId } });
+    if (!event) throw new Error('Event not found');
 
-    return dbOperations.deleteEvent(id);
+    await this.db.event.delete({ where: { id } });
   }
 
-  async getById(id: string, userId: string): Promise<EventRecord | null> {
-    const belongs = await dbOperations.checkEventBelongsToUser(id, userId);
-    if (!belongs) return null;
-
-    return dbOperations.findEventById(id);
+  async getById(id: string, userId: string) {
+    return this.db.event.findFirst({
+      where: { id, userId },
+      include: {
+        category: true,
+        venue: true,
+        speakers: { orderBy: { sortOrder: 'asc' } },
+        registrations: true,
+      },
+    });
   }
 
   async list(userId: string, filters: EventFilters) {
     const page = filters.page || 1;
     const limit = filters.limit || 20;
+    const skip = (page - 1) * limit;
 
-    const result = await dbOperations.findEvents(userId, { ...filters, page, limit });
+    const where: Record<string, unknown> = { userId };
+
+    if (filters.status) where.status = filters.status;
+    if (filters.type) where.type = filters.type;
+    if (filters.categoryId) where.categoryId = filters.categoryId;
+    if (filters.venueId) where.venueId = filters.venueId;
+
+    if (filters.search) {
+      where.OR = [
+        { title: { contains: filters.search, mode: 'insensitive' } },
+        { description: { contains: filters.search, mode: 'insensitive' } },
+      ];
+    }
+
+    if (filters.startAfter || filters.startBefore) {
+      const startDate: Record<string, Date> = {};
+      if (filters.startAfter) startDate.gte = new Date(filters.startAfter);
+      if (filters.startBefore) startDate.lte = new Date(filters.startBefore);
+      where.startDate = startDate;
+    }
+
+    const [items, total] = await Promise.all([
+      this.db.event.findMany({
+        where,
+        include: { category: true, venue: true, _count: { select: { registrations: true } } },
+        orderBy: { startDate: 'asc' },
+        skip,
+        take: limit,
+      }),
+      this.db.event.count({ where }),
+    ]);
 
     return {
-      items: result.items,
+      items,
       pagination: {
         page,
         limit,
-        total: result.total,
-        totalPages: Math.ceil(result.total / limit),
+        total,
+        totalPages: Math.ceil(total / limit),
       },
     };
   }
 
-  async changeStatus(id: string, userId: string, status: string): Promise<EventRecord | null> {
-    const belongs = await dbOperations.checkEventBelongsToUser(id, userId);
-    if (!belongs) throw new Error('Event not found');
+  async changeStatus(id: string, userId: string, status: string) {
+    const event = await this.db.event.findFirst({ where: { id, userId } });
+    if (!event) throw new Error('Event not found');
 
-    return dbOperations.updateEvent(id, { status });
+    return this.db.event.update({
+      where: { id },
+      data: { status: status as 'DRAFT' | 'PUBLISHED' | 'CANCELLED' | 'COMPLETED' | 'ARCHIVED' },
+      include: { category: true, venue: true },
+    });
   }
 
-  async publish(id: string, userId: string): Promise<EventRecord | null> {
+  async publish(id: string, userId: string) {
     return this.changeStatus(id, userId, 'PUBLISHED');
   }
 
-  async cancel(id: string, userId: string): Promise<EventRecord | null> {
+  async cancel(id: string, userId: string) {
     return this.changeStatus(id, userId, 'CANCELLED');
   }
 
-  async complete(id: string, userId: string): Promise<EventRecord | null> {
+  async complete(id: string, userId: string) {
     return this.changeStatus(id, userId, 'COMPLETED');
   }
 
   async getDashboardStats(userId: string): Promise<DashboardStats> {
-    return dbOperations.getDashboardStats(userId);
+    const now = new Date();
+
+    const [
+      totalEvents,
+      publishedEvents,
+      draftEvents,
+      upcomingEvents,
+      totalRegistrations,
+      confirmedRegistrations,
+      totalVenues,
+      revenueResult,
+    ] = await Promise.all([
+      this.db.event.count({ where: { userId } }),
+      this.db.event.count({ where: { userId, status: 'PUBLISHED' } }),
+      this.db.event.count({ where: { userId, status: 'DRAFT' } }),
+      this.db.event.count({ where: { userId, startDate: { gte: now }, status: { in: ['PUBLISHED', 'DRAFT'] } } }),
+      this.db.eventRegistration.count({
+        where: { event: { userId } },
+      }),
+      this.db.eventRegistration.count({
+        where: { event: { userId }, status: 'CONFIRMED' },
+      }),
+      this.db.eventVenue.count({ where: { userId } }),
+      this.db.event.aggregate({
+        where: { userId },
+        _sum: { price: true },
+      }),
+    ]);
+
+    return {
+      totalEvents,
+      publishedEvents,
+      draftEvents,
+      upcomingEvents,
+      totalRegistrations,
+      confirmedRegistrations,
+      totalVenues,
+      totalRevenue: revenueResult._sum.price ?? 0,
+    };
   }
 }
 
@@ -269,10 +271,18 @@ export class EventService {
 // Factory
 // =============================================================================
 
+export function createEventService(db: PrismaClient): EventService {
+  return new EventService(db);
+}
+
 let instance: EventService | null = null;
 
-export function getEventService(): EventService {
-  if (!instance) instance = new EventService();
+export function getEventService(db?: PrismaClient): EventService {
+  if (db) return createEventService(db);
+  if (!instance) {
+    const { db: globalDb } = require('../../../../core/backend/src/lib/db.js');
+    instance = new EventService(globalDb);
+  }
   return instance;
 }
 

@@ -19,7 +19,7 @@ export async function previewFetch(
   options: RequestInit = {},
 ): Promise<Response> {
   const token = getSessionToken();
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3003/api";
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3003/api/v1";
 
   return fetch(`${apiUrl}${path}`, {
     ...options,

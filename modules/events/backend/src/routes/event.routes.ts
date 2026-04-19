@@ -1,16 +1,25 @@
 import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
-import { getEventService } from '../services/event.service.js';
-import { getSpeakerService } from '../services/speaker.service.js';
-import { getRegistrationService } from '../services/registration.service.js';
+import { EventService } from '../services/event.service.js';
+import { SpeakerService } from '../services/speaker.service.js';
+import { RegistrationService } from '../services/registration.service.js';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
+import type { PrismaClient } from '@prisma/client';
 
 // =============================================================================
-// Routes
+// Helpers
 // =============================================================================
 
-const eventService = getEventService();
-const speakerService = getSpeakerService();
-const registrationService = getRegistrationService();
+function eventSvc(req: FastifyRequest): EventService {
+  return new EventService((req as FastifyRequest & { db?: PrismaClient }).db!);
+}
+
+function speakerSvc(req: FastifyRequest): SpeakerService {
+  return new SpeakerService((req as FastifyRequest & { db?: PrismaClient }).db!);
+}
+
+function regSvc(req: FastifyRequest): RegistrationService {
+  return new RegistrationService((req as FastifyRequest & { db?: PrismaClient }).db!);
+}
 
 // =============================================================================
 // Event Endpoints (All Authenticated)
@@ -25,7 +34,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
   const handleGetStats = async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
 
-    const stats = await eventService.getDashboardStats(authReq.user.userId);
+    const stats = await eventSvc(req).getDashboardStats(authReq.user.userId);
     return reply.send({ success: true, data: stats });
   };
 
@@ -40,7 +49,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { search, status, type, categoryId, venueId, startAfter, startBefore, page, limit } = req.query as Record<string, string>;
 
-    const result = await eventService.list(authReq.user.userId, {
+    const result = await eventSvc(req).list(authReq.user.userId, {
       search,
       status,
       type,
@@ -63,7 +72,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { id } = req.params as { id: string };
 
-    const event = await eventService.getById(id, authReq.user.userId);
+    const event = await eventSvc(req).getById(id, authReq.user.userId);
     if (!event) {
       return reply.code(404).send({ error: 'Event not found' });
     }
@@ -82,7 +91,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'title, startDate, and endDate are required' });
     }
 
-    const event = await eventService.create({
+    const event = await eventSvc(req).create({
       userId: authReq.user.userId,
       title,
       description,
@@ -97,7 +106,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
       currency,
       imageUrl,
       isFeatured,
-    });
+    } as Parameters<EventService['create']>[0]);
 
     return reply.code(201).send({ success: true, data: event });
   });
@@ -111,7 +120,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const { id } = req.params as { id: string };
     const { title, description, categoryId, venueId, type, status, startDate, endDate, capacity, price, currency, imageUrl, isFeatured } = req.body as Record<string, unknown>;
 
-    const event = await eventService.update(id, authReq.user.userId, {
+    const event = await eventSvc(req).update(id, authReq.user.userId, {
       title,
       description,
       categoryId,
@@ -125,7 +134,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
       currency,
       imageUrl,
       isFeatured,
-    });
+    } as Parameters<EventService['update']>[2]);
 
     if (!event) {
       return reply.code(404).send({ error: 'Event not found' });
@@ -142,7 +151,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { id } = req.params as { id: string };
 
-    await eventService.delete(id, authReq.user.userId);
+    await eventSvc(req).delete(id, authReq.user.userId);
     return reply.send({ success: true, message: 'Event deleted' });
   });
 
@@ -154,7 +163,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { id } = req.params as { id: string };
 
-    const event = await eventService.publish(id, authReq.user.userId);
+    const event = await eventSvc(req).publish(id, authReq.user.userId);
     if (!event) {
       return reply.code(404).send({ error: 'Event not found' });
     }
@@ -169,7 +178,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { id } = req.params as { id: string };
 
-    const event = await eventService.cancel(id, authReq.user.userId);
+    const event = await eventSvc(req).cancel(id, authReq.user.userId);
     if (!event) {
       return reply.code(404).send({ error: 'Event not found' });
     }
@@ -184,7 +193,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { id } = req.params as { id: string };
 
-    const event = await eventService.complete(id, authReq.user.userId);
+    const event = await eventSvc(req).complete(id, authReq.user.userId);
     if (!event) {
       return reply.code(404).send({ error: 'Event not found' });
     }
@@ -202,7 +211,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/:id/speakers', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const { id } = req.params as { id: string };
 
-    const speakers = await speakerService.listByEvent(id);
+    const speakers = await speakerSvc(req).listByEvent(id);
     return reply.send({ success: true, data: speakers });
   });
 
@@ -219,7 +228,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'name is required' });
     }
 
-    const speaker = await speakerService.create({
+    const speaker = await speakerSvc(req).create({
       eventId: id,
       userId: authReq.user.userId,
       name,
@@ -228,7 +237,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
       avatarUrl,
       title,
       company,
-    });
+    } as Parameters<SpeakerService['create']>[0]);
 
     return reply.code(201).send({ success: true, data: speaker });
   });
@@ -244,7 +253,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/:id/registrations', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const { id } = req.params as { id: string };
 
-    const registrations = await registrationService.listByEvent(id);
+    const registrations = await regSvc(req).listByEvent(id);
     return reply.send({ success: true, data: registrations });
   });
 
@@ -261,13 +270,13 @@ const routes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'attendeeName and attendeeEmail are required' });
     }
 
-    const registration = await registrationService.register({
+    const registration = await regSvc(req).register({
       eventId: id,
       userId: authReq.user.userId,
       attendeeName,
       attendeeEmail,
       notes,
-    });
+    } as Parameters<RegistrationService['register']>[0]);
 
     return reply.code(201).send({ success: true, data: registration });
   });

@@ -2,7 +2,9 @@
 // Project Service
 // =============================================================================
 // Business logic for project management: CRUD, archiving, reordering, and stats.
-// Uses placeholder db operations - replace with actual Prisma client.
+// Uses dependency-injected PrismaClient for all database operations.
+
+import type { PrismaClient } from '@prisma/client';
 
 // =============================================================================
 // Types
@@ -30,148 +32,112 @@ export interface ProjectStats {
   doneTasks: number;
 }
 
-interface ProjectRecord {
-  id: string;
-  userId: string;
-  name: string;
-  description: string | null;
-  color: string;
-  icon: string | null;
-  isArchived: boolean;
-  position: number;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-// =============================================================================
-// Database Operations (Placeholder)
-// =============================================================================
-
-const dbOperations = {
-  async createProject(data: {
-    userId: string;
-    name: string;
-    description: string | null;
-    color: string;
-    icon: string | null;
-    position: number;
-  }): Promise<ProjectRecord> {
-    console.log('[DB] Creating project:', data.name);
-    return {
-      id: 'proj_' + Date.now(),
-      ...data,
-      isArchived: false,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-  },
-
-  async findProjectById(id: string): Promise<ProjectRecord | null> {
-    console.log('[DB] Finding project by ID:', id);
-    return null;
-  },
-
-  async findProjects(userId: string, includeArchived = false): Promise<ProjectRecord[]> {
-    console.log('[DB] Finding projects for user:', userId);
-    return [];
-  },
-
-  async updateProject(id: string, data: Partial<ProjectRecord>): Promise<ProjectRecord | null> {
-    console.log('[DB] Updating project:', id);
-    return null;
-  },
-
-  async deleteProject(id: string): Promise<void> {
-    console.log('[DB] Deleting project:', id);
-  },
-
-  async checkProjectBelongsToUser(id: string, userId: string): Promise<boolean> {
-    console.log('[DB] Checking project ownership:', id, userId);
-    return false;
-  },
-
-  async getProjectCount(userId: string): Promise<number> {
-    console.log('[DB] Getting project count for user:', userId);
-    return 0;
-  },
-
-  async getProjectStats(projectId: string): Promise<ProjectStats> {
-    console.log('[DB] Getting project stats:', projectId);
-    return { totalTasks: 0, todoTasks: 0, inProgressTasks: 0, doneTasks: 0 };
-  },
-};
-
 // =============================================================================
 // Project Service
 // =============================================================================
 
 export class ProjectService {
-  async create(input: ProjectCreateInput): Promise<ProjectRecord> {
-    const count = await dbOperations.getProjectCount(input.userId);
+  constructor(private db: PrismaClient) {}
 
-    return dbOperations.createProject({
-      userId: input.userId,
-      name: input.name,
-      description: input.description || null,
-      color: input.color || '#6B7280',
-      icon: input.icon || null,
-      position: count,
+  async create(input: ProjectCreateInput) {
+    const count = await this.db.taskProject.count({
+      where: { userId: input.userId },
+    });
+
+    return this.db.taskProject.create({
+      data: {
+        userId: input.userId,
+        name: input.name,
+        description: input.description || null,
+        color: input.color || '#6B7280',
+        icon: input.icon || null,
+        position: count,
+      },
     });
   }
 
-  async update(id: string, userId: string, input: ProjectUpdateInput): Promise<ProjectRecord | null> {
-    const belongs = await dbOperations.checkProjectBelongsToUser(id, userId);
-    if (!belongs) throw new Error('Project not found');
+  async update(id: string, userId: string, input: ProjectUpdateInput) {
+    const project = await this.db.taskProject.findFirst({ where: { id, userId } });
+    if (!project) throw new Error('Project not found');
 
-    return dbOperations.updateProject(id, input as Partial<ProjectRecord>);
+    const data: Record<string, unknown> = {};
+    if (input.name !== undefined) data.name = input.name;
+    if (input.description !== undefined) data.description = input.description;
+    if (input.color !== undefined) data.color = input.color;
+    if (input.icon !== undefined) data.icon = input.icon;
+
+    return this.db.taskProject.update({
+      where: { id },
+      data: data as any,
+    });
   }
 
   async delete(id: string, userId: string): Promise<void> {
-    const belongs = await dbOperations.checkProjectBelongsToUser(id, userId);
-    if (!belongs) throw new Error('Project not found');
+    const project = await this.db.taskProject.findFirst({ where: { id, userId } });
+    if (!project) throw new Error('Project not found');
 
-    return dbOperations.deleteProject(id);
+    await this.db.taskProject.delete({ where: { id } });
   }
 
-  async getById(id: string, userId: string): Promise<ProjectRecord | null> {
-    const belongs = await dbOperations.checkProjectBelongsToUser(id, userId);
-    if (!belongs) return null;
-
-    return dbOperations.findProjectById(id);
+  async getById(id: string, userId: string) {
+    const project = await this.db.taskProject.findFirst({ where: { id, userId } });
+    return project || null;
   }
 
-  async list(userId: string, includeArchived = false): Promise<ProjectRecord[]> {
-    return dbOperations.findProjects(userId, includeArchived);
+  async list(userId: string, includeArchived = false) {
+    const where: Record<string, unknown> = { userId };
+    if (!includeArchived) {
+      where.isArchived = false;
+    }
+
+    return this.db.taskProject.findMany({
+      where: where as any,
+      orderBy: [{ position: 'asc' }, { createdAt: 'desc' }],
+    });
   }
 
-  async archive(id: string, userId: string): Promise<ProjectRecord | null> {
-    const belongs = await dbOperations.checkProjectBelongsToUser(id, userId);
-    if (!belongs) throw new Error('Project not found');
+  async archive(id: string, userId: string) {
+    const project = await this.db.taskProject.findFirst({ where: { id, userId } });
+    if (!project) throw new Error('Project not found');
 
-    return dbOperations.updateProject(id, { isArchived: true } as Partial<ProjectRecord>);
+    return this.db.taskProject.update({
+      where: { id },
+      data: { isArchived: true },
+    });
   }
 
-  async unarchive(id: string, userId: string): Promise<ProjectRecord | null> {
-    const belongs = await dbOperations.checkProjectBelongsToUser(id, userId);
-    if (!belongs) throw new Error('Project not found');
+  async unarchive(id: string, userId: string) {
+    const project = await this.db.taskProject.findFirst({ where: { id, userId } });
+    if (!project) throw new Error('Project not found');
 
-    return dbOperations.updateProject(id, { isArchived: false } as Partial<ProjectRecord>);
+    return this.db.taskProject.update({
+      where: { id },
+      data: { isArchived: false },
+    });
   }
 
   async reorder(userId: string, ids: string[]): Promise<void> {
-    for (let i = 0; i < ids.length; i++) {
-      const belongs = await dbOperations.checkProjectBelongsToUser(ids[i], userId);
-      if (belongs) {
-        await dbOperations.updateProject(ids[i], { position: i } as Partial<ProjectRecord>);
-      }
-    }
+    const updates = ids.map((projectId, index) =>
+      this.db.taskProject.updateMany({
+        where: { id: projectId, userId },
+        data: { position: index },
+      })
+    );
+    await Promise.all(updates);
   }
 
   async getStats(id: string, userId: string): Promise<ProjectStats> {
-    const belongs = await dbOperations.checkProjectBelongsToUser(id, userId);
-    if (!belongs) throw new Error('Project not found');
+    const project = await this.db.taskProject.findFirst({ where: { id, userId } });
+    if (!project) throw new Error('Project not found');
 
-    return dbOperations.getProjectStats(id);
+    const [totalTasks, todoTasks, inProgressTasks, doneTasks] = await Promise.all([
+      this.db.task.count({ where: { projectId: id } }),
+      this.db.task.count({ where: { projectId: id, status: 'TODO' } }),
+      this.db.task.count({ where: { projectId: id, status: 'IN_PROGRESS' } }),
+      this.db.task.count({ where: { projectId: id, status: 'DONE' } }),
+    ]);
+
+    return { totalTasks, todoTasks, inProgressTasks, doneTasks };
   }
 }
 
@@ -179,10 +145,18 @@ export class ProjectService {
 // Factory
 // =============================================================================
 
+export function createProjectService(db: PrismaClient): ProjectService {
+  return new ProjectService(db);
+}
+
 let instance: ProjectService | null = null;
 
-export function getProjectService(): ProjectService {
-  if (!instance) instance = new ProjectService();
+export function getProjectService(db?: PrismaClient): ProjectService {
+  if (db) return createProjectService(db);
+  if (!instance) {
+    const { db: globalDb } = require('../../../../core/backend/src/lib/db.js');
+    instance = new ProjectService(globalDb);
+  }
   return instance;
 }
 

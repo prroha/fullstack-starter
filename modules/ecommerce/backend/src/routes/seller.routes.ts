@@ -1,14 +1,24 @@
 import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
-import { getSellerService } from '../services/seller.service.js';
-import { getProductService } from '../services/product.service.js';
+import { SellerService } from '../services/seller.service.js';
+import { ProductService } from '../services/product.service.js';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
+import type { PrismaClient } from '@prisma/client';
 
 // =============================================================================
-// Routes
+// DI Helpers
 // =============================================================================
 
-const sellerService = getSellerService();
-const productService = getProductService();
+function getDb(req: FastifyRequest): PrismaClient {
+  return (req as FastifyRequest & { db?: PrismaClient }).db!;
+}
+
+function sellerSvc(req: FastifyRequest): SellerService {
+  return new SellerService(getDb(req));
+}
+
+function productSvc(req: FastifyRequest): ProductService {
+  return new ProductService(getDb(req));
+}
 
 // =============================================================================
 // Seller Dashboard Endpoints (All Authenticated)
@@ -21,7 +31,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
    */
   fastify.get('/stats', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const stats = await sellerService.getDashboardStats(authReq.user.userId);
+    const stats = await sellerSvc(req).getDashboardStats(authReq.user.userId);
     return reply.send({ success: true, data: stats });
   });
 
@@ -33,7 +43,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { page, limit } = req.query as Record<string, string>;
 
-    const result = await productService.listProducts({
+    const result = await productSvc(req).listProducts({
       sellerId: authReq.user.userId,
       page: page ? Number(page) : 1,
       limit: limit ? Number(limit) : 20,
@@ -48,7 +58,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
    */
   fastify.get('/products/analytics', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const analytics = await sellerService.getProductAnalytics(authReq.user.userId);
+    const analytics = await sellerSvc(req).getProductAnalytics(authReq.user.userId);
     return reply.send({ success: true, data: analytics });
   });
 
@@ -60,7 +70,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { page, limit } = req.query as Record<string, string>;
 
-    const result = await sellerService.getOrders(
+    const result = await sellerSvc(req).getOrders(
       authReq.user.userId,
       page ? Number(page) : 1,
       limit ? Number(limit) : 20,
@@ -75,7 +85,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
    */
   fastify.get('/orders/recent', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const orders = await sellerService.getRecentOrders(authReq.user.userId, 5);
+    const orders = await sellerSvc(req).getRecentOrders(authReq.user.userId, 5);
     return reply.send({ success: true, data: orders });
   });
 
@@ -85,7 +95,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
    */
   fastify.get('/reviews/recent', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
-    const reviews = await sellerService.getRecentReviews(authReq.user.userId, 5);
+    const reviews = await sellerSvc(req).getRecentReviews(authReq.user.userId, 5);
     return reply.send({ success: true, data: reviews });
   });
 
@@ -97,7 +107,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { period } = req.query as Record<string, string>;
 
-    const revenue = await sellerService.getRevenue(
+    const revenue = await sellerSvc(req).getRevenue(
       authReq.user.userId,
       (period as 'daily' | 'weekly' | 'monthly') || 'monthly',
     );

@@ -23,9 +23,10 @@ await app.register(fastifyHelmet, {
   crossOriginEmbedderPolicy: false, // Allow cross-origin API calls
 });
 
-// CORS
+// CORS — supports comma-separated origins (e.g. "http://localhost:3002,http://localhost:3004")
+const allowedOrigins = env.CORS_ORIGIN.split(",").map((o) => o.trim());
 await app.register(fastifyCors, {
-  origin: env.CORS_ORIGIN,
+  origin: allowedOrigins.length === 1 ? allowedOrigins[0] : allowedOrigins,
   credentials: true,
 });
 
@@ -45,11 +46,10 @@ app.addHook("onRequest", async (req, reply) => {
     return;
   }
   const origin = req.headers.origin;
-  const allowedOrigin = env.CORS_ORIGIN;
   if (!origin) {
     return reply.code(403).send({ success: false, error: { message: 'Origin header required for state-changing requests', code: 'CSRF_REJECTED' } });
   }
-  if (origin !== allowedOrigin) {
+  if (!allowedOrigins.includes(origin)) {
     return reply.code(403).send({ success: false, error: { message: 'Origin not allowed', code: 'CSRF_REJECTED' } });
   }
 });

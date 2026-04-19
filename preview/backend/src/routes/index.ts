@@ -3,6 +3,9 @@ import { FastifyPluginAsync } from "fastify";
 // Core routes — direct import of the core route aggregator
 import coreRoutes from "../../../../core/backend/src/routes/index.js";
 
+// SSO auth routes (Studio → Preview auto-login)
+import ssoRoutes from "./sso.routes.js";
+
 // Ecommerce module routes
 import ecommerceProductRoutes from "../../../../modules/ecommerce/backend/src/routes/product.routes.js";
 import ecommerceCartRoutes from "../../../../modules/ecommerce/backend/src/routes/cart.routes.js";
@@ -62,6 +65,9 @@ import tasksRoutes from "../../../../modules/tasks/backend/src/routes/index.js";
 const routes: FastifyPluginAsync = async (fastify) => {
   // Core routes — same structure as core backend
   await fastify.register(coreRoutes, { prefix: "/v1" });
+
+  // SSO auth (Studio → Preview auto-login)
+  await fastify.register(ssoRoutes, { prefix: "/v1" });
 
   // Ecommerce module
   await fastify.register(async (ecommerce) => {

@@ -2,7 +2,9 @@
 // Registration Service
 // =============================================================================
 // Business logic for event registrations: register, cancel, confirm, check-in.
-// Uses placeholder db operations - replace with actual Prisma client.
+// Uses dependency-injected PrismaClient for all database operations.
+
+import type { PrismaClient } from '@prisma/client';
 
 // =============================================================================
 // Types
@@ -24,22 +26,8 @@ export interface RegistrationFilters {
   limit?: number;
 }
 
-interface RegistrationRecord {
-  id: string;
-  eventId: string;
-  userId: string;
-  status: string;
-  registrationNumber: string;
-  attendeeName: string;
-  attendeeEmail: string;
-  notes: string | null;
-  checkedInAt: Date | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
 // =============================================================================
-// Database Operations (Placeholder)
+// Helpers
 // =============================================================================
 
 function generateRegistrationNumber(): string {
@@ -49,115 +37,117 @@ function generateRegistrationNumber(): string {
   return `${prefix}-${timestamp}-${random}`;
 }
 
-const dbOperations = {
-  async createRegistration(data: Omit<RegistrationRecord, 'id' | 'createdAt' | 'updatedAt'>): Promise<RegistrationRecord> {
-    console.log('[DB] Creating registration for event:', data.eventId);
-    return {
-      id: 'reg_' + Date.now(),
-      ...data,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-  },
-
-  async findRegistrationById(id: string): Promise<RegistrationRecord | null> {
-    console.log('[DB] Finding registration by ID:', id);
-    return null;
-  },
-
-  async findRegistrations(userId: string, filters: RegistrationFilters): Promise<{ items: RegistrationRecord[]; total: number }> {
-    console.log('[DB] Finding registrations for user:', userId, filters);
-    return { items: [], total: 0 };
-  },
-
-  async findRegistrationsByEvent(eventId: string): Promise<RegistrationRecord[]> {
-    console.log('[DB] Finding registrations for event:', eventId);
-    return [];
-  },
-
-  async updateRegistration(id: string, data: Partial<RegistrationRecord>): Promise<RegistrationRecord | null> {
-    console.log('[DB] Updating registration:', id);
-    return null;
-  },
-
-  async checkRegistrationBelongsToUser(id: string, userId: string): Promise<boolean> {
-    console.log('[DB] Checking registration ownership:', id, userId);
-    return false;
-  },
-
-  async getRegistrationStats(userId: string): Promise<{ total: number; confirmed: number; cancelled: number; attended: number }> {
-    console.log('[DB] Getting registration stats for user:', userId);
-    return { total: 0, confirmed: 0, cancelled: 0, attended: 0 };
-  },
-};
-
 // =============================================================================
 // Registration Service
 // =============================================================================
 
 export class RegistrationService {
-  async register(input: RegistrationCreateInput): Promise<RegistrationRecord> {
-    return dbOperations.createRegistration({
-      eventId: input.eventId,
-      userId: input.userId,
-      status: 'PENDING',
-      registrationNumber: generateRegistrationNumber(),
-      attendeeName: input.attendeeName,
-      attendeeEmail: input.attendeeEmail,
-      notes: input.notes || null,
-      checkedInAt: null,
+  constructor(private db: PrismaClient) {}
+
+  async register(input: RegistrationCreateInput) {
+    return this.db.eventRegistration.create({
+      data: {
+        eventId: input.eventId,
+        userId: input.userId,
+        status: 'PENDING',
+        registrationNumber: generateRegistrationNumber(),
+        attendeeName: input.attendeeName,
+        attendeeEmail: input.attendeeEmail,
+        notes: input.notes || null,
+      },
+      include: { event: true },
     });
   }
 
-  private async changeStatus(id: string, userId: string, status: string, extra?: Partial<RegistrationRecord>): Promise<RegistrationRecord | null> {
-    const belongs = await dbOperations.checkRegistrationBelongsToUser(id, userId);
-    if (!belongs) throw new Error('Registration not found');
+  private async changeStatus(id: string, userId: string, status: string, extra?: Record<string, unknown>) {
+    // Registration belongs to user if the parent event belongs to user
+    const registration = await this.db.eventRegistration.findFirst({
+      where: { id, event: { userId } },
+    });
+    if (!registration) throw new Error('Registration not found');
 
-    return dbOperations.updateRegistration(id, { status, ...extra });
+    return this.db.eventRegistration.update({
+      where: { id },
+      data: { status: status as 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'WAITLISTED' | 'ATTENDED', ...extra },
+      include: { event: true },
+    });
   }
 
-  async cancel(id: string, userId: string): Promise<RegistrationRecord | null> {
+  async cancel(id: string, userId: string) {
     return this.changeStatus(id, userId, 'CANCELLED');
   }
 
-  async confirm(id: string, userId: string): Promise<RegistrationRecord | null> {
+  async confirm(id: string, userId: string) {
     return this.changeStatus(id, userId, 'CONFIRMED');
   }
 
-  async checkIn(id: string, userId: string): Promise<RegistrationRecord | null> {
+  async checkIn(id: string, userId: string) {
     return this.changeStatus(id, userId, 'ATTENDED', { checkedInAt: new Date() });
   }
 
-  async getById(id: string, userId: string): Promise<RegistrationRecord | null> {
-    const belongs = await dbOperations.checkRegistrationBelongsToUser(id, userId);
-    if (!belongs) return null;
-
-    return dbOperations.findRegistrationById(id);
+  async getById(id: string, userId: string) {
+    return this.db.eventRegistration.findFirst({
+      where: { id, event: { userId } },
+      include: { event: true },
+    });
   }
 
-  async listByEvent(eventId: string): Promise<RegistrationRecord[]> {
-    return dbOperations.findRegistrationsByEvent(eventId);
+  async listByEvent(eventId: string) {
+    return this.db.eventRegistration.findMany({
+      where: { eventId },
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   async listAll(userId: string, filters: RegistrationFilters) {
     const page = filters.page || 1;
     const limit = filters.limit || 20;
+    const skip = (page - 1) * limit;
 
-    const result = await dbOperations.findRegistrations(userId, { ...filters, page, limit });
+    const where: Record<string, unknown> = { event: { userId } };
+
+    if (filters.eventId) where.eventId = filters.eventId;
+    if (filters.status) where.status = filters.status;
+
+    if (filters.search) {
+      where.OR = [
+        { attendeeName: { contains: filters.search, mode: 'insensitive' } },
+        { attendeeEmail: { contains: filters.search, mode: 'insensitive' } },
+        { registrationNumber: { contains: filters.search, mode: 'insensitive' } },
+      ];
+    }
+
+    const [items, total] = await Promise.all([
+      this.db.eventRegistration.findMany({
+        where,
+        include: { event: { select: { id: true, title: true, startDate: true } } },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.db.eventRegistration.count({ where }),
+    ]);
 
     return {
-      items: result.items,
+      items,
       pagination: {
         page,
         limit,
-        total: result.total,
-        totalPages: Math.ceil(result.total / limit),
+        total,
+        totalPages: Math.ceil(total / limit),
       },
     };
   }
 
   async getStats(userId: string) {
-    return dbOperations.getRegistrationStats(userId);
+    const [total, confirmed, cancelled, attended] = await Promise.all([
+      this.db.eventRegistration.count({ where: { event: { userId } } }),
+      this.db.eventRegistration.count({ where: { event: { userId }, status: 'CONFIRMED' } }),
+      this.db.eventRegistration.count({ where: { event: { userId }, status: 'CANCELLED' } }),
+      this.db.eventRegistration.count({ where: { event: { userId }, status: 'ATTENDED' } }),
+    ]);
+
+    return { total, confirmed, cancelled, attended };
   }
 }
 
@@ -165,10 +155,18 @@ export class RegistrationService {
 // Factory
 // =============================================================================
 
+export function createRegistrationService(db: PrismaClient): RegistrationService {
+  return new RegistrationService(db);
+}
+
 let instance: RegistrationService | null = null;
 
-export function getRegistrationService(): RegistrationService {
-  if (!instance) instance = new RegistrationService();
+export function getRegistrationService(db?: PrismaClient): RegistrationService {
+  if (db) return createRegistrationService(db);
+  if (!instance) {
+    const { db: globalDb } = require('../../../../core/backend/src/lib/db.js');
+    instance = new RegistrationService(globalDb);
+  }
   return instance;
 }
 

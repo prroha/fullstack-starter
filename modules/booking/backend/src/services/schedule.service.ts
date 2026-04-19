@@ -2,7 +2,9 @@
 // Booking Schedule Service
 // =============================================================================
 // Business logic for weekly schedule management and date-specific overrides.
-// Uses placeholder db operations - replace with actual Prisma client.
+// Uses dependency-injected PrismaClient.
+
+import type { PrismaClient, Prisma } from '@prisma/client';
 
 // =============================================================================
 // Types
@@ -16,9 +18,9 @@ export interface ScheduleInput {
 }
 
 export interface OverrideCreateInput {
-  providerId: string;
   date: string;
-  isBlocked: boolean;
+  isBlocked?: boolean;
+  isAvailable?: boolean;
   startTime?: string;
   endTime?: string;
   reason?: string;
@@ -29,108 +31,21 @@ export interface OverrideFilters {
   endDate?: string;
 }
 
-interface ScheduleRecord {
-  id: string;
-  providerId: string;
-  dayOfWeek: number;
-  startTime: string;
-  endTime: string;
-  isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-interface ScheduleOverrideRecord {
-  id: string;
-  providerId: string;
-  date: string;
-  isBlocked: boolean;
-  startTime: string | null;
-  endTime: string | null;
-  reason: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-// =============================================================================
-// Database Operations (Placeholder)
-// =============================================================================
-// TODO: Implement with Prisma when booking schema is provisioned.
-// Currently returns empty/mock data. Replace placeholder calls with actual
-// Prisma client queries (e.g., db.schedule.create({ data })).
-// import { db } from '../../../../core/backend/src/lib/db';
-
-const dbOperations = {
-  // TODO: Implement with Prisma — db.schedule.findMany({ where: { providerId }, orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }] })
-  async findWeeklySchedule(providerId: string): Promise<ScheduleRecord[]> {
-    void providerId;
-    return [];
-  },
-
-  // TODO: Implement with Prisma — db.schedule.upsert({ where: { providerId_dayOfWeek }, create, update })
-  async upsertSchedule(providerId: string, data: ScheduleInput): Promise<ScheduleRecord> {
-    return {
-      id: 'schedule_' + Date.now(),
-      providerId,
-      dayOfWeek: data.dayOfWeek,
-      startTime: data.startTime,
-      endTime: data.endTime,
-      isActive: data.isActive,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-  },
-
-  // TODO: Implement with Prisma — db.schedule.deleteMany({ where: { providerId } })
-  async deleteSchedulesForProvider(providerId: string): Promise<void> {
-    void providerId;
-  },
-
-  // TODO: Implement with Prisma — db.scheduleOverride.findMany with date range filters
-  async findOverrides(providerId: string, _filters: OverrideFilters): Promise<ScheduleOverrideRecord[]> {
-    void providerId;
-    return [];
-  },
-
-  // TODO: Implement with Prisma — db.scheduleOverride.create({ data })
-  async createOverride(data: {
-    providerId: string;
-    date: string;
-    isBlocked: boolean;
-    startTime: string | null;
-    endTime: string | null;
-    reason: string | null;
-  }): Promise<ScheduleOverrideRecord> {
-    return {
-      id: 'override_' + Date.now(),
-      ...data,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-  },
-
-  // TODO: Implement with Prisma — db.scheduleOverride.findUnique({ where: { id } })
-  async findOverrideById(id: string): Promise<ScheduleOverrideRecord | null> {
-    void id;
-    return null;
-  },
-
-  // TODO: Implement with Prisma — db.scheduleOverride.delete({ where: { id } })
-  async deleteOverride(id: string): Promise<void> {
-    void id;
-  },
-};
-
 // =============================================================================
 // Schedule Service
 // =============================================================================
 
 export class ScheduleService {
+  constructor(private db: PrismaClient) {}
+
   /**
    * Get the full weekly schedule for a provider (all 7 days)
    */
-  async getWeeklySchedule(providerId: string): Promise<ScheduleRecord[]> {
-    return dbOperations.findWeeklySchedule(providerId);
+  async getWeeklySchedule(providerId: string) {
+    return this.db.schedule.findMany({
+      where: { providerId },
+      orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }],
+    });
   }
 
   /**
@@ -140,7 +55,7 @@ export class ScheduleService {
   async updateWeeklySchedule(
     providerId: string,
     schedules: ScheduleInput[],
-  ): Promise<ScheduleRecord[]> {
+  ) {
     // Validate inputs
     for (const schedule of schedules) {
       if (schedule.dayOfWeek < 0 || schedule.dayOfWeek > 6) {
@@ -161,29 +76,57 @@ export class ScheduleService {
       }
     }
 
-    // Delete existing schedules and create new ones
-    await dbOperations.deleteSchedulesForProvider(providerId);
+    // Delete existing schedules and create new ones in a transaction
+    return this.db.$transaction(async (tx) => {
+      await tx.schedule.deleteMany({ where: { providerId } });
 
-    const results: ScheduleRecord[] = [];
-    for (const schedule of schedules) {
-      const record = await dbOperations.upsertSchedule(providerId, schedule);
-      results.push(record);
-    }
+      const results = [];
+      for (const schedule of schedules) {
+        const record = await tx.schedule.create({
+          data: {
+            providerId,
+            dayOfWeek: schedule.dayOfWeek,
+            startTime: schedule.startTime,
+            endTime: schedule.endTime,
+            isActive: schedule.isActive,
+          },
+        });
+        results.push(record);
+      }
 
-    return results;
+      return results;
+    });
   }
 
   /**
    * List schedule overrides for a provider within an optional date range
    */
-  async listOverrides(providerId: string, filters: OverrideFilters): Promise<ScheduleOverrideRecord[]> {
-    return dbOperations.findOverrides(providerId, filters);
+  async listOverrides(providerId: string, startDate?: string, endDate?: string) {
+    const where: Prisma.ScheduleOverrideWhereInput = {
+      providerId,
+      ...(startDate || endDate
+        ? {
+            date: {
+              ...(startDate ? { gte: new Date(startDate) } : {}),
+              ...(endDate ? { lte: new Date(endDate) } : {}),
+            },
+          }
+        : {}),
+    };
+
+    return this.db.scheduleOverride.findMany({
+      where,
+      orderBy: { date: 'asc' },
+    });
   }
 
   /**
    * Create a schedule override (day off, custom hours, etc.)
    */
-  async createOverride(input: OverrideCreateInput): Promise<ScheduleOverrideRecord> {
+  async createOverride(providerId: string, input: OverrideCreateInput) {
+    // Determine isBlocked: if isAvailable is provided, invert it; otherwise use isBlocked or default to true
+    const isBlocked = input.isAvailable !== undefined ? !input.isAvailable : (input.isBlocked ?? true);
+
     // Validate time range if provided
     if (input.startTime && input.endTime) {
       const startMins = this.timeToMinutes(input.startTime);
@@ -194,31 +137,28 @@ export class ScheduleService {
       }
     }
 
-    // If blocked without specific times, it blocks the entire day
-    if (input.isBlocked && !input.startTime && !input.endTime) {
-      // Full day block - valid
-    }
-
-    return dbOperations.createOverride({
-      providerId: input.providerId,
-      date: input.date,
-      isBlocked: input.isBlocked,
-      startTime: input.startTime || null,
-      endTime: input.endTime || null,
-      reason: input.reason || null,
+    return this.db.scheduleOverride.create({
+      data: {
+        providerId,
+        date: new Date(input.date),
+        isBlocked,
+        startTime: input.startTime || null,
+        endTime: input.endTime || null,
+        reason: input.reason || null,
+      },
     });
   }
 
   /**
    * Delete a schedule override
    */
-  async deleteOverride(id: string): Promise<void> {
-    const override = await dbOperations.findOverrideById(id);
+  async deleteOverride(id: string) {
+    const override = await this.db.scheduleOverride.findUnique({ where: { id } });
     if (!override) {
       throw new Error('Schedule override not found');
     }
 
-    return dbOperations.deleteOverride(id);
+    await this.db.scheduleOverride.delete({ where: { id } });
   }
 
   /**
@@ -234,13 +174,18 @@ export class ScheduleService {
 // Factory
 // =============================================================================
 
-let scheduleServiceInstance: ScheduleService | null = null;
+export function createScheduleService(db: PrismaClient): ScheduleService {
+  return new ScheduleService(db);
+}
 
-export function getScheduleService(): ScheduleService {
-  if (!scheduleServiceInstance) {
-    scheduleServiceInstance = new ScheduleService();
+let instance: ScheduleService | null = null;
+export function getScheduleService(db?: PrismaClient): ScheduleService {
+  if (db) return createScheduleService(db);
+  if (!instance) {
+    const { db: globalDb } = require('../../../../core/backend/src/lib/db.js');
+    instance = new ScheduleService(globalDb);
   }
-  return scheduleServiceInstance;
+  return instance;
 }
 
 export default ScheduleService;

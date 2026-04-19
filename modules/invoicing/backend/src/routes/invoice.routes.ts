@@ -1,7 +1,16 @@
 import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
-import { getInvoiceService } from '../services/invoice.service.js';
+import { InvoiceService } from '../services/invoice.service.js';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
+import type { PrismaClient } from '@prisma/client';
+
+// =============================================================================
+// Helpers
+// =============================================================================
+
+function svc(req: FastifyRequest): InvoiceService {
+  return new InvoiceService((req as FastifyRequest & { db?: PrismaClient }).db!);
+}
 
 // =============================================================================
 // Validation Schemas
@@ -27,12 +36,6 @@ const createInvoiceSchema = z.object({
 });
 
 // =============================================================================
-// Routes
-// =============================================================================
-
-const invoiceService = getInvoiceService();
-
-// =============================================================================
 // Invoice Endpoints (All Authenticated)
 // =============================================================================
 
@@ -45,7 +48,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/stats', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
 
-    const stats = await invoiceService.getStats(authReq.user.userId);
+    const stats = await svc(req).getStats(authReq.user.userId);
     return reply.send({ success: true, data: stats });
   });
 
@@ -57,7 +60,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { search, status, clientId, dateFrom, dateTo, page, limit } = req.query as Record<string, string>;
 
-    const result = await invoiceService.list(authReq.user.userId, {
+    const result = await svc(req).list(authReq.user.userId, {
       search,
       status,
       clientId,
@@ -78,7 +81,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { id } = req.params as { id: string };
 
-    const invoice = await invoiceService.getById(id, authReq.user.userId);
+    const invoice = await svc(req).getById(id, authReq.user.userId);
     if (!invoice) {
       return reply.code(404).send({ error: 'Invoice not found' });
     }
@@ -93,7 +96,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { clientId, issueDate, dueDate, currency, notes, terms, discountAmount, items } = createInvoiceSchema.parse(req.body);
 
-    const invoice = await invoiceService.create({
+    const invoice = await svc(req).create({
       userId: authReq.user.userId,
       clientId,
       issueDate,
@@ -117,7 +120,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const { id } = req.params as { id: string };
     const { clientId, issueDate, dueDate, currency, notes, terms, discountAmount } = req.body as Record<string, unknown>;
 
-    const invoice = await invoiceService.update(id, authReq.user.userId, {
+    const invoice = await svc(req).update(id, authReq.user.userId, {
       clientId,
       issueDate,
       dueDate,
@@ -142,7 +145,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { id } = req.params as { id: string };
 
-    await invoiceService.delete(id, authReq.user.userId);
+    await svc(req).delete(id, authReq.user.userId);
     return reply.send({ success: true, message: 'Invoice deleted' });
   });
 
@@ -154,7 +157,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { id } = req.params as { id: string };
 
-    const invoice = await invoiceService.send(id, authReq.user.userId);
+    const invoice = await svc(req).send(id, authReq.user.userId);
     if (!invoice) {
       return reply.code(404).send({ error: 'Invoice not found' });
     }
@@ -169,7 +172,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { id } = req.params as { id: string };
 
-    const invoice = await invoiceService.void(id, authReq.user.userId);
+    const invoice = await svc(req).void(id, authReq.user.userId);
     if (!invoice) {
       return reply.code(404).send({ error: 'Invoice not found' });
     }
@@ -184,7 +187,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { id } = req.params as { id: string };
 
-    const invoice = await invoiceService.duplicate(id, authReq.user.userId);
+    const invoice = await svc(req).duplicate(id, authReq.user.userId);
     if (!invoice) {
       return reply.code(404).send({ error: 'Invoice not found' });
     }

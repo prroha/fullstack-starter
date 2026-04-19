@@ -3,7 +3,9 @@
 // =============================================================================
 // Business logic for task management: CRUD, filtering, status changes,
 // assignment, reordering, and dashboard stats.
-// Uses placeholder db operations - replace with actual Prisma client.
+// Uses dependency-injected PrismaClient for all database operations.
+
+import type { PrismaClient } from '@prisma/client';
 
 // =============================================================================
 // Types
@@ -55,190 +57,213 @@ export interface DashboardStats {
   totalProjects: number;
 }
 
-interface TaskRecord {
-  id: string;
-  userId: string;
-  projectId: string | null;
-  assigneeId: string | null;
-  title: string;
-  description: string | null;
-  status: string;
-  priority: string;
-  dueDate: Date | null;
-  position: number;
-  isArchived: boolean;
-  completedAt: Date | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-// =============================================================================
-// Database Operations (Placeholder)
-// =============================================================================
-
-const dbOperations = {
-  async createTask(data: {
-    userId: string;
-    projectId: string | null;
-    assigneeId: string | null;
-    title: string;
-    description: string | null;
-    status: string;
-    priority: string;
-    dueDate: Date | null;
-    position: number;
-  }): Promise<TaskRecord> {
-    console.log('[DB] Creating task:', data.title);
-    return {
-      id: 'task_' + Date.now(),
-      ...data,
-      isArchived: false,
-      completedAt: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-  },
-
-  async findTaskById(id: string): Promise<TaskRecord | null> {
-    console.log('[DB] Finding task by ID:', id);
-    return null;
-  },
-
-  async findTasks(userId: string, filters: TaskFilters): Promise<{ items: TaskRecord[]; total: number }> {
-    console.log('[DB] Finding tasks for user:', userId, filters);
-    return { items: [], total: 0 };
-  },
-
-  async updateTask(id: string, data: Partial<TaskRecord>): Promise<TaskRecord | null> {
-    console.log('[DB] Updating task:', id);
-    return null;
-  },
-
-  async deleteTask(id: string): Promise<void> {
-    console.log('[DB] Deleting task:', id);
-  },
-
-  async checkTaskBelongsToUser(id: string, userId: string): Promise<boolean> {
-    console.log('[DB] Checking task ownership:', id, userId);
-    return false;
-  },
-
-  async getTaskCountForStatus(userId: string, status: string): Promise<number> {
-    console.log('[DB] Getting task count for status:', status);
-    return 0;
-  },
-
-  async getDashboardStats(userId: string): Promise<DashboardStats> {
-    console.log('[DB] Getting dashboard stats for user:', userId);
-    return {
-      totalTasks: 0,
-      todoTasks: 0,
-      inProgressTasks: 0,
-      inReviewTasks: 0,
-      doneTasks: 0,
-      overdueTasks: 0,
-      dueTodayTasks: 0,
-      totalProjects: 0,
-    };
-  },
-};
-
 // =============================================================================
 // Task Service
 // =============================================================================
 
 export class TaskService {
-  async create(input: TaskCreateInput): Promise<TaskRecord> {
-    const count = await dbOperations.getTaskCountForStatus(input.userId, input.status || 'TODO');
+  constructor(private db: PrismaClient) {}
 
-    return dbOperations.createTask({
-      userId: input.userId,
-      projectId: input.projectId || null,
-      assigneeId: input.assigneeId || null,
-      title: input.title,
-      description: input.description || null,
-      status: input.status || 'TODO',
-      priority: input.priority || 'NONE',
-      dueDate: input.dueDate ? new Date(input.dueDate) : null,
-      position: count,
+  async create(input: TaskCreateInput) {
+    const count = await this.db.task.count({
+      where: { userId: input.userId, status: (input.status as any) || 'TODO' },
+    });
+
+    return this.db.task.create({
+      data: {
+        userId: input.userId,
+        projectId: input.projectId || null,
+        assigneeId: input.assigneeId || null,
+        title: input.title,
+        description: input.description || null,
+        status: (input.status as any) || 'TODO',
+        priority: (input.priority as any) || 'NONE',
+        dueDate: input.dueDate ? new Date(input.dueDate) : null,
+        position: count,
+      },
+      include: { project: true, comments: true, labels: { include: { label: true } } },
     });
   }
 
-  async update(id: string, userId: string, input: TaskUpdateInput): Promise<TaskRecord | null> {
-    const belongs = await dbOperations.checkTaskBelongsToUser(id, userId);
-    if (!belongs) throw new Error('Task not found');
+  async update(id: string, userId: string, input: TaskUpdateInput) {
+    const task = await this.db.task.findFirst({ where: { id, userId } });
+    if (!task) throw new Error('Task not found');
 
-    const updateData: Partial<TaskRecord> = { ...input } as Partial<TaskRecord>;
+    const data: Record<string, unknown> = {};
+    if (input.title !== undefined) data.title = input.title;
+    if (input.description !== undefined) data.description = input.description;
+    if (input.projectId !== undefined) data.projectId = input.projectId || null;
+    if (input.assigneeId !== undefined) data.assigneeId = input.assigneeId || null;
+    if (input.status !== undefined) data.status = input.status;
+    if (input.priority !== undefined) data.priority = input.priority;
     if (input.dueDate !== undefined) {
-      updateData.dueDate = input.dueDate ? new Date(input.dueDate) : null;
+      data.dueDate = input.dueDate ? new Date(input.dueDate) : null;
+    }
+    if (input.status === 'DONE') {
+      data.completedAt = new Date();
+    } else if (input.status !== undefined) {
+      data.completedAt = null;
     }
 
-    return dbOperations.updateTask(id, updateData);
+    return this.db.task.update({
+      where: { id },
+      data: data as any,
+      include: { project: true, comments: true, labels: { include: { label: true } } },
+    });
   }
 
   async delete(id: string, userId: string): Promise<void> {
-    const belongs = await dbOperations.checkTaskBelongsToUser(id, userId);
-    if (!belongs) throw new Error('Task not found');
+    const task = await this.db.task.findFirst({ where: { id, userId } });
+    if (!task) throw new Error('Task not found');
 
-    return dbOperations.deleteTask(id);
+    await this.db.task.delete({ where: { id } });
   }
 
-  async getById(id: string, userId: string): Promise<TaskRecord | null> {
-    const belongs = await dbOperations.checkTaskBelongsToUser(id, userId);
-    if (!belongs) return null;
-
-    return dbOperations.findTaskById(id);
+  async getById(id: string, userId: string) {
+    const task = await this.db.task.findFirst({
+      where: { id, userId },
+      include: { project: true, comments: true, labels: { include: { label: true } } },
+    });
+    return task || null;
   }
 
   async list(userId: string, filters: TaskFilters) {
     const page = filters.page || 1;
     const limit = filters.limit || 20;
+    const skip = (page - 1) * limit;
 
-    const result = await dbOperations.findTasks(userId, { ...filters, page, limit });
+    const where: Record<string, unknown> = { userId };
+
+    if (filters.status) where.status = filters.status;
+    if (filters.priority) where.priority = filters.priority;
+    if (filters.projectId) where.projectId = filters.projectId;
+    if (filters.assigneeId) where.assigneeId = filters.assigneeId;
+    if (!filters.showCompleted) {
+      where.status = where.status || { not: 'DONE' };
+    }
+    if (filters.search) {
+      where.OR = [
+        { title: { contains: filters.search, mode: 'insensitive' } },
+        { description: { contains: filters.search, mode: 'insensitive' } },
+      ];
+    }
+    if (filters.dueBefore || filters.dueAfter) {
+      const dueDateFilter: Record<string, Date> = {};
+      if (filters.dueBefore) dueDateFilter.lte = new Date(filters.dueBefore);
+      if (filters.dueAfter) dueDateFilter.gte = new Date(filters.dueAfter);
+      where.dueDate = dueDateFilter;
+    }
+    if (filters.labelId) {
+      where.labels = { some: { labelId: filters.labelId } };
+    }
+
+    const [items, total] = await Promise.all([
+      this.db.task.findMany({
+        where: where as any,
+        include: { project: true, labels: { include: { label: true } } },
+        orderBy: [{ position: 'asc' }, { createdAt: 'desc' }],
+        skip,
+        take: limit,
+      }),
+      this.db.task.count({ where: where as any }),
+    ]);
 
     return {
-      items: result.items,
+      items,
       pagination: {
         page,
         limit,
-        total: result.total,
-        totalPages: Math.ceil(result.total / limit),
+        total,
+        totalPages: Math.ceil(total / limit),
       },
     };
   }
 
-  async changeStatus(id: string, userId: string, status: string): Promise<TaskRecord | null> {
-    const belongs = await dbOperations.checkTaskBelongsToUser(id, userId);
-    if (!belongs) throw new Error('Task not found');
+  async changeStatus(id: string, userId: string, status: string) {
+    const task = await this.db.task.findFirst({ where: { id, userId } });
+    if (!task) throw new Error('Task not found');
 
-    const updateData: Partial<TaskRecord> = { status } as Partial<TaskRecord>;
+    const data: Record<string, unknown> = { status };
     if (status === 'DONE') {
-      updateData.completedAt = new Date();
+      data.completedAt = new Date();
     } else {
-      updateData.completedAt = null;
+      data.completedAt = null;
     }
 
-    return dbOperations.updateTask(id, updateData);
+    return this.db.task.update({
+      where: { id },
+      data: data as any,
+      include: { project: true, comments: true, labels: { include: { label: true } } },
+    });
   }
 
-  async assign(id: string, userId: string, assigneeId: string | null): Promise<TaskRecord | null> {
-    const belongs = await dbOperations.checkTaskBelongsToUser(id, userId);
-    if (!belongs) throw new Error('Task not found');
+  async assign(id: string, userId: string, assigneeId: string | null) {
+    const task = await this.db.task.findFirst({ where: { id, userId } });
+    if (!task) throw new Error('Task not found');
 
-    return dbOperations.updateTask(id, { assigneeId } as Partial<TaskRecord>);
+    return this.db.task.update({
+      where: { id },
+      data: { assigneeId },
+      include: { project: true, comments: true, labels: { include: { label: true } } },
+    });
   }
 
   async reorder(userId: string, taskIds: string[]): Promise<void> {
-    for (let i = 0; i < taskIds.length; i++) {
-      const belongs = await dbOperations.checkTaskBelongsToUser(taskIds[i], userId);
-      if (belongs) {
-        await dbOperations.updateTask(taskIds[i], { position: i } as Partial<TaskRecord>);
-      }
-    }
+    const updates = taskIds.map((taskId, index) =>
+      this.db.task.updateMany({
+        where: { id: taskId, userId },
+        data: { position: index },
+      })
+    );
+    await Promise.all(updates);
   }
 
   async getDashboardStats(userId: string): Promise<DashboardStats> {
-    return dbOperations.getDashboardStats(userId);
+    const now = new Date();
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+
+    const [
+      totalTasks,
+      todoTasks,
+      inProgressTasks,
+      inReviewTasks,
+      doneTasks,
+      overdueTasks,
+      dueTodayTasks,
+      totalProjects,
+    ] = await Promise.all([
+      this.db.task.count({ where: { userId } }),
+      this.db.task.count({ where: { userId, status: 'TODO' } }),
+      this.db.task.count({ where: { userId, status: 'IN_PROGRESS' } }),
+      this.db.task.count({ where: { userId, status: 'IN_REVIEW' } }),
+      this.db.task.count({ where: { userId, status: 'DONE' } }),
+      this.db.task.count({
+        where: {
+          userId,
+          status: { not: 'DONE' },
+          dueDate: { lt: startOfDay },
+        },
+      }),
+      this.db.task.count({
+        where: {
+          userId,
+          dueDate: { gte: startOfDay, lt: endOfDay },
+        },
+      }),
+      this.db.taskProject.count({ where: { userId } }),
+    ]);
+
+    return {
+      totalTasks,
+      todoTasks,
+      inProgressTasks,
+      inReviewTasks,
+      doneTasks,
+      overdueTasks,
+      dueTodayTasks,
+      totalProjects,
+    };
   }
 }
 
@@ -246,10 +271,18 @@ export class TaskService {
 // Factory
 // =============================================================================
 
+export function createTaskService(db: PrismaClient): TaskService {
+  return new TaskService(db);
+}
+
 let instance: TaskService | null = null;
 
-export function getTaskService(): TaskService {
-  if (!instance) instance = new TaskService();
+export function getTaskService(db?: PrismaClient): TaskService {
+  if (db) return createTaskService(db);
+  if (!instance) {
+    const { db: globalDb } = require('../../../../core/backend/src/lib/db.js');
+    instance = new TaskService(globalDb);
+  }
   return instance;
 }
 

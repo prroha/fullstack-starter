@@ -120,7 +120,7 @@ export default function SpeakerForm({ speaker, onSubmit, onCancel }: SpeakerForm
         />
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 pt-6 border-t border-border">
         <Button type="submit" isLoading={isSaving}>
           {speaker ? "Update Speaker" : "Add Speaker"}
         </Button>

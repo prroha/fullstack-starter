@@ -113,7 +113,8 @@ export async function authMiddleware(
       return;
     }
 
-    const user = await db.user.findUnique({
+    const dbClient = (req as FastifyRequest & { db?: typeof db }).db ?? db;
+    const user = await dbClient.user.findUnique({
       where: { id: payload.userId },
       select: {
         id: true,
@@ -214,7 +215,8 @@ export async function optionalAuthMiddleware(
       return;
     }
 
-    const user = await db.user.findUnique({
+    const dbClient = (req as FastifyRequest & { db?: typeof db }).db ?? db;
+    const user = await dbClient.user.findUnique({
       where: { id: payload.userId },
       select: {
         id: true,

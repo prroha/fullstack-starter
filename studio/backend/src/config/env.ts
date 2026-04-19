@@ -19,7 +19,7 @@ const envSchema = z.object({
   JWT_ACCESS_EXPIRES_IN: z.string().default("15m"),
   JWT_REFRESH_EXPIRES_IN: z.string().default("7d"),
 
-  // CORS
+  // CORS (comma-separated for multiple origins, e.g. "http://localhost:3002,http://localhost:3004")
   CORS_ORIGIN: z.string().default("http://localhost:3002"),
 
   // Stripe

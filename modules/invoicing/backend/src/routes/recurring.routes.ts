@@ -1,12 +1,15 @@
 import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
-import { getRecurringService } from '../services/recurring.service.js';
+import { RecurringInvoiceService } from '../services/recurring.service.js';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
+import type { PrismaClient } from '@prisma/client';
 
 // =============================================================================
-// Routes
+// Helpers
 // =============================================================================
 
-const recurringService = getRecurringService();
+function svc(req: FastifyRequest): RecurringInvoiceService {
+  return new RecurringInvoiceService((req as FastifyRequest & { db?: PrismaClient }).db!);
+}
 
 // =============================================================================
 // Recurring Invoice Endpoints (All Authenticated)
@@ -21,7 +24,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { page, limit } = req.query as Record<string, string>;
 
-    const result = await recurringService.list(authReq.user.userId, {
+    const result = await svc(req).list(authReq.user.userId, {
       page: page ? Number(page) : 1,
       limit: limit ? Number(limit) : 20,
     });
@@ -37,7 +40,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { id } = req.params as { id: string };
 
-    const recurring = await recurringService.getById(id, authReq.user.userId);
+    const recurring = await svc(req).getById(id, authReq.user.userId);
     if (!recurring) {
       return reply.code(404).send({ error: 'Recurring invoice not found' });
     }
@@ -70,7 +73,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'templateItems must be a non-empty array' });
     }
 
-    const recurring = await recurringService.create({
+    const recurring = await svc(req).create({
       userId: authReq.user.userId,
       clientId,
       frequency,
@@ -105,7 +108,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
       maxOccurrences,
     } = req.body as Record<string, unknown>;
 
-    const recurring = await recurringService.update(id, authReq.user.userId, {
+    const recurring = await svc(req).update(id, authReq.user.userId, {
       clientId,
       frequency,
       startDate,
@@ -132,7 +135,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { id } = req.params as { id: string };
 
-    const recurring = await recurringService.pause(id, authReq.user.userId);
+    const recurring = await svc(req).pause(id, authReq.user.userId);
     if (!recurring) {
       return reply.code(404).send({ error: 'Recurring invoice not found' });
     }
@@ -147,7 +150,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { id } = req.params as { id: string };
 
-    const recurring = await recurringService.resume(id, authReq.user.userId);
+    const recurring = await svc(req).resume(id, authReq.user.userId);
     if (!recurring) {
       return reply.code(404).send({ error: 'Recurring invoice not found' });
     }
@@ -162,7 +165,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { id } = req.params as { id: string };
 
-    const recurring = await recurringService.cancel(id, authReq.user.userId);
+    const recurring = await svc(req).cancel(id, authReq.user.userId);
     if (!recurring) {
       return reply.code(404).send({ error: 'Recurring invoice not found' });
     }

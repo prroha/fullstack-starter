@@ -113,12 +113,13 @@ function hashToken(token: string): string {
   return crypto.createHash("sha256").update(token).digest("hex");
 }
 
-class SessionService {
+export class SessionService {
+  constructor(private db: PrismaClient) {}
   /**
    * Create a new session for a user
    */
   async createSession(input: CreateSessionInput, tx?: TransactionClient): Promise<string> {
-    const client = tx || db;
+    const client = tx || this.db;
     const { userId, refreshToken, ipAddress, userAgent } = input;
 
     const refreshTokenHash = hashToken(refreshToken);
@@ -164,7 +165,7 @@ class SessionService {
       await cleanup(tx);
     } else {
       // No parent transaction, create one for atomicity
-      await db.$transaction(async (tc) => {
+      await this.db.$transaction(async (tc) => {
         await cleanup(tc);
       });
     }
@@ -178,7 +179,7 @@ class SessionService {
   async updateSessionActivity(refreshToken: string): Promise<void> {
     const refreshTokenHash = hashToken(refreshToken);
 
-    await db.session.updateMany({
+    await this.db.session.updateMany({
       where: { refreshTokenHash },
       data: { lastActiveAt: new Date() },
     });
@@ -193,7 +194,7 @@ class SessionService {
     const newHash = hashToken(newRefreshToken);
     const newExpiresAt = new Date(Date.now() + REFRESH_TOKEN_EXPIRY_MS);
 
-    await db.session.updateMany({
+    await this.db.session.updateMany({
       where: { refreshTokenHash: oldHash },
       data: {
         refreshTokenHash: newHash,
@@ -209,7 +210,7 @@ class SessionService {
   async findSessionByRefreshToken(refreshToken: string) {
     const refreshTokenHash = hashToken(refreshToken);
 
-    return db.session.findFirst({
+    return this.db.session.findFirst({
       where: {
         refreshTokenHash,
         expiresAt: { gt: new Date() },
@@ -223,7 +224,7 @@ class SessionService {
   async deleteSessionByRefreshToken(refreshToken: string): Promise<void> {
     const refreshTokenHash = hashToken(refreshToken);
 
-    await db.session.deleteMany({
+    await this.db.session.deleteMany({
       where: { refreshTokenHash },
     });
 
@@ -236,7 +237,7 @@ class SessionService {
   async getUserSessions(userId: string, currentRefreshToken?: string): Promise<SessionResponse[]> {
     const currentTokenHash = currentRefreshToken ? hashToken(currentRefreshToken) : null;
 
-    const sessions = await db.session.findMany({
+    const sessions = await this.db.session.findMany({
       where: {
         userId,
         expiresAt: { gt: new Date() },
@@ -260,7 +261,7 @@ class SessionService {
    * Revoke a specific session by visible ID
    */
   async revokeSession(userId: string, sessionVisibleId: string): Promise<void> {
-    const session = await db.session.findUnique({
+    const session = await this.db.session.findUnique({
       where: { visibleId: sessionVisibleId },
     });
 
@@ -272,7 +273,7 @@ class SessionService {
       throw ApiError.forbidden("Cannot revoke another user's session", ErrorCodes.FORBIDDEN);
     }
 
-    await db.session.delete({
+    await this.db.session.delete({
       where: { visibleId: sessionVisibleId },
     });
 
@@ -285,7 +286,7 @@ class SessionService {
   async revokeAllOtherSessions(userId: string, currentRefreshToken: string): Promise<number> {
     const currentTokenHash = hashToken(currentRefreshToken);
 
-    const result = await db.session.deleteMany({
+    const result = await this.db.session.deleteMany({
       where: {
         userId,
         refreshTokenHash: { not: currentTokenHash },
@@ -301,7 +302,7 @@ class SessionService {
    * Clean up expired sessions (can be run as a cron job)
    */
   async cleanupExpiredSessions(): Promise<number> {
-    const result = await db.session.deleteMany({
+    const result = await this.db.session.deleteMany({
       where: {
         expiresAt: { lt: new Date() },
       },
@@ -318,7 +319,7 @@ class SessionService {
    * Delete all sessions for a user (e.g., on password change)
    */
   async deleteAllUserSessions(userId: string): Promise<void> {
-    await db.session.deleteMany({
+    await this.db.session.deleteMany({
       where: { userId },
     });
 
@@ -326,7 +327,11 @@ class SessionService {
   }
 }
 
-export const sessionService = new SessionService();
+export const sessionService = new SessionService(db);
+
+export function createSessionService(injectedDb: PrismaClient) {
+  return new SessionService(injectedDb);
+}
 
 // Export types
 export type { SessionResponse, CreateSessionInput };

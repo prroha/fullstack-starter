@@ -197,7 +197,7 @@ export default function EventForm({ event, onSubmit, onCancel }: EventFormProps)
         />
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 pt-6 border-t border-border">
         <Button type="submit" isLoading={isSaving}>
           {event ? "Update Event" : "Create Event"}
         </Button>

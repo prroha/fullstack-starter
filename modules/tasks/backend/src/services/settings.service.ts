@@ -2,7 +2,9 @@
 // Settings Service
 // =============================================================================
 // Business logic for per-user task settings.
-// Uses placeholder db operations - replace with actual Prisma client.
+// Uses dependency-injected PrismaClient for all database operations.
+
+import type { PrismaClient } from '@prisma/client';
 
 // =============================================================================
 // Types
@@ -14,57 +16,45 @@ export interface SettingsUpdateInput {
   showCompletedTasks?: boolean;
 }
 
-interface SettingsRecord {
-  id: string;
-  userId: string;
-  defaultView: string;
-  defaultProjectId: string | null;
-  showCompletedTasks: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-// =============================================================================
-// Database Operations (Placeholder)
-// =============================================================================
-
-const dbOperations = {
-  async getSettings(userId: string): Promise<SettingsRecord | null> {
-    console.log('[DB] Getting task settings for user:', userId);
-    return null;
-  },
-
-  async upsertSettings(userId: string, data: Partial<SettingsRecord>): Promise<SettingsRecord> {
-    console.log('[DB] Upserting task settings for user:', userId);
-    return {
-      id: 'settings_' + Date.now(),
-      userId,
-      defaultView: (data.defaultView as string) || 'LIST',
-      defaultProjectId: (data.defaultProjectId as string) || null,
-      showCompletedTasks: data.showCompletedTasks ?? true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-  },
-};
-
 // =============================================================================
 // Settings Service
 // =============================================================================
 
 export class SettingsService {
-  async get(userId: string): Promise<SettingsRecord> {
-    const settings = await dbOperations.getSettings(userId);
+  constructor(private db: PrismaClient) {}
+
+  async get(userId: string) {
+    const settings = await this.db.taskSettings.findUnique({
+      where: { userId },
+    });
+
     if (settings) return settings;
 
-    return dbOperations.upsertSettings(userId, {
-      defaultView: 'LIST',
-      showCompletedTasks: true,
+    // Create default settings if none exist
+    return this.db.taskSettings.create({
+      data: {
+        userId,
+        defaultView: 'LIST',
+        showCompletedTasks: true,
+      },
     });
   }
 
-  async update(userId: string, input: SettingsUpdateInput): Promise<SettingsRecord> {
-    return dbOperations.upsertSettings(userId, input as Partial<SettingsRecord>);
+  async update(userId: string, input: SettingsUpdateInput) {
+    return this.db.taskSettings.upsert({
+      where: { userId },
+      create: {
+        userId,
+        defaultView: (input.defaultView as any) || 'LIST',
+        defaultProjectId: input.defaultProjectId || null,
+        showCompletedTasks: input.showCompletedTasks ?? true,
+      },
+      update: {
+        ...(input.defaultView !== undefined && { defaultView: input.defaultView as any }),
+        ...(input.defaultProjectId !== undefined && { defaultProjectId: input.defaultProjectId || null }),
+        ...(input.showCompletedTasks !== undefined && { showCompletedTasks: input.showCompletedTasks }),
+      },
+    });
   }
 }
 
@@ -72,10 +62,18 @@ export class SettingsService {
 // Factory
 // =============================================================================
 
+export function createSettingsService(db: PrismaClient): SettingsService {
+  return new SettingsService(db);
+}
+
 let instance: SettingsService | null = null;
 
-export function getSettingsService(): SettingsService {
-  if (!instance) instance = new SettingsService();
+export function getSettingsService(db?: PrismaClient): SettingsService {
+  if (db) return createSettingsService(db);
+  if (!instance) {
+    const { db: globalDb } = require('../../../../core/backend/src/lib/db.js');
+    instance = new SettingsService(globalDb);
+  }
   return instance;
 }
 

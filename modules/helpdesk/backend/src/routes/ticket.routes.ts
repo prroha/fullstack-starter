@@ -1,12 +1,15 @@
 import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
-import { getTicketService } from '../services/ticket.service.js';
+import { TicketService } from '../services/ticket.service.js';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
+import type { PrismaClient } from '@prisma/client';
 
 // =============================================================================
-// Routes
+// Helper
 // =============================================================================
 
-const ticketService = getTicketService();
+function svc(req: FastifyRequest): TicketService {
+  return new TicketService((req as FastifyRequest & { db?: PrismaClient }).db!);
+}
 
 // =============================================================================
 // Ticket Endpoints (All Authenticated)
@@ -21,7 +24,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/stats', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
 
-    const stats = await ticketService.getStats(authReq.user.userId);
+    const stats = await svc(req).getStats(authReq.user.userId);
     return reply.send({ success: true, data: stats });
   });
 
@@ -33,7 +36,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { search, status, priority, categoryId, assignedAgentId, tagId, dateFrom, dateTo, page, limit } = req.query as Record<string, string>;
 
-    const result = await ticketService.list(authReq.user.userId, {
+    const result = await svc(req).list(authReq.user.userId, {
       search,
       status,
       priority,
@@ -57,7 +60,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { id } = req.params as { id: string };
 
-    const ticket = await ticketService.getById(id, authReq.user.userId);
+    const ticket = await svc(req).getById(id, authReq.user.userId);
     if (!ticket) {
       return reply.code(404).send({ error: 'Ticket not found' });
     }
@@ -76,7 +79,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'subject and description are required' });
     }
 
-    const ticket = await ticketService.create({
+    const ticket = await svc(req).create({
       userId: authReq.user.userId,
       subject,
       description,
@@ -96,7 +99,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const { id } = req.params as { id: string };
     const { subject, description, priority, categoryId } = req.body as Record<string, unknown>;
 
-    const ticket = await ticketService.update(id, authReq.user.userId, {
+    const ticket = await svc(req).update(id, authReq.user.userId, {
       subject,
       description,
       priority,
@@ -118,7 +121,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { id } = req.params as { id: string };
 
-    await ticketService.delete(id, authReq.user.userId);
+    await svc(req).delete(id, authReq.user.userId);
     return reply.send({ success: true, message: 'Ticket deleted' });
   });
 
@@ -131,7 +134,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const { id } = req.params as { id: string };
     const { agentId } = req.body as { agentId: string };
 
-    const ticket = await ticketService.assign(id, authReq.user.userId, agentId);
+    const ticket = await svc(req).assign(id, authReq.user.userId, agentId);
     if (!ticket) {
       return reply.code(404).send({ error: 'Ticket not found' });
     }
@@ -151,7 +154,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'status is required' });
     }
 
-    const ticket = await ticketService.changeStatus(id, authReq.user.userId, status);
+    const ticket = await svc(req).changeStatus(id, authReq.user.userId, status);
     if (!ticket) {
       return reply.code(404).send({ error: 'Ticket not found' });
     }
@@ -166,7 +169,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { id } = req.params as { id: string };
 
-    const messages = await ticketService.getMessages(id, authReq.user.userId);
+    const messages = await svc(req).getMessages(id, authReq.user.userId);
     return reply.send({ success: true, data: messages });
   });
 
@@ -183,7 +186,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'body is required' });
     }
 
-    const message = await ticketService.addMessage(id, authReq.user.userId, {
+    const message = await svc(req).addMessage(id, authReq.user.userId, {
       senderId: authReq.user.userId,
       body,
       senderType: (senderType as string) || 'customer',
@@ -206,7 +209,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'tagId is required' });
     }
 
-    await ticketService.addTag(id, authReq.user.userId, tagId);
+    await svc(req).addTag(id, authReq.user.userId, tagId);
     return reply.send({ success: true, message: 'Tag added to ticket' });
   });
 
@@ -218,7 +221,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { id, tagId } = req.params as { id: string; tagId: string };
 
-    await ticketService.removeTag(id, authReq.user.userId, tagId);
+    await svc(req).removeTag(id, authReq.user.userId, tagId);
     return reply.send({ success: true, message: 'Tag removed from ticket' });
   });
 };

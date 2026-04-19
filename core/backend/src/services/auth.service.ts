@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
+import { PrismaClient } from "@prisma/client";
 import { db } from "../lib/db.js";
 import { config } from "../config/index.js";
 import { generateTokenPair, verifyToken, JwtPayload } from "../utils/jwt.js";
@@ -8,10 +9,10 @@ import { generateTokenPair, verifyToken, JwtPayload } from "../utils/jwt.js";
 const DUMMY_HASH = "$2a$12$000000000000000000000uGJLEcfNQJxMdOccoZYS.6Mq/pGDMK6";
 import { ApiError } from "../middleware/error.middleware.js";
 import { ErrorCodes } from "../utils/response.js";
-import { lockoutService, LockoutStatus } from "./lockout.service.js";
+import { createLockoutService, LockoutStatus } from "./lockout.service.js";
+import { createSessionService } from "./session.service.js";
 import { emailVerificationService } from "./email-verification.service.js";
 import { emailService } from "./email.service.js";
-import { sessionService } from "./session.service.js";
 import { logger } from "../lib/logger.js";
 
 interface RegisterInput {
@@ -103,7 +104,16 @@ export class AccountLockedError extends Error {
   }
 }
 
-class AuthService {
+export class AuthService {
+  constructor(private db: PrismaClient) {}
+
+  private get lockoutSvc() {
+    return createLockoutService(this.db);
+  }
+
+  private get sessionSvc() {
+    return createSessionService(this.db);
+  }
   /**
    * Register a new user
    */
@@ -111,7 +121,7 @@ class AuthService {
     const { email, password, name } = input;
 
     // Check if user exists
-    const existingUser = await db.user.findUnique({
+    const existingUser = await this.db.user.findUnique({
       where: { email: email.toLowerCase() },
     });
 
@@ -123,7 +133,7 @@ class AuthService {
     const passwordHash = await bcrypt.hash(password, config.bcryptSaltRounds);
 
     // Create user with emailVerified = false
-    const user = await db.user.create({
+    const user = await this.db.user.create({
       data: {
         email: email.toLowerCase(),
         passwordHash,
@@ -175,7 +185,7 @@ class AuthService {
     const { email, password, deviceId, ipAddress, userAgent } = input;
 
     // Find user with lockout fields
-    const user = await db.user.findUnique({
+    const user = await this.db.user.findUnique({
       where: { email: email.toLowerCase() },
     });
 
@@ -187,7 +197,7 @@ class AuthService {
     }
 
     // Check if account is locked out (before password check to prevent timing attacks)
-    const lockoutStatus = lockoutService.getLockoutStatus(user);
+    const lockoutStatus = this.lockoutSvc.getLockoutStatus(user);
     if (lockoutStatus.isLocked) {
       throw new AccountLockedError(
         `Account is locked. Try again in ${lockoutStatus.minutesUntilUnlock} minutes.`,
@@ -204,7 +214,7 @@ class AuthService {
     const isValidPassword = await bcrypt.compare(password, user.passwordHash);
     if (!isValidPassword) {
       // Record failed attempt and possibly lock the account
-      const newLockoutStatus = await lockoutService.recordFailedAttempt(user.id, user.email);
+      const newLockoutStatus = await this.lockoutSvc.recordFailedAttempt(user.id, user.email);
 
       if (newLockoutStatus.isLocked) {
         throw new AccountLockedError(
@@ -225,7 +235,7 @@ class AuthService {
 
     // Wrap DB operations in a transaction to ensure atomicity:
     // lockout reset, device update, and session creation
-    const sessionId = await db.$transaction(async (tx) => {
+    const sessionId = await this.db.$transaction(async (tx) => {
       // Reset failed attempts and update active device
       await tx.user.update({
         where: { id: user.id },
@@ -238,7 +248,7 @@ class AuthService {
       });
 
       // Create session within the same transaction
-      const sid = await sessionService.createSession({
+      const sid = await this.sessionSvc.createSession({
         userId: user.id,
         refreshToken: tokens.refreshToken,
         ipAddress,
@@ -269,7 +279,7 @@ class AuthService {
     const { userId, currentPassword, newPassword } = input;
 
     // Find user
-    const user = await db.user.findUnique({
+    const user = await this.db.user.findUnique({
       where: { id: userId },
     });
 
@@ -293,7 +303,7 @@ class AuthService {
     const newPasswordHash = await bcrypt.hash(newPassword, config.bcryptSaltRounds);
 
     // Update password
-    await db.user.update({
+    await this.db.user.update({
       where: { id: userId },
       data: { passwordHash: newPasswordHash },
     });
@@ -333,17 +343,17 @@ class AuthService {
     }
 
     // Check if session exists and is valid
-    const session = await sessionService.findSessionByRefreshToken(refreshToken);
+    const session = await this.sessionSvc.findSessionByRefreshToken(refreshToken);
     if (!session) {
       // If no session found, the refresh token may have been rotated already
       // (replay attack). Revoke all sessions for this user as a safety measure.
-      await sessionService.deleteAllUserSessions(payload.userId);
+      await this.sessionSvc.deleteAllUserSessions(payload.userId);
       logger.security("Refresh token reuse detected — all sessions revoked", { userId: payload.userId });
       throw ApiError.unauthorized("Session not found or expired", ErrorCodes.INVALID_TOKEN);
     }
 
     // Find the user
-    const user = await db.user.findUnique({
+    const user = await this.db.user.findUnique({
       where: { id: payload.userId },
     });
 
@@ -364,7 +374,7 @@ class AuthService {
     });
 
     // Rotate: update the session with the new refresh token hash
-    await sessionService.rotateRefreshToken(refreshToken, tokens.refreshToken);
+    await this.sessionSvc.rotateRefreshToken(refreshToken, tokens.refreshToken);
 
     return {
       accessToken: tokens.accessToken,
@@ -385,7 +395,7 @@ class AuthService {
     const { refreshToken } = input;
 
     if (refreshToken) {
-      await sessionService.deleteSessionByRefreshToken(refreshToken);
+      await this.sessionSvc.deleteSessionByRefreshToken(refreshToken);
     }
   }
 
@@ -393,21 +403,21 @@ class AuthService {
    * Get all active sessions for a user
    */
   async getSessions(userId: string, currentRefreshToken?: string) {
-    return sessionService.getUserSessions(userId, currentRefreshToken);
+    return this.sessionSvc.getUserSessions(userId, currentRefreshToken);
   }
 
   /**
    * Revoke a specific session
    */
   async revokeSession(userId: string, sessionId: string): Promise<void> {
-    await sessionService.revokeSession(userId, sessionId);
+    await this.sessionSvc.revokeSession(userId, sessionId);
   }
 
   /**
    * Revoke all sessions except current
    */
   async revokeAllOtherSessions(userId: string, currentRefreshToken: string): Promise<number> {
-    return sessionService.revokeAllOtherSessions(userId, currentRefreshToken);
+    return this.sessionSvc.revokeAllOtherSessions(userId, currentRefreshToken);
   }
 
   /**
@@ -426,7 +436,7 @@ class AuthService {
     const { email } = input;
 
     // Find user by email
-    const user = await db.user.findUnique({
+    const user = await this.db.user.findUnique({
       where: { email: email.toLowerCase() },
     });
 
@@ -444,7 +454,7 @@ class AuthService {
     }
 
     // Invalidate any existing unused reset tokens for this user
-    await db.passwordResetToken.updateMany({
+    await this.db.passwordResetToken.updateMany({
       where: {
         userId: user.id,
         used: false,
@@ -460,7 +470,7 @@ class AuthService {
     const expiresAt = new Date(Date.now() + RESET_TOKEN_EXPIRY_MS);
 
     // Save hashed token to database
-    await db.passwordResetToken.create({
+    await this.db.passwordResetToken.create({
       data: {
         userId: user.id,
         token: tokenHash,
@@ -499,7 +509,7 @@ class AuthService {
    */
   async verifyResetToken(token: string): Promise<VerifyResetTokenResult> {
     const tokenHash = this.hashResetToken(token);
-    const resetToken = await db.passwordResetToken.findUnique({
+    const resetToken = await this.db.passwordResetToken.findUnique({
       where: { token: tokenHash },
       include: { user: true },
     });
@@ -532,7 +542,7 @@ class AuthService {
 
     // Find and validate token (hash before lookup)
     const tokenHash = this.hashResetToken(token);
-    const resetToken = await db.passwordResetToken.findUnique({
+    const resetToken = await this.db.passwordResetToken.findUnique({
       where: { token: tokenHash },
       include: { user: true },
     });
@@ -558,19 +568,19 @@ class AuthService {
     const passwordHash = await bcrypt.hash(password, config.bcryptSaltRounds);
 
     // Update password and mark token as used in a transaction
-    await db.$transaction([
-      db.user.update({
+    await this.db.$transaction([
+      this.db.user.update({
         where: { id: resetToken.userId },
         data: { passwordHash },
       }),
-      db.passwordResetToken.update({
+      this.db.passwordResetToken.update({
         where: { id: resetToken.id },
         data: { used: true },
       }),
     ]);
 
     // Reset any lockout on the account
-    await lockoutService.resetFailedAttempts(resetToken.userId);
+    await this.lockoutSvc.resetFailedAttempts(resetToken.userId);
 
     // Send password changed notification email
     // Email failures are intentionally non-blocking. Password reset should
@@ -594,4 +604,8 @@ class AuthService {
   }
 }
 
-export const authService = new AuthService();
+export const authService = new AuthService(db);
+
+export function createAuthService(injectedDb: PrismaClient) {
+  return new AuthService(injectedDb);
+}

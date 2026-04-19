@@ -1,3 +1,4 @@
+import { PrismaClient } from "@prisma/client";
 import { db } from "../lib/db.js";
 import { ApiError } from "../middleware/error.middleware.js";
 import { ErrorCodes } from "../utils/response.js";
@@ -18,12 +19,13 @@ interface UserProfile {
   updatedAt: Date;
 }
 
-class UserService {
+export class UserService {
+  constructor(private db: PrismaClient) {}
   /**
    * Get user profile by ID
    */
   async getProfile(userId: string): Promise<UserProfile> {
-    const user = await db.user.findUnique({
+    const user = await this.db.user.findUnique({
       where: { id: userId },
       select: {
         id: true,
@@ -50,7 +52,7 @@ class UserService {
     const { name, email } = input;
 
     // Check if user exists
-    const existingUser = await db.user.findUnique({
+    const existingUser = await this.db.user.findUnique({
       where: { id: userId },
       select: {
         id: true,
@@ -64,7 +66,7 @@ class UserService {
 
     // If email is being changed, check for conflicts
     if (email && email.toLowerCase() !== existingUser.email) {
-      const emailExists = await db.user.findUnique({
+      const emailExists = await this.db.user.findUnique({
         where: { email: email.toLowerCase() },
         select: { id: true },
       });
@@ -78,7 +80,7 @@ class UserService {
     const isEmailChanging = email && email.toLowerCase() !== existingUser.email;
 
     // Update user
-    const user = await db.user.update({
+    const user = await this.db.user.update({
       where: { id: userId },
       data: {
         ...(name !== undefined && { name }),
@@ -103,7 +105,7 @@ class UserService {
    * Get user avatar URL and initials
    */
   async getAvatar(userId: string): Promise<{ url: string | null; initials: string }> {
-    const user = await db.user.findUnique({
+    const user = await this.db.user.findUnique({
       where: { id: userId },
       select: {
         name: true,
@@ -138,7 +140,7 @@ class UserService {
    */
   async uploadAvatar(userId: string, file: { filename: string; filepath: string; mimetype: string; size: number }): Promise<{ url: string }> {
     // Check if user exists
-    const existingUser = await db.user.findUnique({
+    const existingUser = await this.db.user.findUnique({
       where: { id: userId },
       select: { avatarUrl: true },
     });
@@ -166,7 +168,7 @@ class UserService {
     const avatarUrl = getAvatarUrl(file.filename);
 
     // Update user with new avatar URL
-    await db.user.update({
+    await this.db.user.update({
       where: { id: userId },
       data: { avatarUrl },
     });
@@ -179,7 +181,7 @@ class UserService {
    */
   async deleteAvatar(userId: string): Promise<void> {
     // Get user with current avatar
-    const user = await db.user.findUnique({
+    const user = await this.db.user.findUnique({
       where: { id: userId },
       select: { avatarUrl: true },
     });
@@ -203,11 +205,15 @@ class UserService {
     }
 
     // Update user to remove avatar URL
-    await db.user.update({
+    await this.db.user.update({
       where: { id: userId },
       data: { avatarUrl: null },
     });
   }
 }
 
-export const userService = new UserService();
+export const userService = new UserService(db);
+
+export function createUserService(injectedDb: PrismaClient) {
+  return new UserService(injectedDb);
+}

@@ -100,19 +100,19 @@ export default function RegistrationsPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="bg-background">
       <div className="border-b bg-card">
-        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">
+        <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
             Registrations
           </h1>
-          <p className="mt-1 text-muted-foreground">
+          <p className="mt-1 text-sm text-muted-foreground">
             View and manage all event registrations
           </p>
         </div>
       </div>
 
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <div className="mb-6 flex flex-col gap-3 sm:flex-row">
           <div className="flex-1">
             <SearchInput
@@ -224,7 +224,7 @@ export default function RegistrationsPage() {
         )}
 
         {!loading && totalPages > 1 && (
-          <div className="mt-8">
+          <div className="mt-6">
             <Pagination
               page={page}
               totalPages={totalPages}

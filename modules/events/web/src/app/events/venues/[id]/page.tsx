@@ -65,7 +65,7 @@ export default function VenueDetailPage({ params }: { params: Promise<{ id: stri
 
   if (loading && !venue) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center py-20">
         <Spinner size="lg" />
       </div>
     );
@@ -73,13 +73,13 @@ export default function VenueDetailPage({ params }: { params: Promise<{ id: stri
 
   if (error && !venue) {
     return (
-      <div className="min-h-screen bg-background p-8">
+      <div className="bg-background p-6">
         <div className="mx-auto max-w-4xl">
           <Alert variant="destructive" title="Error loading venue">
             <p className="mt-1">{error}</p>
             <div className="mt-3 flex items-center gap-3">
-              <Button onClick={fetchData}>Retry</Button>
-              <Button variant="outline" onClick={() => router.push("/events/venues")}>
+              <Button size="sm" onClick={fetchData}>Retry</Button>
+              <Button variant="outline" size="sm" onClick={() => router.push("/events/venues")}>
                 Back to Venues
               </Button>
             </div>
@@ -92,19 +92,19 @@ export default function VenueDetailPage({ params }: { params: Promise<{ id: stri
   if (!venue) return null;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="bg-background">
       <div className="border-b bg-card">
-        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
           <Breadcrumb
             items={[
               { label: "Events", href: "/events" },
               { label: "Venues", href: "/events/venues" },
               { label: venue.name },
             ]}
-            className="mb-4"
+            className="mb-3"
           />
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <h1 className="text-3xl font-bold tracking-tight text-foreground">
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">
               {venue.name}
             </h1>
             <div className="flex items-center gap-2">
@@ -131,22 +131,22 @@ export default function VenueDetailPage({ params }: { params: Promise<{ id: stri
         </div>
       </div>
 
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         {error && (
           <Alert variant="destructive" onDismiss={() => setError(null)} className="mb-6">
             {error}
           </Alert>
         )}
 
-        <div className="mb-8 grid gap-4 sm:grid-cols-3">
+        <div className="mb-6 grid gap-4 sm:grid-cols-3">
           <StatCard label="Capacity" value={venue.capacity ?? "Unlimited"} />
           <StatCard label="Type" value={venue.isVirtual ? "Virtual" : "Physical"} />
           <StatCard label="Events" value={events.length} />
         </div>
 
         {isEditing && (
-          <div className="mb-8 rounded-lg border border-border bg-card p-6">
-            <h2 className="text-lg font-semibold text-foreground mb-4">Edit Venue</h2>
+          <div className="mb-6 rounded-lg border border-border bg-card p-6">
+            <h2 className="text-base font-semibold text-foreground mb-4">Edit Venue</h2>
             <VenueForm
               venue={venue}
               onSubmit={handleUpdate}
@@ -156,7 +156,7 @@ export default function VenueDetailPage({ params }: { params: Promise<{ id: stri
         )}
 
         <div>
-          <h2 className="mb-4 text-lg font-semibold text-foreground">
+          <h2 className="mb-4 text-base font-semibold text-foreground">
             Events at this venue
           </h2>
           {events.length > 0 ? (
@@ -170,7 +170,7 @@ export default function VenueDetailPage({ params }: { params: Promise<{ id: stri
               ))}
             </div>
           ) : (
-            <p className="py-8 text-center text-muted-foreground">
+            <p className="py-6 text-center text-muted-foreground">
               No events at this venue yet.
             </p>
           )}

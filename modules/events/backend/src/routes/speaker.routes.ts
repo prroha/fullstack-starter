@@ -1,12 +1,15 @@
 import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
-import { getSpeakerService } from '../services/speaker.service.js';
+import { SpeakerService } from '../services/speaker.service.js';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
+import type { PrismaClient } from '@prisma/client';
 
 // =============================================================================
-// Routes
+// Helpers
 // =============================================================================
 
-const speakerService = getSpeakerService();
+function svc(req: FastifyRequest): SpeakerService {
+  return new SpeakerService((req as FastifyRequest & { db?: PrismaClient }).db!);
+}
 
 // =============================================================================
 // Speaker Endpoints (All Authenticated)
@@ -26,7 +29,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'ids array is required' });
     }
 
-    await speakerService.reorder(authReq.user.userId, ids);
+    await svc(req).reorder(authReq.user.userId, ids);
     return reply.send({ success: true, message: 'Speakers reordered' });
   });
 
@@ -39,14 +42,14 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const { id } = req.params as { id: string };
     const { name, email, bio, avatarUrl, title, company } = req.body as Record<string, unknown>;
 
-    const speaker = await speakerService.update(id, authReq.user.userId, {
+    const speaker = await svc(req).update(id, authReq.user.userId, {
       name,
       email,
       bio,
       avatarUrl,
       title,
       company,
-    });
+    } as Parameters<SpeakerService['update']>[2]);
 
     if (!speaker) {
       return reply.code(404).send({ error: 'Speaker not found' });
@@ -63,7 +66,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { id } = req.params as { id: string };
 
-    await speakerService.delete(id, authReq.user.userId);
+    await svc(req).delete(id, authReq.user.userId);
     return reply.send({ success: true, message: 'Speaker deleted' });
   });
 };

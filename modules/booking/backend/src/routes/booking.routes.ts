@@ -1,7 +1,8 @@
 import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
-import { getBookingService } from '../services/booking.service.js';
+import { BookingService } from '../services/booking.service.js';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
+import type { PrismaClient } from '@prisma/client';
 
 // =============================================================================
 // Validation Schemas
@@ -16,10 +17,12 @@ const createBookingSchema = z.object({
 });
 
 // =============================================================================
-// Routes
+// Helper
 // =============================================================================
 
-const bookingService = getBookingService();
+function svc(req: FastifyRequest): BookingService {
+  return new BookingService((req as FastifyRequest & { db?: PrismaClient }).db!);
+}
 
 // =============================================================================
 // Booking Endpoints (All Authenticated)
@@ -34,7 +37,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { serviceId, providerId, date, startTime, notes } = createBookingSchema.parse(req.body);
 
-    const booking = await bookingService.createBooking({
+    const booking = await svc(req).createBooking({
       userId: authReq.user.userId,
       serviceId,
       providerId,
@@ -54,7 +57,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { status, page, limit } = req.query as Record<string, string>;
 
-    const result = await bookingService.listUserBookings({
+    const result = await svc(req).listUserBookings({
       userId: authReq.user.userId,
       status,
       page: page ? Number(page) : 1,
@@ -70,7 +73,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
    */
   fastify.get('/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const { id } = req.params as { id: string };
-    const booking = await bookingService.getBookingById(id);
+    const booking = await svc(req).getBookingById(id);
     if (!booking) {
       return reply.code(404).send({ error: 'Booking not found' });
     }
@@ -85,7 +88,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const { id } = req.params as { id: string };
     const { reason } = req.body as { reason?: string };
 
-    const booking = await bookingService.cancelBooking(id, reason);
+    const booking = await svc(req).cancelBooking(id, reason);
     if (!booking) {
       return reply.code(404).send({ error: 'Booking not found' });
     }
@@ -105,7 +108,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'date and startTime are required' });
     }
 
-    const booking = await bookingService.rescheduleBooking(id, { date, startTime });
+    const booking = await svc(req).rescheduleBooking(id, { date, startTime });
     if (!booking) {
       return reply.code(404).send({ error: 'Booking not found' });
     }
@@ -123,7 +126,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
    */
   fastify.post('/:id/confirm', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const { id } = req.params as { id: string };
-    const booking = await bookingService.confirmBooking(id);
+    const booking = await svc(req).confirmBooking(id);
     if (!booking) {
       return reply.code(404).send({ error: 'Booking not found' });
     }
@@ -136,7 +139,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
    */
   fastify.post('/:id/complete', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const { id } = req.params as { id: string };
-    const booking = await bookingService.completeBooking(id);
+    const booking = await svc(req).completeBooking(id);
     if (!booking) {
       return reply.code(404).send({ error: 'Booking not found' });
     }
@@ -149,7 +152,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
    */
   fastify.post('/:id/no-show', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const { id } = req.params as { id: string };
-    const booking = await bookingService.markNoShow(id);
+    const booking = await svc(req).markNoShow(id);
     if (!booking) {
       return reply.code(404).send({ error: 'Booking not found' });
     }

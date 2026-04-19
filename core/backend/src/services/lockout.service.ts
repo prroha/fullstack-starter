@@ -5,6 +5,7 @@
  * This is a CORE security feature available to all tiers.
  */
 
+import { PrismaClient } from "@prisma/client";
 import { User } from "@prisma/client";
 import { db } from "../lib/db.js";
 import { logger } from "../lib/logger.js";
@@ -20,7 +21,8 @@ export interface LockoutStatus {
   minutesUntilUnlock: number | null;
 }
 
-class LockoutService {
+export class LockoutService {
+  constructor(private db: PrismaClient) {}
   /**
    * Check if a user account is currently locked out
    */
@@ -62,7 +64,7 @@ class LockoutService {
    * Throws if user is locked out
    */
   async checkLockout(userId: string): Promise<LockoutStatus> {
-    const user = await db.user.findUnique({
+    const user = await this.db.user.findUnique({
       where: { id: userId },
       select: {
         failedLoginAttempts: true,
@@ -89,7 +91,7 @@ class LockoutService {
    */
   async recordFailedAttempt(userId: string, email: string): Promise<LockoutStatus> {
     // Use atomic increment to avoid race condition with concurrent login attempts
-    const updatedUser = await db.user.update({
+    const updatedUser = await this.db.user.update({
       where: { id: userId },
       data: {
         failedLoginAttempts: { increment: 1 },
@@ -118,7 +120,7 @@ class LockoutService {
         Date.now() + LOCKOUT_DURATION_MINUTES * 60 * 1000
       );
 
-      await db.user.update({
+      await this.db.user.update({
         where: { id: userId },
         data: { lockedUntil },
       });
@@ -150,7 +152,7 @@ class LockoutService {
    * Reset failed login attempts on successful login
    */
   async resetFailedAttempts(userId: string): Promise<void> {
-    const user = await db.user.findUnique({
+    const user = await this.db.user.findUnique({
       where: { id: userId },
       select: {
         failedLoginAttempts: true,
@@ -160,7 +162,7 @@ class LockoutService {
 
     // Only update if there were previous failed attempts
     if (user && (user.failedLoginAttempts > 0 || user.lockedUntil)) {
-      await db.user.update({
+      await this.db.user.update({
         where: { id: userId },
         data: {
           failedLoginAttempts: 0,
@@ -181,7 +183,7 @@ class LockoutService {
    * Should be called when user resets their password
    */
   async clearLockoutOnPasswordReset(userId: string): Promise<void> {
-    const user = await db.user.findUnique({
+    const user = await this.db.user.findUnique({
       where: { id: userId },
       select: {
         failedLoginAttempts: true,
@@ -191,7 +193,7 @@ class LockoutService {
     });
 
     if (user && (user.failedLoginAttempts > 0 || user.lockedUntil)) {
-      await db.user.update({
+      await this.db.user.update({
         where: { id: userId },
         data: {
           failedLoginAttempts: 0,
@@ -220,4 +222,8 @@ class LockoutService {
   }
 }
 
-export const lockoutService = new LockoutService();
+export const lockoutService = new LockoutService(db);
+
+export function createLockoutService(injectedDb: PrismaClient) {
+  return new LockoutService(injectedDb);
+}

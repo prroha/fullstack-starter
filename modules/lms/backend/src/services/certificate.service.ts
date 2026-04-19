@@ -2,7 +2,9 @@
 // LMS Certificate Service
 // =============================================================================
 // PDF generation (pdfkit), QR code creation (qrcode), and verification.
-// Uses placeholder db operations - replace with actual Prisma client.
+// Uses dependency injection for PrismaClient.
+
+import type { PrismaClient } from '@prisma/client';
 
 // =============================================================================
 // Types
@@ -15,77 +17,6 @@ export interface CertificateGenerateInput {
   studentName: string;
 }
 
-interface CertificateRecord {
-  id: string;
-  enrollmentId: string;
-  userId: string;
-  courseTitle: string;
-  studentName: string;
-  issuerName: string;
-  verificationCode: string;
-  issuedAt: Date;
-  pdfUrl: string | null;
-}
-
-// =============================================================================
-// Database Operations (Placeholder)
-// =============================================================================
-
-const dbOperations = {
-  async findCertificateById(id: string): Promise<CertificateRecord | null> {
-    // Replace with: return db.certificate.findUnique({ where: { id } });
-    console.log('[DB] Finding certificate:', id);
-    return null;
-  },
-
-  async findCertificateByVerificationCode(code: string): Promise<CertificateRecord | null> {
-    // Replace with: return db.certificate.findUnique({ where: { verificationCode: code } });
-    console.log('[DB] Finding certificate by verification code:', code);
-    return null;
-  },
-
-  async findCertificatesByUser(userId: string): Promise<CertificateRecord[]> {
-    // Replace with: return db.certificate.findMany({ where: { userId }, orderBy: { issuedAt: 'desc' } });
-    console.log('[DB] Finding certificates for user:', userId);
-    return [];
-  },
-
-  async findCertificateByEnrollment(enrollmentId: string): Promise<CertificateRecord | null> {
-    // Replace with: return db.certificate.findFirst({ where: { enrollmentId } });
-    console.log('[DB] Finding certificate for enrollment:', enrollmentId);
-    return null;
-  },
-
-  async createCertificate(data: {
-    enrollmentId: string;
-    userId: string;
-    courseTitle: string;
-    studentName: string;
-    issuerName: string;
-    verificationCode: string;
-  }): Promise<CertificateRecord> {
-    // Replace with: return db.certificate.create({ data });
-    console.log('[DB] Creating certificate for:', data.studentName);
-    return {
-      id: 'cert_' + Date.now(),
-      ...data,
-      issuedAt: new Date(),
-      pdfUrl: null,
-    };
-  },
-
-  async updateCertificatePdfUrl(id: string, pdfUrl: string): Promise<void> {
-    // Replace with: await db.certificate.update({ where: { id }, data: { pdfUrl } });
-    console.log('[DB] Updating certificate PDF URL:', id);
-  },
-
-  async checkEnrollmentCompleted(enrollmentId: string): Promise<boolean> {
-    // Replace with: const enrollment = await db.enrollment.findUnique({ where: { id: enrollmentId } }); return enrollment?.status === 'COMPLETED';
-    console.log('[DB] Checking enrollment completion:', enrollmentId);
-    return false;
-  },
-};
-
 // =============================================================================
 // Certificate Service
 // =============================================================================
@@ -94,7 +25,10 @@ export class CertificateService {
   private issuerName: string;
   private verifyBaseUrl: string;
 
-  constructor(config?: { issuerName?: string; verifyBaseUrl?: string }) {
+  constructor(
+    private db: PrismaClient,
+    config?: { issuerName?: string; verifyBaseUrl?: string },
+  ) {
     this.issuerName = config?.issuerName || process.env.LMS_CERTIFICATE_ISSUER || 'Learning Platform';
     this.verifyBaseUrl = config?.verifyBaseUrl || process.env.LMS_CERTIFICATE_VERIFY_URL || 'http://localhost:3000/certificates';
   }
@@ -102,15 +36,19 @@ export class CertificateService {
   /**
    * Generate a certificate for a completed course
    */
-  async generateCertificate(input: CertificateGenerateInput): Promise<CertificateRecord> {
+  async generateCertificate(input: CertificateGenerateInput) {
     // Check if enrollment is completed
-    const isCompleted = await dbOperations.checkEnrollmentCompleted(input.enrollmentId);
-    if (!isCompleted) {
+    const enrollment = await this.db.enrollment.findUnique({
+      where: { id: input.enrollmentId },
+    });
+    if (!enrollment || enrollment.status !== 'COMPLETED') {
       throw new Error('Course must be completed before generating a certificate');
     }
 
     // Check if certificate already exists
-    const existing = await dbOperations.findCertificateByEnrollment(input.enrollmentId);
+    const existing = await this.db.certificate.findFirst({
+      where: { enrollmentId: input.enrollmentId },
+    });
     if (existing) {
       return existing;
     }
@@ -119,37 +57,42 @@ export class CertificateService {
     const verificationCode = this.generateVerificationCode();
 
     // Create certificate record
-    const certificate = await dbOperations.createCertificate({
-      enrollmentId: input.enrollmentId,
-      userId: input.userId,
-      courseTitle: input.courseTitle,
-      studentName: input.studentName,
-      issuerName: this.issuerName,
-      verificationCode,
+    return this.db.certificate.create({
+      data: {
+        enrollmentId: input.enrollmentId,
+        userId: input.userId,
+        courseTitle: input.courseTitle,
+        studentName: input.studentName,
+        issuerName: this.issuerName,
+        verificationCode,
+      },
     });
-
-    return certificate;
   }
 
   /**
    * Get a certificate by ID
    */
   async getCertificate(id: string) {
-    return dbOperations.findCertificateById(id);
+    return this.db.certificate.findUnique({ where: { id } });
   }
 
   /**
    * Get all certificates for a user
    */
   async getUserCertificates(userId: string) {
-    return dbOperations.findCertificatesByUser(userId);
+    return this.db.certificate.findMany({
+      where: { userId },
+      orderBy: { issuedAt: 'desc' },
+    });
   }
 
   /**
    * Verify a certificate by its verification code
    */
   async verifyCertificate(verificationCode: string) {
-    const certificate = await dbOperations.findCertificateByVerificationCode(verificationCode);
+    const certificate = await this.db.certificate.findUnique({
+      where: { verificationCode },
+    });
     if (!certificate) {
       return { valid: false, certificate: null };
     }
@@ -161,7 +104,9 @@ export class CertificateService {
    * Uses pdfkit for generation - install: npm install pdfkit @types/pdfkit
    */
   async generatePdf(certificateId: string): Promise<Buffer> {
-    const certificate = await dbOperations.findCertificateById(certificateId);
+    const certificate = await this.db.certificate.findUnique({
+      where: { id: certificateId },
+    });
     if (!certificate) {
       throw new Error('Certificate not found');
     }
@@ -256,13 +201,19 @@ export class CertificateService {
 // Factory
 // =============================================================================
 
-let certificateServiceInstance: CertificateService | null = null;
+export function createCertificateService(db: PrismaClient, config?: { issuerName?: string; verifyBaseUrl?: string }): CertificateService {
+  return new CertificateService(db, config);
+}
 
-export function getCertificateService(): CertificateService {
-  if (!certificateServiceInstance) {
-    certificateServiceInstance = new CertificateService();
+let instance: CertificateService | null = null;
+
+export function getCertificateService(db?: PrismaClient): CertificateService {
+  if (db) return createCertificateService(db);
+  if (!instance) {
+    const { db: globalDb } = require('../../../../core/backend/src/lib/db.js');
+    instance = new CertificateService(globalDb);
   }
-  return certificateServiceInstance;
+  return instance;
 }
 
 export default CertificateService;

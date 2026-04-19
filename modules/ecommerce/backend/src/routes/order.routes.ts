@@ -1,12 +1,15 @@
 import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
-import { getOrderService } from '../services/order.service.js';
+import { OrderService } from '../services/order.service.js';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
+import type { PrismaClient } from '@prisma/client';
 
 // =============================================================================
-// Routes
+// DI Helper
 // =============================================================================
 
-const orderService = getOrderService();
+function svc(req: FastifyRequest): OrderService {
+  return new OrderService((req as FastifyRequest & { db?: PrismaClient }).db!);
+}
 
 // =============================================================================
 // Order Endpoints (All Authenticated)
@@ -25,7 +28,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'Shipping address is required' });
     }
 
-    const order = await orderService.createOrder({
+    const order = await svc(req).createOrder({
       userId: authReq.user.userId,
       shippingAddress,
       billingAddress,
@@ -43,7 +46,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { page, limit } = req.query as Record<string, string>;
 
-    const result = await orderService.listOrders(
+    const result = await svc(req).listOrders(
       authReq.user.userId,
       page ? Number(page) : 1,
       limit ? Number(limit) : 20,
@@ -58,7 +61,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
    */
   fastify.get('/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const { id } = req.params as { id: string };
-    const order = await orderService.getOrderById(id);
+    const order = await svc(req).getOrderById(id);
     if (!order) {
       return reply.code(404).send({ error: 'Order not found' });
     }
@@ -72,7 +75,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
    */
   fastify.post('/:id/cancel', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const { id } = req.params as { id: string };
-    const order = await orderService.cancelOrder(id);
+    const order = await svc(req).cancelOrder(id);
     if (!order) {
       return reply.code(404).send({ error: 'Order not found' });
     }

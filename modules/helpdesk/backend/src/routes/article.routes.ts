@@ -1,12 +1,15 @@
 import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
-import { getArticleService } from '../services/article.service.js';
+import { ArticleService } from '../services/article.service.js';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
+import type { PrismaClient } from '@prisma/client';
 
 // =============================================================================
-// Routes
+// Helper
 // =============================================================================
 
-const articleService = getArticleService();
+function svc(req: FastifyRequest): ArticleService {
+  return new ArticleService((req as FastifyRequest & { db?: PrismaClient }).db!);
+}
 
 // =============================================================================
 // Article Endpoints (All Authenticated)
@@ -22,7 +25,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { q } = req.query as Record<string, string>;
 
-    const results = await articleService.search(authReq.user.userId, q);
+    const results = await svc(req).search(authReq.user.userId, q);
     return reply.send({ success: true, data: results });
   });
 
@@ -34,7 +37,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { search, status, categoryId, page, limit } = req.query as Record<string, string>;
 
-    const result = await articleService.list(authReq.user.userId, {
+    const result = await svc(req).list(authReq.user.userId, {
       search,
       status,
       categoryId,
@@ -53,7 +56,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { id } = req.params as { id: string };
 
-    const article = await articleService.getById(id, authReq.user.userId);
+    const article = await svc(req).getById(id, authReq.user.userId);
     if (!article) {
       return reply.code(404).send({ error: 'Article not found' });
     }
@@ -72,7 +75,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'title and content are required' });
     }
 
-    const article = await articleService.create({
+    const article = await svc(req).create({
       userId: authReq.user.userId,
       title,
       slug,
@@ -96,7 +99,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const { id } = req.params as { id: string };
     const { title, slug, content, excerpt, categoryId, tags, metaTitle, metaDescription } = req.body as Record<string, unknown>;
 
-    const article = await articleService.update(id, authReq.user.userId, {
+    const article = await svc(req).update(id, authReq.user.userId, {
       title,
       slug,
       content,
@@ -122,7 +125,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { id } = req.params as { id: string };
 
-    await articleService.delete(id, authReq.user.userId);
+    await svc(req).delete(id, authReq.user.userId);
     return reply.send({ success: true, message: 'Article deleted' });
   });
 
@@ -134,7 +137,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { id } = req.params as { id: string };
 
-    const article = await articleService.publish(id, authReq.user.userId);
+    const article = await svc(req).publish(id, authReq.user.userId);
     if (!article) {
       return reply.code(404).send({ error: 'Article not found' });
     }
@@ -149,7 +152,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { id } = req.params as { id: string };
 
-    const article = await articleService.archive(id, authReq.user.userId);
+    const article = await svc(req).archive(id, authReq.user.userId);
     if (!article) {
       return reply.code(404).send({ error: 'Article not found' });
     }
@@ -169,7 +172,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'helpful is required' });
     }
 
-    const feedback = await articleService.recordFeedback(authReq.user.userId, {
+    const feedback = await svc(req).recordFeedback(authReq.user.userId, {
       articleId: id,
       helpful,
       comment,

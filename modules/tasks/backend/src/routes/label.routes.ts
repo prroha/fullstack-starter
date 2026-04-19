@@ -1,12 +1,15 @@
 import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
-import { getLabelService } from '../services/label.service.js';
+import { LabelService } from '../services/label.service.js';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
+import type { PrismaClient } from '@prisma/client';
 
 // =============================================================================
-// Routes
+// Helpers
 // =============================================================================
 
-const labelService = getLabelService();
+function svc(req: FastifyRequest): LabelService {
+  return new LabelService((req as FastifyRequest & { db?: PrismaClient }).db!);
+}
 
 // =============================================================================
 // Label Endpoints (All Authenticated)
@@ -20,7 +23,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
 
-    const labels = await labelService.list(authReq.user.userId);
+    const labels = await svc(req).list(authReq.user.userId);
     return reply.send({ success: true, data: labels });
   });
 
@@ -36,7 +39,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'name is required' });
     }
 
-    const label = await labelService.create({
+    const label = await svc(req).create({
       userId: authReq.user.userId,
       name,
       color,
@@ -54,7 +57,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const { id } = req.params as { id: string };
     const { name, color } = req.body as Record<string, unknown>;
 
-    const label = await labelService.update(id, authReq.user.userId, { name, color });
+    const label = await svc(req).update(id, authReq.user.userId, { name, color });
     if (!label) {
       return reply.code(404).send({ error: 'Label not found' });
     }
@@ -70,7 +73,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { id } = req.params as { id: string };
 
-    await labelService.delete(id, authReq.user.userId);
+    await svc(req).delete(id, authReq.user.userId);
     return reply.send({ success: true, message: 'Label deleted' });
   });
 };

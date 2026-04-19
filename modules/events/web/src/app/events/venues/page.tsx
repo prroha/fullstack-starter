@@ -36,22 +36,22 @@ export default function VenuesPage() {
   }, [fetchData]);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="bg-background">
       <div className="border-b bg-card">
-        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight text-foreground">Venues</h1>
-              <p className="mt-1 text-muted-foreground">
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">Venues</h1>
+              <p className="mt-1 text-sm text-muted-foreground">
                 Manage event venues and locations
               </p>
             </div>
-            <Button onClick={() => router.push("/events/venues/new")}>New Venue</Button>
+            <Button size="sm" onClick={() => router.push("/events/venues/new")}>New Venue</Button>
           </div>
         </div>
       </div>
 
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <div className="mb-6">
           <SearchInput onSearch={setSearch} placeholder="Search venues..." />
         </div>

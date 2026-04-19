@@ -4,64 +4,138 @@ import { usePreviewContext } from "@preview/lib/preview-context";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-interface NavItem {
+interface NavSection {
   feature: string;
   label: string;
-  href: string;
+  items: { label: string; href: string }[];
 }
 
-const CORE_NAV_ITEMS: NavItem[] = [
-  { feature: "core", label: "Dashboard", href: "/" },
-  { feature: "core", label: "Profile", href: "/profile" },
-  { feature: "core", label: "Settings", href: "/settings" },
-];
+const CORE_SECTION: NavSection = {
+  feature: "core",
+  label: "Core",
+  items: [
+    { label: "Dashboard", href: "/" },
+    { label: "Login", href: "/login" },
+  ],
+};
 
-const MODULE_NAV_ITEMS: NavItem[] = [
-  { feature: "ecommerce", label: "Products", href: "/products" },
-  { feature: "ecommerce", label: "Cart", href: "/cart" },
-  { feature: "lms", label: "Courses", href: "/courses" },
-  { feature: "helpdesk", label: "Support", href: "/helpdesk" },
-  { feature: "booking", label: "Booking", href: "/booking" },
-  { feature: "invoicing", label: "Invoices", href: "/invoices" },
-  { feature: "events", label: "Events", href: "/events" },
-  { feature: "tasks", label: "Tasks", href: "/tasks" },
+const MODULE_SECTIONS: NavSection[] = [
+  {
+    feature: "ecommerce",
+    label: "E-Commerce",
+    items: [
+      { label: "Shop", href: "/shop" },
+      { label: "Cart", href: "/cart" },
+      { label: "Orders", href: "/dashboard/orders" },
+      { label: "Seller Dashboard", href: "/dashboard/seller" },
+      { label: "My Products", href: "/dashboard/seller/products" },
+    ],
+  },
+  {
+    feature: "lms",
+    label: "LMS",
+    items: [
+      { label: "Courses", href: "/courses" },
+      { label: "My Courses", href: "/dashboard/my-courses" },
+      { label: "Instructor", href: "/dashboard/instructor" },
+    ],
+  },
+  {
+    feature: "booking",
+    label: "Booking",
+    items: [
+      { label: "Services", href: "/services" },
+      { label: "Providers", href: "/providers" },
+      { label: "My Bookings", href: "/dashboard/my-bookings" },
+      { label: "Provider Panel", href: "/dashboard/provider" },
+    ],
+  },
+  {
+    feature: "helpdesk",
+    label: "Helpdesk",
+    items: [
+      { label: "Dashboard", href: "/helpdesk" },
+      { label: "Tickets", href: "/helpdesk/tickets" },
+      { label: "Knowledge Base", href: "/helpdesk/knowledge-base" },
+      { label: "Agents", href: "/helpdesk/agents" },
+    ],
+  },
+  {
+    feature: "invoicing",
+    label: "Invoicing",
+    items: [
+      { label: "Dashboard", href: "/invoicing" },
+      { label: "Invoices", href: "/invoicing/invoices" },
+      { label: "Clients", href: "/invoicing/clients" },
+      { label: "Recurring", href: "/invoicing/recurring" },
+    ],
+  },
+  {
+    feature: "events",
+    label: "Events",
+    items: [
+      { label: "Overview", href: "/events" },
+      { label: "Event List", href: "/events/list" },
+      { label: "Calendar", href: "/events/calendar" },
+      { label: "Venues", href: "/events/venues" },
+      { label: "Registrations", href: "/events/registrations" },
+    ],
+  },
+  {
+    feature: "tasks",
+    label: "Tasks",
+    items: [
+      { label: "Overview", href: "/tasks" },
+      { label: "List View", href: "/tasks/list" },
+      { label: "Board View", href: "/tasks/board" },
+      { label: "Projects", href: "/tasks/projects" },
+      { label: "Labels", href: "/tasks/labels" },
+    ],
+  },
 ];
 
 export function PreviewNav() {
-  const { hasModule } = usePreviewContext();
+  const { hasModule, isLoading } = usePreviewContext();
   const pathname = usePathname();
 
-  const enabledModules = MODULE_NAV_ITEMS.filter(
-    (item) => item.feature === "core" || hasModule(item.feature)
-  );
+  if (isLoading) return null;
 
-  const allItems = [...CORE_NAV_ITEMS, ...enabledModules];
+  const enabledSections = MODULE_SECTIONS.filter((s) => hasModule(s.feature));
+  const sections = [CORE_SECTION, ...enabledSections];
 
   return (
-    <nav className="w-64 bg-card border-r border-border min-h-screen p-4">
-      <div className="mb-6">
-        <h2 className="text-lg font-bold text-foreground">Preview App</h2>
-        <p className="text-xs text-muted-foreground">Live preview of your configuration</p>
+    <nav className="w-56 shrink-0 bg-card border-r border-border min-h-screen p-4 overflow-y-auto">
+      <div className="mb-4">
+        <h2 className="text-sm font-bold text-foreground">Preview</h2>
       </div>
-      <ul className="space-y-1">
-        {allItems.map((item) => {
-          const isActive = pathname === item.href;
-          return (
-            <li key={item.href}>
-              <Link
-                href={item.href}
-                className={`block px-3 py-2 rounded-md text-sm transition-colors ${
-                  isActive
-                    ? "bg-primary text-primary-foreground"
-                    : "text-foreground hover:bg-accent"
-                }`}
-              >
-                {item.label}
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
+      {sections.map((section) => (
+        <div key={section.feature} className="mb-4">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 px-3">
+            {section.label}
+          </p>
+          <ul className="space-y-0.5">
+            {section.items.map((item) => {
+              const isActive =
+                pathname === item.href ||
+                (item.href !== "/" && pathname.startsWith(item.href));
+              return (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    className={`block px-3 py-1.5 rounded-md text-sm transition-colors ${
+                      isActive
+                        ? "bg-primary text-primary-foreground"
+                        : "text-foreground hover:bg-accent"
+                    }`}
+                  >
+                    {item.label}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ))}
     </nav>
   );
 }

@@ -2,7 +2,9 @@
 // Label Service
 // =============================================================================
 // Business logic for label management: CRUD and task-label assignment.
-// Uses placeholder db operations - replace with actual Prisma client.
+// Uses dependency-injected PrismaClient for all database operations.
+
+import type { PrismaClient } from '@prisma/client';
 
 // =============================================================================
 // Types
@@ -19,100 +21,76 @@ export interface LabelUpdateInput {
   color?: string;
 }
 
-interface LabelRecord {
-  id: string;
-  userId: string;
-  name: string;
-  color: string;
-  createdAt: Date;
-}
-
-// =============================================================================
-// Database Operations (Placeholder)
-// =============================================================================
-
-const dbOperations = {
-  async createLabel(data: { userId: string; name: string; color: string }): Promise<LabelRecord> {
-    console.log('[DB] Creating label:', data.name);
-    return { id: 'label_' + Date.now(), ...data, createdAt: new Date() };
-  },
-
-  async findLabelById(id: string): Promise<LabelRecord | null> {
-    console.log('[DB] Finding label by ID:', id);
-    return null;
-  },
-
-  async findLabels(userId: string): Promise<LabelRecord[]> {
-    console.log('[DB] Finding labels for user:', userId);
-    return [];
-  },
-
-  async updateLabel(id: string, data: Partial<LabelRecord>): Promise<LabelRecord | null> {
-    console.log('[DB] Updating label:', id);
-    return null;
-  },
-
-  async deleteLabel(id: string): Promise<void> {
-    console.log('[DB] Deleting label:', id);
-  },
-
-  async checkLabelBelongsToUser(id: string, userId: string): Promise<boolean> {
-    console.log('[DB] Checking label ownership:', id, userId);
-    return false;
-  },
-
-  async addLabelToTask(taskId: string, labelId: string): Promise<void> {
-    console.log('[DB] Adding label to task:', labelId, taskId);
-  },
-
-  async removeLabelFromTask(taskId: string, labelId: string): Promise<void> {
-    console.log('[DB] Removing label from task:', labelId, taskId);
-  },
-};
-
 // =============================================================================
 // Label Service
 // =============================================================================
 
 export class LabelService {
-  async create(input: LabelCreateInput): Promise<LabelRecord> {
-    return dbOperations.createLabel({
-      userId: input.userId,
-      name: input.name,
-      color: input.color || '#6B7280',
+  constructor(private db: PrismaClient) {}
+
+  async create(input: LabelCreateInput) {
+    return this.db.taskLabel.create({
+      data: {
+        userId: input.userId,
+        name: input.name,
+        color: input.color || '#6B7280',
+      },
     });
   }
 
-  async update(id: string, userId: string, input: LabelUpdateInput): Promise<LabelRecord | null> {
-    const belongs = await dbOperations.checkLabelBelongsToUser(id, userId);
-    if (!belongs) throw new Error('Label not found');
+  async update(id: string, userId: string, input: LabelUpdateInput) {
+    const label = await this.db.taskLabel.findFirst({ where: { id, userId } });
+    if (!label) throw new Error('Label not found');
 
-    return dbOperations.updateLabel(id, input as Partial<LabelRecord>);
+    const data: Record<string, unknown> = {};
+    if (input.name !== undefined) data.name = input.name;
+    if (input.color !== undefined) data.color = input.color;
+
+    return this.db.taskLabel.update({
+      where: { id },
+      data: data as any,
+    });
   }
 
   async delete(id: string, userId: string): Promise<void> {
-    const belongs = await dbOperations.checkLabelBelongsToUser(id, userId);
-    if (!belongs) throw new Error('Label not found');
+    const label = await this.db.taskLabel.findFirst({ where: { id, userId } });
+    if (!label) throw new Error('Label not found');
 
-    return dbOperations.deleteLabel(id);
+    await this.db.taskLabel.delete({ where: { id } });
   }
 
-  async list(userId: string): Promise<LabelRecord[]> {
-    return dbOperations.findLabels(userId);
+  async list(userId: string) {
+    return this.db.taskLabel.findMany({
+      where: { userId },
+      orderBy: { name: 'asc' },
+    });
   }
 
   async addToTask(taskId: string, labelId: string, userId: string): Promise<void> {
-    const taskBelongs = await dbOperations.checkLabelBelongsToUser(labelId, userId);
-    if (!taskBelongs) throw new Error('Label not found');
+    // Verify label belongs to user
+    const label = await this.db.taskLabel.findFirst({ where: { id: labelId, userId } });
+    if (!label) throw new Error('Label not found');
 
-    return dbOperations.addLabelToTask(taskId, labelId);
+    // Verify task belongs to user
+    const task = await this.db.task.findFirst({ where: { id: taskId, userId } });
+    if (!task) throw new Error('Task not found');
+
+    // Upsert to avoid duplicate errors
+    await this.db.taskLabelLink.upsert({
+      where: { taskId_labelId: { taskId, labelId } },
+      create: { taskId, labelId },
+      update: {},
+    });
   }
 
   async removeFromTask(taskId: string, labelId: string, userId: string): Promise<void> {
-    const taskBelongs = await dbOperations.checkLabelBelongsToUser(labelId, userId);
-    if (!taskBelongs) throw new Error('Label not found');
+    // Verify label belongs to user
+    const label = await this.db.taskLabel.findFirst({ where: { id: labelId, userId } });
+    if (!label) throw new Error('Label not found');
 
-    return dbOperations.removeLabelFromTask(taskId, labelId);
+    await this.db.taskLabelLink.deleteMany({
+      where: { taskId, labelId },
+    });
   }
 }
 
@@ -120,10 +98,18 @@ export class LabelService {
 // Factory
 // =============================================================================
 
+export function createLabelService(db: PrismaClient): LabelService {
+  return new LabelService(db);
+}
+
 let instance: LabelService | null = null;
 
-export function getLabelService(): LabelService {
-  if (!instance) instance = new LabelService();
+export function getLabelService(db?: PrismaClient): LabelService {
+  if (db) return createLabelService(db);
+  if (!instance) {
+    const { db: globalDb } = require('../../../../core/backend/src/lib/db.js');
+    instance = new LabelService(globalDb);
+  }
   return instance;
 }
 

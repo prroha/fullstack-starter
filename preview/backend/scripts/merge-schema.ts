@@ -64,15 +64,32 @@ function main() {
     for (const block of blocks) {
       if (block.type === "generator" || block.type === "datasource") continue;
 
-      const nameSet = block.type === "model" ? seenModels : seenEnums;
-      if (nameSet.has(block.name)) {
-        console.warn(`  Duplicate ${block.type} "${block.name}" in ${mod.name} — skipping`);
-        continue;
+      if (block.type === "model") {
+        if (seenModels.has(block.name)) {
+          console.warn(`  Duplicate model "${block.name}" in ${mod.name} — skipping`);
+          continue;
+        }
+        seenModels.add(block.name);
+        merged += `\n\n// From: ${mod.name}\n${block.content}`;
+        addedCount++;
+      } else if (block.type === "enum") {
+        if (seenEnums.has(block.name)) {
+          // Merge enum values instead of skipping
+          const newValues = extractEnumValues(block.content);
+          const existingValues = extractEnumValuesFromMerged(merged, block.name);
+          const toAdd = newValues.filter((v) => !existingValues.has(v));
+          if (toAdd.length > 0) {
+            merged = mergeEnumValues(merged, block.name, toAdd);
+            console.log(`  Merged ${toAdd.length} values into enum "${block.name}" from ${mod.name}: ${toAdd.join(", ")}`);
+          } else {
+            console.log(`  Duplicate enum "${block.name}" in ${mod.name} — all values already present`);
+          }
+          continue;
+        }
+        seenEnums.add(block.name);
+        merged += `\n\n// From: ${mod.name}\n${block.content}`;
+        addedCount++;
       }
-
-      nameSet.add(block.name);
-      merged += `\n\n// From: ${mod.name}\n${block.content}`;
-      addedCount++;
     }
 
     console.log(`  ${mod.name}: ${addedCount} blocks added`);
@@ -88,6 +105,35 @@ interface SchemaBlock {
   type: "model" | "enum" | "generator" | "datasource";
   name: string;
   content: string;
+}
+
+function extractEnumValues(enumBlock: string): string[] {
+  const match = enumBlock.match(/\{([^}]+)\}/);
+  if (!match) return [];
+  return match[1]
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l && !l.startsWith("//"));
+}
+
+function extractEnumValuesFromMerged(schema: string, enumName: string): Set<string> {
+  const regex = new RegExp(`enum\\s+${enumName}\\s*\\{([^}]+)\\}`);
+  const match = schema.match(regex);
+  if (!match) return new Set();
+  return new Set(
+    match[1]
+      .split("\n")
+      .map((l) => l.trim())
+      .filter((l) => l && !l.startsWith("//"))
+  );
+}
+
+function mergeEnumValues(schema: string, enumName: string, newValues: string[]): string {
+  const regex = new RegExp(`(enum\\s+${enumName}\\s*\\{[^}]*)(\\})`);
+  return schema.replace(regex, (_, before, close) => {
+    const valuesStr = newValues.map((v) => `  ${v}`).join("\n");
+    return `${before}\n${valuesStr}\n${close}`;
+  });
 }
 
 function extractBlocks(schema: string): SchemaBlock[] {

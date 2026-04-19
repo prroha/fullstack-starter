@@ -2,7 +2,9 @@
 // LMS Enrollment Service
 // =============================================================================
 // Business logic for enrollment creation, progress tracking, and completion.
-// Uses placeholder db operations - replace with actual Prisma client.
+// Uses dependency injection for PrismaClient.
+
+import type { PrismaClient } from '@prisma/client';
 
 // =============================================================================
 // Types
@@ -21,183 +23,116 @@ export interface ProgressUpdateInput {
   lastPosition?: number;
 }
 
-interface EnrollmentRecord {
-  id: string;
-  userId: string;
-  courseId: string;
-  status: string;
-  progress: number;
-  enrolledAt: Date;
-  completedAt: Date | null;
-  expiresAt: Date | null;
-}
-
-interface ProgressRecord {
-  id: string;
-  enrollmentId: string;
-  lessonId: string;
-  completed: boolean;
-  timeSpent: number;
-  lastPosition: number;
-  completedAt: Date | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-// =============================================================================
-// Database Operations (Placeholder)
-// =============================================================================
-
-const dbOperations = {
-  async findEnrollment(userId: string, courseId: string): Promise<EnrollmentRecord | null> {
-    // Replace with: return db.enrollment.findUnique({ where: { userId_courseId: { userId, courseId } } });
-    console.log('[DB] Finding enrollment:', userId, courseId);
-    return null;
-  },
-
-  async findEnrollmentById(id: string): Promise<EnrollmentRecord | null> {
-    // Replace with: return db.enrollment.findUnique({ where: { id }, include: { course: true } });
-    console.log('[DB] Finding enrollment by ID:', id);
-    return null;
-  },
-
-  async findEnrollmentsByUser(userId: string): Promise<EnrollmentRecord[]> {
-    // Replace with: return db.enrollment.findMany({ where: { userId }, include: { course: true }, orderBy: { enrolledAt: 'desc' } });
-    console.log('[DB] Finding enrollments for user:', userId);
-    return [];
-  },
-
-  async findEnrollmentsByCourse(courseId: string): Promise<EnrollmentRecord[]> {
-    // Replace with: return db.enrollment.findMany({ where: { courseId }, include: { progressItems: true } });
-    console.log('[DB] Finding enrollments for course:', courseId);
-    return [];
-  },
-
-  async createEnrollment(data: EnrollInput): Promise<EnrollmentRecord> {
-    // Replace with: return db.enrollment.create({ data: { userId: data.userId, courseId: data.courseId, status: 'ACTIVE' } });
-    console.log('[DB] Creating enrollment:', data.userId, data.courseId);
-    return {
-      id: 'enrollment_' + Date.now(),
-      userId: data.userId,
-      courseId: data.courseId,
-      status: 'ACTIVE',
-      progress: 0,
-      enrolledAt: new Date(),
-      completedAt: null,
-      expiresAt: null,
-    };
-  },
-
-  async updateEnrollment(id: string, data: Partial<EnrollmentRecord>): Promise<EnrollmentRecord | null> {
-    // Replace with: return db.enrollment.update({ where: { id }, data });
-    console.log('[DB] Updating enrollment:', id);
-    return null;
-  },
-
-  async upsertProgress(data: ProgressUpdateInput): Promise<ProgressRecord> {
-    // Replace with:
-    // return db.progress.upsert({
-    //   where: { enrollmentId_lessonId: { enrollmentId: data.enrollmentId, lessonId: data.lessonId } },
-    //   create: { ...data, completedAt: data.completed ? new Date() : null },
-    //   update: { ...data, completedAt: data.completed ? new Date() : undefined },
-    // });
-    console.log('[DB] Upserting progress:', data.enrollmentId, data.lessonId);
-    return {
-      id: 'progress_' + Date.now(),
-      enrollmentId: data.enrollmentId,
-      lessonId: data.lessonId,
-      completed: data.completed || false,
-      timeSpent: data.timeSpent || 0,
-      lastPosition: data.lastPosition || 0,
-      completedAt: data.completed ? new Date() : null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-  },
-
-  async getProgressForEnrollment(enrollmentId: string): Promise<ProgressRecord[]> {
-    // Replace with: return db.progress.findMany({ where: { enrollmentId } });
-    console.log('[DB] Getting progress for enrollment:', enrollmentId);
-    return [];
-  },
-
-  async getTotalLessonsForCourse(courseId: string): Promise<number> {
-    // Replace with: return db.lesson.count({ where: { section: { courseId } } });
-    console.log('[DB] Getting total lessons for course:', courseId);
-    return 0;
-  },
-
-  async getCompletedLessonsCount(enrollmentId: string): Promise<number> {
-    // Replace with: return db.progress.count({ where: { enrollmentId, completed: true } });
-    console.log('[DB] Getting completed lesson count:', enrollmentId);
-    return 0;
-  },
-
-  async getEnrollmentCount(courseId: string): Promise<number> {
-    // Replace with: return db.enrollment.count({ where: { courseId, status: { in: ['ACTIVE', 'COMPLETED'] } } });
-    console.log('[DB] Getting enrollment count:', courseId);
-    return 0;
-  },
-
-  async checkCourseCapacity(courseId: string): Promise<{ maxStudents: number | null; enrolled: number }> {
-    // Replace with aggregation query
-    console.log('[DB] Checking course capacity:', courseId);
-    return { maxStudents: null, enrolled: 0 };
-  },
-};
-
 // =============================================================================
 // Enrollment Service
 // =============================================================================
 
 export class EnrollmentService {
+  constructor(private db: PrismaClient) {}
+
   /**
    * Enroll a user in a course
    */
-  async enroll(input: EnrollInput): Promise<EnrollmentRecord> {
+  async enroll(input: EnrollInput) {
     // Check if already enrolled
-    const existing = await dbOperations.findEnrollment(input.userId, input.courseId);
+    const existing = await this.db.enrollment.findUnique({
+      where: {
+        userId_courseId: {
+          userId: input.userId,
+          courseId: input.courseId,
+        },
+      },
+    });
+
     if (existing) {
       if (existing.status === 'DROPPED') {
         // Re-enroll
-        const updated = await dbOperations.updateEnrollment(existing.id, {
-          status: 'ACTIVE',
-          progress: 0,
-          completedAt: null,
-        } as Partial<EnrollmentRecord>);
-        return updated || existing;
+        return this.db.enrollment.update({
+          where: { id: existing.id },
+          data: {
+            status: 'ACTIVE',
+            progress: 0,
+            completedAt: null,
+          },
+        });
       }
       throw new Error('Already enrolled in this course');
     }
 
     // Check capacity
-    const capacity = await dbOperations.checkCourseCapacity(input.courseId);
-    if (capacity.maxStudents !== null && capacity.enrolled >= capacity.maxStudents) {
-      throw new Error('Course is full');
+    const course = await this.db.course.findUnique({
+      where: { id: input.courseId },
+      select: { maxStudents: true },
+    });
+
+    if (course?.maxStudents !== null && course?.maxStudents !== undefined) {
+      const enrolled = await this.db.enrollment.count({
+        where: {
+          courseId: input.courseId,
+          status: { in: ['ACTIVE', 'COMPLETED'] },
+        },
+      });
+      if (enrolled >= course.maxStudents) {
+        throw new Error('Course is full');
+      }
     }
 
-    return dbOperations.createEnrollment(input);
+    return this.db.enrollment.create({
+      data: {
+        userId: input.userId,
+        courseId: input.courseId,
+        status: 'ACTIVE',
+      },
+    });
   }
 
   /**
    * Get all enrollments for a user
    */
   async getUserEnrollments(userId: string) {
-    return dbOperations.findEnrollmentsByUser(userId);
+    return this.db.enrollment.findMany({
+      where: { userId },
+      include: { course: true },
+      orderBy: { enrolledAt: 'desc' },
+    });
   }
 
   /**
    * Get all enrollments for a course
    */
   async getCourseEnrollments(courseId: string) {
-    return dbOperations.findEnrollmentsByCourse(courseId);
+    return this.db.enrollment.findMany({
+      where: { courseId },
+      include: { progressItems: true },
+    });
   }
 
   /**
    * Track lesson progress
    */
   async updateProgress(input: ProgressUpdateInput) {
-    const progress = await dbOperations.upsertProgress(input);
+    const progress = await this.db.progress.upsert({
+      where: {
+        enrollmentId_lessonId: {
+          enrollmentId: input.enrollmentId,
+          lessonId: input.lessonId,
+        },
+      },
+      create: {
+        enrollmentId: input.enrollmentId,
+        lessonId: input.lessonId,
+        completed: input.completed || false,
+        timeSpent: input.timeSpent || 0,
+        lastPosition: input.lastPosition || 0,
+        completedAt: input.completed ? new Date() : null,
+      },
+      update: {
+        completed: input.completed,
+        timeSpent: input.timeSpent,
+        lastPosition: input.lastPosition,
+        completedAt: input.completed ? new Date() : undefined,
+      },
+    });
 
     // Recalculate enrollment progress percentage
     await this.recalculateProgress(input.enrollmentId);
@@ -209,10 +144,20 @@ export class EnrollmentService {
    * Mark a lesson as completed
    */
   async completeLesson(enrollmentId: string, lessonId: string) {
-    const progress = await dbOperations.upsertProgress({
-      enrollmentId,
-      lessonId,
-      completed: true,
+    const progress = await this.db.progress.upsert({
+      where: {
+        enrollmentId_lessonId: { enrollmentId, lessonId },
+      },
+      create: {
+        enrollmentId,
+        lessonId,
+        completed: true,
+        completedAt: new Date(),
+      },
+      update: {
+        completed: true,
+        completedAt: new Date(),
+      },
     });
 
     // Recalculate and check for course completion
@@ -225,23 +170,32 @@ export class EnrollmentService {
    * Get progress for an enrollment
    */
   async getProgress(enrollmentId: string) {
-    return dbOperations.getProgressForEnrollment(enrollmentId);
+    return this.db.progress.findMany({
+      where: { enrollmentId },
+    });
   }
 
   /**
    * Recalculate enrollment progress percentage and check completion
    */
   private async recalculateProgress(enrollmentId: string) {
-    const enrollment = await dbOperations.findEnrollmentById(enrollmentId);
+    const enrollment = await this.db.enrollment.findUnique({
+      where: { id: enrollmentId },
+    });
     if (!enrollment) return;
 
-    const totalLessons = await dbOperations.getTotalLessonsForCourse(enrollment.courseId);
+    const totalLessons = await this.db.lesson.count({
+      where: { section: { courseId: enrollment.courseId } },
+    });
     if (totalLessons === 0) return;
 
-    const completedLessons = await dbOperations.getCompletedLessonsCount(enrollmentId);
+    const completedLessons = await this.db.progress.count({
+      where: { enrollmentId, completed: true },
+    });
+
     const progressPercentage = Math.round((completedLessons / totalLessons) * 100);
 
-    const updateData: Partial<EnrollmentRecord> = {
+    const updateData: Record<string, unknown> = {
       progress: progressPercentage,
     };
 
@@ -251,16 +205,20 @@ export class EnrollmentService {
       updateData.completedAt = new Date();
     }
 
-    await dbOperations.updateEnrollment(enrollmentId, updateData);
+    await this.db.enrollment.update({
+      where: { id: enrollmentId },
+      data: updateData,
+    });
   }
 
   /**
    * Drop enrollment
    */
   async dropEnrollment(enrollmentId: string) {
-    return dbOperations.updateEnrollment(enrollmentId, {
-      status: 'DROPPED',
-    } as Partial<EnrollmentRecord>);
+    return this.db.enrollment.update({
+      where: { id: enrollmentId },
+      data: { status: 'DROPPED' },
+    });
   }
 }
 
@@ -268,13 +226,19 @@ export class EnrollmentService {
 // Factory
 // =============================================================================
 
-let enrollmentServiceInstance: EnrollmentService | null = null;
+export function createEnrollmentService(db: PrismaClient): EnrollmentService {
+  return new EnrollmentService(db);
+}
 
-export function getEnrollmentService(): EnrollmentService {
-  if (!enrollmentServiceInstance) {
-    enrollmentServiceInstance = new EnrollmentService();
+let instance: EnrollmentService | null = null;
+
+export function getEnrollmentService(db?: PrismaClient): EnrollmentService {
+  if (db) return createEnrollmentService(db);
+  if (!instance) {
+    const { db: globalDb } = require('../../../../core/backend/src/lib/db.js');
+    instance = new EnrollmentService(globalDb);
   }
-  return enrollmentServiceInstance;
+  return instance;
 }
 
 export default EnrollmentService;

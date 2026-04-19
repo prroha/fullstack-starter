@@ -3,7 +3,9 @@
 // =============================================================================
 // Business logic for invoice line item CRUD and reordering.
 // After each mutation, triggers invoice total recalculation.
-// Uses placeholder db operations - replace with actual Prisma client.
+// Uses dependency-injected PrismaClient for all database operations.
+
+import type { PrismaClient } from '@prisma/client';
 
 // =============================================================================
 // Types
@@ -23,147 +25,45 @@ export interface InvoiceItemUpdateInput {
   taxRateId?: string;
 }
 
-interface InvoiceItemRecord {
-  id: string;
-  invoiceId: string;
-  description: string;
-  quantity: number;
-  unitPrice: number;
-  totalPrice: number;
-  taxRateId: string | null;
-  taxAmount: number;
-  sortOrder: number;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-interface InvoiceRecord {
-  id: string;
-  userId: string;
-  status: string;
-  discountAmount: number;
-  amountPaid: number;
-}
-
-interface TaxRateRecord {
-  id: string;
-  rate: number;
-}
-
-// =============================================================================
-// Database Operations (Placeholder)
-// =============================================================================
-// Replace with actual Prisma client:
-// import { db } from '../../../../core/backend/src/lib/db';
-
-const dbOperations = {
-  async findInvoice(invoiceId: string): Promise<InvoiceRecord | null> {
-    // Replace with: return db.invoice.findUnique({ where: { id: invoiceId }, select: { id: true, userId: true, status: true, discountAmount: true, amountPaid: true } });
-    console.log('[DB] Finding invoice:', invoiceId);
-    return null;
-  },
-
-  async findTaxRate(id: string): Promise<TaxRateRecord | null> {
-    // Replace with: return db.taxRate.findUnique({ where: { id }, select: { id: true, rate: true } });
-    console.log('[DB] Finding tax rate:', id);
-    return null;
-  },
-
-  async getMaxSortOrder(invoiceId: string): Promise<number> {
-    // Replace with:
-    // const result = await db.invoiceItem.aggregate({ where: { invoiceId }, _max: { sortOrder: true } });
-    // return result._max.sortOrder ?? -1;
-    console.log('[DB] Getting max sort order for invoice:', invoiceId);
-    return -1;
-  },
-
-  async createItem(data: {
-    invoiceId: string;
-    description: string;
-    quantity: number;
-    unitPrice: number;
-    totalPrice: number;
-    taxRateId: string | null;
-    taxAmount: number;
-    sortOrder: number;
-  }): Promise<InvoiceItemRecord> {
-    // Replace with: return db.invoiceItem.create({ data });
-    console.log('[DB] Creating invoice item for invoice:', data.invoiceId);
-    return {
-      id: 'item_' + Date.now(),
-      ...data,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-  },
-
-  async findItemById(id: string): Promise<InvoiceItemRecord | null> {
-    // Replace with: return db.invoiceItem.findUnique({ where: { id } });
-    console.log('[DB] Finding invoice item by ID:', id);
-    return null;
-  },
-
-  async updateItem(id: string, data: Partial<InvoiceItemRecord>): Promise<InvoiceItemRecord | null> {
-    // Replace with: return db.invoiceItem.update({ where: { id }, data: { ...data, updatedAt: new Date() } });
-    console.log('[DB] Updating invoice item:', id);
-    return null;
-  },
-
-  async deleteItem(id: string): Promise<void> {
-    // Replace with: await db.invoiceItem.delete({ where: { id } });
-    console.log('[DB] Deleting invoice item:', id);
-  },
-
-  async getInvoiceItems(invoiceId: string): Promise<InvoiceItemRecord[]> {
-    // Replace with: return db.invoiceItem.findMany({ where: { invoiceId }, orderBy: { sortOrder: 'asc' } });
-    console.log('[DB] Getting items for invoice:', invoiceId);
-    return [];
-  },
-
-  async updateItemSortOrder(id: string, sortOrder: number): Promise<void> {
-    // Replace with: await db.invoiceItem.update({ where: { id }, data: { sortOrder, updatedAt: new Date() } });
-    console.log('[DB] Updating sort order for item:', id, 'to:', sortOrder);
-  },
-
-  async updateInvoiceTotals(invoiceId: string, data: {
-    subtotal: number;
-    taxAmount: number;
-    totalAmount: number;
-    amountDue: number;
-  }): Promise<void> {
-    // Replace with: await db.invoice.update({ where: { id: invoiceId }, data: { ...data, updatedAt: new Date() } });
-    console.log('[DB] Updating invoice totals:', invoiceId, data);
-  },
-};
-
 // =============================================================================
 // Invoice Item Service
 // =============================================================================
 
 export class InvoiceItemService {
+  constructor(private db: PrismaClient) {}
+
   /**
    * Recalculate and update invoice totals after item changes.
    * subtotal = sum of item totalPrice values
-   * taxAmount = sum of item taxAmount values
-   * totalAmount = subtotal + taxAmount - discountAmount
+   * taxTotal = sum of per-item tax (computed from linked taxRate)
+   * totalAmount = subtotal + taxTotal - discountAmount
    * amountDue = totalAmount - amountPaid
    */
   private async recalculateInvoiceTotals(invoiceId: string): Promise<void> {
-    const invoice = await dbOperations.findInvoice(invoiceId);
+    const invoice = await this.db.invoice.findUnique({
+      where: { id: invoiceId },
+      select: { discountAmount: true, amountPaid: true },
+    });
     if (!invoice) return;
 
-    const items = await dbOperations.getInvoiceItems(invoiceId);
+    const items = await this.db.invoiceItem.findMany({
+      where: { invoiceId },
+      include: { taxRate: true },
+    });
 
     const subtotal = items.reduce((sum, item) => sum + item.totalPrice, 0);
-    const taxAmount = items.reduce((sum, item) => sum + item.taxAmount, 0);
-    const totalAmount = subtotal + taxAmount - invoice.discountAmount;
+    const taxTotal = items.reduce((sum, item) => {
+      if (item.taxRate) {
+        return sum + Math.round(item.totalPrice * (item.taxRate.rate / 100));
+      }
+      return sum;
+    }, 0);
+    const totalAmount = subtotal + taxTotal - invoice.discountAmount;
     const amountDue = totalAmount - invoice.amountPaid;
 
-    await dbOperations.updateInvoiceTotals(invoiceId, {
-      subtotal,
-      taxAmount,
-      totalAmount,
-      amountDue,
+    await this.db.invoice.update({
+      where: { id: invoiceId },
+      data: { subtotal, taxTotal, totalAmount, amountDue },
     });
   }
 
@@ -173,7 +73,10 @@ export class InvoiceItemService {
   private async calculateTaxAmount(totalPrice: number, taxRateId: string | null): Promise<number> {
     if (!taxRateId) return 0;
 
-    const taxRate = await dbOperations.findTaxRate(taxRateId);
+    const taxRate = await this.db.taxRate.findUnique({
+      where: { id: taxRateId },
+      select: { rate: true },
+    });
     if (!taxRate) return 0;
 
     return Math.round(totalPrice * (taxRate.rate / 100));
@@ -181,15 +84,13 @@ export class InvoiceItemService {
 
   /**
    * Add a new line item to an invoice. Only DRAFT invoices can be modified.
-   * Automatically calculates totalPrice and taxAmount, then recalculates invoice totals.
+   * Automatically calculates totalPrice, then recalculates invoice totals.
    */
-  async add(invoiceId: string, userId: string, input: InvoiceItemInput): Promise<InvoiceItemRecord> {
-    const invoice = await dbOperations.findInvoice(invoiceId);
+  async add(invoiceId: string, userId: string, input: InvoiceItemInput) {
+    const invoice = await this.db.invoice.findFirst({
+      where: { id: invoiceId, userId },
+    });
     if (!invoice) {
-      throw new Error('Invoice not found');
-    }
-
-    if (invoice.userId !== userId) {
       throw new Error('Invoice not found');
     }
 
@@ -205,19 +106,25 @@ export class InvoiceItemService {
       throw new Error('Unit price cannot be negative');
     }
 
-    const totalPrice = input.quantity * input.unitPrice;
-    const taxAmount = await this.calculateTaxAmount(totalPrice, input.taxRateId || null);
-    const maxSortOrder = await dbOperations.getMaxSortOrder(invoiceId);
+    const totalPrice = Math.round(input.quantity * input.unitPrice);
 
-    const item = await dbOperations.createItem({
-      invoiceId,
-      description: input.description,
-      quantity: input.quantity,
-      unitPrice: input.unitPrice,
-      totalPrice,
-      taxRateId: input.taxRateId || null,
-      taxAmount,
-      sortOrder: maxSortOrder + 1,
+    // Get max sort order
+    const maxResult = await this.db.invoiceItem.aggregate({
+      where: { invoiceId },
+      _max: { sortOrder: true },
+    });
+    const maxSortOrder = maxResult._max.sortOrder ?? -1;
+
+    const item = await this.db.invoiceItem.create({
+      data: {
+        invoiceId,
+        description: input.description,
+        quantity: input.quantity,
+        unitPrice: input.unitPrice,
+        totalPrice,
+        taxRateId: input.taxRateId || null,
+        sortOrder: maxSortOrder + 1,
+      },
     });
 
     await this.recalculateInvoiceTotals(invoiceId);
@@ -227,20 +134,18 @@ export class InvoiceItemService {
 
   /**
    * Update an existing line item. Only DRAFT invoices can be modified.
-   * Recalculates totalPrice, taxAmount, and invoice totals.
+   * Recalculates totalPrice and invoice totals.
    */
-  async update(itemId: string, userId: string, input: InvoiceItemUpdateInput): Promise<InvoiceItemRecord | null> {
-    const item = await dbOperations.findItemById(itemId);
+  async update(itemId: string, userId: string, input: InvoiceItemUpdateInput) {
+    const item = await this.db.invoiceItem.findUnique({ where: { id: itemId } });
     if (!item) {
       throw new Error('Invoice item not found');
     }
 
-    const invoice = await dbOperations.findInvoice(item.invoiceId);
+    const invoice = await this.db.invoice.findFirst({
+      where: { id: item.invoiceId, userId },
+    });
     if (!invoice) {
-      throw new Error('Invoice not found');
-    }
-
-    if (invoice.userId !== userId) {
       throw new Error('Invoice not found');
     }
 
@@ -260,17 +165,18 @@ export class InvoiceItemService {
       throw new Error('Unit price cannot be negative');
     }
 
-    const totalPrice = quantity * unitPrice;
-    const taxAmount = await this.calculateTaxAmount(totalPrice, taxRateId);
+    const totalPrice = Math.round(quantity * unitPrice);
 
-    const updated = await dbOperations.updateItem(itemId, {
-      description: input.description !== undefined ? input.description : item.description,
-      quantity,
-      unitPrice,
-      totalPrice,
-      taxRateId,
-      taxAmount,
-    } as Partial<InvoiceItemRecord>);
+    const updated = await this.db.invoiceItem.update({
+      where: { id: itemId },
+      data: {
+        description: input.description !== undefined ? input.description : item.description,
+        quantity,
+        unitPrice,
+        totalPrice,
+        taxRateId,
+      },
+    });
 
     await this.recalculateInvoiceTotals(item.invoiceId);
 
@@ -282,17 +188,15 @@ export class InvoiceItemService {
    * Recalculates invoice totals after deletion.
    */
   async delete(itemId: string, userId: string): Promise<void> {
-    const item = await dbOperations.findItemById(itemId);
+    const item = await this.db.invoiceItem.findUnique({ where: { id: itemId } });
     if (!item) {
       throw new Error('Invoice item not found');
     }
 
-    const invoice = await dbOperations.findInvoice(item.invoiceId);
+    const invoice = await this.db.invoice.findFirst({
+      where: { id: item.invoiceId, userId },
+    });
     if (!invoice) {
-      throw new Error('Invoice not found');
-    }
-
-    if (invoice.userId !== userId) {
       throw new Error('Invoice not found');
     }
 
@@ -300,7 +204,7 @@ export class InvoiceItemService {
       throw new Error('Only draft invoices can be modified');
     }
 
-    await dbOperations.deleteItem(itemId);
+    await this.db.invoiceItem.delete({ where: { id: itemId } });
     await this.recalculateInvoiceTotals(item.invoiceId);
   }
 
@@ -309,12 +213,10 @@ export class InvoiceItemService {
    * Updates the sortOrder field for each item.
    */
   async reorder(invoiceId: string, userId: string, itemIds: string[]): Promise<void> {
-    const invoice = await dbOperations.findInvoice(invoiceId);
+    const invoice = await this.db.invoice.findFirst({
+      where: { id: invoiceId, userId },
+    });
     if (!invoice) {
-      throw new Error('Invoice not found');
-    }
-
-    if (invoice.userId !== userId) {
       throw new Error('Invoice not found');
     }
 
@@ -323,7 +225,10 @@ export class InvoiceItemService {
     }
 
     // Validate all item IDs belong to this invoice
-    const existingItems = await dbOperations.getInvoiceItems(invoiceId);
+    const existingItems = await this.db.invoiceItem.findMany({
+      where: { invoiceId },
+      select: { id: true },
+    });
     const existingIds = new Set(existingItems.map((item) => item.id));
 
     for (const itemId of itemIds) {
@@ -333,9 +238,11 @@ export class InvoiceItemService {
     }
 
     // Update sort order for each item
-    for (let i = 0; i < itemIds.length; i++) {
-      await dbOperations.updateItemSortOrder(itemIds[i], i);
-    }
+    await Promise.all(
+      itemIds.map((id, i) =>
+        this.db.invoiceItem.update({ where: { id }, data: { sortOrder: i } })
+      )
+    );
   }
 }
 
@@ -343,13 +250,18 @@ export class InvoiceItemService {
 // Factory
 // =============================================================================
 
-let invoiceItemServiceInstance: InvoiceItemService | null = null;
+export function createInvoiceItemService(db: PrismaClient): InvoiceItemService {
+  return new InvoiceItemService(db);
+}
 
-export function getInvoiceItemService(): InvoiceItemService {
-  if (!invoiceItemServiceInstance) {
-    invoiceItemServiceInstance = new InvoiceItemService();
+let instance: InvoiceItemService | null = null;
+export function getInvoiceItemService(db?: PrismaClient): InvoiceItemService {
+  if (db) return createInvoiceItemService(db);
+  if (!instance) {
+    const { db: globalDb } = require('../../../../core/backend/src/lib/db.js');
+    instance = new InvoiceItemService(globalDb);
   }
-  return invoiceItemServiceInstance;
+  return instance;
 }
 
 export default InvoiceItemService;

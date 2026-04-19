@@ -1,12 +1,15 @@
 import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
-import { getScheduleService } from '../services/schedule.service.js';
+import { ScheduleService } from '../services/schedule.service.js';
 import { authMiddleware } from '../middleware/auth.js';
+import type { PrismaClient } from '@prisma/client';
 
 // =============================================================================
-// Routes
+// Helper
 // =============================================================================
 
-const scheduleService = getScheduleService();
+function svc(req: FastifyRequest): ScheduleService {
+  return new ScheduleService((req as FastifyRequest & { db?: PrismaClient }).db!);
+}
 
 // =============================================================================
 // Schedule Endpoints (All Authenticated)
@@ -19,7 +22,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
    */
   fastify.get('/:providerId', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const { providerId } = req.params as { providerId: string };
-    const schedule = await scheduleService.getWeeklySchedule(providerId);
+    const schedule = await svc(req).getWeeklySchedule(providerId);
     return reply.send({ success: true, data: schedule });
   });
 
@@ -35,7 +38,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'schedules array is required' });
     }
 
-    const result = await scheduleService.updateWeeklySchedule(providerId, schedules);
+    const result = await svc(req).updateWeeklySchedule(providerId, schedules);
     return reply.send({ success: true, data: result });
   });
 
@@ -51,7 +54,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const { providerId } = req.params as { providerId: string };
     const { startDate, endDate } = req.query as Record<string, string>;
 
-    const overrides = await scheduleService.listOverrides(providerId, startDate, endDate);
+    const overrides = await svc(req).listOverrides(providerId, startDate, endDate);
 
     return reply.send({ success: true, data: overrides });
   });
@@ -68,7 +71,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'date is required' });
     }
 
-    const override = await scheduleService.createOverride(providerId, {
+    const override = await svc(req).createOverride(providerId, {
       date,
       isAvailable,
       startTime,
@@ -85,7 +88,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
    */
   fastify.delete('/:providerId/overrides/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const { id } = req.params as { id: string };
-    await scheduleService.deleteOverride(id);
+    await svc(req).deleteOverride(id);
     return reply.send({ success: true, message: 'Schedule override removed' });
   });
 };

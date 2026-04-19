@@ -2,7 +2,9 @@
 // Booking Service
 // =============================================================================
 // Business logic for booking creation, conflict detection, lifecycle management,
-// and admin analytics. Uses placeholder db operations - replace with actual Prisma client.
+// and admin analytics. Uses dependency-injected PrismaClient.
+
+import type { PrismaClient, Prisma } from '@prisma/client';
 
 // =============================================================================
 // Types
@@ -25,6 +27,10 @@ export interface BookingRescheduleInput {
 export interface BookingFilters {
   status?: string;
   search?: string;
+  providerId?: string;
+  serviceId?: string;
+  startDate?: string;
+  endDate?: string;
   page?: number;
   limit?: number;
 }
@@ -37,210 +43,13 @@ export interface BookingStats {
   revenue: number;
 }
 
-interface BookingRecord {
-  id: string;
-  bookingNumber: string;
-  userId: string;
-  serviceId: string;
-  providerId: string;
-  date: string;
-  startTime: string;
-  endTime: string;
-  status: string;
-  price: number;
-  notes: string | null;
-  cancellationReason: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-interface ServiceInfoRecord {
-  id: string;
-  name: string;
-  duration: number;
-  bufferTime: number;
-  price: number;
-  status: string;
-}
-
-interface ProviderServiceCheck {
-  providerId: string;
-  serviceId: string;
-}
-
-interface ScheduleRecord {
-  id: string;
-  providerId: string;
-  dayOfWeek: number;
-  startTime: string;
-  endTime: string;
-  isActive: boolean;
-}
-
-interface ScheduleOverrideRecord {
-  id: string;
-  providerId: string;
-  date: string;
-  isBlocked: boolean;
-  startTime: string | null;
-  endTime: string | null;
-}
-
-// =============================================================================
-// Database Operations (Placeholder)
-// =============================================================================
-// Replace with actual Prisma client:
-// import { db } from '../../../../core/backend/src/lib/db';
-
-const dbOperations = {
-  async findServiceInfo(serviceId: string): Promise<ServiceInfoRecord | null> {
-    // Replace with: return db.service.findUnique({ where: { id: serviceId }, select: { id: true, name: true, duration: true, bufferTime: true, price: true, status: true } });
-    console.log('[DB] Finding service info:', serviceId);
-    return null;
-  },
-
-  async checkProviderOffersService(providerId: string, serviceId: string): Promise<ProviderServiceCheck | null> {
-    // Replace with: return db.providerService.findUnique({ where: { providerId_serviceId: { providerId, serviceId } } });
-    console.log('[DB] Checking provider offers service:', providerId, serviceId);
-    return null;
-  },
-
-  async getScheduleForDay(providerId: string, dayOfWeek: number): Promise<ScheduleRecord[]> {
-    // Replace with: return db.schedule.findMany({ where: { providerId, dayOfWeek, isActive: true }, orderBy: { startTime: 'asc' } });
-    console.log('[DB] Getting schedule for day:', providerId, dayOfWeek);
-    return [];
-  },
-
-  async getOverridesForDate(providerId: string, date: string): Promise<ScheduleOverrideRecord[]> {
-    // Replace with: return db.scheduleOverride.findMany({ where: { providerId, date } });
-    console.log('[DB] Getting overrides for date:', providerId, date);
-    return [];
-  },
-
-  async getConflictingBookings(providerId: string, date: string, startTime: string, endTime: string): Promise<BookingRecord[]> {
-    // Replace with:
-    // return db.booking.findMany({
-    //   where: {
-    //     providerId,
-    //     date,
-    //     status: { in: ['PENDING', 'CONFIRMED'] },
-    //     OR: [
-    //       { startTime: { lt: endTime }, endTime: { gt: startTime } },
-    //     ],
-    //   },
-    // });
-    console.log('[DB] Checking conflicting bookings:', providerId, date, startTime, endTime);
-    return [];
-  },
-
-  async createBooking(data: {
-    bookingNumber: string;
-    userId: string;
-    serviceId: string;
-    providerId: string;
-    date: string;
-    startTime: string;
-    endTime: string;
-    price: number;
-    notes: string | null;
-    status: string;
-  }): Promise<BookingRecord> {
-    // Replace with: return db.booking.create({ data, include: { service: true, provider: { include: { user: true } } } });
-    console.log('[DB] Creating booking:', data.bookingNumber);
-    return {
-      id: 'booking_' + Date.now(),
-      ...data,
-      cancellationReason: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-  },
-
-  async findBookingById(id: string): Promise<BookingRecord | null> {
-    // Replace with: return db.booking.findUnique({ where: { id }, include: { service: true, provider: { include: { user: true } }, user: true } });
-    console.log('[DB] Finding booking by ID:', id);
-    return null;
-  },
-
-  async findUserBookings(userId: string, filters: BookingFilters): Promise<{ items: BookingRecord[]; total: number }> {
-    // Replace with:
-    // const where = { userId, status: filters.status || undefined };
-    // const [items, total] = await Promise.all([
-    //   db.booking.findMany({ where, skip: ((filters.page || 1) - 1) * (filters.limit || 20), take: filters.limit || 20, include: { service: true, provider: { include: { user: true } } }, orderBy: { date: 'desc' } }),
-    //   db.booking.count({ where }),
-    // ]);
-    console.log('[DB] Finding user bookings:', userId, filters);
-    return { items: [], total: 0 };
-  },
-
-  async findProviderBookings(providerId: string, filters: BookingFilters): Promise<{ items: BookingRecord[]; total: number }> {
-    // Replace with:
-    // const where = {
-    //   providerId,
-    //   status: filters.status || undefined,
-    //   OR: filters.search ? [
-    //     { bookingNumber: { contains: filters.search, mode: 'insensitive' } },
-    //     { user: { name: { contains: filters.search, mode: 'insensitive' } } },
-    //   ] : undefined,
-    // };
-    // const [items, total] = await Promise.all([
-    //   db.booking.findMany({ where, skip: ((filters.page || 1) - 1) * (filters.limit || 20), take: filters.limit || 20, include: { service: true, user: true }, orderBy: { date: 'desc' } }),
-    //   db.booking.count({ where }),
-    // ]);
-    console.log('[DB] Finding provider bookings:', providerId, filters);
-    return { items: [], total: 0 };
-  },
-
-  async findAllBookings(filters: BookingFilters): Promise<{ items: BookingRecord[]; total: number }> {
-    // Replace with:
-    // const where = {
-    //   status: filters.status || undefined,
-    //   OR: filters.search ? [
-    //     { bookingNumber: { contains: filters.search, mode: 'insensitive' } },
-    //     { user: { name: { contains: filters.search, mode: 'insensitive' } } },
-    //     { service: { name: { contains: filters.search, mode: 'insensitive' } } },
-    //   ] : undefined,
-    // };
-    // const [items, total] = await Promise.all([
-    //   db.booking.findMany({ where, skip: ((filters.page || 1) - 1) * (filters.limit || 20), take: filters.limit || 20, include: { service: true, provider: { include: { user: true } }, user: true }, orderBy: { createdAt: 'desc' } }),
-    //   db.booking.count({ where }),
-    // ]);
-    console.log('[DB] Finding all bookings:', filters);
-    return { items: [], total: 0 };
-  },
-
-  async updateBookingStatus(id: string, status: string, extra?: { cancellationReason?: string; date?: string; startTime?: string; endTime?: string }): Promise<BookingRecord | null> {
-    // Replace with: return db.booking.update({ where: { id }, data: { status, ...extra, updatedAt: new Date() } });
-    console.log('[DB] Updating booking status:', id, status);
-    return null;
-  },
-
-  async getBookingStats(): Promise<BookingStats> {
-    // Replace with:
-    // const today = new Date().toISOString().split('T')[0];
-    // const [totalBookings, todayBookings, completedBookings, cancelledBookings, revenueResult] = await Promise.all([
-    //   db.booking.count(),
-    //   db.booking.count({ where: { date: today } }),
-    //   db.booking.count({ where: { status: 'COMPLETED' } }),
-    //   db.booking.count({ where: { status: 'CANCELLED' } }),
-    //   db.booking.aggregate({ where: { status: 'COMPLETED' }, _sum: { price: true } }),
-    // ]);
-    console.log('[DB] Getting booking stats');
-    return {
-      totalBookings: 0,
-      todayBookings: 0,
-      completedBookings: 0,
-      cancelledBookings: 0,
-      revenue: 0,
-    };
-  },
-};
-
 // =============================================================================
 // Booking Service
 // =============================================================================
 
 export class BookingService {
+  constructor(private db: PrismaClient) {}
+
   /**
    * Generate a unique booking number
    */
@@ -276,7 +85,10 @@ export class BookingService {
    * service duration + buffer, and subtracts existing bookings.
    */
   async getAvailableSlots(providerId: string, serviceId: string, date: string): Promise<string[]> {
-    const serviceInfo = await dbOperations.findServiceInfo(serviceId);
+    const serviceInfo = await this.db.bookingService.findUnique({
+      where: { id: serviceId },
+      select: { id: true, name: true, duration: true, bufferTime: true, price: true, status: true },
+    });
     if (!serviceInfo) {
       throw new Error('Service not found');
     }
@@ -286,10 +98,20 @@ export class BookingService {
     const dayOfWeek = dateObj.getDay();
 
     // Get weekly schedule for this day
-    const schedules = await dbOperations.getScheduleForDay(providerId, dayOfWeek);
+    const schedules = await this.db.schedule.findMany({
+      where: { providerId, dayOfWeek, isActive: true },
+      orderBy: { startTime: 'asc' },
+    });
 
     // Get overrides for this specific date
-    const overrides = await dbOperations.getOverridesForDate(providerId, date);
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const overrides = await this.db.scheduleOverride.findMany({
+      where: { providerId, date: { gte: startOfDay, lte: endOfDay } },
+    });
 
     // Check if the entire day is blocked
     const dayBlocked = overrides.some((o) => o.isBlocked && !o.startTime);
@@ -317,8 +139,14 @@ export class BookingService {
     // Blocked time ranges
     const blockedRanges = overrides.filter((o) => o.isBlocked && o.startTime && o.endTime);
 
-    // Existing bookings
-    const existingBookings = await dbOperations.getConflictingBookings(providerId, date, '00:00', '23:59');
+    // Existing bookings for the full day
+    const existingBookings = await this.db.booking.findMany({
+      where: {
+        providerId,
+        date: { gte: startOfDay, lte: endOfDay },
+        status: { in: ['PENDING', 'CONFIRMED'] },
+      },
+    });
 
     // Generate available slot start times
     const availableSlots: string[] = [];
@@ -365,9 +193,12 @@ export class BookingService {
    * Validates service is active, provider offers service, and slot is available.
    * Generates booking number and calculates end time from duration.
    */
-  async createBooking(input: BookingCreateInput): Promise<BookingRecord> {
+  async createBooking(input: BookingCreateInput) {
     // Validate service exists and is active
-    const serviceInfo = await dbOperations.findServiceInfo(input.serviceId);
+    const serviceInfo = await this.db.bookingService.findUnique({
+      where: { id: input.serviceId },
+      select: { id: true, name: true, duration: true, bufferTime: true, price: true, status: true },
+    });
     if (!serviceInfo) {
       throw new Error('Service not found');
     }
@@ -376,7 +207,9 @@ export class BookingService {
     }
 
     // Validate provider offers this service
-    const providerService = await dbOperations.checkProviderOffersService(input.providerId, input.serviceId);
+    const providerService = await this.db.providerService.findUnique({
+      where: { providerId_serviceId: { providerId: input.providerId, serviceId: input.serviceId } },
+    });
     if (!providerService) {
       throw new Error('Provider does not offer this service');
     }
@@ -386,12 +219,22 @@ export class BookingService {
     const endTime = this.minutesToTime(startMins + serviceInfo.duration);
 
     // Check for conflicting bookings
-    const conflicts = await dbOperations.getConflictingBookings(
-      input.providerId,
-      input.date,
-      input.startTime,
-      endTime,
-    );
+    const bookingDate = new Date(input.date);
+    const startOfDay = new Date(input.date);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(input.date);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const conflicts = await this.db.booking.findMany({
+      where: {
+        providerId: input.providerId,
+        date: { gte: startOfDay, lte: endOfDay },
+        status: { in: ['PENDING', 'CONFIRMED'] },
+        OR: [
+          { startTime: { lt: endTime }, endTime: { gt: input.startTime } },
+        ],
+      },
+    });
     if (conflicts.length > 0) {
       throw new Error('This time slot is no longer available');
     }
@@ -405,40 +248,53 @@ export class BookingService {
     // Generate booking number
     const bookingNumber = this.generateBookingNumber();
 
-    return dbOperations.createBooking({
-      bookingNumber,
-      userId: input.userId,
-      serviceId: input.serviceId,
-      providerId: input.providerId,
-      date: input.date,
-      startTime: input.startTime,
-      endTime,
-      price: serviceInfo.price,
-      notes: input.notes || null,
-      status: 'PENDING',
+    return this.db.booking.create({
+      data: {
+        bookingNumber,
+        userId: input.userId,
+        serviceId: input.serviceId,
+        providerId: input.providerId,
+        date: bookingDate,
+        startTime: input.startTime,
+        endTime,
+        totalAmount: serviceInfo.price,
+        notes: input.notes || null,
+        status: 'PENDING',
+      },
+      include: { service: true, provider: true },
     });
   }
 
   /**
    * List bookings for a user with filtering and pagination
    */
-  async listUserBookings(userId: string, filters: BookingFilters) {
+  async listUserBookings(filters: BookingFilters & { userId: string }) {
     const page = filters.page || 1;
     const limit = filters.limit || 20;
 
-    const result = await dbOperations.findUserBookings(userId, {
-      ...filters,
-      page,
-      limit,
-    });
+    const where: Prisma.BookingWhereInput = {
+      userId: filters.userId,
+      ...(filters.status ? { status: filters.status as Prisma.EnumBookingStatusFilter } : {}),
+    };
+
+    const [items, total] = await Promise.all([
+      this.db.booking.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        include: { service: true, provider: true },
+        orderBy: { date: 'desc' },
+      }),
+      this.db.booking.count({ where }),
+    ]);
 
     return {
-      items: result.items,
+      items,
       pagination: {
         page,
         limit,
-        total: result.total,
-        totalPages: Math.ceil(result.total / limit),
+        total,
+        totalPages: Math.ceil(total / limit),
       },
     };
   }
@@ -450,19 +306,36 @@ export class BookingService {
     const page = filters.page || 1;
     const limit = filters.limit || 20;
 
-    const result = await dbOperations.findProviderBookings(providerId, {
-      ...filters,
-      page,
-      limit,
-    });
+    const where: Prisma.BookingWhereInput = {
+      providerId,
+      ...(filters.status ? { status: filters.status as Prisma.EnumBookingStatusFilter } : {}),
+      ...(filters.search
+        ? {
+            OR: [
+              { bookingNumber: { contains: filters.search, mode: 'insensitive' as const } },
+            ],
+          }
+        : {}),
+    };
+
+    const [items, total] = await Promise.all([
+      this.db.booking.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        include: { service: true },
+        orderBy: { date: 'desc' },
+      }),
+      this.db.booking.count({ where }),
+    ]);
 
     return {
-      items: result.items,
+      items,
       pagination: {
         page,
         limit,
-        total: result.total,
-        totalPages: Math.ceil(result.total / limit),
+        total,
+        totalPages: Math.ceil(total / limit),
       },
     };
   }
@@ -471,14 +344,17 @@ export class BookingService {
    * Get a single booking by ID
    */
   async getBookingById(id: string) {
-    return dbOperations.findBookingById(id);
+    return this.db.booking.findUnique({
+      where: { id },
+      include: { service: true, provider: true },
+    });
   }
 
   /**
    * Cancel a booking with reason
    */
   async cancelBooking(id: string, reason?: string) {
-    const booking = await dbOperations.findBookingById(id);
+    const booking = await this.db.booking.findUnique({ where: { id } });
     if (!booking) {
       throw new Error('Booking not found');
     }
@@ -491,8 +367,13 @@ export class BookingService {
       throw new Error('Cannot cancel a completed booking');
     }
 
-    return dbOperations.updateBookingStatus(id, 'CANCELLED', {
-      cancellationReason: reason,
+    return this.db.booking.update({
+      where: { id },
+      data: {
+        status: 'CANCELLED',
+        cancelReason: reason || null,
+      },
+      include: { service: true, provider: true },
     });
   }
 
@@ -500,7 +381,7 @@ export class BookingService {
    * Reschedule a booking to a new date/time
    */
   async rescheduleBooking(id: string, input: BookingRescheduleInput) {
-    const booking = await dbOperations.findBookingById(id);
+    const booking = await this.db.booking.findUnique({ where: { id } });
     if (!booking) {
       throw new Error('Booking not found');
     }
@@ -510,7 +391,10 @@ export class BookingService {
     }
 
     // Get service info for duration calculation
-    const serviceInfo = await dbOperations.findServiceInfo(booking.serviceId);
+    const serviceInfo = await this.db.bookingService.findUnique({
+      where: { id: booking.serviceId },
+      select: { duration: true },
+    });
     if (!serviceInfo) {
       throw new Error('Service not found');
     }
@@ -520,14 +404,24 @@ export class BookingService {
     const newEndTime = this.minutesToTime(startMins + serviceInfo.duration);
 
     // Check for conflicts at the new time (excluding current booking)
-    const conflicts = await dbOperations.getConflictingBookings(
-      booking.providerId,
-      input.date,
-      input.startTime,
-      newEndTime,
-    );
-    const realConflicts = conflicts.filter((c) => c.id !== id);
-    if (realConflicts.length > 0) {
+    const newDate = new Date(input.date);
+    const startOfDay = new Date(input.date);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(input.date);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const conflicts = await this.db.booking.findMany({
+      where: {
+        providerId: booking.providerId,
+        date: { gte: startOfDay, lte: endOfDay },
+        status: { in: ['PENDING', 'CONFIRMED'] },
+        id: { not: id },
+        OR: [
+          { startTime: { lt: newEndTime }, endTime: { gt: input.startTime } },
+        ],
+      },
+    });
+    if (conflicts.length > 0) {
       throw new Error('New time slot is not available');
     }
 
@@ -537,10 +431,14 @@ export class BookingService {
       throw new Error('Selected time slot is not available');
     }
 
-    return dbOperations.updateBookingStatus(id, booking.status, {
-      date: input.date,
-      startTime: input.startTime,
-      endTime: newEndTime,
+    return this.db.booking.update({
+      where: { id },
+      data: {
+        date: newDate,
+        startTime: input.startTime,
+        endTime: newEndTime,
+      },
+      include: { service: true, provider: true },
     });
   }
 
@@ -548,7 +446,7 @@ export class BookingService {
    * Confirm a pending booking
    */
   async confirmBooking(id: string) {
-    const booking = await dbOperations.findBookingById(id);
+    const booking = await this.db.booking.findUnique({ where: { id } });
     if (!booking) {
       throw new Error('Booking not found');
     }
@@ -557,14 +455,18 @@ export class BookingService {
       throw new Error('Only pending bookings can be confirmed');
     }
 
-    return dbOperations.updateBookingStatus(id, 'CONFIRMED');
+    return this.db.booking.update({
+      where: { id },
+      data: { status: 'CONFIRMED' },
+      include: { service: true, provider: true },
+    });
   }
 
   /**
    * Mark a booking as completed
    */
   async completeBooking(id: string) {
-    const booking = await dbOperations.findBookingById(id);
+    const booking = await this.db.booking.findUnique({ where: { id } });
     if (!booking) {
       throw new Error('Booking not found');
     }
@@ -573,14 +475,18 @@ export class BookingService {
       throw new Error('Only confirmed bookings can be completed');
     }
 
-    return dbOperations.updateBookingStatus(id, 'COMPLETED');
+    return this.db.booking.update({
+      where: { id },
+      data: { status: 'COMPLETED' },
+      include: { service: true, provider: true },
+    });
   }
 
   /**
    * Mark a booking as no-show
    */
   async markNoShow(id: string) {
-    const booking = await dbOperations.findBookingById(id);
+    const booking = await this.db.booking.findUnique({ where: { id } });
     if (!booking) {
       throw new Error('Booking not found');
     }
@@ -589,7 +495,27 @@ export class BookingService {
       throw new Error('Only confirmed bookings can be marked as no-show');
     }
 
-    return dbOperations.updateBookingStatus(id, 'NO_SHOW');
+    return this.db.booking.update({
+      where: { id },
+      data: { status: 'NO_SHOW' },
+      include: { service: true, provider: true },
+    });
+  }
+
+  /**
+   * Update booking status (admin override)
+   */
+  async updateBookingStatus(id: string, status: string) {
+    const booking = await this.db.booking.findUnique({ where: { id } });
+    if (!booking) {
+      return null;
+    }
+
+    return this.db.booking.update({
+      where: { id },
+      data: { status: status as 'PENDING' | 'CONFIRMED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW' },
+      include: { service: true, provider: true },
+    });
   }
 
   /**
@@ -599,19 +525,46 @@ export class BookingService {
     const page = filters.page || 1;
     const limit = filters.limit || 20;
 
-    const result = await dbOperations.findAllBookings({
-      ...filters,
-      page,
-      limit,
-    });
+    const where: Prisma.BookingWhereInput = {
+      ...(filters.status ? { status: filters.status as Prisma.EnumBookingStatusFilter } : {}),
+      ...(filters.providerId ? { providerId: filters.providerId } : {}),
+      ...(filters.serviceId ? { serviceId: filters.serviceId } : {}),
+      ...(filters.startDate || filters.endDate
+        ? {
+            date: {
+              ...(filters.startDate ? { gte: new Date(filters.startDate) } : {}),
+              ...(filters.endDate ? { lte: new Date(filters.endDate) } : {}),
+            },
+          }
+        : {}),
+      ...(filters.search
+        ? {
+            OR: [
+              { bookingNumber: { contains: filters.search, mode: 'insensitive' as const } },
+              { service: { name: { contains: filters.search, mode: 'insensitive' as const } } },
+            ],
+          }
+        : {}),
+    };
+
+    const [items, total] = await Promise.all([
+      this.db.booking.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        include: { service: true, provider: true },
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.db.booking.count({ where }),
+    ]);
 
     return {
-      items: result.items,
+      items,
       pagination: {
         page,
         limit,
-        total: result.total,
-        totalPages: Math.ceil(result.total / limit),
+        total,
+        totalPages: Math.ceil(total / limit),
       },
     };
   }
@@ -620,7 +573,67 @@ export class BookingService {
    * Get aggregate booking statistics for admin dashboard
    */
   async getBookingStats(): Promise<BookingStats> {
-    return dbOperations.getBookingStats();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const [totalBookings, todayBookings, completedBookings, cancelledBookings, revenueResult] = await Promise.all([
+      this.db.booking.count(),
+      this.db.booking.count({ where: { date: { gte: today, lt: tomorrow } } }),
+      this.db.booking.count({ where: { status: 'COMPLETED' } }),
+      this.db.booking.count({ where: { status: 'CANCELLED' } }),
+      this.db.booking.aggregate({ where: { status: 'COMPLETED' }, _sum: { totalAmount: true } }),
+    ]);
+
+    return {
+      totalBookings,
+      todayBookings,
+      completedBookings,
+      cancelledBookings,
+      revenue: revenueResult._sum.totalAmount || 0,
+    };
+  }
+
+  /**
+   * Export bookings as CSV
+   */
+  async exportBookings(filters: { status?: string; startDate?: string; endDate?: string }): Promise<string> {
+    const where: Prisma.BookingWhereInput = {
+      ...(filters.status ? { status: filters.status as Prisma.EnumBookingStatusFilter } : {}),
+      ...(filters.startDate || filters.endDate
+        ? {
+            date: {
+              ...(filters.startDate ? { gte: new Date(filters.startDate) } : {}),
+              ...(filters.endDate ? { lte: new Date(filters.endDate) } : {}),
+            },
+          }
+        : {}),
+    };
+
+    const bookings = await this.db.booking.findMany({
+      where,
+      include: { service: true, provider: true },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const header = 'Booking Number,Service,Provider ID,Date,Start Time,End Time,Status,Amount,Currency,Notes\n';
+    const rows = bookings.map((b) =>
+      [
+        b.bookingNumber,
+        b.service.name,
+        b.providerId,
+        b.date.toISOString().split('T')[0],
+        b.startTime,
+        b.endTime,
+        b.status,
+        b.totalAmount,
+        b.currency,
+        (b.notes || '').replace(/,/g, ';'),
+      ].join(','),
+    );
+
+    return header + rows.join('\n');
   }
 }
 
@@ -628,13 +641,18 @@ export class BookingService {
 // Factory
 // =============================================================================
 
-let bookingServiceInstance: BookingService | null = null;
+export function createBookingService(db: PrismaClient): BookingService {
+  return new BookingService(db);
+}
 
-export function getBookingService(): BookingService {
-  if (!bookingServiceInstance) {
-    bookingServiceInstance = new BookingService();
+let instance: BookingService | null = null;
+export function getBookingService(db?: PrismaClient): BookingService {
+  if (db) return createBookingService(db);
+  if (!instance) {
+    const { db: globalDb } = require('../../../../core/backend/src/lib/db.js');
+    instance = new BookingService(globalDb);
   }
-  return bookingServiceInstance;
+  return instance;
 }
 
 export default BookingService;

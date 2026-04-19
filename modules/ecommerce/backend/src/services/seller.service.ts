@@ -2,8 +2,10 @@
 // E-Commerce Seller Service
 // =============================================================================
 // Analytics aggregation for seller dashboard, revenue tracking, and product stats.
-// Uses placeholder db operations - replace with actual Prisma client.
-// Table: @@map("ecommerce_products"), @@map("ecommerce_orders"), @@map("ecommerce_reviews")
+// Supports dependency injection for preview mode (per-schema PrismaClient).
+// Table: @@map("ecommerce_products"), @@map("ecommerce_orders"), @@map("ecommerce_product_reviews")
+
+import type { PrismaClient } from '@prisma/client';
 
 // =============================================================================
 // Types
@@ -33,158 +35,51 @@ export interface ProductAnalytics {
   stock: number;
 }
 
-interface RecentOrderItem {
-  orderId: string;
-  orderNumber: string;
-  customerName: string;
-  productTitle: string;
-  quantity: number;
-  total: number;
-  status: string;
-  createdAt: Date;
-}
-
-interface RecentReviewItem {
-  rating: number;
-  comment: string | null;
-  productTitle: string;
-  userName: string | null;
-  createdAt: Date;
-}
-
-// =============================================================================
-// Database Operations (Placeholder)
-// =============================================================================
-// Replace with actual Prisma client:
-// import { db } from '../../../../core/backend/src/lib/db';
-
-const dbOperations = {
-  async getSellerStats(sellerId: string): Promise<SellerStats> {
-    // Replace with:
-    // const [totalProducts, activeProducts, orderData, ratingData] = await Promise.all([
-    //   db.product.count({ where: { sellerId } }),
-    //   db.product.count({ where: { sellerId, status: 'PUBLISHED' } }),
-    //   db.orderItem.aggregate({
-    //     where: { product: { sellerId } },
-    //     _count: { orderId: true },
-    //     _sum: { total: true },
-    //   }),
-    //   db.review.aggregate({
-    //     where: { product: { sellerId } },
-    //     _avg: { rating: true },
-    //   }),
-    // ]);
-    // return {
-    //   totalProducts,
-    //   activeProducts,
-    //   totalOrders: orderData._count.orderId || 0,
-    //   totalRevenue: orderData._sum.total || 0,
-    //   avgRating: ratingData._avg.rating || 0,
-    // };
-    console.log('[DB] Getting seller stats:', sellerId);
-    return {
-      totalProducts: 0,
-      activeProducts: 0,
-      totalOrders: 0,
-      totalRevenue: 0,
-      avgRating: 0,
-    };
-  },
-
-  async getSellerProductAnalytics(sellerId: string): Promise<ProductAnalytics[]> {
-    // Replace with:
-    // const products = await db.product.findMany({
-    //   where: { sellerId },
-    //   include: {
-    //     orderItems: { select: { quantity: true, total: true } },
-    //     reviews: { select: { rating: true } },
-    //   },
-    // });
-    // return products.map(p => ({
-    //   productId: p.id,
-    //   productTitle: p.title,
-    //   totalOrders: p.orderItems.reduce((sum, i) => sum + i.quantity, 0),
-    //   totalRevenue: p.orderItems.reduce((sum, i) => sum + i.total, 0),
-    //   avgRating: p.reviews.length > 0 ? p.reviews.reduce((sum, r) => sum + r.rating, 0) / p.reviews.length : 0,
-    //   reviewCount: p.reviews.length,
-    //   stock: p.stock,
-    // }));
-    console.log('[DB] Getting product analytics for seller:', sellerId);
-    return [];
-  },
-
-  async getSellerOrders(
-    sellerId: string,
-    page: number,
-    limit: number,
-  ): Promise<{ items: RecentOrderItem[]; total: number }> {
-    // Replace with:
-    // const skip = (page - 1) * limit;
-    // const where = { items: { some: { product: { sellerId } } } };
-    // const [orders, total] = await Promise.all([
-    //   db.order.findMany({
-    //     where,
-    //     skip,
-    //     take: limit,
-    //     include: { items: { where: { product: { sellerId } }, include: { product: true } } },
-    //     orderBy: { createdAt: 'desc' },
-    //   }),
-    //   db.order.count({ where }),
-    // ]);
-    console.log('[DB] Getting orders for seller:', sellerId, 'page:', page);
-    return { items: [], total: 0 };
-  },
-
-  async getSellerRecentOrders(sellerId: string, limit: number): Promise<RecentOrderItem[]> {
-    // Replace with:
-    // const orders = await db.order.findMany({
-    //   where: { items: { some: { product: { sellerId } } } },
-    //   include: { items: { where: { product: { sellerId } }, include: { product: true } }, user: true },
-    //   orderBy: { createdAt: 'desc' },
-    //   take: limit,
-    // });
-    console.log('[DB] Getting recent orders for seller:', sellerId);
-    return [];
-  },
-
-  async getSellerRecentReviews(sellerId: string, limit: number): Promise<RecentReviewItem[]> {
-    // Replace with:
-    // return db.review.findMany({
-    //   where: { product: { sellerId } },
-    //   include: { product: { select: { title: true } } },
-    //   orderBy: { createdAt: 'desc' },
-    //   take: limit,
-    // });
-    console.log('[DB] Getting recent reviews for seller:', sellerId);
-    return [];
-  },
-
-  async getSellerRevenue(
-    sellerId: string,
-    period: 'daily' | 'weekly' | 'monthly',
-    startDate?: Date,
-    endDate?: Date,
-  ): Promise<SellerRevenueData[]> {
-    // Replace with: groupBy aggregation on order items linked to seller products
-    // Filter by date range, group by period (day/week/month)
-    console.log('[DB] Getting revenue for seller:', sellerId, 'period:', period);
-    return [];
-  },
-};
-
 // =============================================================================
 // Seller Service
 // =============================================================================
 
 export class SellerService {
+  constructor(private db: PrismaClient) {}
+
   /**
    * Get aggregate stats for a seller's dashboard (revenue in cents)
    */
   async getDashboardStats(sellerId: string): Promise<SellerStats> {
-    const stats = await dbOperations.getSellerStats(sellerId);
+    const [totalProducts, activeProducts, ratingData] = await Promise.all([
+      this.db.product.count({ where: { sellerId } }),
+      this.db.product.count({ where: { sellerId, status: 'ACTIVE' } }),
+      this.db.productReview.aggregate({
+        where: { product: { sellerId } },
+        _avg: { rating: true },
+      }),
+    ]);
+
+    // Count orders that contain this seller's products via OrderItem -> productId -> Product.sellerId
+    // We need to find order items for this seller's products
+    const sellerOrderItems = await this.db.orderItem.findMany({
+      where: {
+        productId: {
+          in: (
+            await this.db.product.findMany({
+              where: { sellerId },
+              select: { id: true },
+            })
+          ).map((p) => p.id),
+        },
+      },
+      select: { orderId: true, totalPrice: true },
+    });
+
+    const uniqueOrderIds = new Set(sellerOrderItems.map((i) => i.orderId));
+    const totalRevenue = sellerOrderItems.reduce((sum, i) => sum + i.totalPrice, 0);
+
     return {
-      ...stats,
-      avgRating: Math.round(stats.avgRating * 10) / 10,
+      totalProducts,
+      activeProducts,
+      totalOrders: uniqueOrderIds.size,
+      totalRevenue,
+      avgRating: Math.round((ratingData._avg.rating || 0) * 10) / 10,
     };
   }
 
@@ -192,22 +87,103 @@ export class SellerService {
    * Get per-product analytics for a seller (revenue in cents)
    */
   async getProductAnalytics(sellerId: string): Promise<ProductAnalytics[]> {
-    return dbOperations.getSellerProductAnalytics(sellerId);
+    const products = await this.db.product.findMany({
+      where: { sellerId },
+      include: {
+        reviews: { select: { rating: true } },
+      },
+    });
+
+    // Get order items for all seller products
+    const productIds = products.map((p) => p.id);
+    const orderItems = await this.db.orderItem.findMany({
+      where: { productId: { in: productIds } },
+      select: { productId: true, quantity: true, totalPrice: true },
+    });
+
+    // Group order items by product
+    const orderItemsByProduct = new Map<string, typeof orderItems>();
+    for (const item of orderItems) {
+      const list = orderItemsByProduct.get(item.productId) || [];
+      list.push(item);
+      orderItemsByProduct.set(item.productId, list);
+    }
+
+    return products.map((p) => {
+      const items = orderItemsByProduct.get(p.id) || [];
+      const totalOrders = items.reduce((sum, i) => sum + i.quantity, 0);
+      const totalRevenue = items.reduce((sum, i) => sum + i.totalPrice, 0);
+      const avgRating =
+        p.reviews.length > 0
+          ? p.reviews.reduce((sum, r) => sum + r.rating, 0) / p.reviews.length
+          : 0;
+
+      return {
+        productId: p.id,
+        productTitle: p.title,
+        totalOrders,
+        totalRevenue,
+        avgRating: Math.round(avgRating * 10) / 10,
+        reviewCount: p.reviews.length,
+        stock: p.stock,
+      };
+    });
   }
 
   /**
    * Get paginated orders containing seller's products
    */
   async getOrders(sellerId: string, page = 1, limit = 20) {
-    const result = await dbOperations.getSellerOrders(sellerId, page, limit);
+    const skip = (page - 1) * limit;
+
+    // Get seller's product IDs
+    const sellerProductIds = (
+      await this.db.product.findMany({
+        where: { sellerId },
+        select: { id: true },
+      })
+    ).map((p) => p.id);
+
+    const where = {
+      items: { some: { productId: { in: sellerProductIds } } },
+    };
+
+    const [orders, total] = await Promise.all([
+      this.db.ecommerceOrder.findMany({
+        where,
+        skip,
+        take: limit,
+        include: {
+          items: {
+            where: { productId: { in: sellerProductIds } },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.db.ecommerceOrder.count({ where }),
+    ]);
+
+    // Map to the expected shape
+    const items = orders.flatMap((order) =>
+      order.items.map((item) => ({
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        customerName: order.userId, // userId as placeholder; join User table if available
+        productTitle: item.productTitle,
+        quantity: item.quantity,
+        total: item.totalPrice,
+        status: order.status,
+        createdAt: order.createdAt,
+      })),
+    );
 
     return {
-      items: result.items,
+      items,
       pagination: {
         page,
         limit,
-        total: result.total,
-        totalPages: Math.ceil(result.total / limit),
+        total,
+        totalPages: Math.ceil(total / limit),
       },
     };
   }
@@ -216,14 +192,58 @@ export class SellerService {
    * Get recent orders across all seller products
    */
   async getRecentOrders(sellerId: string, limit = 10) {
-    return dbOperations.getSellerRecentOrders(sellerId, limit);
+    const sellerProductIds = (
+      await this.db.product.findMany({
+        where: { sellerId },
+        select: { id: true },
+      })
+    ).map((p) => p.id);
+
+    const orders = await this.db.ecommerceOrder.findMany({
+      where: {
+        items: { some: { productId: { in: sellerProductIds } } },
+      },
+      include: {
+        items: {
+          where: { productId: { in: sellerProductIds } },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
+
+    return orders.flatMap((order) =>
+      order.items.map((item) => ({
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        customerName: order.userId,
+        productTitle: item.productTitle,
+        quantity: item.quantity,
+        total: item.totalPrice,
+        status: order.status,
+        createdAt: order.createdAt,
+      })),
+    );
   }
 
   /**
    * Get recent reviews across all seller products
    */
   async getRecentReviews(sellerId: string, limit = 10) {
-    return dbOperations.getSellerRecentReviews(sellerId, limit);
+    const reviews = await this.db.productReview.findMany({
+      where: { product: { sellerId } },
+      include: { product: { select: { title: true } } },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
+
+    return reviews.map((r) => ({
+      rating: r.rating,
+      comment: r.comment,
+      productTitle: r.product.title,
+      userName: r.userName,
+      createdAt: r.createdAt,
+    }));
   }
 
   /**
@@ -235,7 +255,68 @@ export class SellerService {
     startDate?: Date,
     endDate?: Date,
   ): Promise<SellerRevenueData[]> {
-    return dbOperations.getSellerRevenue(sellerId, period, startDate, endDate);
+    // Get seller's product IDs
+    const sellerProductIds = (
+      await this.db.product.findMany({
+        where: { sellerId },
+        select: { id: true },
+      })
+    ).map((p) => p.id);
+
+    if (sellerProductIds.length === 0) return [];
+
+    // Build date filter
+    const dateFilter: Record<string, unknown> = {};
+    if (startDate) dateFilter.gte = startDate;
+    if (endDate) dateFilter.lte = endDate;
+
+    // Get orders containing seller's products within the date range
+    const orders = await this.db.ecommerceOrder.findMany({
+      where: {
+        items: { some: { productId: { in: sellerProductIds } } },
+        status: { not: 'CANCELLED' },
+        ...(Object.keys(dateFilter).length > 0 ? { createdAt: dateFilter } : {}),
+      },
+      include: {
+        items: {
+          where: { productId: { in: sellerProductIds } },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    // Group by period
+    const buckets = new Map<string, { amount: number; orders: Set<string> }>();
+
+    for (const order of orders) {
+      const date = order.createdAt;
+      let key: string;
+
+      if (period === 'daily') {
+        key = date.toISOString().slice(0, 10);
+      } else if (period === 'weekly') {
+        // ISO week start (Monday)
+        const d = new Date(date);
+        const day = d.getDay();
+        const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+        d.setDate(diff);
+        key = d.toISOString().slice(0, 10);
+      } else {
+        key = date.toISOString().slice(0, 7);
+      }
+
+      const bucket = buckets.get(key) || { amount: 0, orders: new Set<string>() };
+      const sellerRevenue = order.items.reduce((sum, item) => sum + item.totalPrice, 0);
+      bucket.amount += sellerRevenue;
+      bucket.orders.add(order.id);
+      buckets.set(key, bucket);
+    }
+
+    return Array.from(buckets.entries()).map(([period, data]) => ({
+      period,
+      amount: data.amount,
+      orders: data.orders.size,
+    }));
   }
 }
 
@@ -243,11 +324,17 @@ export class SellerService {
 // Factory
 // =============================================================================
 
+export function createSellerService(db: PrismaClient): SellerService {
+  return new SellerService(db);
+}
+
 let sellerServiceInstance: SellerService | null = null;
 
-export function getSellerService(): SellerService {
+export function getSellerService(db?: PrismaClient): SellerService {
+  if (db) return createSellerService(db);
   if (!sellerServiceInstance) {
-    sellerServiceInstance = new SellerService();
+    const { db: globalDb } = require('../../../../core/backend/src/lib/db.js');
+    sellerServiceInstance = new SellerService(globalDb);
   }
   return sellerServiceInstance;
 }

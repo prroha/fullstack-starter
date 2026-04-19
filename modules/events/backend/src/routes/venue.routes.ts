@@ -1,12 +1,15 @@
 import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
-import { getVenueService } from '../services/venue.service.js';
+import { VenueService } from '../services/venue.service.js';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
+import type { PrismaClient } from '@prisma/client';
 
 // =============================================================================
-// Routes
+// Helpers
 // =============================================================================
 
-const venueService = getVenueService();
+function svc(req: FastifyRequest): VenueService {
+  return new VenueService((req as FastifyRequest & { db?: PrismaClient }).db!);
+}
 
 // =============================================================================
 // Venue Endpoints (All Authenticated)
@@ -21,7 +24,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/stats', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
 
-    const stats = await venueService.getStats(authReq.user.userId);
+    const stats = await svc(req).getStats(authReq.user.userId);
     return reply.send({ success: true, data: stats });
   });
 
@@ -33,7 +36,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { search, isVirtual, page, limit } = req.query as Record<string, string>;
 
-    const result = await venueService.list(authReq.user.userId, {
+    const result = await svc(req).list(authReq.user.userId, {
       search,
       isVirtual: isVirtual === 'true' ? true : isVirtual === 'false' ? false : undefined,
       page: page ? Number(page) : 1,
@@ -51,7 +54,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { id } = req.params as { id: string };
 
-    const venue = await venueService.getById(id, authReq.user.userId);
+    const venue = await svc(req).getById(id, authReq.user.userId);
     if (!venue) {
       return reply.code(404).send({ error: 'Venue not found' });
     }
@@ -70,7 +73,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'name is required' });
     }
 
-    const venue = await venueService.create({
+    const venue = await svc(req).create({
       userId: authReq.user.userId,
       name,
       address,
@@ -80,7 +83,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
       capacity,
       isVirtual,
       meetingUrl,
-    });
+    } as Parameters<VenueService['create']>[0]);
 
     return reply.code(201).send({ success: true, data: venue });
   });
@@ -94,7 +97,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const { id } = req.params as { id: string };
     const { name, address, city, state, country, capacity, isVirtual, meetingUrl } = req.body as Record<string, unknown>;
 
-    const venue = await venueService.update(id, authReq.user.userId, {
+    const venue = await svc(req).update(id, authReq.user.userId, {
       name,
       address,
       city,
@@ -103,7 +106,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
       capacity,
       isVirtual,
       meetingUrl,
-    });
+    } as Parameters<VenueService['update']>[2]);
 
     if (!venue) {
       return reply.code(404).send({ error: 'Venue not found' });
@@ -120,7 +123,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { id } = req.params as { id: string };
 
-    await venueService.delete(id, authReq.user.userId);
+    await svc(req).delete(id, authReq.user.userId);
     return reply.send({ success: true, message: 'Venue deleted' });
   });
 };

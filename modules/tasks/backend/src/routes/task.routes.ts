@@ -1,9 +1,10 @@
 import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
-import { getTaskService } from '../services/task.service.js';
-import { getCommentService } from '../services/comment.service.js';
-import { getLabelService } from '../services/label.service.js';
+import { TaskService } from '../services/task.service.js';
+import { CommentService } from '../services/comment.service.js';
+import { LabelService } from '../services/label.service.js';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
+import type { PrismaClient } from '@prisma/client';
 
 // =============================================================================
 // Validation Schemas
@@ -20,12 +21,20 @@ const createTaskSchema = z.object({
 });
 
 // =============================================================================
-// Routes
+// Helpers
 // =============================================================================
 
-const taskService = getTaskService();
-const commentService = getCommentService();
-const labelService = getLabelService();
+function taskSvc(req: FastifyRequest): TaskService {
+  return new TaskService((req as FastifyRequest & { db?: PrismaClient }).db!);
+}
+
+function commentSvc(req: FastifyRequest): CommentService {
+  return new CommentService((req as FastifyRequest & { db?: PrismaClient }).db!);
+}
+
+function labelSvc(req: FastifyRequest): LabelService {
+  return new LabelService((req as FastifyRequest & { db?: PrismaClient }).db!);
+}
 
 // =============================================================================
 // Task Endpoints (All Authenticated)
@@ -40,7 +49,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/stats', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const authReq = req as AuthenticatedRequest;
 
-    const stats = await taskService.getDashboardStats(authReq.user.userId);
+    const stats = await taskSvc(req).getDashboardStats(authReq.user.userId);
     return reply.send({ success: true, data: stats });
   });
 
@@ -57,7 +66,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'ids array is required' });
     }
 
-    await taskService.reorder(authReq.user.userId, ids);
+    await taskSvc(req).reorder(authReq.user.userId, ids);
     return reply.send({ success: true, message: 'Tasks reordered' });
   });
 
@@ -69,7 +78,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { search, status, priority, projectId, assigneeId, labelId, dueBefore, dueAfter, showCompleted, page, limit } = req.query as Record<string, string>;
 
-    const result = await taskService.list(authReq.user.userId, {
+    const result = await taskSvc(req).list(authReq.user.userId, {
       search,
       status,
       priority,
@@ -94,7 +103,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { id } = req.params as { id: string };
 
-    const task = await taskService.getById(id, authReq.user.userId);
+    const task = await taskSvc(req).getById(id, authReq.user.userId);
     if (!task) {
       return reply.code(404).send({ error: 'Task not found' });
     }
@@ -109,7 +118,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { title, description, projectId, assigneeId, status, priority, dueDate } = createTaskSchema.parse(req.body);
 
-    const task = await taskService.create({
+    const task = await taskSvc(req).create({
       userId: authReq.user.userId,
       title,
       description,
@@ -132,7 +141,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const { id } = req.params as { id: string };
     const { title, description, projectId, assigneeId, status, priority, dueDate } = req.body as Record<string, unknown>;
 
-    const task = await taskService.update(id, authReq.user.userId, {
+    const task = await taskSvc(req).update(id, authReq.user.userId, {
       title,
       description,
       projectId,
@@ -157,7 +166,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { id } = req.params as { id: string };
 
-    await taskService.delete(id, authReq.user.userId);
+    await taskSvc(req).delete(id, authReq.user.userId);
     return reply.send({ success: true, message: 'Task deleted' });
   });
 
@@ -174,7 +183,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'status is required' });
     }
 
-    const task = await taskService.changeStatus(id, authReq.user.userId, status);
+    const task = await taskSvc(req).changeStatus(id, authReq.user.userId, status);
     if (!task) {
       return reply.code(404).send({ error: 'Task not found' });
     }
@@ -190,7 +199,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const { id } = req.params as { id: string };
     const { assigneeId } = req.body as { assigneeId: string };
 
-    const task = await taskService.assign(id, authReq.user.userId, assigneeId || null);
+    const task = await taskSvc(req).assign(id, authReq.user.userId, assigneeId || null);
     if (!task) {
       return reply.code(404).send({ error: 'Task not found' });
     }
@@ -209,7 +218,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { id } = req.params as { id: string };
 
-    const comments = await commentService.listByTask(id, authReq.user.userId);
+    const comments = await commentSvc(req).listByTask(id, authReq.user.userId);
     return reply.send({ success: true, data: comments });
   });
 
@@ -226,7 +235,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'content is required' });
     }
 
-    const comment = await commentService.create({
+    const comment = await commentSvc(req).create({
       taskId: id,
       userId: authReq.user.userId,
       content,
@@ -252,7 +261,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'labelId is required' });
     }
 
-    await labelService.addToTask(id, labelId, authReq.user.userId);
+    await labelSvc(req).addToTask(id, labelId, authReq.user.userId);
     return reply.send({ success: true, message: 'Label added to task' });
   });
 
@@ -264,7 +273,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { id, labelId } = req.params as { id: string; labelId: string };
 
-    await labelService.removeFromTask(id, labelId, authReq.user.userId);
+    await labelSvc(req).removeFromTask(id, labelId, authReq.user.userId);
     return reply.send({ success: true, message: 'Label removed from task' });
   });
 };

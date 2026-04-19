@@ -1,7 +1,8 @@
 import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
-import { getCourseService } from '../services/course.service.js';
+import { CourseService } from '../services/course.service.js';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
+import type { PrismaClient } from '@prisma/client';
 
 // =============================================================================
 // Validation Schemas
@@ -21,16 +22,22 @@ const createCourseSchema = z.object({
 });
 
 // =============================================================================
+// Helper
+// =============================================================================
+
+function svc(req: FastifyRequest): CourseService {
+  return new CourseService((req as FastifyRequest & { db?: PrismaClient }).db!);
+}
+
+// =============================================================================
 // Routes
 // =============================================================================
 
-const courseService = getCourseService();
-
-// =============================================================================
-// Public Endpoints
-// =============================================================================
-
 const routes: FastifyPluginAsync = async (fastify) => {
+  // =============================================================================
+  // Public Endpoints
+  // =============================================================================
+
   /**
    * GET /courses
    * List published courses with filtering and pagination
@@ -38,7 +45,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/', async (req: FastifyRequest, reply: FastifyReply) => {
     const { search, category, level, minPrice, maxPrice, page, limit } = req.query as Record<string, string>;
 
-    const result = await courseService.listCourses({
+    const result = await svc(req).listCourses({
       status: 'PUBLISHED',
       search,
       categorySlug: category,
@@ -56,8 +63,8 @@ const routes: FastifyPluginAsync = async (fastify) => {
    * GET /courses/categories
    * List all course categories
    */
-  fastify.get('/categories', async (_req: FastifyRequest, reply: FastifyReply) => {
-    const categories = await courseService.listCategories();
+  fastify.get('/categories', async (req: FastifyRequest, reply: FastifyReply) => {
+    const categories = await svc(req).listCategories();
     return reply.send({ success: true, data: categories });
   });
 
@@ -67,7 +74,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
    */
   fastify.get('/:slug', async (req: FastifyRequest, reply: FastifyReply) => {
     const { slug } = req.params as { slug: string };
-    const course = await courseService.getCourseBySlug(slug);
+    const course = await svc(req).getCourseBySlug(slug);
     if (!course) {
       return reply.code(404).send({ error: 'Course not found' });
     }
@@ -86,7 +93,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const authReq = req as AuthenticatedRequest;
     const { title, description, shortDescription, thumbnailUrl, price, compareAtPrice, level, language, maxStudents, categoryIds } = createCourseSchema.parse(req.body);
 
-    const course = await courseService.createCourse({
+    const course = await svc(req).createCourse({
       title,
       description,
       shortDescription,
@@ -111,7 +118,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
     const { id } = req.params as { id: string };
     const { title, description, shortDescription, thumbnailUrl, price, compareAtPrice, level, language, maxStudents, categoryIds } = req.body as Record<string, unknown>;
 
-    const course = await courseService.updateCourse(id, {
+    const course = await svc(req).updateCourse(id, {
       title,
       description,
       shortDescription,
@@ -137,7 +144,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
    */
   fastify.delete('/:id', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const { id } = req.params as { id: string };
-    await courseService.deleteCourse(id);
+    await svc(req).deleteCourse(id);
     return reply.send({ success: true, message: 'Course deleted' });
   });
 
@@ -147,7 +154,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
    */
   fastify.post('/:id/publish', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const { id } = req.params as { id: string };
-    const course = await courseService.publishCourse(id);
+    const course = await svc(req).publishCourse(id);
     if (!course) {
       return reply.code(404).send({ error: 'Course not found' });
     }
@@ -160,7 +167,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
    */
   fastify.post('/:id/unpublish', { preHandler: [authMiddleware] }, async (req: FastifyRequest, reply: FastifyReply) => {
     const { id } = req.params as { id: string };
-    const course = await courseService.unpublishCourse(id);
+    const course = await svc(req).unpublishCourse(id);
     if (!course) {
       return reply.code(404).send({ error: 'Course not found' });
     }
@@ -182,7 +189,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'Category name is required' });
     }
 
-    const category = await courseService.createCategory({ name, description, iconName });
+    const category = await svc(req).createCategory({ name, description, iconName });
     return reply.code(201).send({ success: true, data: category });
   });
 

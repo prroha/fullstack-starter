@@ -38,20 +38,20 @@ export default function EventCalendarPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="bg-background">
       <div className="border-b bg-card">
-        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight text-foreground">Calendar</h1>
-              <p className="mt-1 text-muted-foreground">View events on a calendar</p>
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">Calendar</h1>
+              <p className="mt-1 text-sm text-muted-foreground">View events on a calendar</p>
             </div>
-            <Button onClick={() => router.push("/events/new")}>New Event</Button>
+            <Button size="sm" onClick={() => router.push("/events/new")}>New Event</Button>
           </div>
         </div>
       </div>
 
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         {error && (<Alert variant="destructive" className="mb-6">{error}</Alert>)}
 
         {loading ? (
